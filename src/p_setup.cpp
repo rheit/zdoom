@@ -125,6 +125,9 @@ side_t* 		sides;
 int				numzones;
 zone_t*			zones;
 
+int				numlights;
+light_t*		lights;
+
 node_t * 		gamenodes;
 int 			numgamenodes;
 
@@ -210,6 +213,9 @@ static int GetMapIndex(const char *mapname, int lastindex, const char *lumpname,
 		{"SECTORS",	 true},
 		{"REJECT",	 false},
 		{"BLOCKMAP", false},
+		{"LEAFS",	 false},
+		{"LIGHTS",	 false},
+		{"MACROS",	 false},
 		{"BEHAVIOR", false},
 		//{"SCRIPTS",	 false},
 	};
@@ -380,7 +386,20 @@ MapData *P_OpenMapData(const char * mapname)
 					strncpy(map->MapLumps[index].Name, lumpname, 8);
 				}
 			}
-			return map;
+
+			const char* lumpname = Wads.GetLumpFullName(lump_name + 1);
+			if(stricmp(lumpname, "THINGS") != 0)
+			{
+				DWORD id;
+				map->file = Wads.ReopenLumpNum(lump_name);
+				map->file->Read(&id, sizeof(id));
+				if (id != IWAD_ID && id != PWAD_ID)
+					return map;
+				else
+					map->file = Wads.ReopenLumpNum(lump_name);
+			}
+			else
+				return map;
 		}
 		else
 		{
@@ -471,6 +490,7 @@ MapData *P_OpenMapData(const char * mapname)
 			{
 				index = GetMapIndex(maplabel, index, lumpname, true);
 				if (index == ML_BEHAVIOR) map->HasBehavior = true;
+				else if (index == ML_MACROS) map->isDoom64 = true;
 
 				// The next lump is not part of this map anymore
 				if (index < 0) break;
@@ -614,6 +634,33 @@ void SetTexture (sector_t *sector, int index, int position, const char *name8)
 	sector->SetTexture(position, texture);
 }
 
+static void SetD64Texture (side_t *side, int position, WORD hash)
+{
+	static const char *positionnames[] = { "top", "middle", "bottom" };
+	static const char *sidenames[] = { "first", "second" };
+	if(hash == 111) hash = 0;
+	FTextureID texture = TexMan.FromD64Hash (hash);
+
+	if (!texture.Exists())
+	{
+		// Print an error that lists all references to this sidedef.
+		// We must scan the linedefs manually for all references to this sidedef.
+		for(int i = 0; i < numlines; i++)
+		{
+			for(int j = 0; j < 2; j++)
+			{
+				if (lines[i].sidedef[j] == side)
+				{
+					Printf("Unknown %s texture hash %x on %s side of linedef %d\n",
+						positionnames[position], hash, sidenames[j], i);
+				}
+			}
+		}
+		texture = TexMan.GetDefaultTexture();
+	}
+	side->SetTexture(position, texture);
+}
+
 //===========================================================================
 //
 // [RH] Figure out blends for deep water sectors
@@ -649,6 +696,20 @@ static void SetTexture (side_t *side, int position, DWORD *blend, char *name8)
 		texture = FNullTextureID();
 	}
 	side->SetTexture(position, texture);
+}
+
+void SetD64Texture (sector_t *sector, int index, int position, WORD hash)
+{
+	static const char *positionnames[] = { "floor", "ceiling" };
+	FTextureID texture = TexMan.FromD64Hash (hash);
+
+	if (!texture.Exists())
+	{
+		Printf("Unknown %s texture hash %x in sector %d\n",
+			positionnames[position], hash, index);
+		texture = TexMan.GetDefaultTexture();
+	}
+	sector->SetTexture(position, texture);
 }
 
 static void SetTextureNoErr (side_t *side, int position, DWORD *color, char *name8, bool *validcolor)
@@ -754,7 +815,7 @@ void P_LoadVertexes (MapData * map)
 
 	// Determine number of vertices:
 	//	total lump length / vertex record length.
-	numvertexes = map->MapLumps[ML_VERTEXES].Size / sizeof(mapvertex_t);
+	numvertexes = map->MapLumps[ML_VERTEXES].Size / (map->isDoom64 ? sizeof(mapvertexdoom64_t) : sizeof(mapvertex_t));
 
 	if (numvertexes == 0)
 	{
@@ -765,15 +826,30 @@ void P_LoadVertexes (MapData * map)
 	vertexes = new vertex_t[numvertexes];		
 
 	map->Seek(ML_VERTEXES);
-		
-	// Copy and convert vertex coordinates, internal representation as fixed.
-	for (i = 0; i < numvertexes; i++)
-	{
-		SWORD x, y;
 
-		(*map->file) >> x >> y;
-		vertexes[i].x = x << FRACBITS;
-		vertexes[i].y = y << FRACBITS;
+	if(!map->isDoom64)
+	{
+		// Copy and convert vertex coordinates, internal representation as fixed.
+		for (i = 0; i < numvertexes; i++)
+		{
+			SWORD x, y;
+
+			(*map->file) >> x >> y;
+			vertexes[i].x = x << FRACBITS;
+			vertexes[i].y = y << FRACBITS;
+		}
+	}
+	else
+	{
+		// [BL] Doom 64 maps used fixed point for vertex coordinates.
+		for (i = 0; i < numvertexes; i++)
+		{
+			DWORD x, y;
+
+			(*map->file) >> x >> y;
+			vertexes[i].x = x;
+			vertexes[i].y = y;
+		}
 	}
 }
 
@@ -1446,6 +1522,114 @@ void P_LoadSectors (MapData * map)
 				normMap = GetSpecialLights (PalEntry (255,255,255), level.fadeto, NormalLight.Desaturate);
 			ss->ColorMap = normMap;
 		}
+		for(int j = 0;j < 5;j++)
+			ss->ExtraColorMaps[j] = ss->ColorMap;
+
+		// killough 8/28/98: initialize all sectors to normal friction
+		ss->friction = ORIG_FRICTION;
+		ss->movefactor = ORIG_FRICTION_FACTOR;
+		ss->sectornum = i;
+	}
+	delete[] msp;
+}
+
+// Doom 64
+void P_LoadSectors2 (MapData * map)
+{
+	char				fname[9];
+	int 				i;
+	char				*msp;
+	mapsectordoom64_t	*ms;
+	sector_t*			ss;
+	int					defSeqType;
+	FDynamicColormap	*fogMap, *normMap;
+	int					lumplen = map->Size(ML_SECTORS);
+
+	numsectors = lumplen / sizeof(mapsectordoom64_t);
+	sectors = new sector_t[numsectors];		
+	memset (sectors, 0, numsectors*sizeof(sector_t));
+
+	if (level.flags & LEVEL_SNDSEQTOTALCTRL)
+		defSeqType = 0;
+	else
+		defSeqType = -1;
+
+	fogMap = normMap = NULL;
+	fname[8] = 0;
+
+	msp = new char[lumplen];
+	map->Read(ML_SECTORS, msp);
+	ms = (mapsectordoom64_t*)msp;
+	ss = sectors;
+	
+	// Extended properties
+	sectors[0].e = new extsector_t[numsectors];
+
+	for (i = 0; i < numsectors; i++, ss++, ms++)
+	{
+		ss->e = &sectors[0].e[i];
+		if (!map->HasBehavior) ss->Flags |= SECF_FLOORDROP;
+		ss->SetPlaneTexZ(sector_t::floor, LittleShort(ms->floorheight)<<FRACBITS);
+		ss->floorplane.d = -ss->GetPlaneTexZ(sector_t::floor);
+		ss->floorplane.c = FRACUNIT;
+		ss->floorplane.ic = FRACUNIT;
+		ss->SetPlaneTexZ(sector_t::ceiling, LittleShort(ms->ceilingheight)<<FRACBITS);
+		ss->ceilingplane.d = ss->GetPlaneTexZ(sector_t::ceiling);
+		ss->ceilingplane.c = -FRACUNIT;
+		ss->ceilingplane.ic = -FRACUNIT;
+		SetD64Texture(ss, i, sector_t::floor, LittleShort(ms->floorpic));
+		SetD64Texture(ss, i, sector_t::ceiling, LittleShort(ms->ceilingpic));
+		ss->lightlevel = 255;//(BYTE)clamp (LittleShort(ms->lightlevel), (short)0, (short)255);
+		ss->special = LittleShort(ms->special);
+		ss->secretsector = !!(ss->special&SECRET_MASK);
+		ss->tag = LittleShort(ms->tag);
+		ss->thinglist = NULL;
+		ss->touching_thinglist = NULL;		// phares 3/14/98
+		ss->seqType = defSeqType;
+		ss->nextsec = -1;	//jff 2/26/98 add fields to support locking out
+		ss->prevsec = -1;	// stair retriggering until build completes
+
+		// killough 3/7/98:
+		ss->SetXScale(sector_t::floor, FRACUNIT);	// [RH] floor and ceiling scaling
+		ss->SetYScale(sector_t::floor, FRACUNIT);
+		ss->SetXScale(sector_t::ceiling, FRACUNIT);
+		ss->SetYScale(sector_t::ceiling, FRACUNIT);
+
+		ss->heightsec = NULL;	// sector used to get floor and ceiling height
+		// killough 3/7/98: end changes
+
+		ss->gravity = 1.f;	// [RH] Default sector gravity of 1.0
+		ss->ZoneNumber = 0xFFFF;
+
+		// [RH] Sectors default to white light with the default fade.
+		//		If they are outside (have a sky ceiling), they use the outside fog.
+		if (level.outsidefog != 0xff000000 && (ss->GetTexture(sector_t::ceiling) == skyflatnum || (ss->special&0xff) == Sector_Outside))
+		{
+			if (fogMap == NULL)
+				fogMap = GetSpecialLights (PalEntry (255,255,255), level.outsidefog, 0);
+			ss->ColorMap = fogMap;
+		}
+		else
+		{
+			if (normMap == NULL)
+				normMap = GetSpecialLights (PalEntry (255,255,255), level.fadeto, NormalLight.Desaturate);
+			ss->ColorMap = normMap;
+		}
+
+		light_t &light = lights[LittleShort(ms->colors[LIGHT_THING])];
+		ss->ExtraColorMaps[LIGHT_THING] = light.ColorMap;
+		light = lights[LittleShort(ms->colors[LIGHT_FLOOR])];
+		ss->ExtraColorMaps[LIGHT_FLOOR] = light.ColorMap;
+		light = lights[LittleShort(ms->colors[LIGHT_CEILING])];
+		ss->ExtraColorMaps[LIGHT_CEILING] = light.ColorMap;
+		const PalEntry upper = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])].ColorMap->Color;
+		const PalEntry lower = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])].ColorMap->Color;
+		ss->ExtraColorMaps[LIGHT_WALLUPPER] = ss->ExtraColorMaps[LIGHT_WALLLOWER] =
+			GetSpecialLights (PalEntry ((upper.r+lower.r)/2,(upper.g+lower.g)/2,(upper.b+lower.b)/2), level.fadeto, NormalLight.Desaturate);
+		/*light = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])];
+		ss->ExtraColorMaps[LIGHT_WALLUPPER] = light.ColorMap;
+		light = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])];
+		ss->ExtraColorMaps[LIGHT_WALLLOWER] = light.ColorMap;*/
 
 		// killough 8/28/98: initialize all sectors to normal friction
 		ss->friction = ORIG_FRICTION;
@@ -1689,6 +1873,44 @@ void P_LoadThings2 (MapData * map)
 	delete[] mtp;
 }
 
+// Doom 64
+void P_LoadThings3 (MapData * map)
+{
+	int	lumplen = map->MapLumps[ML_THINGS].Size;
+	int numthings = lumplen / sizeof(mapthingdoom64_t);
+ 
+	char *mtp;
+
+	MapThingsConverted.Resize(numthings);
+	FMapThing *mti = &MapThingsConverted[0];
+
+	mtp = new char[lumplen];
+	map->Read(ML_THINGS, mtp);
+	mapthingdoom64_t *mth = (mapthingdoom64_t*)mtp;
+
+	for(int i = 0; i< numthings; i++)
+	{
+		memset(&mti[i], 0, sizeof(mti[i]));
+
+		short flags = LittleShort(mth[i].options);
+		mti[i].SkillFilter = MakeSkill(flags);
+		flags &= ~MTF_SKILLMASK;
+
+		mti[i].x = LittleShort(mth[i].x)<<FRACBITS;
+		mti[i].y = LittleShort(mth[i].y)<<FRACBITS;
+		mti[i].z = LittleShort(mth[i].z)<<FRACBITS;
+		mti[i].angle = LittleShort(mth[i].angle);
+		mti[i].type = LittleShort(mth[i].type);
+		mti[i].flags = (short)((flags & 0xf) | 0x7e0);
+		mti[i].thingid = LittleShort(mth[i].thingid);
+		mti[i].ClassFilter = 0xffff; // No classes in Doom 64 either.
+
+		if (flags & D64TF_NOTSINGLE)		mti[i].flags &= ~MTF_SINGLE;
+		if (flags & D64TF_NOTDEATHMATCH)	mti[i].flags &= ~MTF_DEATHMATCH;
+		if (flags & D64TF_NOTMULTI)			mti[i].flags &= ~(MTF_DEATHMATCH|MTF_COOPERATIVE);
+	}
+	delete[] mtp;
+}
 
 void P_SpawnThings (int position)
 {
@@ -2101,6 +2323,92 @@ void P_LoadLineDefs2 (MapData * map)
 	delete[] mldf;
 }
 
+// Doom 64 LineDefs
+void P_LoadLineDefs3 (MapData * map)
+{
+	int i, skipped;
+	line_t *ld;
+	int lumplen = map->Size(ML_LINEDEFS);
+	char * mldf;
+	maplinedefdoom64_t *mld;
+		
+	numlines = lumplen / sizeof(maplinedefdoom64_t);
+	lines = new line_t[numlines];
+	linemap.Resize(numlines);
+	memset (lines, 0, numlines*sizeof(line_t));
+ 
+	mldf = new char[lumplen];
+	map->Read(ML_LINEDEFS, mldf);
+
+	// [RH] Count the number of sidedef references. This is the number of
+	// sidedefs we need. The actual number in the SIDEDEFS lump might be less.
+	// Lines with 0 length are also removed.
+
+	for (skipped = sidecount = i = 0; i < numlines; )
+	{
+		mld = ((maplinedefdoom64_t*)mldf) + i;
+		int v1 = LittleShort(mld->v1);
+		int v2 = LittleShort(mld->v2);
+
+		if (v1 >= numvertexes || v2 >= numvertexes)
+		{
+			delete [] mldf;
+			I_Error ("Line %d has invalid vertices: %d and/or %d.\nThe map only contains %d vertices.", i+skipped, v1, v2, numvertexes);
+		}
+		else if (v1 == v2 ||
+			(vertexes[LittleShort(mld->v1)].x == vertexes[LittleShort(mld->v2)].x &&
+			 vertexes[LittleShort(mld->v1)].y == vertexes[LittleShort(mld->v2)].y))
+		{
+			Printf ("Removing 0-length line %d\n", i+skipped);
+			memmove (mld, mld+1, sizeof(*mld)*(numlines-i-1));
+			ForceNodeBuild = true;
+			skipped++;
+			numlines--;
+		}
+		else
+		{
+			// patch missing first sides instead of crashing out.
+			// Visual glitches are better than not being able to play.
+			if (LittleShort(mld->sidenum[0]) == NO_INDEX)
+			{
+				Printf("Line %d has no first side.\n", i);
+				mld->sidenum[0] = 0;
+			}
+			sidecount++;
+			if (LittleShort(mld->sidenum[1]) != NO_INDEX)
+				sidecount++;
+			linemap[i] = i+skipped;
+			i++;
+		}
+	}
+
+	P_AllocateSideDefs (sidecount);
+
+	mld = (maplinedefdoom64_t *)mldf;
+	ld = lines;
+	for (i = numlines; i > 0; i--, mld++, ld++)
+	{
+		ld->Alpha = FRACUNIT;	// [RH] Opaque by default
+
+		// [RH] Translate old linedef special and flags to be
+		//		compatible with the new format.
+		P_TranslateLineDef (ld, mld);
+
+		ld->v1 = &vertexes[LittleShort(mld->v1)];
+		ld->v2 = &vertexes[LittleShort(mld->v2)];
+
+		P_SetSideNum (&ld->sidedef[0], LittleShort(mld->sidenum[0]));
+		P_SetSideNum (&ld->sidedef[1], LittleShort(mld->sidenum[1]));
+
+		P_AdjustLine (ld);
+		P_SaveLineSpecial (ld);
+		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
+		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
+		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
+	}
+	delete[] mldf;
+}
+
 
 //
 // P_LoadSideDefs
@@ -2108,7 +2416,7 @@ void P_LoadLineDefs2 (MapData * map)
 // killough 4/4/98: split into two functions
 void P_LoadSideDefs (MapData * map)
 {
-	numsides = map->Size(ML_SIDEDEFS) / sizeof(mapsidedef_t);
+	numsides = map->Size(ML_SIDEDEFS) / (map->isDoom64 ? sizeof(mapsidedefdoom64_t) : sizeof(mapsidedef_t));
 }
 
 static void P_AllocateSideDefs (int count)
@@ -2459,6 +2767,48 @@ void P_LoadSideDefs2 (MapData * map)
 	delete[] msdf;
 }
 
+// Doom 64
+void P_LoadSideDefs3 (MapData * map)
+{
+	int  i;
+	char * msdf = new char[map->Size(ML_SIDEDEFS)];
+	map->Read(ML_SIDEDEFS, msdf);
+ 
+	for (i = 0; i < numsides; i++)
+	{
+		mapsidedefdoom64_t *msd = ((mapsidedefdoom64_t*)msdf) + sidetemp[i].a.map;
+		side_t *sd = sides + i;
+		sector_t *sec;
+
+		sd->SetTextureXOffset(LittleShort(msd->textureoffset)<<FRACBITS);
+		sd->SetTextureYOffset(LittleShort(msd->rowoffset)<<FRACBITS);
+		sd->SetTextureXScale(FRACUNIT);
+		sd->SetTextureYScale(FRACUNIT);
+		sd->linedef = NULL;
+		sd->Flags = 0;
+		sd->Index = i;
+
+		// killough 4/4/98: allow sidedef texture names to be overloaded
+		// killough 4/11/98: refined to allow colormaps to work as wall
+		// textures if invalid as colormaps but valid as textures.
+
+		if ((unsigned)LittleShort(msd->sector)>=(unsigned)numsectors)
+		{
+			Printf (PRINT_HIGH, "Sidedef %d has a bad sector\n", i);
+			sd->sector = sec = NULL;
+		}
+		else
+		{
+			sd->sector = sec = &sectors[LittleShort(msd->sector)];
+		}
+		SetD64Texture (sd, side_t::bottom, msd->bottomtexture);
+		SetD64Texture (sd, side_t::mid, msd->midtexture);
+		SetD64Texture (sd, side_t::top, msd->toptexture);
+		//P_ProcessSideTextures(!map->HasBehavior, sd, sec, msd, 
+		//					  sidetemp[i].a.special, sidetemp[i].a.tag, &sidetemp[i].a.alpha);
+	}
+	delete[] msdf;
+}
 
 //
 // [RH] My own blockmap builder, not Killough's or TeamTNT's.
@@ -3268,6 +3618,39 @@ void P_LoadBehavior (MapData * map)
 	}
 }
 
+//
+// [BL] P_LoadLights
+// NOTE: Really really slow right now.
+//
+void P_LoadLights (MapData * map)
+{
+	int 				i;
+	char				*mlp;
+	maplight_t			*ml;
+	light_t*			lt;
+	int					lumplen = map->Size(ML_LIGHTS);
+
+	numlights = lumplen / sizeof(maplight_t);
+	lights = new light_t[numlights + 256];
+	memset (lights, 0, numsectors*sizeof(light_t));
+
+	mlp = new char[lumplen];
+	map->Read(ML_LIGHTS, mlp);
+	ml = (maplight_t*)mlp;
+	lt = lights;
+
+	for (i = 0; i < 256; i++, lt++)
+	{
+		lt->ColorMap = GetSpecialLights (PalEntry(i, i, i), level.fadeto, NormalLight.Desaturate);
+	}
+
+	for (i = 0; i < numlights; i++, lt++, ml++)
+	{
+		lt->ColorMap = GetSpecialLights (PalEntry(ml->r, ml->g, ml->b), level.fadeto, NormalLight.Desaturate);
+	}
+	delete[] mlp;
+}
+
 // Hash the sector tags across the sectors and linedefs.
 static void P_InitTagLists ()
 {
@@ -3465,6 +3848,11 @@ void P_FreeLevelData ()
 		delete[] zones;
 		zones = NULL;
 	}
+	if(lights != NULL)
+	{
+		delete[] lights;
+		lights = NULL;
+	}
 	P_FreeStrifeConversations ();
 	if (level.Scrolls != NULL)
 	{
@@ -3657,10 +4045,16 @@ void P_SetupLevel (char *lumpname, int position)
 			times[0].Clock();
 			P_LoadVertexes (map);
 			times[0].Unclock();
-			
+
+			if (map->isDoom64)
+				P_LoadLights (map);
+
 			// Check for maps without any BSP data at all (e.g. SLIGE)
 			times[1].Clock();
-			P_LoadSectors (map);
+			if (!map->isDoom64)
+				P_LoadSectors (map);
+			else
+				P_LoadSectors2 (map);
 			times[1].Unclock();
 
 			times[2].Clock();
@@ -3668,22 +4062,29 @@ void P_SetupLevel (char *lumpname, int position)
 			times[2].Unclock();
 
 			times[3].Clock();
-			if (!map->HasBehavior)
+			if (!map->HasBehavior && !map->isDoom64)
 				P_LoadLineDefs (map);
+			else if (map->isDoom64)
+				P_LoadLineDefs3 (map);
 			else
 				P_LoadLineDefs2 (map);	// [RH] Load Hexen-style linedefs
 			times[3].Unclock();
 
 			times[4].Clock();
-			P_LoadSideDefs2 (map);
+			if (!map->isDoom64)
+				P_LoadSideDefs2 (map);
+			else
+				P_LoadSideDefs3 (map);
 			times[4].Unclock();
 
 			times[5].Clock();
 			P_FinishLoadingLineDefs ();
 			times[5].Unclock();
 
-			if (!map->HasBehavior)
+			if (!map->HasBehavior && !map->isDoom64)
 				P_LoadThings (map);
+			else if (map->isDoom64)
+				P_LoadThings3 (map);
 			else
 				P_LoadThings2 (map);	// [RH] Load Hexen-style things
 
@@ -3700,6 +4101,9 @@ void P_SetupLevel (char *lumpname, int position)
 
 		linemap.Clear();
 		linemap.ShrinkToFit();
+
+		if (map->isDoom64)
+			ForceNodeBuild = true;
 	}
 	else
 	{

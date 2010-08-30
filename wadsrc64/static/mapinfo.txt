@@ -1,0 +1,181 @@
+gameinfo
+{
+	titlepage = "TITLEPIC"
+	creditpage = "CREDIT"
+	titlemusic = ""
+	titletime = 11
+	advisorytime = 0
+	pagetime = 5
+	chatsound = "misc/chat"
+	finalemusic = ""
+	finaleflat = "SLIME16"
+	finalepage = "CREDIT"
+	infopage = "CREDIT"
+	quitsound = "menu/quit2"
+	borderflat = "GRNROCK"
+	border = DoomBorder
+	telefogheight = 0
+	defkickback = 100
+	skyflatname = "F_SKYG"
+	translator = "xlat/doom64.txt"
+	mapinfo = "mapinfo/doom2.txt"
+	defaultbloodcolor = "68 00 00"
+	defaultbloodparticlecolor = "ff 00 00"
+	backpacktype = "Backpack"
+	armoricons = "ARM1A0", 0.5, "ARM2A0"
+	statusbar = "sbarinfo/doom.txt"
+	intermissionmusic = ""
+	intermissioncounter = true
+	weaponslot = 1, "Fist", "Chainsaw"
+	weaponslot = 2, "Pistol"
+	weaponslot = 3, "Shotgun", "SuperShotgun"
+	weaponslot = 4, "Chaingun"
+	weaponslot = 5, "RocketLauncher"
+	weaponslot = 6, "PlasmaRifle"
+	weaponslot = 7, "BFG9000"
+	dimcolor = "ff d7 00"
+	dimamount = 0.2
+	definventorymaxamount = 25
+	defaultrespawntime = 12
+	defaultdropstyle = 1
+	endoom = "ENDOOM"
+	player5start = 4001
+}
+
+adddefaultmap
+{
+	wrapmidtextures
+	clipmidtextures
+}
+
+map MAP01 "Staging Area"
+{
+}
+
+map MAP02 "The Terraformer"
+{
+}
+
+map MAP03 "Main Engineering"
+{
+}
+
+map MAP04 "Holding Area"
+{
+}
+
+map MAP05 "Tech Center"
+{
+}
+
+map MAP06 "Alpha Quadrant"
+{
+}
+
+map MAP07 "Research Lab"
+{
+}
+
+map MAP08 "Final Outpost"
+{
+}
+
+map MAP09 "Even Simpler"
+{
+}
+
+map MAP10 "The Bleeding"
+{
+}
+
+map MAP11 "Terror Core"
+{
+}
+
+map MAP12 "Altar Of Pain"
+{
+}
+
+map MAP13 "Dark Citadel"
+{
+}
+
+map MAP14 "Eye Of The Storm"
+{
+}
+
+map MAP15 "Dark Entries"
+{
+}
+
+map MAP16 "Blood Keep"
+{
+}
+
+map MAP17 "Watch Your Step"
+{
+}
+
+map MAP18 "Spawned Fear"
+{
+}
+
+map MAP19 "The Spiral"
+{
+}
+
+map MAP20 "Breakdown"
+{
+}
+
+map MAP21 "Pitfalls"
+{
+}
+
+map MAP22 "Burnt Offerings"
+{
+}
+
+map MAP23 "Unholy Temple"
+{
+}
+
+map MAP24 "No Escape"
+{
+}
+
+map MAP25 "Cat And Mouse"
+{
+}
+
+map MAP26 "Hardcore"
+{
+}
+
+map MAP27 "Playground"
+{
+}
+
+map MAP28 "The Absolution"
+{
+}
+
+map MAP29 "Outpost Omega"
+{
+}
+
+map MAP30 "The Lair"
+{
+}
+
+map MAP31 "In The Void"
+{
+}
+
+map MAP32 "Hectic"
+{
+}
+
+map MAP33 "Intro"
+{
+}

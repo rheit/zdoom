@@ -61,7 +61,7 @@ typedef enum
 	PushMany,
 } triggertype_e;
 
-void P_TranslateLineDef (line_t *ld, maplinedef_t *mld)
+void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld)
 {
 	unsigned short special = (unsigned short) LittleShort(mld->special);
 	short tag = LittleShort(mld->tag);
@@ -278,6 +278,20 @@ void P_TranslateLineDef (line_t *ld, maplinedef_t *mld)
 	ld->special = 0;
 	ld->flags = flags;
 	memset (ld->args, 0, sizeof(ld->args));
+}
+
+void P_TranslateLineDef (line_t *ld, maplinedef_t *mld)
+{
+	// The only difference between the Doom linedef and Doom64 Linedef is the wider flags field.
+	maplinedefdoom64_t tmp;
+	tmp.v1 = mld->v1;
+	tmp.v2 = mld->v2;
+	tmp.flags = mld->flags;
+	tmp.special = mld->special;
+	tmp.tag = mld->tag;
+	tmp.sidenum[0] = mld->sidenum[0];
+	tmp.sidenum[1] = mld->sidenum[1];
+	P_TranslateLineDef (ld, &tmp);
 }
 
 // Now that ZDoom again gives the option of using Doom's original teleport

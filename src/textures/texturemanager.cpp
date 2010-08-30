@@ -169,6 +169,25 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 
 //==========================================================================
 //
+// FTextureManager::Doom64Hash
+// Doom 64 references textures by hash, so calculate a compatible hash.
+//
+// From Doom 64 Ex.  Used with permission from Kaiser.
+//
+//==========================================================================
+
+WORD FTextureManager::Doom64Hash (const char* str) const
+{
+	DWORD hash = 1315423911;
+
+	for(DWORD i = 0; i < 8 && *str != '\0'; str++, i++)
+		hash ^= ((hash << 5) + toupper((int)*str) + (hash >> 2));
+
+	return hash%65536;
+}
+
+//==========================================================================
+//
 // FTextureManager :: ListTextures
 //
 //==========================================================================
@@ -322,6 +341,9 @@ FTextureID FTextureManager::AddTexture (FTexture *texture)
 	int trans = Textures.Push (hasher);
 	Translation.Push (trans);
 	if (bucket >= 0) HashFirst[bucket] = trans;
+
+	// [BL] Doom 64 Hash Table
+	Doom64HashTable[Doom64Hash(texture->Name)] = trans;
 	return (texture->id = FTextureID(trans));
 }
 

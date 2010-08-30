@@ -111,6 +111,7 @@ bool FWadFile::Open(bool quiet)
 		SetNamespace("C_START", "C_END", ns_colormaps);
 		SetNamespace("A_START", "A_END", ns_acslibrary);
 		SetNamespace("TX_START", "TX_END", ns_newtextures);
+		SetNamespace("T_START", "T_END", ns_newtextures); // Doom 64 Textures
 		SetNamespace("V_START", "V_END", ns_strifevoices);
 		SetNamespace("HI_START", "HI_END", ns_hires);
 		SkinHack();

@@ -1757,7 +1757,7 @@ void R_DrawPlayerSprites (void)
 	r_actualextralight = foggy ? 0 : extralight << 4;
 
 	// [RH] set basecolormap
-	basecolormap = sec->ColorMap;
+	basecolormap = sec->ExtraColorMaps[LIGHT_THING];
 
 	// get light level
 	lightnum = ((floorlight + ceilinglight) >> 1) + r_actualextralight;

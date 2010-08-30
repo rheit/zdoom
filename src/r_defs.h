@@ -418,6 +418,15 @@ struct FTransform
 	fixed_t base_angle, base_yoffs;
 };
 
+enum
+{
+	LIGHT_FLOOR,
+	LIGHT_CEILING,
+	LIGHT_THING,
+	LIGHT_WALLUPPER,
+	LIGHT_WALLLOWER
+};
+
 struct sector_t
 {
 	// Member functions
@@ -629,6 +638,7 @@ struct sector_t
 
 	// [RH] give floor and ceiling even more properties
 	FDynamicColormap *ColorMap;	// [RH] Per-sector colormap
+	FDynamicColormap *ExtraColorMaps[5];
 
 	BYTE		lightlevel;
 
@@ -1117,6 +1127,12 @@ public:
 	int			sprite;
 	int			crouchsprite;
 	int			namespc;	// namespace for this skin
+};
+
+// Doom 64 Lights
+struct light_t
+{
+	FDynamicColormap *ColorMap;
 };
 
 #endif

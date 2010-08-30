@@ -1181,13 +1181,13 @@ void R_Subsector (subsector_t *sub)
 	frontsector = R_FakeFlat(frontsector, &tempsec, &floorlightlevel,
 						   &ceilinglightlevel, false);	// killough 4/11/98
 
-	basecolormap = frontsector->ColorMap;
+	basecolormap = frontsector->ExtraColorMaps[LIGHT_CEILING];
 	R_GetExtraLight (&ceilinglightlevel, frontsector->ceilingplane, frontsector->ExtraLights);
 
 	// [RH] set foggy flag
 	foggy = level.fadeto || frontsector->ColorMap->Fade || (level.flags & LEVEL_HASFADETABLE);
 	r_actualextralight = foggy ? 0 : extralight << 4;
-	basecolormap = frontsector->ColorMap;
+	basecolormap = frontsector->ExtraColorMaps[LIGHT_CEILING];
 	ceilingplane = frontsector->ceilingplane.ZatPoint (viewx, viewy) > viewz ||
 		frontsector->GetTexture(sector_t::ceiling) == skyflatnum ||
 		(frontsector->CeilingSkyBox != NULL && frontsector->CeilingSkyBox->bAlways) ||
@@ -1206,9 +1206,10 @@ void R_Subsector (subsector_t *sub)
 					frontsector->CeilingSkyBox
 					) : NULL;
 
-	basecolormap = frontsector->ColorMap;
+	basecolormap = frontsector->ExtraColorMaps[LIGHT_FLOOR];
 	R_GetExtraLight (&floorlightlevel, frontsector->floorplane, frontsector->ExtraLights);
 
+	basecolormap = frontsector->ExtraColorMaps[LIGHT_FLOOR];
 	// killough 3/7/98: Add (x,y) offsets to flats, add deep water check
 	// killough 3/16/98: add floorlightlevel
 	// killough 10/98: add support for skies transferred from sidedefs
@@ -1230,6 +1231,7 @@ void R_Subsector (subsector_t *sub)
 					frontsector->FloorSkyBox
 					) : NULL;
 
+	basecolormap = frontsector->ExtraColorMaps[LIGHT_THING];
 	// killough 9/18/98: Fix underwater slowdown, by passing real sector 
 	// instead of fake one. Improve sprite lighting by basing sprite
 	// lightlevels on floor & ceiling lightlevels in the surrounding area.
@@ -1248,6 +1250,7 @@ void R_Subsector (subsector_t *sub)
 		}
 	}
 
+	basecolormap = frontsector->ExtraColorMaps[LIGHT_WALLUPPER];
 	while (count--)
 	{
 		if (!outersubsector || line->sidedef == NULL || !(line->sidedef->Flags & WALLF_POLYOBJ))

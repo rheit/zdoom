@@ -82,6 +82,7 @@ const IWADInfo IWADInfos[NUM_IWAD_TYPES] =
 	{ "Chex(R) Quest 3",						"Chex3",	MAKERGB(255,255,0),		MAKERGB(0,192,0),		GAME_Chex,		"mapinfo/chex3.txt" },
 	{ "Action Doom 2: Urban Brawl",				"UrbanBrawl",MAKERGB(168,168,0),	MAKERGB(168,0,0),		GAME_Doom,		"mapinfo/doom2.txt",	GI_MAPxx  },
 	{ "Harmony",								"Harmony",	MAKERGB(110,180,230),	MAKERGB(69,79,126),		GAME_Doom,		"mapinfo/doom2.txt",	GI_MAPxx  },
+	{ "DOOM 64",								"Doom64",	MAKERGB(168,0,0),		MAKERGB(168,168,168),	GAME_Doom,		"mapinfo/doom2.txt",	GI_MAPxx  },
 	//{ "ZDoom Engine",							NULL,		MAKERGB(168,0,0),		MAKERGB(168,168,168) },
 };
 
@@ -113,6 +114,7 @@ static const char *IWADNames[] =
 	"chex3.wad",
 	"action2.wad",
 	"harm1.wad",
+	"doom64.wad",
 #ifdef unix
 	"DOOM2.WAD",    // Also look for all-uppercase names
 	"PLUTONIA.WAD",
@@ -137,6 +139,7 @@ static const char *IWADNames[] =
 	"CHEX3.WAD",
 	"ACTION2.WAD",
 	"HARM1.WAD",
+	"DOOM64.WAD",
 #endif
 	NULL
 };
@@ -208,6 +211,7 @@ static EIWADType ScanIWAD (const char *iwad)
 		Check_Hawk,
 		Check_Car,
 		Check_Nose,
+		Check_ROMInfo,
 		Check_Gameinfo,
 		Check_e2m1
 	};
@@ -299,6 +303,10 @@ static EIWADType ScanIWAD (const char *iwad)
 		else if (lumpsfound[Check_Hawk] && lumpsfound[Check_Car] && lumpsfound[Check_Nose])
 		{
 			return IWAD_Harmony;
+		}
+		else if (lumpsfound[Check_ROMInfo])
+		{
+			return IWAD_Doom64;
 		}
 		else if (lumpsfound[Check_FreeDoom])
 		{
@@ -642,7 +650,8 @@ static EIWADType IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, c
 
 	D_AddFile (wadfiles, wads[pickwad].Path);
 
-	if (wads[pickwad].Type == IWAD_Strife)
+	// TODO: Doom64: Either put new stuff in zdoom.pk3 or do this right.
+	if (wads[pickwad].Type == IWAD_Strife || wads[pickwad].Type == IWAD_Doom64)
 	{ // Try to load voices.wad along with strife1.wad
 		long lastslash = wads[pickwad].Path.LastIndexOf ('/');
 		FString path;
@@ -655,7 +664,10 @@ static EIWADType IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, c
 		{
 			path = FString (wads[pickwad].Path.GetChars(), lastslash + 1);
 		}
-		path += "voices.wad";
+		if(wads[pickwad].Type == IWAD_Doom64)
+			path += "zdoom64.pk3";
+		else
+			path += "voices.wad";
 		D_AddFile (wadfiles, path);
 	}
 

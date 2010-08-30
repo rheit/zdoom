@@ -239,7 +239,7 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 	// killough 4/13/98: get correct lightlevel for 2s normal textures
 	const sector_t *sec = R_FakeFlat (frontsector, &tempsec, NULL, NULL, false);
 
-	basecolormap = sec->ColorMap;	// [RH] Set basecolormap
+	basecolormap = sec->ExtraColorMaps[LIGHT_WALLUPPER];	// [RH] Set basecolormap
 
 	wallshade = ds->shade;
 	rw_lightstep = ds->lightstep;

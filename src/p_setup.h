@@ -33,6 +33,7 @@ struct MapData
 	bool HasBehavior;
 	bool CloseOnDestruct;
 	bool Encrypted;
+	bool isDoom64;
 	bool isText;
 	int lumpnum;
 	FileReader * file;
@@ -45,6 +46,7 @@ struct MapData
 		HasBehavior = false;
 		CloseOnDestruct = true;
 		Encrypted = false;
+		isDoom64 = false;
 		isText = false;
 	}
 	
@@ -106,6 +108,7 @@ struct maplinedef_t;
 
 void P_LoadTranslator(const char *lumpname);
 void P_TranslateLineDef (line_t *ld, maplinedef_t *mld);
+void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld);
 int P_TranslateSectorSpecial (int);
 
 int GetUDMFInt(int type, int index, const char *key);

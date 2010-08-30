@@ -1,0 +1,17 @@
+graphic "TITLEPIC", 320, 240
+{
+	patch "BACKGRND", 0, 0
+	patch "TITLE", 60, 70
+}
+
+graphic "LEGAL", 320, 240
+{
+	patch "BACKGRND", 0, 0
+	patch "USLEGAL", 26, 74
+}
+
+graphic "CREDIT", 320, 240
+{
+	patch "BACKGRND", 0, 0
+	patch "IDCRED2", 32, 40
+}
