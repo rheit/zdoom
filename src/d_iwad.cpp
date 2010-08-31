@@ -178,6 +178,7 @@ static EIWADType ScanIWAD (const char *iwad)
 		"0HAWK01",
 		"0CARA3",
 		"0NOSE1",
+		"ROMINFO",
 		{ 'G','A','M','E','I','N','F','O' },
 		"E2M1","E2M2","E2M3","E2M4","E2M5","E2M6","E2M7","E2M8","E2M9",
 		"E3M1","E3M2","E3M3","E3M4","E3M5","E3M6","E3M7","E3M8","E3M9",
