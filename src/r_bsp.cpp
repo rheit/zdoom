@@ -806,7 +806,8 @@ void R_AddLine (seg_t *line)
 			|| backsector->GetFlags(sector_t::ceiling) != frontsector->GetFlags(sector_t::ceiling)
 
 			// [RH] Also consider colormaps
-			|| backsector->ColorMap != frontsector->ColorMap
+			|| backsector->ExtraColorMaps[LIGHT_FLOOR] != frontsector->ExtraColorMaps[LIGHT_FLOOR]
+			|| backsector->ExtraColorMaps[LIGHT_CEILING] != frontsector->ExtraColorMaps[LIGHT_CEILING]
 
 			// [RH] and scaling
 			|| backsector->GetXScale(sector_t::floor) != frontsector->GetXScale(sector_t::floor)

@@ -1617,15 +1617,15 @@ void P_LoadSectors2 (MapData * map)
 		}
 
 		light_t &light = lights[LittleShort(ms->colors[LIGHT_THING])];
-		ss->ExtraColorMaps[LIGHT_THING] = light.ColorMap;
+		ss->ExtraColorMaps[LIGHT_THING] = light.ColorMap();
 		light = lights[LittleShort(ms->colors[LIGHT_FLOOR])];
-		ss->ExtraColorMaps[LIGHT_FLOOR] = light.ColorMap;
+		ss->ExtraColorMaps[LIGHT_FLOOR] = light.ColorMap();
 		light = lights[LittleShort(ms->colors[LIGHT_CEILING])];
-		ss->ExtraColorMaps[LIGHT_CEILING] = light.ColorMap;
-		const PalEntry upper = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])].ColorMap->Color;
-		const PalEntry lower = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])].ColorMap->Color;
+		ss->ExtraColorMaps[LIGHT_CEILING] = light.ColorMap();
+		DWORD upper = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])].color;
+		DWORD lower = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])].color;
 		ss->ExtraColorMaps[LIGHT_WALLUPPER] = ss->ExtraColorMaps[LIGHT_WALLLOWER] =
-			GetSpecialLights (PalEntry ((upper.r+lower.r)/2,(upper.g+lower.g)/2,(upper.b+lower.b)/2), level.fadeto, NormalLight.Desaturate);
+			GetSpecialLights (PalEntry ((RPART(upper)+RPART(lower))/2,(GPART(upper)+GPART(lower))/2,(BPART(upper)+BPART(lower)/2)), level.fadeto, NormalLight.Desaturate);
 		/*light = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])];
 		ss->ExtraColorMaps[LIGHT_WALLUPPER] = light.ColorMap;
 		light = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])];
@@ -1637,6 +1637,13 @@ void P_LoadSectors2 (MapData * map)
 		ss->sectornum = i;
 	}
 	delete[] msp;
+}
+
+FDynamicColormap *light_t::ColorMap()
+{
+	if(colorMap == NULL)
+		colorMap = GetSpecialLights (PalEntry(color), level.fadeto, NormalLight.Desaturate);
+	return colorMap;
 }
 
 
@@ -3620,7 +3627,6 @@ void P_LoadBehavior (MapData * map)
 
 //
 // [BL] P_LoadLights
-// NOTE: Really really slow right now.
 //
 void P_LoadLights (MapData * map)
 {
@@ -3641,12 +3647,14 @@ void P_LoadLights (MapData * map)
 
 	for (i = 0; i < 256; i++, lt++)
 	{
-		lt->ColorMap = GetSpecialLights (PalEntry(i, i, i), level.fadeto, NormalLight.Desaturate);
+		lt->color = MAKERGB(i,i,i);
+		lt->colorMap = NULL;
 	}
 
 	for (i = 0; i < numlights; i++, lt++, ml++)
 	{
-		lt->ColorMap = GetSpecialLights (PalEntry(ml->r, ml->g, ml->b), level.fadeto, NormalLight.Desaturate);
+		lt->color = MAKERGB(ml->r, ml->g, ml->b);
+		lt->colorMap = NULL;
 	}
 	delete[] mlp;
 }

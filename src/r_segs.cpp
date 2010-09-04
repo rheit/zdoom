@@ -1304,7 +1304,7 @@ void R_NewWall (bool needlights)
 				|| backsector->GetFlags(sector_t::floor) != frontsector->GetFlags(sector_t::floor)
 
 				// [RH] Add checks for colormaps
-				|| backsector->ColorMap != frontsector->ColorMap
+				|| backsector->ExtraColorMaps[LIGHT_FLOOR] != frontsector->ExtraColorMaps[LIGHT_FLOOR]
 
 				|| backsector->GetXScale(sector_t::floor) != frontsector->GetXScale(sector_t::floor)
 				|| backsector->GetYScale(sector_t::floor) != frontsector->GetYScale(sector_t::floor)
@@ -1335,7 +1335,7 @@ void R_NewWall (bool needlights)
 				|| backsector->GetFlags(sector_t::ceiling) != frontsector->GetFlags(sector_t::ceiling)
 
 				// [RH] Add check for colormaps
-				|| backsector->ColorMap != frontsector->ColorMap
+				|| backsector->ExtraColorMaps[LIGHT_CEILING] != frontsector->ExtraColorMaps[LIGHT_CEILING]
 
 				|| backsector->GetXScale(sector_t::ceiling) != frontsector->GetXScale(sector_t::ceiling)
 				|| backsector->GetYScale(sector_t::ceiling) != frontsector->GetYScale(sector_t::ceiling)

@@ -1132,7 +1132,10 @@ public:
 // Doom 64 Lights
 struct light_t
 {
-	FDynamicColormap *ColorMap;
+	FDynamicColormap	*ColorMap();
+
+	DWORD				color;
+	FDynamicColormap	*colorMap;
 };
 
 #endif
