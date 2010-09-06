@@ -1616,12 +1616,12 @@ void P_LoadSectors2 (MapData * map)
 			ss->ColorMap = normMap;
 		}
 
-		light_t &light = lights[LittleShort(ms->colors[LIGHT_THING])];
-		ss->ExtraColorMaps[LIGHT_THING] = light.ColorMap();
-		light = lights[LittleShort(ms->colors[LIGHT_FLOOR])];
-		ss->ExtraColorMaps[LIGHT_FLOOR] = light.ColorMap();
-		light = lights[LittleShort(ms->colors[LIGHT_CEILING])];
-		ss->ExtraColorMaps[LIGHT_CEILING] = light.ColorMap();
+		light_t *light = &lights[LittleShort(ms->colors[LIGHT_THING])];
+		ss->ExtraColorMaps[LIGHT_THING] = light->ColorMap();
+		light = &lights[LittleShort(ms->colors[LIGHT_FLOOR])];
+		ss->ExtraColorMaps[LIGHT_FLOOR] = light->ColorMap();
+		light = &lights[LittleShort(ms->colors[LIGHT_CEILING])];
+		ss->ExtraColorMaps[LIGHT_CEILING] = light->ColorMap();
 		DWORD upper = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])].color;
 		DWORD lower = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])].color;
 		ss->ExtraColorMaps[LIGHT_WALLUPPER] = ss->ExtraColorMaps[LIGHT_WALLLOWER] =
