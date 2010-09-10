@@ -439,6 +439,11 @@ static void DoGiveInv (AActor *actor, const PClass *info, int amount)
 		level.total_items--;
 		item->flags &= ~MF_COUNTITEM;
 	}
+	if (item->flags5 & MF5_COUNTSECRET)
+	{
+		level.total_secrets--;
+		item->flags5 &= ~MF5_COUNTSECRET;
+	}
 	if (info->IsDescendantOf (RUNTIME_CLASS(ABasicArmorPickup)))
 	{
 		if (static_cast<ABasicArmorPickup*>(item)->SaveAmount != 0)
@@ -2294,6 +2299,11 @@ int DLevelScript::DoSpawn (int type, fixed_t x, fixed_t y, fixed_t z, int tid, i
 				if (actor->flags & MF_COUNTITEM)
 				{
 					level.total_items--;
+				}
+				// And finally for secrets
+				if (actor->flags5 & MF5_COUNTSECRET)
+				{
+					level.total_secrets--;
 				}
 				actor->Destroy ();
 				actor = NULL;

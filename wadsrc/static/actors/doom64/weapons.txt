@@ -1,0 +1,377 @@
+// --------------------------------------------------------------------------
+//
+// Chainsaw
+//
+// --------------------------------------------------------------------------
+
+ACTOR DoubleChainsaw : Chainsaw 2005
+{
+	Game Doom64
+	SpawnID 32
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		SAWG AB 4 A_WeaponReady
+		Loop
+	Deselect:
+		SAWG B 1 A_Lower
+		Wait
+	Select:
+		SAWG B 1 A_Raise
+		Wait
+	Fire:
+		SAWG CD 2 A_Saw
+		SAWG D 0 A_ReFire
+		Goto Ready
+	Spawn:
+		CSAW A -1
+		Stop
+	}
+}
+	
+// --------------------------------------------------------------------------
+//
+// Fist: no difference with Doom, so keep it
+//
+// --------------------------------------------------------------------------
+
+// --------------------------------------------------------------------------
+//
+// Pistol 
+//
+// --------------------------------------------------------------------------
+
+ACTOR Pistol64 : Pistol 5010
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		PISG A 1 A_WeaponReady
+		Wait
+	Deselect:
+		PISG A 1 A_Lower
+		Wait
+	Select:
+		PISG A 1 A_Raise
+		Wait
+	Fire:
+		PISG A 2
+		PISG B 1 A_FirePistol
+		PISG CB 5
+		PISG A 1 A_ReFire
+		Goto Ready
+	Flash:
+		PISG D 3 Bright
+		Stop
+	}
+}
+	
+// --------------------------------------------------------------------------
+//
+// Shotgun
+//
+// --------------------------------------------------------------------------
+
+ACTOR Shotgun64 : Shotgun 2001
+{
+	Game Doom64
+	SpawnID 27
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		SHT1 A 1 A_WeaponReady
+		Wait
+	Deselect:
+		SHT1 A 1 A_Lower
+		Wait
+	Select:
+		SHT1 A 1 A_Raise
+		Wait
+	Fire:
+		SHT1 A 2
+		SHT1 A 4 A_FireShotgun
+		SHT1 B 18
+		SHT1 C 5
+		SHT1 A 3
+		SHT1 A 7 A_ReFire
+		Goto Ready
+	Flash:
+		SHT1 D 4 Bright
+		Stop
+	}
+}	
+
+
+// --------------------------------------------------------------------------
+//
+// Super Shotgun
+//
+// --------------------------------------------------------------------------
+
+ACTOR SuperShotgun64 : SuperShotgun 82
+{
+	Game Doom64
+	SpawnID 33
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		SHT2 A 1 A_WeaponReady
+		Wait
+	Deselect:
+		SHT2 A 1 A_Lower
+		Wait
+	Select:
+		SHT2 A 1 A_Raise
+		Wait
+	Fire:
+		SHT2 A 1
+		SHT2 A 4 A_FireShotgun2
+		SHT2 B 7
+		SHT2 B 5 A_CheckReload
+		SHT2 BBB 5
+		SHT2 B 5 A_LoadShotgun2
+		SHT2 C 4 A_CloseShotgun2
+		SHT2 A 5 A_ReFire
+		Goto Ready
+	Flash:
+		SHT2 D 4 Bright
+		Stop
+	}
+}
+
+// --------------------------------------------------------------------------
+//
+// Chaingun
+//
+// --------------------------------------------------------------------------
+
+ACTOR Chaingun64 : Chaingun 2002
+{
+	Game Doom64
+	SpawnID 28
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		CHGG A 1 A_WeaponReady
+		Wait
+	Deselect:
+		CHGG A 1 A_Lower
+		Wait
+	Select:
+		CHGG A 1 A_Raise
+		Wait
+	Fire:
+		CHGG AB 3 A_FireCGun
+		CHGG B 0 A_ReFire
+		Goto Ready
+	Flash:
+		CHGG D 3 Bright
+		Stop
+		CHGG C 3 Bright
+		Stop
+	}
+}
+
+// --------------------------------------------------------------------------
+//
+// Rocket launcher
+//
+// --------------------------------------------------------------------------
+
+ACTOR RocketLauncher64 : RocketLauncher 2003
+{
+	Game Doom64
+	SpawnID 29
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		MISG A 1 A_WeaponReady
+		Wait
+	Deselect:
+		MISG A 1 A_Lower
+		Wait
+	Select:
+		MISG A 1 A_Raise
+		Wait
+	Fire:
+		MISG B 8 A_GunFlash
+		MISG B 10 A_FireCustomMissile("Rocket64")
+		MISG B 0 A_ReFire
+		Goto Ready
+	Flash:
+		MISG C 3 Bright
+		MISG DEF 4 Bright
+		Stop
+	}
+}
+
+Actor GreySmoke
+{
+	Alpha 0.470588
+	+NOBLOCKMAP
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		PUF2 ABCDE 2 Bright
+		Stop
+	}
+}
+
+ACTOR Rocket64 : Rocket
+{
+	Game Doom64
+	SpawnID 127
+	Speed 30
+	-RANDOMIZE
+	-DEHEXPLOSION
+	-ROCKETTRAIL
+	States
+	{
+	Spawn:
+		MISL A 2 Bright A_SpawnItemEx("GreySmoke", 0, 0, 0, 0, 0, 1)
+		Wait
+	Death:
+		MISL B 3 Bright A_Explode
+		MISL BCC 3 Bright A_FadeBy(0.75, 0)
+		MISL D 2 Bright A_FadeBy(0.75, 0)
+		MISL EF 2 Bright
+		Stop
+	}
+}
+
+// --------------------------------------------------------------------------
+//
+// Plasma rifle: the Flash state is a bit hacked here
+//
+// --------------------------------------------------------------------------
+
+ACTOR PlasmaRifle64 : PlasmaRifle 2004
+{
+	Game Doom64
+	SpawnID 30
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		PLAS A 1 A_WeaponReady
+		Wait
+	Deselect:
+		PLAS A 1 A_Lower
+		Wait
+	Select:
+		PLAS A 0 A_GunFlash("Flash", GFF_NOEXTCHANGE)
+		PLAS A 1 A_Raise
+		Wait
+	Fire:
+		PLAS E 0 Bright A_GunFlash("NoFlash", GFF_NOEXTCHANGE)
+		PLAS E 2 Bright A_FireCustomMissile("PlasmaBall64")
+		PLAS A 2 A_GunFlash("Flash", GFF_NOEXTCHANGE)
+		PLAS A 1 A_ReFire
+		Goto Ready
+	Flash:
+		PLAS BCD 2
+		Loop
+	NoFlash:
+		TNT1 A 0
+		Stop
+	Spawn:
+		PLSM A -1
+		Stop
+	}
+}
+
+ACTOR PlasmaBall64 : PlasmaBall
+{
+	Game Doom64
+	SpawnID 51
+	Speed 40
+	States
+	{
+	Spawn:
+		PLSS AB 3 Bright
+		Loop
+	Death:
+		PLSS C 2 Bright A_FadeBy(0.75, 0)
+		PLSS DEFGH 2 Bright
+		Stop
+	}
+}
+
+// --------------------------------------------------------------------------
+//
+// BFG 9000
+//
+// --------------------------------------------------------------------------
+
+ACTOR BFG9064 : BFG9000 2006
+{
+	Game Doom64
+	SpawnID 31
+	+NOGRAVITY
+	States
+	{
+	Ready:
+		BFGG A 1 A_WeaponReady
+		Wait
+	Deselect:
+		BFGG A 1 A_Lower
+		Wait
+	Select:
+		BFGG A 1 A_Raise
+		Wait
+	Fire:
+		BFGG A 20 A_BFGsound
+		BFGG B 10 A_GunFlash
+		BFGG B 10 A_FireBFG
+		BFGG B 20 A_ReFire
+		Goto Ready
+	Flash:
+		BFGG C 8 Bright
+		BFGG D 5 Bright
+		BFGG E 3 Bright
+		Stop
+	}
+}
+
+ACTOR BFGBall64 : BFGBall
+{
+	Game Doom64
+	SpawnID 128
+	Speed 40
+	States
+	{
+	Spawn:
+		BFS1 AB 2 Bright
+		Loop
+	Death:
+		BFS1 C 8 Bright //A_BFGFlash???
+		BFS1 D 6 Bright A_FadeBy(0.75, 0)
+		BFS1 E 3 Bright A_BFGSpray("BFGExtra64")
+		BFS1 F 3 Bright A_FadeBy(0.75, 0)
+		BFS1 GH 2 Bright
+		Stop
+	}
+}
+
+ACTOR BFGExtra64
+{
+	+NOBLOCKMAP
+	+NOGRAVITY
+	RenderStyle Add
+	States
+	{
+	Spawn:
+		BFE2 A 4 Bright
+		BFE2 B 3 Bright A_FadeBy(0.75, 0)
+		BFE2 CDEF 2 Bright
+		Stop
+	}
+}

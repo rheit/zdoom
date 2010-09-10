@@ -13,6 +13,7 @@ xx(Heretic)
 xx(Hexen)
 xx(Strife)
 xx(Raven)
+xx(Doom64)
 
 // blood spawning
 xx(Blood)
@@ -88,6 +89,7 @@ xx(Megasphere)		// also counts as armor for P_SpawnMapThing
 
 // Standard player classes
 xx(DoomPlayer)
+xx(Doom64Player)
 xx(HereticPlayer)
 xx(StrifePlayer)
 xx(FighterPlayer)

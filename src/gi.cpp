@@ -45,9 +45,10 @@
 
 gameinfo_t gameinfo;
 
-const char *GameNames[17] =
+const char *GameNames[33] =
 {
-	NULL, "Doom", "Heretic", NULL, "Hexen", NULL, NULL, NULL, "Strife", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "Chex"
+	NULL, "Doom", "Heretic", NULL, "Hexen", NULL, NULL, NULL, "Strife", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "Chex",
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "Doom64"
 };
 
 
@@ -57,6 +58,14 @@ static gameborder_t DoomBorder =
 	"brdr_tl", "brdr_t", "brdr_tr",
 	"brdr_l",			 "brdr_r",
 	"brdr_bl", "brdr_b", "brdr_br"
+};
+
+static gameborder_t Doom64Border =
+{
+	27, 26,
+	"br64drtl", "br64drt", "br64drtr",
+	"br64drl",				"br64drr",
+	"br64drbl", "br64drb", "br64drbr"
 };
 
 static gameborder_t HereticBorder =
@@ -82,6 +91,7 @@ const char* GameInfoBoarders[] =
 	"DoomBorder",
 	"HereticBorder",
 	"StrifeBorder",
+	"Doom64Border",
 	NULL
 };
 
@@ -208,6 +218,9 @@ void FMapInfoParser::ParseGameInfo()
 						break;
 					case 2:
 						gameinfo.border = &StrifeBorder;
+						break;
+					case 3:
+						gameinfo.border = &Doom64Border;
 						break;
 				}
 			}

@@ -24,6 +24,10 @@ const int FBF_USEAMMO = 1;
 const int FBF_NORANDOM = 2;
 const int FBF_EXPLICITANGLE = 4;
 const int FBF_NOPITCH = 8;
+const int FBF_NOFLASH = 16;
+
+// Flags for A_GunFlash
+const int GFF_NOEXTCHANGE = 16; // Does the same thing as FBF_NOFLASH basically
 
 // Flags for A_SpawnItemEx
 const int SXF_TRANSFERTRANSLATION=1;

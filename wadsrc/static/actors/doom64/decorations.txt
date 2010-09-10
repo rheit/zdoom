@@ -1,0 +1,600 @@
+Actor BigFlame 2051
+{
+	Game Doom64
+	Radius 16
+	Height 64
+	Alpha 0.549020
+	+NOGRAVITY
+	+SHADOW
+	States
+	{
+	Spawn:
+		FIRE ABCDE 3
+		Loop
+	}
+}
+
+Actor YellowCandle 34
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		CAND AB 2
+		Loop
+	}
+}
+
+Actor BarrelExplosion
+{
+	+NOBLOCKMAP
+	+NOGRAVITY
+	RenderStyle Add
+	Alpha 0.313725
+	States
+	{
+	Spawn:
+		MISL B 6 Bright
+		MISL C 5 Bright
+		MISL DEF 2 Bright
+		Stop
+	}
+}
+
+Actor VolatileBarrel 1001
+{
+	Game Doom64
+	Health 20
+	Radius 16
+	Height 50
+	DeathSound "world/barrelx"
+	+SHOOTABLE
+	+SOLID
+	+NOGRAVITY
+	+NOBLOOD
+	States
+	{
+	Spawn:
+		BAR1 A -1
+		Stop
+	Death:
+		BAR1 BCD 5
+		BAR1 E 0 Bright A_SpawnItemEx("BarrelExplosion", 1, 1, 25)
+		BAR1 E 0 Bright //A_OnDeathTrigger
+		BAR1 E 5 Bright A_Explode
+		Stop
+	}
+}
+
+Actor CeilingTechLamp1 1015
+{
+	Game Doom64
+	Height 54
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		LMP1 A -1
+		Stop
+	}
+}
+
+Actor CeilingTechLamp2 1016
+{
+	Game Doom64
+	Height 12
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		LMP2 A -1
+		Stop
+	}
+}
+
+Actor TorchBlue 1003
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A031 ABCDE 4
+		Loop
+	}
+}
+
+Actor TorchYellow 1039
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A030 ABCDE 4
+		Loop
+	}
+}
+
+Actor TorchRed 1025
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A032 ABCDE 4
+		Loop
+	}
+}
+
+Actor LongPole 1050
+{
+	Game Doom64
+	Radius 12
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A033 A -1
+		Stop
+	}
+}
+
+Actor ShortPole 1051
+{
+	Game Doom64
+	Radius 8
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A034 A -1
+		Stop
+	}
+}
+
+Actor BlueFlame 1033
+{
+	Game Doom64
+	Alpha 0.752941
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		BFLM ABCDE 4 Bright
+		Loop
+	}
+}
+
+Actor RedFlame 1034
+{
+	Game Doom64
+	Alpha 0.752941
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		RFLM ABCDE 4 Bright
+		Loop
+	}
+}
+
+Actor YellowFlame 1035
+{
+	Game Doom64
+	Alpha 0.752941
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		YFLM ABCDE 4 Bright
+		Loop
+	}
+}
+
+Actor ImpaledUpsideDown 1005
+{
+	Game Doom64
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A006 A -1
+		Stop
+	}
+}
+
+Actor HangingUpsideDown 1006
+{
+	Game Doom64
+	Height 95
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A021 A -1
+		Stop
+	}
+}
+
+Actor HangingTorso1 1007
+{
+	Game Doom64
+	Height 83
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A003 A -1
+		Stop
+	}
+}
+
+Actor Ribs1 1008
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A020 A -1
+		Stop
+	}
+}
+
+Actor TwitchyCarcass 1009
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A014 AB 6
+		Loop
+	}
+}
+
+Actor LittleBloodPool 1010
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A016 A -1
+		Stop
+	}
+}
+
+Actor BonyGibs : Gibs 1011
+{
+	Game Doom64
+	+NOGRAVITY
+}
+
+Actor Torso 1012
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A008 A -1
+		Stop
+	}
+}
+
+Actor Ribs2 1013
+{
+	Game Doom64
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A007 A -1
+		Stop
+	}
+}
+
+Actor HookMeat 1014
+{
+	Game Doom64
+	Height 95
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A015 A -1
+		Stop
+	}
+}
+
+Actor CageMeat 1017
+{
+	Game Doom64
+	Height 91
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A001 A -1
+		Stop
+	}
+}
+
+Actor PincerMeat 1018
+{
+	Game Doom64
+	Height 101
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A012 A -1
+		Stop
+	}
+}
+
+Actor HangedArm 1019
+{
+	Game Doom64
+	Height 58
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A010 A -1
+		Stop
+	}
+}
+
+Actor BloodyMaceOnChain 1020
+{
+	Game Doom64
+	Height 80
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A018 A -1
+		Stop
+	}
+}
+
+Actor ImpaledHead1 1022
+{
+	Game Doom64
+	Radius 8
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A017 A -1
+		Stop
+	}
+}
+
+Actor ImpaledHead2 1023
+{
+	Game Doom64
+	Radius 8
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A026 A -1
+		Stop
+	}
+}
+
+Actor ImpaledMeatChunks 1024
+{
+	Game Doom64
+	Radius 8
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A022 A -1
+		Stop
+	}
+}
+
+Actor GargoyleStatue1 1028
+{
+	Game Doom64
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A028 A -1
+		Stop
+	}
+}
+
+Actor GargoyleStatue2 1029
+{
+	Game Doom64
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A029 A -1
+		Stop
+	}
+}
+
+Actor FloorTechLamp1 1031
+{
+	Game Doom64
+	Radius 8
+	Height 80
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A035 A -1
+		Stop
+	}
+}
+
+Actor FloorTechLamp2 1032
+{
+	Game Doom64
+	Radius 8
+	Height 62
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A036 A -1
+		Stop
+	}
+}
+
+Actor DeadTree3 1036
+{
+	Game Doom64
+	Radius 16
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		TRE3 A -1
+		Stop
+	}
+}
+
+Actor DeadTree2 1037
+{
+	Game Doom64
+	Radius 16
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		TRE2 A -1
+		Stop
+	}
+}
+
+Actor DeadTree1 1038
+{
+	Game Doom64
+	Radius 16
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		TRE1 A -1
+		Stop
+	}
+}
+
+Actor BloodyPole 1045
+{
+	Game Doom64
+	Radius 8
+	+SOLID
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		A013 A -1
+		Stop
+	}
+}
+
+Actor MaceOnChain 1046
+{
+	Game Doom64
+	Height 56
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A019 A -1
+		Stop
+	}
+}
+
+Actor HangingTorso2 1047
+{
+	Game Doom64
+	Height 64
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A004 A -1
+		Stop
+	}
+}
+
+Actor HangingHead 1048
+{
+	Game Doom64
+	Height 60
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A005 A -1
+		Stop
+	}
+}
+
+Actor HangingMeat 1049
+{
+	Game Doom64
+	Height 98
+	+NOBLOCKMAP
+	+NOGRAVITY
+	+SPAWNCEILING
+	States
+	{
+	Spawn:
+		A023 A -1
+		Stop
+	}
+}
+

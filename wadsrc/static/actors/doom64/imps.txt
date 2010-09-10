@@ -1,0 +1,105 @@
+Actor Doom64Imp 3001
+{
+	Game Doom64
+	MissileType "ImpShot"
+	MissileHeight 64
+	Health 60
+	Radius 42
+	Height 94
+	PainChance 200
+	Speed 8
+	ActiveSound "imp/active"
+	DeathSound "imp/death"
+	PainSound "imp/pain"
+	SeeSound "imp/sight"
+	Monster
+	States
+	{
+	Spawn:
+		TROO AB 10 A_Look
+		Loop
+	See:
+		TROO AABBCCDD 3 A_Chase
+		Loop
+	Melee:
+		TROO EF 8 A_FaceTarget
+		TROO G 6 A_CustomMeleeAttack(3*random(1,8), "imp/melee")
+		Goto See
+	Missile:
+		TROO IJ 8 A_FaceTarget
+		TROO K 6 A_MissileAttack
+		Goto See
+	Pain:
+		TROO H 2
+		TROO H 2 A_Pain
+		Goto See
+	Death:
+		TROO L 8
+		TROO M 8 A_Scream
+		TROO N 6 A_Fall
+		TROO O 6 //A_OnDeathTrigger
+		TROO P -1
+		Stop
+	XDeath:
+		TROO Q 5
+		TROO R 5 A_XScream
+		TROO S 5
+		TROO T 5 A_Fall
+		TROO UV 5
+		TROO W 5 //A_OnDeathTrigger
+		TROO X -1
+		Stop
+	}
+}
+
+Actor NightmareImp64 : Doom64Imp 3007
+{
+	Game Doom64
+	MissileType "NightmareImpShot"
+	PainChance 128
+	Speed 16
+	//FIXME:Palette 1 "PALTROO1"
+	Alpha 0.7
+	+SHADOW
+}
+
+Actor ImpShot
+{
+	Radius 6
+	Height 8
+	Damage 3
+	Speed 10
+	DeathSound "imp/shotx"
+	SeeSound "imp/attack"
+	Projectile
+	States
+	{
+	Spawn:
+		BAL1 ABC 4 Bright
+		Loop
+	Death:
+		BAL1 DEFGHI 1 Bright
+		Stop
+	}
+}
+
+Actor NightmareImpShot
+{
+	Radius 6
+	Height 8
+	Damage 3
+	Speed 20
+	DeathSound "imp/shotx"
+	SeeSound "imp/attack"
+	Alpha 0.392157
+	Projectile
+	States
+	{
+	Spawn:
+		BAL3 ABC 4 Bright
+		Loop
+	Death:
+		BAL3 DEFGHI 2 Bright
+		Stop
+	}
+}

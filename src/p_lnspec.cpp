@@ -56,6 +56,7 @@
 #include "p_3dmidtex.h"
 #include "d_net.h"
 #include "d_event.h"
+#include "p_macro.h"
 
 #define FUNC(a) static int a (line_t *ln, AActor *it, bool backSide, \
 	int arg0, int arg1, int arg2, int arg3, int arg4)
@@ -259,6 +260,26 @@ FUNC(LS_Generic_Door)
 		lightTag = 0;
 	}
 	return EV_DoDoor (type, ln, it, tag, SPEED(arg1), OCTICS(arg3), arg4, lightTag);
+}
+
+FUNC(LS_Door_Split)
+{
+	DDoor::EVlDoor type;
+
+	switch(arg3)
+	{
+		case 0: // Open
+			if (arg2) type = DDoor::doorRaise;
+			else type = DDoor::doorOpen;
+			break;
+		case 1: // Close
+			if (arg2) type = DDoor::doorCloseWaitOpen;
+			else type = DDoor::doorClose;
+			break;
+		default:
+			return false;
+	}
+	return EV_DoSplitDoor (type, ln, it, arg0, SPEED(arg1), TICS(arg2), arg4);
 }
 
 FUNC(LS_Floor_LowerByValue)
@@ -1210,7 +1231,7 @@ FUNC(LS_Thing_Remove)
 }
 
 FUNC(LS_Thing_Destroy)
-// Thing_Destroy (tid, extreme)
+// Thing_Destroy (tid, extreme, tag)
 {
 	if (arg0 == 0)
 	{
@@ -1225,7 +1246,7 @@ FUNC(LS_Thing_Destroy)
 		while (actor)
 		{
 			AActor *temp = iterator.Next ();
-			if (actor->flags & MF_SHOOTABLE)
+			if (actor->flags & MF_SHOOTABLE && (arg2 == 0 || actor->Sector->tag == arg2))
 				P_DamageMobj (actor, NULL, it, arg1 ? TELEFRAG_DAMAGE : actor->health, NAME_None);
 			actor = temp;
 		}
@@ -1648,6 +1669,23 @@ FUNC(LS_ACS_Terminate)
 	else if ((info = FindLevelByNum (arg1)) )
 		P_TerminateScript (arg0, info->mapname);
 
+	return true;
+}
+
+FUNC(LS_Macro_Command)
+{
+	if (!(DMacroManager::ActiveMacroManager && 
+		  DMacroManager::ActiveMacroManager->GetMacro(arg0)))
+		return false;
+
+	switch (arg2)
+	{
+		// What exactly is needed here? Start, pause, restart, what else?
+		case 0: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Start(arg1, ln, it, backSide); break;	// start
+		case 1: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Pause(arg1, ln, it, backSide); break;	// pause
+		case 2: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Restart(arg1, ln, it, backSide); break;	// Restart
+		default: return false;
+	}
 	return true;
 }
 
@@ -3136,8 +3174,8 @@ lnSpecFunc LineSpecials[256] =
 	/*  94 */ LS_Pillar_BuildAndCrush,
 	/*  95 */ LS_FloorAndCeiling_LowerByValue,
 	/*  96 */ LS_FloorAndCeiling_RaiseByValue,
-	/*  97 */ LS_NOP,
-	/*  98 */ LS_NOP,
+	/*  97 */ LS_Door_Split,
+	/*  98 */ LS_Macro_Command,
 	/*  99 */ LS_NOP,
 	/* 100 */ LS_NOP,		// Scroll_Texture_Left
 	/* 101 */ LS_NOP,		// Scroll_Texture_Right

@@ -331,8 +331,27 @@ protected:
 	int 		m_MinLight;
 	int 		m_MaxLight;
 	int 		m_Direction;
-private:
 	DGlow ();
+};
+
+// Doom 64 variants
+class DGlowSlow : public DGlow
+{
+	DECLARE_CLASS (DGlowSlow, DGlow)
+public:
+	DGlowSlow (sector_t *sector);
+	void		Tick ();
+protected:
+	DGlowSlow ();
+};
+class DGlowRandom : public DGlow
+{
+	DECLARE_CLASS (DGlowRandom, DGlow)
+public:
+	DGlowRandom (sector_t *sector);
+	void		Tick ();
+protected:
+	DGlowRandom ();
 };
 
 // [RH] Glow from Light_Glow and Light_Fade specials
@@ -372,6 +391,7 @@ private:
 };
 
 #define GLOWSPEED				8
+#define GLOWSLOWSPEED			5
 #define STROBEBRIGHT			5
 #define FASTDARK				15
 #define SLOWDARK				TICRATE
@@ -579,18 +599,15 @@ protected:
 	void DoorSound (bool raise) const;
 
 	friend bool	EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
-						   int tag, int speed, int delay, int lock,
-						   int lightTag);
+						   int tag, int speed, int delay, int lock, int lightTag);
 	friend void P_SpawnDoorCloseIn30 (sector_t *sec);
 	friend void P_SpawnDoorRaiseIn5Mins (sector_t *sec);
-private:
-	DDoor ();
 
+	DDoor ();
 };
 
 bool EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
-				int tag, int speed, int delay, int lock,
-				int lightTag);
+				int tag, int speed, int delay, int lock, int lightTag);
 void P_SpawnDoorCloseIn30 (sector_t *sec);
 void P_SpawnDoorRaiseIn5Mins (sector_t *sec);
 
@@ -601,6 +618,32 @@ inline FArchive &operator<< (FArchive &arc, DDoor::EVlDoor &type)
 	type = (DDoor::EVlDoor)val;
 	return arc;
 }
+
+class DSplitDoor : public DDoor
+{
+	DECLARE_CLASS (DSplitDoor, DDoor)
+public:
+	DSplitDoor (sector_t *sector);
+	DSplitDoor (sector_t *sec, EVlDoor type, fixed_t speed, int delay, int lightTag);
+
+	void Serialize (FArchive &arc);
+	void Tick ();
+protected:
+	// To manage Doom 64 split doors, we need a bit more stuff...
+	fixed_t		m_BottomDist;	// Equivalent of m_TopDist for the bottom part
+	fixed_t		m_OriginalDist;	// The starting position for a door that opens, or the middle otherwise
+	void StopInterpolation();	// Since we need to interpolate the bottom as well
+
+	friend bool	EV_DoSplitDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
+						int tag, int speed, int delay, int lightTag);
+private:
+	DSplitDoor ();
+	TObjPtr<DInterpolation> SplitInterpolation;	// Bottom part interpolation
+};
+
+bool EV_DoSplitDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
+				int tag, int speed, int delay, int lightTag);
+
 
 struct FDoorAnimation
 {

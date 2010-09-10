@@ -598,6 +598,85 @@ DGlow::DGlow (sector_t *sector)
 
 //-----------------------------------------------------------------------------
 //
+// Slower variant of DGlow
+//
+//-----------------------------------------------------------------------------
+
+IMPLEMENT_CLASS (DGlowSlow)
+DGlowSlow::DGlowSlow () {}
+DGlowSlow::DGlowSlow (sector_t *sector) : DGlow (sector) {}
+
+void DGlowSlow::Tick ()
+{
+	int newlight = m_Sector->lightlevel;
+
+	switch (m_Direction)
+	{
+	case -1:
+		// DOWN
+		newlight -= GLOWSLOWSPEED;
+		if (newlight <= m_MinLight)
+		{
+			newlight += GLOWSLOWSPEED;
+			m_Direction = 1;
+		}
+		break;
+		
+	case 1:
+		// UP
+		newlight += GLOWSLOWSPEED;
+		if (newlight >= m_MaxLight)
+		{
+			newlight -= GLOWSLOWSPEED;
+			m_Direction = -1;
+		}
+		break;
+	}
+	m_Sector->SetLightLevel(newlight);
+}
+
+//-----------------------------------------------------------------------------
+//
+// Random variant of DGlow
+//
+//-----------------------------------------------------------------------------
+static FRandom pr_glow;
+
+IMPLEMENT_CLASS (DGlowRandom)
+DGlowRandom::DGlowRandom () {}
+DGlowRandom::DGlowRandom (sector_t *sector) : DGlow (sector) {}
+
+void DGlowRandom::Tick ()
+{
+	int newlight = m_Sector->lightlevel;
+
+	switch (m_Direction)
+	{
+	case -1:
+		// DOWN
+		newlight -= (pr_glow()%GLOWSPEED + GLOWSLOWSPEED);
+		if (newlight <= m_MinLight)
+		{
+			newlight += (pr_glow()%GLOWSPEED + GLOWSLOWSPEED);
+			m_Direction = 1;
+		}
+		break;
+		
+	case 1:
+		// UP
+		newlight += (pr_glow()%GLOWSPEED + GLOWSLOWSPEED);
+		if (newlight >= m_MaxLight)
+		{
+			newlight -= (pr_glow()%GLOWSPEED + GLOWSLOWSPEED);
+			m_Direction = -1;
+		}
+		break;
+	}
+	m_Sector->SetLightLevel(newlight);
+}
+
+//-----------------------------------------------------------------------------
+//
 // [RH] More glowing light, this time appropriate for Hexen-ish uses.
 //
 //-----------------------------------------------------------------------------

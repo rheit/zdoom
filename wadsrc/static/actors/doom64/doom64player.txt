@@ -1,0 +1,124 @@
+Actor Doom64Player : PlayerPawn
+{
+	Health 100
+	ReactionTime 0
+	Radius 19
+	Height 64
+	PainChance 255
+	Player.StartItem "Pistol64"
+	Player.StartItem "Fist"
+	Player.StartItem "Clip", 50
+	Player.WeaponSlot 1, Fist, DoubleChainsaw
+	Player.WeaponSlot 2, Pistol64
+	Player.WeaponSlot 3, Shotgun64, SuperShotgun64
+	Player.WeaponSlot 4, Chaingun64
+	Player.WeaponSlot 5, RocketLauncher64
+	Player.WeaponSlot 6, PlasmaRifle64
+	Player.WeaponSlot 7, BFG9064
+	States
+	{
+	Spawn:
+		PLAY A -1
+		Stop
+	See:
+		PLAY ABCD 4
+		Loop
+	Missile:
+		PLAY E 12
+		PLAY F 6 Bright
+		Goto Spawn
+	Pain:
+		PLAY G 4
+		PLAY G 4 A_Pain
+		Goto Spawn
+	Death:
+		PLAY H 10
+		PLAY I 10 A_Scream
+		PLAY J 10 A_Fall
+		PLAY KL 10
+		PLAY M -1
+		Stop
+	XDeath:
+		PLAY N 5
+		PLAY O 5 A_XScream
+		PLAY P 5 A_Fall
+		PLAY QRSTU 5
+		PLAY V -1
+		Stop
+	}
+}
+
+Actor Doom64PlayerBot3 : ScriptedMarine 3008
+{
+	Skip_Super
+	Game Doom64
+	Health 100
+	ReactionTime 0
+	Radius 32
+	Height 87
+	PainChance 255
+	Speed 16
+	DeathSound "player/death"
+	PainSound "player/pain"
+	Monster
+	+DROPOFF
+	+NOTDMATCH
+	States
+	{
+	Spawn:
+		PLAY E 10 A_Look
+		Wait
+	See:
+		PLAY ABCD 4 A_Chase
+		Loop
+	Missile:
+		PLAY E 4 A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		PLAY F 4 Bright A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		PLAY E 4 A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		PLAY F 4 Bright A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		PLAY E 4 A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		PLAY F 4 Bright A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		Goto See
+	Pain:
+		PLAY G 4
+		PLAY G 4 A_Pain
+		Goto See
+	Death:
+		PLAY H 10
+		PLAY I 10 A_Scream
+		PLAY J 10 A_Fall
+		PLAY KL 10
+		PLAY M -1
+		Stop
+	XDeath:
+		PLAY N 5
+		PLAY O 5 A_XScream
+		PLAY P 5 A_Fall
+		PLAY QRSTU 5
+		PLAY V -1
+		Stop
+	}
+}
+
+Actor Doom64PlayerBot2 : Doom64PlayerBot3 3009
+{
+	Game Doom64
+	//FIXME:Palette 2 "PALPLAY2"
+	States
+	{
+	Missile:
+		PLAY E 4 A_M_FirePistol(0)
+		PLAY F 4 Bright A_M_FirePistol(0)
+		PLAY E 4 A_M_FirePistol(0)
+		PLAY F 4 Bright A_M_FirePistol(0)
+		PLAY E 4 A_M_FirePistol(0)
+		PLAY F 4 Bright A_M_FirePistol(0)
+		Goto See
+	}
+}
+
+Actor Doom64PlayerBot1 : Doom64PlayerBot3 3010
+{
+	Game Doom64
+	//FIXME:Palette 1 "PALPLAY1"
+}

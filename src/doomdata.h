@@ -368,7 +368,7 @@ struct mapthinghexen_t
 	BYTE		args[5];
 };
 
-// [BL] Doom 64-compatibel MapThing
+// [BL] Doom 64-compatible MapThing
 struct mapthingdoom64_t
 {
 	SWORD		x;
@@ -435,6 +435,14 @@ enum EMapThingFlags
 	MTF_FRIENDLY		= 0x2000,
 	MTF_STANDSTILL		= 0x4000,
 	MTF_STRIFESOMETHING	= 0x8000,
+
+	// Internal version of Doom 64 flags
+	MTF_DONTSPAWN		= 0x010000,	// Spawned when triggered.
+	MTF_ONTOUCH			= 0x020000,	// Triggers
+	MTF_ONDEATH			= 0x040000,
+	MTF_SECRET			= 0x080000,	// Secret pickup
+	MTF_NOINFIGHTING	= 0x100000,
+
 
 	// BOOM and DOOM compatible versions of some of the above
 

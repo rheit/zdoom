@@ -1,0 +1,140 @@
+Actor SecurityArmor : GreenArmor 2018
+{
+	Game Doom64
+	SpawnID 68
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		ARM1 AB 6 Bright
+		Loop
+	}
+}
+
+Actor CombatArmor : BlueArmor 2019
+{
+	Game Doom64
+	SpawnID 69
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		ARM2 AB 6 Bright
+		Loop
+	}
+}
+
+Actor HealthBonus2 : HealthBonus 2014
+{
+	Game Doom64
+	SpawnID 152
+	+NOGRAVITY
+	Inventory.Amount 2
+	States
+	{
+	Spawn:
+		BON1 ABCD 3
+		Loop
+	}
+}
+
+Actor ArmorBonus2 : ArmorBonus 2015
+{
+	Game Doom64
+	SpawnID 22
+	+NOGRAVITY
+	Armor.Saveamount 2
+	States
+	{
+	Spawn:
+		BON2 ABCDCB 6
+		Loop
+	}
+}
+
+Actor InvulSphere : InvulnerabilitySphere 2022
+{
+	Game Doom64
+	SpawnID 133
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		PINV ABCDCB 6 Bright
+		Loop
+	}
+}
+
+Actor InvisSphere : BlurSphere 2024
+{
+	Game Doom64
+	SpawnID 135
+	Alpha 0.690196
+	+NOGRAVITY
+	+SHADOW
+	States
+	{
+	Spawn:
+		PINS A 2 Bright
+		PINS B 3 Bright
+		PINS C 2 Bright
+		PINS D 1 Bright
+		PINS B 2 Bright
+		PINS C 1 Bright
+		Loop
+	}
+}
+
+Actor RadSphere : RadSuit 2025
+{
+	Game Doom64
+	SpawnID 136
+	Height 16
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		SUIT AB 4 Bright
+		Loop
+	}
+}
+
+Actor ComputerMap : Allmap 2026
+{
+	Game Doom64
+	SpawnID 137
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		PMAP ABCD 5 Bright
+		Loop
+	}
+}
+
+Actor LightAmpVisor : Infrared 2045
+{
+	Game Doom64
+	SpawnID 138
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		PVIS A 3 Bright
+		PVIS B 3
+		Loop
+	}
+}
+
+Actor Megasphere64 : Megasphere 83
+{
+	Game Doom64
+	SpawnID 132
+	+NOGRAVITY
+	States
+	{
+	Spawn:
+		MEGA ABCDCB 4 Bright
+		Loop
+	}
+}

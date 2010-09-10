@@ -1,6 +1,0 @@
-BIGFONT
-{
-	template FONTB%03d
-}
-
-

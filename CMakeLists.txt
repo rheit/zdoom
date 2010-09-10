@@ -106,7 +106,6 @@ add_subdirectory( game-music-emu )
 add_subdirectory( dumb )
 add_subdirectory( gdtoa )
 add_subdirectory( wadsrc )
-add_subdirectory( wadsrc64 )
 add_subdirectory( src )
 
 if( NOT WIN32 AND NOT APPLE )

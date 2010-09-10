@@ -1,0 +1,96 @@
+
+Actor Doom64Key : Key
+{
+	+NOGRAVITY
+	+NOTDMATCH
+}
+
+Actor KeyCardBlue64 : Doom64Key 5
+{
+	Game Doom64
+	SpawnID 85
+	Inventory.Pickupmessage "$GOTBLUECARD"
+	Inventory.Icon "STKEYS0"
+	States
+	{
+	Spawn:
+		BKEY A 5
+		BKEY A 5 Bright
+		Loop
+	}
+}
+
+Actor KeyCardRed64 : Doom64Key 13
+{
+	Game Doom64
+	SpawnID 87
+	Inventory.Pickupmessage "$GOTREDCARD"
+	Inventory.Icon "STKEYS2"
+	States
+	{
+	Spawn:
+		RKEY A 5
+		RKEY A 5 Bright
+		Loop
+	}
+}
+
+Actor KeyCardYellow64 : Doom64Key 6
+{
+	Game Doom64
+	SpawnID 86
+	Inventory.Pickupmessage "$GOTYELWCARD"
+	Inventory.Icon "STKEYS1"
+	States
+	{
+	Spawn:
+		YKEY A 5
+		YKEY A 5 Bright
+		Loop
+	}
+}
+
+Actor KeySkullYellow64 : Doom64Key 39
+{
+	Game Doom64
+	SpawnID 88
+	Inventory.Pickupmessage "$GOTYELWSKUL"
+	Inventory.Icon "STKEYS4"
+	States
+	{
+	Spawn:
+		YSKU A 5
+		YSKU A 5 Bright
+		Loop
+	}
+}
+
+Actor KeySkullRed64 : Doom64Key 38
+{
+	Game Doom64
+	SpawnID 89
+	Inventory.Pickupmessage "$GOTREDSKUL"
+	Inventory.Icon "STKEYS5"
+	States
+	{
+	Spawn:
+		RSKU A 5
+		RSKU A 5 Bright
+		Loop
+	}
+}
+
+Actor KeySkullBlue64 : Doom64Key 40
+{
+	Game Doom64
+	SpawnID 90
+	Inventory.Pickupmessage "$GOTBLUESKUL"
+	Inventory.Icon "STKEYS3"
+	States
+	{
+	Spawn:
+		BSKU A 5
+		BSKU A 5 Bright
+		Loop
+	}
+}

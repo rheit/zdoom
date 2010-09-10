@@ -82,7 +82,7 @@ const IWADInfo IWADInfos[NUM_IWAD_TYPES] =
 	{ "Chex(R) Quest 3",						"Chex3",	MAKERGB(255,255,0),		MAKERGB(0,192,0),		GAME_Chex,		"mapinfo/chex3.txt" },
 	{ "Action Doom 2: Urban Brawl",				"UrbanBrawl",MAKERGB(168,168,0),	MAKERGB(168,0,0),		GAME_Doom,		"mapinfo/doom2.txt",	GI_MAPxx  },
 	{ "Harmony",								"Harmony",	MAKERGB(110,180,230),	MAKERGB(69,79,126),		GAME_Doom,		"mapinfo/doom2.txt",	GI_MAPxx  },
-	{ "DOOM 64",								"Doom64",	MAKERGB(168,0,0),		MAKERGB(168,168,168),	GAME_Doom,		"mapinfo/doom2.txt",	GI_MAPxx  },
+	{ "DOOM 64",								"Doom64",	MAKERGB(168,0,0),		MAKERGB(168,168,168),	GAME_Doom64,	"mapinfo/doom64.txt",	GI_MAPxx  },
 	//{ "ZDoom Engine",							NULL,		MAKERGB(168,0,0),		MAKERGB(168,168,168) },
 };
 
@@ -651,8 +651,7 @@ static EIWADType IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, c
 
 	D_AddFile (wadfiles, wads[pickwad].Path);
 
-	// TODO: Doom64: Either put new stuff in zdoom.pk3 or do this right.
-	if (wads[pickwad].Type == IWAD_Strife || wads[pickwad].Type == IWAD_Doom64)
+	if (wads[pickwad].Type == IWAD_Strife)
 	{ // Try to load voices.wad along with strife1.wad
 		long lastslash = wads[pickwad].Path.LastIndexOf ('/');
 		FString path;
@@ -665,10 +664,7 @@ static EIWADType IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, c
 		{
 			path = FString (wads[pickwad].Path.GetChars(), lastslash + 1);
 		}
-		if(wads[pickwad].Type == IWAD_Doom64)
-			path += "zdoom64.pk3";
-		else
-			path += "voices.wad";
+		path += "voices.wad";
 		D_AddFile (wadfiles, path);
 	}
 

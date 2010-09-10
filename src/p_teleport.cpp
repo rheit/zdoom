@@ -57,6 +57,10 @@ void ATeleportFog::PostBeginPlay ()
 	case GAME_Strife:
 		SetState(FindState(NAME_Strife));
 		break;
+
+	case GAME_Doom64:
+		SetState(FindState(NAME_Doom64));
+		break;
 		
 	default:
 		break;

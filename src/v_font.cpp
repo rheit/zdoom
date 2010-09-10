@@ -2395,6 +2395,10 @@ void V_InitFonts()
 		{
 			BigFont = new FSingleLumpFont ("BigFont", Wads.GetNumForName ("SBIGFONT"));
 		}
+		else if (gameinfo.gametype == GAME_Doom64)
+		{
+			BigFont = new FFont ("BigFont", "FONTB%03d", HU_FONTSTART, HU_FONTSIZE, HU_FONTSTART);
+		}
 		else
 		{
 			BigFont = new FFont ("BigFont", "FONTB%02u", HU_FONTSTART, HU_FONTSIZE, 1);

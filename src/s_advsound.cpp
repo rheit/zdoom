@@ -144,6 +144,7 @@ enum SICommands
 	SI_MusicVolume,
 	SI_MidiDevice,
 	SI_IfDoom,
+	SI_IfDoom64,
 	SI_IfHeretic,
 	SI_IfHexen,
 	SI_IfStrife,
@@ -236,6 +237,7 @@ static const char *SICommandStrings[] =
 	"$musicvolume",
 	"$mididevice",
 	"$ifdoom",
+	"$ifdoom64",
 	"$ifheretic",
 	"$ifhexen",
 	"$ifstrife",
@@ -1301,6 +1303,13 @@ static void S_AddSNDINFO (int lump)
 
 			case SI_IfDoom: //also Chex
 				if (!(gameinfo.gametype & GAME_DoomChex))
+				{
+					skipToEndIf = true;
+				}
+				break;
+
+			case SI_IfDoom64:
+				if (gameinfo.gametype != GAME_Doom64)
 				{
 					skipToEndIf = true;
 				}

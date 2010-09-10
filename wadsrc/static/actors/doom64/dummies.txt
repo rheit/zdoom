@@ -1,0 +1,19 @@
+Actor Dummy : DoomBuilderCamera {}
+
+Actor Dummy16 : Dummy 16 { Game Doom64 }
+Actor Dummy67 : Dummy 67 { Game Doom64 }
+Actor Dummy68 : Dummy 68 { Game Doom64 }
+Actor Dummy69 : Dummy 69 { Game Doom64 }
+Actor Dummy71 : Dummy 71 { Game Doom64 }
+Actor Dummy84 : Dummy 84 { Game Doom64 }
+Actor Dummy90 : Dummy 90 { Game Doom64 }
+Actor Dummy89 : Dummy 89 { Game Doom64 }
+Actor Dummy1042 : Dummy 1042 { Game Doom64 }
+Actor Dummy1043 : Dummy 1043 { Game Doom64 }
+Actor Dummy1044 : Dummy 1044 { Game Doom64 }
+Actor Dummy2050 : Dummy 2050 { Game Doom64 }
+Actor Dummy3003 : Dummy 3003 { Game Doom64 }
+Actor Dummy3005 : Dummy 3005 { Game Doom64 }
+Actor Dummy3006 : Dummy 3006 { Game Doom64 }
+Actor Dummy3013 : Dummy 3013 { Game Doom64 }
+Actor Dummy3014 : Dummy 3014 { Game Doom64 }

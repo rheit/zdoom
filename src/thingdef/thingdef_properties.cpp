@@ -213,6 +213,10 @@ DEFINE_INFO_PROPERTY(game, S, Actor)
 	{
 		info->GameFilter |= GAME_Chex;
 	}
+	else if (!stricmp(str, "Doom64"))
+	{
+		info->GameFilter |= GAME_Doom64;
+	}
 	else if (!stricmp(str, "Any"))
 	{
 		info->GameFilter = GAME_Any;

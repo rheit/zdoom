@@ -347,7 +347,7 @@ void FGameConfigFile::DoGameSetup (const char *gamename)
 {
 	const char *key;
 	const char *value;
-	enum { Doom, Heretic, Hexen, Strife, Chex } game;
+	enum { Doom, Heretic, Hexen, Strife, Chex, Doom64 } game;
 
 	if (strcmp (gamename, "Heretic") == 0)
 		game = Heretic;
@@ -357,6 +357,8 @@ void FGameConfigFile::DoGameSetup (const char *gamename)
 		game = Strife;
 	else if (strcmp (gamename, "Chex") == 0)
 		game = Chex;
+	else if (strcmp (gamename, "Doom64") == 0)
+		game = Doom64;
 	else
 		game = Doom;
 
@@ -380,7 +382,7 @@ void FGameConfigFile::DoGameSetup (const char *gamename)
 		ReadCVars (0);
 	}
 
-	if (game != Doom && game != Strife && game != Chex)
+	if (game == Heretic || game == Hexen)
 	{
 		SetRavenDefaults (game == Hexen);
 	}

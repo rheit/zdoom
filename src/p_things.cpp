@@ -114,6 +114,11 @@ bool P_Thing_Spawn (int tid, AActor *source, int type, angle_t angle, bool fog, 
 				{
 					level.total_items--;
 				}
+				// And for secrets
+				if (mobj->flags5 & MF5_COUNTSECRET)
+				{
+					level.total_secrets--;
+				}
 				mobj->Destroy ();
 			}
 		}
@@ -361,6 +366,11 @@ nolead:						mobj->angle = R_PointToAngle2 (mobj->x, mobj->y, targ->x, targ->y);
 						{
 							level.total_items--;
 						}
+						// And for secrets
+						if (mobj->flags5 & MF5_COUNTSECRET)
+						{
+							level.total_secrets--;
+						}
 						mobj->Destroy ();
 					}
 					else
@@ -420,6 +430,7 @@ void P_RemoveThing(AActor * actor)
 		// be friendly to the level statistics. ;)
 		if (actor->CountsAsKill() && actor->health > 0) level.total_monsters--;
 		if (actor->flags&MF_COUNTITEM) level.total_items--;
+		if (actor->flags5&MF5_COUNTSECRET) level.total_secrets--;
 		actor->Destroy ();
 	}
 }

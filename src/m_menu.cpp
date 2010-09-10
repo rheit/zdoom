@@ -1555,7 +1555,7 @@ void M_DrawReadThis ()
 //
 void M_DrawMainMenu (void)
 {
-	if (gameinfo.gametype & GAME_DoomChex)
+	if (gameinfo.gametype & (GAME_DoomChex|GAME_Doom64))
 	{
         screen->DrawTexture (TexMan["M_DOOM"], 94, 2, DTA_Clean, true, TAG_DONE);
 	}
@@ -1567,29 +1567,32 @@ void M_DrawMainMenu (void)
 
 void M_DrawHereticMainMenu ()
 {
-	char name[9];
-
-	screen->DrawTexture (TexMan["M_HTIC"], 88, 0, DTA_Clean, true, TAG_DONE);
-
-	if (gameinfo.gametype == GAME_Hexen)
+	if (gameinfo.gametype != GAME_Doom64)
 	{
-		int frame = (MenuTime / 5) % 7;
+		char name[9];
 
-		mysnprintf (name, countof(name), "FBUL%c0", (frame+2)%7 + 'A');
-		screen->DrawTexture (TexMan[name], 37, 80, DTA_Clean, true, TAG_DONE);
+		screen->DrawTexture (TexMan["M_HTIC"], 88, 0, DTA_Clean, true, TAG_DONE);
 
-		mysnprintf (name, countof(name), "FBUL%c0", frame + 'A');
-		screen->DrawTexture (TexMan[name], 278, 80, DTA_Clean, true, TAG_DONE);
-	}
-	else
-	{
-		int frame = (MenuTime / 3) % 18;
+		if (gameinfo.gametype == GAME_Hexen)
+		{
+			int frame = (MenuTime / 5) % 7;
 
-		mysnprintf (name, countof(name), "M_SKL%.2d", 17 - frame);
-		screen->DrawTexture (TexMan[name], 40, 10, DTA_Clean, true, TAG_DONE);
+			mysnprintf (name, countof(name), "FBUL%c0", (frame+2)%7 + 'A');
+			screen->DrawTexture (TexMan[name], 37, 80, DTA_Clean, true, TAG_DONE);
 
-		mysnprintf (name, countof(name), "M_SKL%.2d", frame);
-		screen->DrawTexture (TexMan[name], 232, 10, DTA_Clean, true, TAG_DONE);
+			mysnprintf (name, countof(name), "FBUL%c0", frame + 'A');
+			screen->DrawTexture (TexMan[name], 278, 80, DTA_Clean, true, TAG_DONE);
+		}
+		else
+		{
+			int frame = (MenuTime / 3) % 18;
+
+			mysnprintf (name, countof(name), "M_SKL%.2d", 17 - frame);
+			screen->DrawTexture (TexMan[name], 40, 10, DTA_Clean, true, TAG_DONE);
+
+			mysnprintf (name, countof(name), "M_SKL%.2d", frame);
+			screen->DrawTexture (TexMan[name], 232, 10, DTA_Clean, true, TAG_DONE);
+		}
 	}
 }
 
@@ -1617,7 +1620,7 @@ void M_NewGame(int choice)
 	}
 
 	// Set up episode menu positioning
-	if (gameinfo.gametype & (GAME_DoomStrifeChex))
+	if (gameinfo.gametype & (GAME_NotRaven))
 	{
 		EpiDef.x = 48;
 		EpiDef.y = 63;
@@ -2052,22 +2055,28 @@ void M_QuitResponse(int ch)
 
 void M_QuitGame (int choice)
 {
-	if (gameinfo.gametype & (GAME_DoomStrifeChex))
+	if (gameinfo.gametype & GAME_NotRaven)
 	{
 		int quitmsg = 0;
 		if (gameinfo.gametype == GAME_Doom)
 		{
 			quitmsg = gametic % (NUM_QUITDOOMMESSAGES + 1);
+			if (quitmsg != 0) quitmsg += START_QUITDOOMMESSAGES;
 		}
 		else if (gameinfo.gametype == GAME_Strife)
 		{
 			quitmsg = gametic % (NUM_QUITSTRIFEMESSAGES + 1);
-			if (quitmsg != 0) quitmsg += NUM_QUITDOOMMESSAGES;
+			if (quitmsg != 0) quitmsg += START_QUITSTRIFEMESSAGES;
 		}
-		else
+		else if (gameinfo.gametype == GAME_Chex)
 		{
 			quitmsg = gametic % (NUM_QUITCHEXMESSAGES + 1);
-			if (quitmsg != 0) quitmsg += NUM_QUITDOOMMESSAGES + NUM_QUITSTRIFEMESSAGES;
+			if (quitmsg != 0) quitmsg += START_QUITCHEXMESSAGES;
+		}
+		else if (gameinfo.gametype == GAME_Doom64)
+		{
+			quitmsg = gametic % (NUM_QUITDOOM64MESSAGE + 1);
+			if (quitmsg != 0) quitmsg += START_QUITDOOM64MESSAGES;
 		}
 
 		if (quitmsg != 0)
@@ -3771,7 +3780,7 @@ void M_Drawer ()
 						x + SKULLXOFF, currentMenu->y - 5 + itemOn*LINEHEIGHT,
 						DTA_Clean, true, TAG_DONE);
 				}
-				else if (gameinfo.gametype == GAME_Strife)
+				else if (gameinfo.gametype == GAME_Strife || gameinfo.gametype == GAME_Doom64)
 				{
 					screen->DrawTexture (TexMan("M_CURS1"),
 						x - 28, currentMenu->y - 5 + itemOn*LINEHEIGHT,

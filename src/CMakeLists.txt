@@ -684,6 +684,7 @@ add_executable( zdoom WIN32
 	p_lights.cpp
 	p_linkedsectors.cpp
 	p_lnspec.cpp
+	p_macro.cpp
 	p_map.cpp
 	p_maputl.cpp
 	p_mobj.cpp

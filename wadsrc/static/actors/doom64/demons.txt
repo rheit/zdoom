@@ -1,0 +1,69 @@
+Actor Demon64 3002
+{
+	Game Doom64
+	Health 150
+	Radius 44
+	Height 100
+	Mass 400
+	PainChance 180
+	Speed 12
+	ActiveSound "demon/active"
+	AttackSound "demon/melee"
+	DeathSound "demon/death"
+	PainSound "demon/pain"
+	SeeSound "demon/sight"
+	Monster
+	States
+	{
+	//Spawn:
+	Spawn:
+		SARG BD 8 A_Look
+		Loop
+	//See:
+	See:
+		SARG AABBCCDD 2 A_Chase
+		Loop
+	//Melee:
+	Melee:
+		SARG EF 8 A_FaceTarget
+		SARG G 8 A_CustomMeleeAttack(4*random(1,8), "demon/melee")
+		Goto See
+	//Pain:
+	Pain:
+		SARG H 2
+		SARG H 2 A_Pain
+		Goto See
+	//Death:
+	Death:
+		SARG I 8
+		SARG J 8 A_Scream
+		SARG K 4
+		SARG L 4 A_Fall
+		SARG M 4 //A_OnDeathTrigger
+		SARG N -1
+		Stop
+	}
+}
+
+Actor NightmareDemon64 : Demon64 58
+{
+	Game Doom64
+	Radius 50
+	//FIXME:Palette 1 "PALSARG1"
+	Monster
+	States
+	{
+	See:
+		SARG A 1 A_FadeOut
+		Goto Super::See
+	Melee:
+		SARG E 1 A_FadeOut
+		Goto Super::Melee
+	Pain:
+		SARG H 1 A_FadeOut
+		Goto Super::Pain
+	Death:
+		SARG I 1 A_FadeIn
+		Goto Super::Death
+	}
+}

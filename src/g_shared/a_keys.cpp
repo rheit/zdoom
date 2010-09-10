@@ -219,6 +219,10 @@ static void ParseLock(FScanner &sc)
 	{
 		if (gameinfo.gametype != GAME_Chex) keynum=-1;
 	}
+	else if (sc.Compare("DOOM64"))
+	{
+		if (gameinfo.gametype != GAME_Doom64) keynum=-1;
+	}
 	else sc.UnGet();
 
 	ignorekey = true;

@@ -176,3 +176,13 @@
 #include "actors/chex/chexitems.txt"
 #include "actors/chex/chexdecorations.txt"
 #include "actors/chex/chexplayer.txt"
+
+#include "actors/doom64/doom64player.txt"
+#include "actors/doom64/decorations.txt"
+#include "actors/doom64/keys.txt"
+#include "actors/doom64/pickups.txt"
+#include "actors/doom64/weapons.txt"
+#include "actors/doom64/dummies.txt"
+#include "actors/doom64/imps.txt"
+#include "actors/doom64/demons.txt"
+#include "actors/doom64/possessed.txt"

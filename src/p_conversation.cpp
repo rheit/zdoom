@@ -1184,6 +1184,11 @@ static void HandleReply(player_t *player, bool isconsole, int nodenum, int reply
 					level.total_items--;
 					item->flags &= ~MF_COUNTITEM;
 				}
+				if (item->flags5 & MF5_COUNTSECRET)
+				{
+					level.total_secrets--;
+					item->flags5 &= ~MF5_COUNTSECRET;
+				}
 				if (item->GetClass()->TypeName == NAME_FlameThrower)
 				{
 					// The flame thrower gives less ammo when given in a dialog

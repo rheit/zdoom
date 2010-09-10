@@ -48,6 +48,12 @@ QUITMSG27 = "Don't quit now!\nWe need your help!";
 QUITMSG28 = "Don't abandon the\nIntergalactic Federation of Cereals!";
 QUITMSG29 = "The real Chex(R) Warrior\nwouldn't give up so fast!";
 
+// Quit Doom 64 messages
+QUITMSG30 = "are you sure you want to quit?";
+QUITMSG31 = "leaving already?";
+QUITMSG32 = "warning.. leaving this game\nmay be hazardous to your health.";
+QUITMSG33 = "oh i see, its your grandma's\nturn to use the computer now?";
+
 LOADNET = "you can't do load while in a net game!\n\npress a key.";
 QLOADNET = "you can't quickload during a netgame!\n\npress a key.";
 QSAVESPOT = "you haven't picked a quicksave slot yet!\n\npress a key.";
@@ -1500,6 +1506,12 @@ SSKILL_EASY			= "Rookie";
 SSKILL_NORMAL		= "Veteran";
 SSKILL_HARD			= "Elite";
 SSKILL_NIGHTMARE	= "Bloodbath";
+
+SKILL_BEGENTLE		= "Be Gentle!";
+SKILL_BRINGITON		= "Bring It On!";
+SKILL_IOWNDOOM		= "I Own Doom!";
+SKILL_WATCHMEDIE	= "Watch Me Die!";
+SKILL_HARDCORE		= "Hardcore!";
 
 // Menu
 MNU_NEWGAME			= "NEW GAME";

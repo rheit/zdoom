@@ -49,20 +49,20 @@
 
 #include "gametype.h"
 
-extern const char *GameNames[17];
+extern const char *GameNames[33];
 
 struct gameborder_t
 {
 	BYTE offset;
 	BYTE size;
-	char tl[8];
-	char t[8];
-	char tr[8];
-	char l[8];
-	char r[8];
-	char bl[8];
-	char b[8];
-	char br[8];
+	char tl[9];
+	char t[9];
+	char tr[9];
+	char l[9];
+	char r[9];
+	char bl[9];
+	char b[9];
+	char br[9];
 };
 
 struct gameinfo_t

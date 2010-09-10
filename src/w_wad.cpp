@@ -719,6 +719,12 @@ void FWadCollection::RenameSprites ()
 	  MAKE_ID('S','P','I','D'), MAKE_ID('S','T','L','K'),		// Stalker
 	};
 
+	static const DWORD Doom64Renames[] =
+	{ MAKE_ID('A','0','2','7'), MAKE_ID('P','O','L','5'),		// Gibs
+	  MAKE_ID('R','O','C','K'), MAKE_ID('M','I','S','G'),		// Prevents conflict with rocket ammo
+	  MAKE_ID('R','C','K','T'), MAKE_ID('R','O','C','K'),		// Make rocket ammo work without redefinition
+	};
+		
 	const DWORD *renames;
 	int numrenames;
 
@@ -743,7 +749,12 @@ void FWadCollection::RenameSprites ()
 		renames = StrifeRenames;
 		numrenames = sizeof(StrifeRenames)/8;
 		break;
+
+	case GAME_Doom64:
+		renames = Doom64Renames;
+		numrenames = sizeof(Doom64Renames)/8;
 	}
+
 
 
 	for (DWORD i=0; i< LumpInfo.Size(); i++)

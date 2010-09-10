@@ -95,6 +95,8 @@ DEFINE_SPECIAL(Polyobj_OR_MoveTimes8, 93, 4, 4, 4)
 DEFINE_SPECIAL(Pillar_BuildAndCrush, 94, 4, 5, 5)
 DEFINE_SPECIAL(FloorAndCeiling_LowerByValue, 95, 3, 3, 3)
 DEFINE_SPECIAL(FloorAndCeiling_RaiseByValue, 96, 3, 3, 3)
+DEFINE_SPECIAL(Door_Split, 97, 2, 5, 5)		// Doom 64 generalized doors
+DEFINE_SPECIAL(Macro_Command, 98, 2, 3, 3)	// Doom 64 macros
 
 DEFINE_SPECIAL(Scroll_Texture_Left, 100, -1, -1, 2)
 DEFINE_SPECIAL(Scroll_Texture_Right, 101, -1, -1, 2)
@@ -123,7 +125,7 @@ DEFINE_SPECIAL(UsePuzzleItem, 129, 2, 5, 5)
 DEFINE_SPECIAL(Thing_Activate, 130, 1, 1, 1)
 DEFINE_SPECIAL(Thing_Deactivate, 131, 1, 1, 1)
 DEFINE_SPECIAL(Thing_Remove, 132, 1, 1, 1)
-DEFINE_SPECIAL(Thing_Destroy, 133, 1, 2, 2)
+DEFINE_SPECIAL(Thing_Destroy, 133, 1, 3, 3)
 DEFINE_SPECIAL(Thing_Projectile, 134, 5, 5, 5)
 DEFINE_SPECIAL(Thing_Spawn, 135, 3, 4, 4)
 DEFINE_SPECIAL(Thing_ProjectileGravity, 136, 5, 5, 5)

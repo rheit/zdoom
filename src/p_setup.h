@@ -31,6 +31,7 @@ struct MapData
 {
 	wadlump_t MapLumps[ML_MAX];
 	bool HasBehavior;
+	bool HasMacros;
 	bool CloseOnDestruct;
 	bool Encrypted;
 	bool isDoom64;
@@ -44,6 +45,7 @@ struct MapData
 		file = NULL;
 		lumpnum = -1;
 		HasBehavior = false;
+		HasMacros = false;
 		CloseOnDestruct = true;
 		Encrypted = false;
 		isDoom64 = false;

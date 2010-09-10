@@ -106,6 +106,11 @@ void SetupPlayerClasses ()
 		newclass.Type = PClass::FindClass (NAME_DoomPlayer);
 		PlayerClasses.Push (newclass);
 	}
+	else if (gameinfo.gametype == GAME_Doom64)
+	{
+		newclass.Type = PClass::FindClass (NAME_Doom64Player);
+		PlayerClasses.Push (newclass);
+	}
 	else if (gameinfo.gametype == GAME_Heretic)
 	{
 		newclass.Type = PClass::FindClass (NAME_HereticPlayer);
@@ -505,7 +510,7 @@ void APlayerPawn::PostBeginPlay()
 	SetupWeaponSlots();
 
 	// Voodoo dolls: restore original floorz/ceilingz logic
-	if (player->mo != this)
+	if (player == NULL || player->mo != this)
 	{
 		dropoffz = floorz = Sector->floorplane.ZatPoint(x, y);
 		ceilingz = Sector->ceilingplane.ZatPoint(x, y);
@@ -1975,7 +1980,7 @@ void P_CrouchMove(player_t * player, int direction)
 
 	// check whether the move is ok
 	player->mo->height = FixedMul(defaultheight, player->crouchfactor);
-	if (!P_TryMove(player->mo, player->mo->x, player->mo->y, false, false))
+	if (!P_TryMove(player->mo, player->mo->x, player->mo->y, false, NULL))
 	{
 		player->mo->height = savedheight;
 		if (direction > 0)

@@ -93,6 +93,7 @@ typedef enum {
 	dDamage_Hellslime = 69,
 	dDamage_Nukage = 71,
 	dLight_Glow = 72,
+	nLight_GlowSlow = 73,
 	dSector_DoorCloseIn30 = 74,
 	dDamage_End = 75,
 	dLight_StrobeSlowSync = 76,
@@ -105,6 +106,7 @@ typedef enum {
 	dDamage_LavaHefty = 83,
 	dScroll_EastLavaDamage = 84,
 	hDamage_Sludge = 85,
+	nLight_GlowRandom = 86,
 	Sector_Outside = 87,
 
 	// And here are some for Strife

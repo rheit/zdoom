@@ -1576,6 +1576,9 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 
 	vis->texturemid = MulScale16((BASEYCENTER<<FRACBITS) - sy, tex->yScale) + (tex->TopOffset << FRACBITS);
 
+    // Doom 64 hack
+    if (gameinfo.gametype == GAME_Doom64)
+        vis->texturemid += 40<<FRACBITS;
 
 	if (camera->player && (RenderTarget != screen ||
 		viewheight == RenderTarget->GetHeight() ||

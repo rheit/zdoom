@@ -1,0 +1,97 @@
+Actor FormerHuman 3004
+{
+	Game Doom64
+	Health 20
+	Radius 32
+	Height 87
+	PainChance 200
+	Speed 8
+	ActiveSound "grunt/active"
+	AttackSound "grunt/attack"
+	DeathSound "grunt/death"
+	PainSound "grunt/pain"
+	SeeSound "grunt/sight"
+	Monster
+	States
+	{
+	Spawn:
+		POSS AB 10 A_Look
+		Loop
+	See:
+		POSS AABBCCDD 4 A_Chase
+		Loop
+	Missile:
+		POSS E 10 A_FaceTarget
+		POSS F 8 A_CustomBulletAttack (22.5, 0, 1, 3*random(1,8), "BulletPuff", 0, CBAF_NORANDOM)
+		POSS E 8
+		Goto See
+	Pain:
+		POSS G 3
+		POSS G 3 A_Pain
+		Goto See
+	Death:
+		POSS H 5
+		POSS I 5 A_Scream
+		POSS J 5 A_Fall
+		POSS K 5 //A_OnDeathTrigger
+		POSS L -1
+		Stop
+	XDeath:
+		POSS M 5
+		POSS N 5 A_XScream
+		POSS O 5 A_Fall
+		POSS PQRS 5
+		POSS T 5 //A_OnDeathTrigger
+		POSS U -1
+		Stop
+	}
+}
+
+Actor FormerSergeant 9
+{
+	Game Doom64
+	Health 30
+	Radius 32
+	Height 87
+	PainChance 170
+	Speed 8
+	ActiveSound "shotguy/active"
+	DeathSound "shotguy/death"
+	PainSound "shotguy/pain"
+	SeeSound "shotguy/sight"
+	//FIXME:Palette 1 "PALPOSS1"
+	Monster
+	States
+	{
+	Spawn:
+		POSS AB 10 A_Look
+		Loop
+	See:
+		POSS AABBCCDD 3 A_Chase
+		Loop
+	Missile:
+		POSS E 10 A_FaceTarget
+		POSS F 10 A_SPosAttack
+		POSS E 10
+		Goto See
+	Pain:
+		POSS G 3
+		POSS G 3 A_Pain
+		Goto See
+	Death:
+		POSS H 5
+		POSS I 5 A_Scream
+		POSS J 5 A_Fall
+		POSS K 5 //A_OnDeathTrigger
+		POSS L -1
+		Stop
+	XDeath:
+		POSS M 5
+		POSS N 5 A_XScream
+		POSS O 5 A_Fall
+		POSS PQRS 5
+		POSS T 5 //A_OnDeathTrigger
+		POSS U -1
+		Stop
+	}
+}
