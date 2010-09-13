@@ -1629,7 +1629,7 @@ void P_LoadSectorsDoom64 (MapData * map)
 			Printf("ceiling %s at %i, floor %s at %i; ", TexMan[ss->GetTexture(sector_t::ceiling)]->Name,
 			ms->ceilingheight, TexMan[ss->GetTexture(sector_t::floor)]->Name, ms->floorheight);*/
 		ss->lightlevel = 255;//(BYTE)clamp (LittleShort(ms->lightlevel), (short)0, (short)255);
-		ss->special = LittleShort(ms->special);
+		ss->special = P_TranslateSectorSpecial (LittleShort(ms->special)); // Do translate those, what
 		ss->tag = LittleShort(ms->tag);
 		// Handle sector flags here since xlat doesn't know about sector flags
 		if (ms->flags)
@@ -3739,6 +3739,7 @@ void P_LoadMacros (MapData * map)
 
 	maplinedefdoom64_t junk64;
 	line_t junktr;
+	junk64.sidenum[0] = junk64.sidenum[1] = -1;
 
 	size_t p = 4;
 	for (int i = 0; i < nummacros && p < len; ++i)
@@ -3759,12 +3760,13 @@ void P_LoadMacros (MapData * map)
 				junktr.special, junktr.args[0], junktr.args[1], junktr.args[2], junktr.args[3], junktr.args[4]);
 			macro_t * macro = new macro_t;
 			macro->sequence = seqnum;
-			macro->special = junktr.special;
-			macro->args[0] = junktr.args[0];
-			macro->args[1] = junktr.args[1];
-			macro->args[2] = junktr.args[2];
-			macro->args[3] = junktr.args[3];
-			macro->args[4] = junktr.args[4];
+			macro->tag		= seqtag;
+			macro->special	= junktr.special;
+			macro->args[0]	= junktr.args[0];
+			macro->args[1]	= junktr.args[1];
+			macro->args[2]	= junktr.args[2];
+			macro->args[3]	= junktr.args[3];
+			macro->args[4]	= junktr.args[4];
 			DMacroManager::ActiveMacroManager->AddMacroSequence(i, macro);
 		}
 		p+=6; // Garbage data? The specs did not mention that.
@@ -3900,7 +3902,7 @@ void P_FreeLevelData ()
 	DThinker::DestroyAllThinkers ();
 	level.total_monsters = level.total_items = level.total_secrets =
 		level.killed_monsters = level.found_items = level.found_secrets =
-		wminfo.maxfrags = 0;
+		level.customvalue = wminfo.maxfrags = 0;
 		
 	FBehavior::StaticUnloadModules ();
 	if (vertexes != NULL)
@@ -4203,7 +4205,9 @@ void P_SetupLevel (char *lumpname, int position)
 			{
 				level.flags2 |= LEVEL2_RAILINGHACK;
 			}
-			level.flags2 |= LEVEL2_DUMMYSWITCHES;
+			if (map->isDoom64)
+				level.flags2 |= LEVEL2_DOOM64HACK;
+			else level.flags2 |= LEVEL2_DUMMYSWITCHES;
 		}
 
 		FBehavior::StaticLoadDefaultModules ();

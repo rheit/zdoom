@@ -27,11 +27,14 @@ struct macro_t
 	int	special;
 	int	args[5];
 	int	sequence;
+	int tag;
 };
 
 inline FArchive &operator<< (FArchive &arc, macro_t &spec)
 {
-	arc << spec.sequence << spec.special << spec.args[0] << spec.args[1] << spec.args[2] << spec.args[3] << spec.args[4];
+	arc << spec.sequence << spec.tag << spec.special
+		<< spec.args[0] << spec.args[1] << spec.args[2]
+		<< spec.args[3] << spec.args[4];
 	return arc;
 }
 
@@ -44,14 +47,31 @@ public:
 
 	void Serialize (FArchive &arc);
 	void Tick ();
-	bool Start(int tid, line_t * ln = NULL, AActor * it = NULL, bool backside = false);
-	bool Pause(int tid, line_t * ln = NULL, AActor * it = NULL, bool backside = false);
-	bool Restart(int tid, line_t * ln = NULL, AActor * it = NULL, bool backside = false);
+	bool Start(int tid, line_t * ln = NULL, AActor * it = NULL, bool back = false);
+	bool Pause(int tid, line_t * ln = NULL, AActor * it = NULL, bool back = false);
+	bool Restart(int tid, line_t * ln = NULL, AActor * it = NULL, bool back = false);
 	void AddMacro(macro_t * special);
 private:
 	TArray<macro_t *> specials;
 	int currentsequence;
+	bool started;
+	void NextSequence();
+	enum MacroStatus
+	{
+		done = 0,
+		active,
+		waiting,
+	};
+	int currentstatus;
+	line_t * line;
+	AActor * actor;
+	bool backside;
+	size_t delaycounter;
+	size_t pos;
 };
+
+bool IsSectorWaitSpecial(int i);
+//bool IsPolyWaitSpecial(int i);
 
 class DMacroManager : public DThinker
 {

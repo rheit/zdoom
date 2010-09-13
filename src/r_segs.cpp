@@ -239,7 +239,7 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 	// killough 4/13/98: get correct lightlevel for 2s normal textures
 	const sector_t *sec = R_FakeFlat (frontsector, &tempsec, NULL, NULL, false);
 
-	basecolormap = sec->ExtraColorMaps[LIGHT_WALLUPPER];	// [RH] Set basecolormap
+	basecolormap = COLORMAP(sec, LIGHT_WALLUPPER);	// [RH] Set basecolormap
 
 	wallshade = ds->shade;
 	rw_lightstep = ds->lightstep;
@@ -1304,6 +1304,7 @@ void R_NewWall (bool needlights)
 				|| backsector->GetFlags(sector_t::floor) != frontsector->GetFlags(sector_t::floor)
 
 				// [RH] Add checks for colormaps
+				|| backsector->ColorMap != frontsector->ColorMap
 				|| backsector->ExtraColorMaps[LIGHT_FLOOR] != frontsector->ExtraColorMaps[LIGHT_FLOOR]
 
 				|| backsector->GetXScale(sector_t::floor) != frontsector->GetXScale(sector_t::floor)
@@ -1335,6 +1336,7 @@ void R_NewWall (bool needlights)
 				|| backsector->GetFlags(sector_t::ceiling) != frontsector->GetFlags(sector_t::ceiling)
 
 				// [RH] Add check for colormaps
+				|| backsector->ColorMap != frontsector->ColorMap
 				|| backsector->ExtraColorMaps[LIGHT_CEILING] != frontsector->ExtraColorMaps[LIGHT_CEILING]
 
 				|| backsector->GetXScale(sector_t::ceiling) != frontsector->GetXScale(sector_t::ceiling)

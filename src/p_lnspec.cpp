@@ -1205,6 +1205,30 @@ FUNC(LS_Thing_Deactivate)
 	return false;
 }
 
+FUNC(LS_Thing_Enable)
+{
+	if (arg0 != 0)
+	{
+		AActor *actor;
+		FActorIterator iterator (arg0);
+		int count = 0;
+	
+		actor = iterator.Next ();
+		while (actor)
+		{
+			// Actor might removes itself as part of delayed spawn, so get next
+			// one before we activate it.
+			AActor *temp = iterator.Next ();
+			actor->Enable();
+			actor = temp;
+			count++;
+		}
+	
+		return count != 0;
+	}
+	return false;
+}
+
 FUNC(LS_Thing_Remove)
 // Thing_Remove (tid)
 {
@@ -1677,6 +1701,7 @@ FUNC(LS_Macro_Command)
 	if (!(DMacroManager::ActiveMacroManager && 
 		  DMacroManager::ActiveMacroManager->GetMacro(arg0)))
 		return false;
+	Printf("Starting macro %i\n", arg0);
 
 	switch (arg2)
 	{
@@ -1686,6 +1711,18 @@ FUNC(LS_Macro_Command)
 		case 2: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Restart(arg1, ln, it, backSide); break;	// Restart
 		default: return false;
 	}
+	return true;
+}
+
+FUNC(LS_Macro_SetValue)
+{
+	level.customvalue = arg0;
+	return true;
+}
+
+FUNC(LS_Macro_Delay)
+{
+	// Does nothing, this is handled by the macro itself
 	return true;
 }
 
@@ -3174,8 +3211,8 @@ lnSpecFunc LineSpecials[256] =
 	/*  94 */ LS_Pillar_BuildAndCrush,
 	/*  95 */ LS_FloorAndCeiling_LowerByValue,
 	/*  96 */ LS_FloorAndCeiling_RaiseByValue,
-	/*  97 */ LS_Door_Split,
-	/*  98 */ LS_Macro_Command,
+	/*  97 */ LS_NOP,
+	/*  98 */ LS_NOP,
 	/*  99 */ LS_NOP,
 	/* 100 */ LS_NOP,		// Scroll_Texture_Left
 	/* 101 */ LS_NOP,		// Scroll_Texture_Right
@@ -3239,11 +3276,11 @@ lnSpecFunc LineSpecials[256] =
 	/* 159 */ LS_NOP,		// Sector_SetPlaneReflection in GZDoom
 	/* 160 */ LS_NOP,		// Sector_Set3DFloor in GZDoom and Vavoom
 	/* 161 */ LS_NOP,		// Sector_SetContents in GZDoom and Vavoom
-	/* 162 */ LS_NOP,
-	/* 163 */ LS_NOP,
-	/* 164 */ LS_NOP,
-	/* 165 */ LS_NOP,
-	/* 166 */ LS_NOP,
+	/* 162 */ LS_Door_Split,
+	/* 163 */ LS_Macro_Command,
+	/* 164 */ LS_Macro_SetValue,
+	/* 165 */ LS_Macro_Delay,
+	/* 166 */ LS_Thing_Enable,
 	/* 167 */ LS_NOP,
 	/* 168 */ LS_NOP,
 	/* 169 */ LS_Generic_Crusher2,

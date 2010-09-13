@@ -1652,7 +1652,7 @@ void AM_drawSubsectors()
 		originx = f_x + ((originpt.x - m_x) * scale / float(1 << 24));
 		originy = f_y + (f_h - (originpt.y - m_y) * scale / float(1 << 24));
 		// Coloring for the polygon
-		colormap = sec->ExtraColorMaps[LIGHT_FLOOR];
+		colormap = COLORMAP(sec, LIGHT_FLOOR);
 		// If this subsector has not actually been seen yet (because you are cheating
 		// to see it on the map), tint and desaturate it.
 		if (!(subsectors[i].flags & SSECF_DRAWN))

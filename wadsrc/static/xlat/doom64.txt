@@ -1,8 +1,8 @@
 include "xlat/base.txt"
 
 
-sector bitmask 0xf000 clear;
-sector bitmask 0xfe0 <<= 3;
+//sector bitmask 0xf000 clear;
+//sector bitmask 0xfe0 <<= 3;
 
    /*
     * 1: Flickering Lights
@@ -48,7 +48,7 @@ sector 207 = LightSequenceStart;
 
 sector 208 = dLight_StrobeFast; // todo: make a "super fast" strobe
 
-// sector 666 is an instant death for enemies, to use with a a modified version of P_Massacre()
+// sector 666 is an instant death for enemies, to use with a modified version of P_Massacre()
 
 lineflag 0 = ML_BLOCKING;
 lineflag 1 = ML_BLOCKMONSTERS;
@@ -254,63 +254,61 @@ lineflag 8 = ML_MAPPED;
 190 = 0, 0()															// Unknown or non-existent
 191 = 0, 0()															// Unknown or non-existent
 192 = 0, 0()															// Unknown or non-existent
-/*
-    * 193: Custom Floor Move
+193 = 0, 0() // Custom Floor Move
 194 = 0, 0()															// Unknown or non-existent
 195 = 0, 0()															// Unknown or non-existent
 196 = 0, 0()															// Unknown or non-existent
 197 = 0, 0()															// Unknown or non-existent
 198 = 0, 0()															// Unknown or non-existent
 199 = 0, 0()															// Unknown or non-existent
-    * 200: Clear Camera
-    * 201: Set Camera
-    * 202: Invoke Dart
-    * 203: Delay
-    * 204: Set Level Integer
-    * 210: Custom Ceiling
+200 = 0, 0() // Clear Camera
+201 = 0, 0() // Set Camera
+202 = 0, 0() // Invoke Dart
+203 = 0, Macro_Delay(tag)
+204 = 0, Macro_SetValue(tag)
+210 = 0, 0() // Custom Ceiling
 211 = 0, 0()															// Unknown or non-existent
-    * 212: Custom Floor
+212 = 0, 0() // Custom Floor
 213 = 0, 0()															// Unknown or non-existent
-    * 214: Floor/Ceiling Move
+214 = 0, 0() // Floor/Ceiling Move
 215 = 0, 0()															// Unknown or non-existent
 216 = 0, 0()															// Unknown or non-existent
 217 = 0, 0()															// Unknown or non-existent
-    * 218: Set Line Flag
-    * 219: Set Line Texture
-    * 220: Set Sector Flag
-    * 221: Set Sector Special
-    * 222: Set Sector Light
-    * 223: Set Sector Flats
-    * 224: Spawn Thing
-    * 225: Quake/Shake
-    * 226: Custom Ceiling/Fast
-    * 227: Set Ceiling Height
-    * 228: Custom Floor/Fast
-    * 229: Set Floor Height
-    * 230: Set Line Special
-    * 231: Invoke Tracer
-    * 232: Ceiling Crush/Raise Once
-    * 233: Freeze Player
+218 = 0, 0() // Set Line Flag, apparently always called after a Set Level Integer (204) so it must use this info
+219 = 0, 0() // Set Line Texture, same
+220 = 0, 0() // Set Sector Flag
+221 = 0, 0() // Set Sector Special
+222 = 0, 0() // Set Sector Light
+223 = 0, 0() // Set Sector Flats
+224 = 0,	Thing_Enable(tag)											// Spawn Thing
+225 = 0, 0() // Quake/Shake
+226 = 0, 0() // Custom Ceiling/Fast
+227 = 0, 0() // Set Ceiling Height
+228 = 0, 0() // Custom Floor/Fast
+229 = 0, 0() // Set Floor Height
+230 = 0, 0() // Set Line Special
+231 = 0, 0() // Invoke Tracer
+232 = 0, 0() // Ceiling Crush/Raise Once
+233 = 0, 0() // Freeze Player
 234 = 0, 0()															// Unknown or non-existent
-    * 235: Set Light Data
-    * 236: Custom Platform Down/Up
-    * 237: Custom Platform Down/Up Fast
-    * 238: Custom Platform Up/Down
-    * 239: Custom Platform Up/Down Fast
-    * 240: Trigger Random Tagged Line
-    * 241: Ceiling/Floor Split
-    * 242: Remove Thing
-    * 243: Move Camera
-    * 244: Set Sector Floor Exact
-    * 245: Set Sector Ceiling Exact
-    * 246: Restart Macro
-    * 247: Custom Floor To Height
+235 = 0, 0() // Set Light Data
+236 = 0, 0() // Custom Platform Down/Up
+237 = 0, 0() // Custom Platform Down/Up Fast
+238 = 0, 0() // Custom Platform Up/Down
+239 = 0, 0() // Custom Platform Up/Down Fast
+240 = 0, 0() // Trigger Random Tagged Line
+241 = 0, 0() // Ceiling/Floor Split
+242 = 0, 0() // Remove Thing
+243 = 0, 0() // Move Camera
+244 = 0, 0() // Set Sector Floor Exact
+245 = 0, 0() // Set Sector Ceiling Exact
+246 = 0, 0() // Restart Macro
+247 = 0, 0() // Custom Floor To Height
 248 = 0, 0()															// Unknown or non-existent
-    * 249: Telefrag
+249 = 0, 0() // Telefrag
 250 = 0, 0()															// Unknown or non-existent
 251 = 0, 0()															// Unknown or non-existent
-    * 252: Custom Ceiling To Height
-    * 253: Enable Features
-    * 254: Map33 Special
+252 = 0, 0() // Custom Ceiling To Height
+253 = 0, 0() // Enable Features
+254 = 0, 0() // Map33 Special
 255 = 0, 0()															// Unknown or non-existent
-*/

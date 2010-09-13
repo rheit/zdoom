@@ -83,6 +83,15 @@ graphic optional "FONTB119", 13, 11 { patch "SYMBOLS",  -67, -43 offset 0, -3 }
 graphic optional "FONTB120", 13, 11 { patch "SYMBOLS",  -80, -43 offset 0, -3 }
 graphic optional "FONTB121", 10, 11 { patch "SYMBOLS",  -93, -43 offset 0, -3 }
 graphic optional "FONTB122", 11, 11 { patch "SYMBOLS", -103, -43 offset 0, -3 }
+graphic optional "M_PAUSE",  67, 13
+{
+	Patch "FONTB080",  0, 0 // P 13, 13
+	Patch "FONTB097", 13, 2 // a 10, 11
+	Patch "FONTB117", 23, 2 // u 11, 11
+	Patch "FONTB115", 34, 2 // s 11, 11
+	Patch "FONTB101", 45, 2 // e 11, 11
+	Patch "FONTB100", 56, 2 // d 11, 11
+}
 graphic optional "M_CURS1",  32, 26 { patch "SYMBOLS",    0, -54 }
 graphic optional "M_CURS2",  32, 26 { patch "SYMBOLS",  -32, -54 }
 graphic optional "M_CURS3",  32, 26 { patch "SYMBOLS",  -64, -54 }

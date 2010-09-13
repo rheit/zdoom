@@ -95,8 +95,6 @@ DEFINE_SPECIAL(Polyobj_OR_MoveTimes8, 93, 4, 4, 4)
 DEFINE_SPECIAL(Pillar_BuildAndCrush, 94, 4, 5, 5)
 DEFINE_SPECIAL(FloorAndCeiling_LowerByValue, 95, 3, 3, 3)
 DEFINE_SPECIAL(FloorAndCeiling_RaiseByValue, 96, 3, 3, 3)
-DEFINE_SPECIAL(Door_Split, 97, 2, 5, 5)		// Doom 64 generalized doors
-DEFINE_SPECIAL(Macro_Command, 98, 2, 3, 3)	// Doom 64 macros
 
 DEFINE_SPECIAL(Scroll_Texture_Left, 100, -1, -1, 2)
 DEFINE_SPECIAL(Scroll_Texture_Right, 101, -1, -1, 2)
@@ -144,6 +142,15 @@ DEFINE_SPECIAL(FS_Execute, 158, 1, 4, 4)
 DEFINE_SPECIAL(Sector_SetPlaneReflection, 159, 3, 3, 3)
 DEFINE_SPECIAL(Sector_Set3DFloor, 160, -1, -1, 5)
 DEFINE_SPECIAL(Sector_SetContents, 161, -1, -1, 3)
+
+// Doom 64 support specials
+DEFINE_SPECIAL(Door_Split, 162, 2, 5, 5)		// Doom 64 generalized doors
+DEFINE_SPECIAL(Macro_Command, 163, 2, 3, 3)		// Doom 64 macros
+DEFINE_SPECIAL(Macro_SetValue, 164, 1, 1, 1)	// Doom 64 parameterized function hack
+DEFINE_SPECIAL(Macro_Delay, 165, 1, 1, 1)		// Doom 64 macro delay
+DEFINE_SPECIAL(Thing_Enable, 166, 1, 1, 1)		// Doom 64 delayed spawn enabler
+
+
 
 // [RH] Begin new specials for ZDoom
 DEFINE_SPECIAL(Generic_Crusher2, 169, 5, 5, 5)

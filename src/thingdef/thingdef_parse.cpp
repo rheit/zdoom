@@ -545,6 +545,20 @@ static int ParseThingActivation (FScanner &sc)
 		{ "THINGSPEC_Activate",				THINGSPEC_Activate},
 		{ "THINGSPEC_Deactivate",			THINGSPEC_Deactivate},
 		{ "THINGSPEC_Switch",				THINGSPEC_Switch},
+
+		// Shorter aliases
+		{ "AF_Default",						THINGSPEC_Default},
+		{ "AF_ThingActs",					THINGSPEC_ThingActs},
+		{ "AF_ThingTargets",				THINGSPEC_ThingTargets},
+		{ "AF_TriggerTargets",				THINGSPEC_TriggerTargets},
+		{ "AF_MonsterTrigger",				THINGSPEC_MonsterTrigger},
+		{ "AF_MissileTrigger",				THINGSPEC_MissileTrigger},
+		{ "AF_ClearSpecial",				THINGSPEC_ClearSpecial},
+		{ "AF_NoDeathSpecial",				THINGSPEC_NoDeathSpecial},
+		{ "AF_TriggerActs",					THINGSPEC_TriggerActs},
+		{ "AF_Activate",					THINGSPEC_Activate},
+		{ "AF_Deactivate",					THINGSPEC_Deactivate},
+		{ "AF_Switch",						THINGSPEC_Switch},
 		{ NULL, 0 }
 	};
 
