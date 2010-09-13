@@ -100,6 +100,7 @@ ACTOR RealGibs
 ACTOR Gibs : RealGibs 24
 {
 	Game Doom
+	Game Doom64
 	SpawnID 146
 	ClearFlags
 }

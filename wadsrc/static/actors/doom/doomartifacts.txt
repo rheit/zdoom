@@ -25,6 +25,7 @@ ACTOR InvulnerabilitySphere : PowerupGiver 2022
 ACTOR Soulsphere : Health 2013
 {
 	Game Doom
+	Game Doom64
 	SpawnID 25
 	+COUNTITEM
 	+INVENTORY.AUTOACTIVATE
@@ -167,6 +168,7 @@ ACTOR Allmap : MapRevealer 2026
 ACTOR Berserk : CustomInventory 2023
 {
 	Game Doom
+	Game Doom64
 	SpawnID 134
 	+COUNTITEM
 	+INVENTORY.ALWAYSPICKUP

@@ -18,6 +18,10 @@ ACTOR TeleportFog native
 	Strife:
 		TFOG ABCDEFEDCB 6 Bright
 		Stop
+		
+	Doom64:
+		TFOG EDCBABCDEFGH 3 Bright
+		Stop
 	}
 }
 

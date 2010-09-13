@@ -22,6 +22,7 @@ ACTOR HealthBonus : Health 2014
 ACTOR Stimpack : Health 2011
 {
 	Game Doom
+	Game Doom64
 	SpawnID 23
 	Inventory.Amount 10
 	Inventory.PickupMessage "$GOTSTIM"
@@ -38,6 +39,7 @@ ACTOR Stimpack : Health 2011
 ACTOR Medikit : Health 2012
 {
 	Game Doom
+	Game Doom64
 	SpawnID 24
 	Inventory.Amount 25
 	Inventory.PickupMessage "$GOTMEDIKIT"

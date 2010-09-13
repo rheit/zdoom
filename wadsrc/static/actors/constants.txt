@@ -136,6 +136,11 @@ enum
 	THINGSPEC_ClearSpecial = 32,
 	THINGSPEC_NoDeathSpecial = 64,
 	THINGSPEC_TriggerActs = 128,
+	THINGSPEC_Activate = 256,
+	THINGSPEC_Deactivate = 512,
+	THINGSPEC_Switch = 1024,
+	THINGSPEC_DeathTrigger = 2048,
+	THINGSPEC_Doom64 = 2112,
 };
 // Shorter aliases for same
 const int AF_Default = 0;
@@ -147,6 +152,11 @@ const int AF_MissileTrigger = 16;
 const int AF_ClearSpecial = 32;
 const int AF_NoDeathSpecial = 64;
 const int AF_TriggerActs = 128;
+const int AF_Activate = 256;
+const int AF_Deactivate = 512;
+const int AF_Switch = 1024;
+const int AF_DeathTrigger = 2048;
+const int AF_Doom64 = 2112;
 
 // Flags for A_TakeInventory and A_TakeFromTarget
 const int TIF_NOTAKEINFINITE = 1;

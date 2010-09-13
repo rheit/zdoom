@@ -14,8 +14,10 @@ enum
 {
 	C_SLOW		= 8,
 	C_NORMAL	= 16,
+	C_MEDIUM	= 24,	// Doom 64 has faster moving ceilings/floors/plats than Doom
 	C_FAST		= 32,
-	C_TURBO		= 64
+	C_TURBO		= 64,
+	C_BLAZE		= 128	// Doom 64 has faster moving ceilings/floors/plats than Doom
 }
 
 define CEILWAIT			(150)
@@ -25,8 +27,10 @@ enum
 {
 	F_SLOW		= 8,
 	F_NORMAL	= 16,
+	F_MEDIUM	= 24,
 	F_FAST		= 32,
-	F_TURBO		= 64
+	F_TURBO		= 64,
+	F_BLAZE		= 128
 }
 
 // Speeds for doors (x/8 units per tic)
@@ -39,7 +43,15 @@ enum
 }
 
 define VDOORWAIT		(150)
+define VDOORWAIT64		(120)
+define SPLITDOOR		( 64)
 
+// For Door_Split
+enum
+{
+	SPLIT_OPEN	= 0,
+	SPLIT_CLOSE	= 1
+}
 
 // Speeds for stairs (x/8 units per tic)
 enum
@@ -47,7 +59,8 @@ enum
 	ST_SLOW		= 2,
 	ST_NORMAL	= 4,
 	ST_FAST		= 16,
-	ST_TURBO	= 32
+	ST_TURBO	= 32,
+	ST_BLAZE	= 64
 }
 
 // Speeds for plats (Hexen plats stop 8 units above the floor)
@@ -55,11 +68,14 @@ enum
 {
 	P_SLOW		= 8,
 	P_NORMAL	= 16,
+	P_MEDIUM	= 24,
 	P_FAST		= 32,
-	P_TURBO		= 64
+	P_TURBO		= 64,
+	P_BLAZE		= 128
 }
 
 define PLATWAIT			(105)
+define PLATWAIT64		( 90) // Adjusted for smaller ticrate
 
 define ELEVATORSPEED	(32)
 
@@ -124,6 +140,7 @@ enum
 	dDamage_Hellslime = 69,
 	dDamage_Nukage = 71,
 	dLight_Glow = 72,
+	nLight_GlowSlow = 73,
 	dSector_DoorCloseIn30 = 74,
 	dDamage_End = 75,
 	dLight_StrobeSlowSync = 76,
@@ -136,6 +153,7 @@ enum
 	dDamage_LavaHefty = 83,
 	dScroll_EastLavaDamage = 84,
 	hDamage_Sludge = 85,
+	nLight_GlowRandom = 86,
 	Sector_Outside = 87,
 
 	// And here are some for Strife
