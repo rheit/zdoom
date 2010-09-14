@@ -7,6 +7,7 @@ Actor Demon64 3002
 	Mass 400
 	PainChance 180
 	Speed 12
+	MeleeRange 60
 	ActiveSound "demon/active"
 	AttackSound "demon/melee"
 	DeathSound "demon/death"
@@ -15,25 +16,20 @@ Actor Demon64 3002
 	Monster
 	States
 	{
-	//Spawn:
 	Spawn:
 		SARG BD 8 A_Look
 		Loop
-	//See:
 	See:
 		SARG AABBCCDD 2 A_Chase
 		Loop
-	//Melee:
 	Melee:
 		SARG EF 8 A_FaceTarget
 		SARG G 8 A_CustomMeleeAttack(4*random(1,8), "demon/melee")
 		Goto See
-	//Pain:
 	Pain:
 		SARG H 2
 		SARG H 2 A_Pain
 		Goto See
-	//Death:
 	Death:
 		SARG I 8
 		SARG J 8 A_Scream
@@ -49,6 +45,7 @@ Actor NightmareDemon64 : Demon64 58
 {
 	Game Doom64
 	Radius 50
+	MeleeRange 64
 	//FIXME:Palette 1 "PALSARG1"
 	Monster
 	States
@@ -67,3 +64,4 @@ Actor NightmareDemon64 : Demon64 58
 		Goto Super::Death
 	}
 }
+

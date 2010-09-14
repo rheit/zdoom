@@ -8,6 +8,7 @@ Actor Doom64Imp 3001
 	Height 94
 	PainChance 200
 	Speed 8
+	MeleeRange 66
 	ActiveSound "imp/active"
 	DeathSound "imp/death"
 	PainSound "imp/pain"
@@ -103,3 +104,4 @@ Actor NightmareImpShot
 		Stop
 	}
 }
+
