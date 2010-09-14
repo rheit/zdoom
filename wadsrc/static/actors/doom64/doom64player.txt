@@ -5,6 +5,7 @@ Actor Doom64Player : PlayerPawn
 	Radius 19
 	Height 64
 	PainChance 255
+	Player.DisplayName "Marine"
 	Player.StartItem "Pistol64"
 	Player.StartItem "Fist"
 	Player.StartItem "Clip", 50
@@ -15,6 +16,10 @@ Actor Doom64Player : PlayerPawn
 	Player.WeaponSlot 5, RocketLauncher64
 	Player.WeaponSlot 6, PlasmaRifle64
 	Player.WeaponSlot 7, BFG9064
+
+	// For now
+	Player.ColorRange 112, 127
+	Player.Colorset 0, "Green",			0x70, 0x7F,  0x72
 	States
 	{
 	Spawn:

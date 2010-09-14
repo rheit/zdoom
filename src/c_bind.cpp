@@ -188,6 +188,8 @@ static const FBinding DefAutomapBindings[] =
 	{ "=", "+am_zoomin" },
 	{ "kp-", "+am_zoomout" },
 	{ "kp+", "+am_zoomin" },
+	{ "mwheelup", "am_zoom 1.2" },
+	{ "mwheeldown", "am_zoom -1.2" },
 	{ NULL }
 };
 
@@ -581,7 +583,7 @@ void FKeyBindings::ArchiveBindings(FConfigFile *f, const char *matchcmd)
 //
 //=============================================================================
 
-int FKeyBindings::GetKeysForCommand (char *cmd, int *first, int *second)
+int FKeyBindings::GetKeysForCommand (const char *cmd, int *first, int *second)
 {
 	int c, i;
 
@@ -607,7 +609,7 @@ int FKeyBindings::GetKeysForCommand (char *cmd, int *first, int *second)
 //
 //=============================================================================
 
-void FKeyBindings::UnbindACommand (char *str)
+void FKeyBindings::UnbindACommand (const char *str)
 {
 	int i;
 

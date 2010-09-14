@@ -1546,6 +1546,7 @@ MNU_NOFILES			= "No files";
 
 MNU_CHOOSECLASS		= "CHOOSE CLASS:";
 MNU_CHOOSESKILL		= "CHOOSE SKILL LEVEL:";
+MNU_CHOOSESKILL64	= "Choose Your Skill...";
 
 MNU_SQUIRE			= "SQUIRE";
 MNU_KNIGHT			= "KNIGHT";
@@ -1570,6 +1571,8 @@ MNU_PLAYERSETUP		= "PLAYER SETUP";
 MNU_DELETESG		= "Do you really want to delete the savegame\n";
 
 MNU_ONLYREGISTERED	= "ONLY AVAILABLE IN THE REGISTERED VERSION";
+
+MNU_EPISODE			= "Select Episode";
 
 // Bloodbath announcer
 

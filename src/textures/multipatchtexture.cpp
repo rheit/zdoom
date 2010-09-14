@@ -1164,6 +1164,14 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent)
 				bComplex |= (part.op != OP_COPY);
 				bTranslucentPatches = bComplex;
 			}
+			else if (sc.Compare("useoffsets"))
+			{
+				if (part.Texture != NULL)
+				{
+					part.OriginX -= part.Texture->LeftOffset;
+					part.OriginY -= part.Texture->TopOffset;
+				}
+			}
 		}
 	}
 	if (Mirror & 2)
@@ -1201,9 +1209,9 @@ FMultiPatchTexture::FMultiPatchTexture (FScanner &sc, int usetype)
 			// this is not right. Apparently a texture named 'optional' is being defined right now...
 			sc.UnGet();
 			sc.String = "optional";
-            bSilent = false;
+			bSilent = false;
 		}
-    }
+	}
 	uppercopy(Name, sc.String);
 	Name[8] = 0;
 	sc.MustGetStringName(",");

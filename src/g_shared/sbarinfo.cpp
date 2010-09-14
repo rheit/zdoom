@@ -1288,7 +1288,7 @@ public:
 			}
 
 			if(clearDontDraw)
-				screen->Clear(static_cast<int>(rcx), static_cast<int>(rcy), static_cast<int>(MIN<double>(rcr, w)), static_cast<int>(MIN<double>(rcb, h)), GPalette.BlackIndex, 0);
+				screen->Clear(static_cast<int>(rcx), static_cast<int>(rcy), static_cast<int>(MIN<double>(rcr, rcx+w)), static_cast<int>(MIN<double>(rcb, rcy+h)), GPalette.BlackIndex, 0);
 			else
 			{
 				if(alphaMap)
@@ -1349,7 +1349,10 @@ public:
 		{
 			if(*str == ' ')
 			{
-				ax += font->GetSpaceWidth();
+				if(script->spacingCharacter == '\0')
+					ax += font->GetSpaceWidth();
+				else
+					ax += font->GetCharWidth((int) script->spacingCharacter);
 				str++;
 				continue;
 			}
