@@ -73,7 +73,7 @@ LISTMENU "MainMenu"
 	}
 	IfGame(Doom64)
 	{
-		Position 112, 125
+		Position 112, 120
 	}
 	
 	IfGame(Doom, Strife, Chex)
@@ -89,16 +89,22 @@ LISTMENU "MainMenu"
 		PatchItem "M_QUITG", "q", "QuitMenu"
 	}
 	
-	IfGame(Heretic, Hexen, Doom64)
+	IfGame(Heretic, Hexen)
 	{
 		TextItem "$MNU_NEWGAME", "n", "PlayerclassMenu"
 		TextItem "$MNU_OPTIONS", "o", "OptionsMenu"
 		TextItem "$MNU_GAMEFILES", "g", "GameFilesMenu"
-		IfGame(Heretic, Hexen)
-		{
-			TextItem "$MNU_INFO", "i", "ReadThisMenu"
-		}
+		TextItem "$MNU_INFO", "i", "ReadThisMenu"
 		TextItem "$MNU_QUITGAME", "q", "QuitMenu"
+	}
+
+	IfGame(Doom64)
+	{
+		TextItem "$MNU_NEWGAME64", "n", "PlayerclassMenu"
+		TextItem "$MNU_OPTIONS64", "o", "OptionsMenu"
+		TextItem "$MNU_LOADGAME64", "l", "LoadGameMenu"
+		TextItem "$MNU_SAVEGAME64", "s", "SaveGameMenu"
+		TextItem "$MNU_QUITGAME64", "q", "QuitMenu"
 	}
 }
 
@@ -128,9 +134,16 @@ ListMenu "PlayerclassMenu"
 		NetgameMessage "$CNETGAME"
 	}
 
-	IfGame(Doom, Strife, Chex, Doom64)
+	IfGame(Doom, Strife, Chex)
 	{
 		StaticTextCentered 160, 15, "$MNU_CHOOSECLASS"
+		Position 48, 63
+		PlayerDisplay 220, 63, "20 00 00", "80 00 40"
+		MouseWindow 0, 220
+	}
+	IfGame(Doom64)
+	{
+		StaticTextCentered 160, 15, "$MNU_CHOOSECLASS64"
 		Position 48, 63
 		PlayerDisplay 220, 63, "20 00 00", "80 00 40"
 		MouseWindow 0, 220
@@ -234,14 +247,7 @@ ListMenu "SkillMenu"
 
 ListMenu "GameFilesMenu"
 {
-	IfGame(Heretic, Hexen)
-	{
-		Position 110, 60
-	}
-	IfGame(Doom64)
-	{
-		Position 112, 140
-	}
+	Position 110, 60
 	TextItem "$MNU_LOADGAME", "l", "LoadGameMenu"
 	TextItem "$MNU_SAVEGAME", "s", "SaveGameMenu"
 }
