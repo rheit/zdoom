@@ -9,64 +9,29 @@
  * Using #include "sbarinfo/doom64.txt" will not be supported.
  ******************************************************************************/
 
-height 32;
-monospacefonts true, "0";
+height 0;
+resolution 320, 240;
 
-statusbar fullscreen, fullscreenoffsets // ZDoom HUD
+statusbar fullscreen, fullscreenoffsets, 0.5 // Original Doom 64 HUD
 {
-	//health
-	drawimage "MEDIA0", 20, -2, centerbottom;
-	drawnumber 2147483647, BIGFONT, untranslated, health, drawshadow, 82, -20;
+	// Health
+	drawimage "STHEALTH", 29, -37;
+	drawnumber 2147483647, BIGFONT, red, health, alignment(center), 49, -25;
 
-	//armor
-	drawimage armoricon, 20, -24, centerbottom;
-	drawnumber 2147483647, BIGFONT, untranslated, armor, drawshadow, whennotzero, 82, -39;
+	// Ammo
+	drawnumber 2147483647, BIGFONT, red, ammo1, alignment(center), 0+center, -25;
 
-	//ammo
-	drawimage ammoicon1, -14, -4, centerbottom;
-	drawnumber 2147483647, BIGFONT, untranslated, ammo1, drawshadow, -25, -20;
+	// Armor
+	drawimage "STARMOR", -67, -37;
+	drawnumber 2147483647, BIGFONT, red, armor, alignment(center), -49, -25;
 
-	usesammo
-	{
-		//secondary ammo and inventory
-		usessecondaryammo
-		{
-			drawimage ammoicon2, -14, -22, centerbottom;
-			drawnumber 2147483647, BIGFONT, untranslated, ammo2, drawshadow, -25, -38;
-			inventorybarnotvisible
-			{
-				drawselectedinventory centerbottom, drawshadow, alwaysshowcounter, BIGFONT, -14, -39, -26, -56, untranslated;
-			}
-		}
-		else //no secondary ammo
-		{
-			inventorybarnotvisible
-			{
-				drawselectedinventory centerbottom, drawshadow, alwaysshowcounter, BIGFONT, -14, -21, -26, -38, untranslated;
-			}
-		}
-	}
-	else // no ammo but inventory
-	{
-		inventorybarnotvisible
-		{
-			drawselectedinventory centerbottom, drawshadow, alwaysshowcounter, BIGFONT, -14, -3, -26, -20, untranslated;
-		}
-	}
-
-	gamemode deathmatch
-	{
-		drawnumber 2147483647, BIGFONT, untranslated, frags, drawshadow, -3, 1;
-	}
-	else
-	{
-		// let's hope no mod ever uses 100 keys...
-		drawkeybar 100, vertical, reverserows, auto, -10, 2, 0, 3, auto;
-	}
+	//keys
+    drawswitchableimage keyslot 2 && 5, "nullimage", "STKEYS0", "STKEYS3", "STKEYS3", 78, -24;
+    drawswitchableimage keyslot 3 && 6, "nullimage", "STKEYS1", "STKEYS4", "STKEYS4", 88, -24;
+    drawswitchableimage keyslot 1 && 4, "nullimage", "STKEYS2", "STKEYS5", "STKEYS5", 98, -24;
 }
 
 statusbar inventoryfullscreen, fullscreenoffsets // ZDoom HUD overlay.
 {
 	drawinventorybar Doom, translucent, 7, INDEXFONT, -106+center, -31;
 }
-

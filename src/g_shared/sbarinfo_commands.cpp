@@ -749,7 +749,7 @@ class CommandDrawString : public SBarInfoCommand
 				break;
 			case ALIGN_CENTER:
 				if(script->spacingCharacter == '\0')
-					x -= static_cast<int> (font->StringWidth(str)+(spacing * str.Len()) / 2);
+					x -= static_cast<int> ((font->StringWidth(str)+spacing * str.Len()) / 2);
 				else
 					x -= static_cast<int> ((font->GetCharWidth((int) script->spacingCharacter) + spacing) * str.Len() / 2);
 				break;

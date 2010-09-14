@@ -88,8 +88,16 @@ graphic optional "LEGAL", 320, 240
 graphic optional "CREDIT", 320, 240
 {
 	patch "BACKGRND", 0, 0
-	patch "IDCRED2", 32, 40
+	patch "IDCRED1", 72, 24
+	patch "IDCRED2", 40, 40
 }
+graphic optional "CREDIT2", 320, 240
+{
+	patch "BACKGRND", 0, 0
+	patch "WMSCRED1", 16, 80
+	patch "WMSCRED2", 32, 24
+}
+
 graphic optional "FONTB048", 13, 13 { patch "SYMBOLS", -120, -14 offset 0, -1 }
 graphic optional "FONTB049",  9, 13 { patch "SYMBOLS", -134, -14 offset 0, -1 }
 graphic optional "FONTB050", 14, 13 { patch "SYMBOLS", -144, -14 offset 0, -1 }
@@ -247,3 +255,12 @@ graphic optional "BR64DRR", 27, 2 { patch "HFLATC", -44, -18 }
 graphic optional "BR64DRBL", 2, 2 { patch "HFLATC", -16, -45 }
 graphic optional "BR64DRB", 2, 26 { patch "HFLATC", -18, -45 }
 graphic optional "BR64DRBR", 2, 2 { patch "HFLATC", -44, -45 }
+
+graphic optional "STHEALTH", 40,  6 { patch "STATUS",   0,  0 }
+graphic optional "STARMOR",  36,  6 { patch "STATUS", -40,  0 }
+graphic optional "STKEYS0",   9, 10 { patch "STATUS",   0, -6 }
+graphic optional "STKEYS1",   9, 10 { patch "STATUS",  -9, -6 }
+graphic optional "STKEYS2",   9, 10 { patch "STATUS", -18, -6 }
+graphic optional "STKEYS3",   9, 10 { patch "STATUS", -27, -6 }
+graphic optional "STKEYS4",   9, 10 { patch "STATUS", -36, -6 }
+graphic optional "STKEYS5",   9, 10 { patch "STATUS", -45, -6 }
