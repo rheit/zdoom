@@ -343,9 +343,9 @@ void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld)
 		ld->special = Macro_Command;
 		ld->args[0] = mld->special & 0xFF;
 		ld->args[1] = mld->tag;
-		ld->args[2] = 0;
+		ld->args[2] = (ld->flags & ML_REPEAT_SPECIAL) ? 2 : 0;
 	}
-	DEBUGSPAM
+	//DEBUGSPAM
 }
 
 // Now that ZDoom again gives the option of using Doom's original teleport

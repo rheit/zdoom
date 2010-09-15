@@ -1726,6 +1726,16 @@ FUNC(LS_Macro_Delay)
 	return true;
 }
 
+FUNC(LS_Generic_Update)
+{
+	switch (arg1)
+	{
+	case 1: return EV_Line_CopyFlag(arg0, level.customvalue);
+	case 2: return EV_Line_CopyTexture(arg0, level.customvalue);
+	}
+	return true;
+}
+
 FUNC(LS_FloorAndCeiling_LowerByValue)
 // FloorAndCeiling_LowerByValue (tag, speed, height)
 {
@@ -3281,7 +3291,7 @@ lnSpecFunc LineSpecials[256] =
 	/* 164 */ LS_Macro_SetValue,
 	/* 165 */ LS_Macro_Delay,
 	/* 166 */ LS_Thing_Enable,
-	/* 167 */ LS_NOP,
+	/* 167 */ LS_Generic_Update,
 	/* 168 */ LS_NOP,
 	/* 169 */ LS_Generic_Crusher2,
 	/* 170 */ LS_Sector_SetCeilingScale2,

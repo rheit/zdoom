@@ -11,7 +11,7 @@ gameinfo
 	finalemusic = ""
 	finaleflat = "H37"
 	finalepage = "CREDIT"
-	infopage = "CREDIT", "CREDIT2"
+	infopage = "CREDIT"
 	quitsound = "menu/quit2"
 	borderflat = "HFLATE"
 	border = Doom64Border
@@ -98,7 +98,6 @@ skill hard64
 	MustConfirm
 	Key = "n"
 }*/
-
 
 clearepisodes
 episode map01

@@ -41,10 +41,12 @@ sector 17 = dLight_FireFlicker;
 // MAP10 contains sectors tagged 18. Anybody knows what they do? The specs don't say.
 
 // Those are very probably incorrect but it'll keep them from scrolling
-sector 204 = LightSequenceStart; 
-sector 205 = LightSequenceStart; 
-sector 206 = LightSequenceStart; 
-sector 207 = LightSequenceStart; 
+// MAP01 has a light sequence going from tag 25 to tag 40, starting with a sector with effect 205.
+// The other sectors have no specials.
+sector 204 = 164; //LightSequenceStart; 
+sector 205 = 165; //LightSequenceStart; 
+sector 206 = 166; //LightSequenceStart; 
+sector 207 = 167; //LightSequenceStart; 
 
 sector 208 = dLight_StrobeFast; // todo: make a "super fast" strobe
 
@@ -113,7 +115,7 @@ lineflag 8 = ML_MAPPED;
  49 = 0, 0()															// Unknown or non-existent
  50 = 0, 0()															// Unknown or non-existent
  51 = 0, 0()															// Unknown or non-existent
- 52 = 0,	Exit_Normal (0)												// Exit Level
+ 52 = 0,	Exit_Normal (0)
  53 = 0,	Plat_PerpetualRaiseLip (tag, P_SLOW, PLATWAIT, 0)			// Platform Perpetual/Raise
  54 = 0,	Plat_Stop (tag)												// Platform Perpetual/Stop
  55 = 0, 0()															// Unknown or non-existent
@@ -261,8 +263,8 @@ lineflag 8 = ML_MAPPED;
 197 = 0, 0()															// Unknown or non-existent
 198 = 0, 0()															// Unknown or non-existent
 199 = 0, 0()															// Unknown or non-existent
-200 = 0, 0() // Clear Camera
-201 = 0, 0() // Set Camera
+200 = 0, ChangeCamera(0, 0, 0) // Clear Camera
+201 = 0, ChangeCamera(tag, 0, 1) // Set Camera
 202 = 0, 0() // Invoke Dart
 203 = 0, Macro_Delay(tag)
 204 = 0, Macro_SetValue(tag)
@@ -274,8 +276,8 @@ lineflag 8 = ML_MAPPED;
 215 = 0, 0()															// Unknown or non-existent
 216 = 0, 0()															// Unknown or non-existent
 217 = 0, 0()															// Unknown or non-existent
-218 = 0, 0() // Set Line Flag, apparently always called after a Set Level Integer (204) so it must use this info
-219 = 0, 0() // Set Line Texture, same
+218 = 0, Generic_Update(tag, 1) // Set Line Flag, apparently always called after a Set Level Integer (204) so it must use this info
+219 = 0, Generic_Update(tag, 2) // Set Line Texture, same
 220 = 0, 0() // Set Sector Flag
 221 = 0, 0() // Set Sector Special
 222 = 0, 0() // Set Sector Light
@@ -289,7 +291,7 @@ lineflag 8 = ML_MAPPED;
 230 = 0, 0() // Set Line Special
 231 = 0, 0() // Invoke Tracer
 232 = 0, 0() // Ceiling Crush/Raise Once
-233 = 0, 0() // Freeze Player
+233 = 0, Macro_Delay(tag, 1) // Freeze Player
 234 = 0, 0()															// Unknown or non-existent
 235 = 0, 0() // Set Light Data
 236 = 0, 0() // Custom Platform Down/Up

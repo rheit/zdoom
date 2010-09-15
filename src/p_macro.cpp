@@ -4,7 +4,8 @@
 IMPLEMENT_CLASS (DMacroThinker)
 
 DMacroThinker::DMacroThinker() : DThinker(), currentsequence(0), currentstatus(0), started(false), 
-								 delaycounter(0), pos(0), line(NULL), actor(NULL), backside(false)
+								 delaycounter(0), pos(0), line(NULL), actor(NULL), backside(false),
+								 playerfreeze(false)
 {
 }
 
@@ -129,22 +130,20 @@ void DMacroThinker::Tick()
 {
 	Super::Tick();
 
-	// Handle Macro_Delay special
+	// Handle Macro_Delay
 	if (delaycounter)
 	{
 		delaycounter--;
+		if (playerfreeze && !delaycounter)
+		{
+			players[consoleplayer].cheats &= ~CF_TOTALLYFROZEN;
+			playerfreeze = false;
+		}
 		return;
 	}
 
 	if (started)
 	{
-		// Handle Macro_Delay
-		if (delaycounter)
-		{
-			delaycounter--;
-			return;
-		}
-
 		// Move to next sequence if needed
 		if (currentstatus == DMacroThinker::done)
 		{
@@ -191,20 +190,26 @@ void DMacroThinker::Tick()
 				if (specials[pos]->special == Macro_Delay)
 				{
 					delaycounter = specials[pos]->tag;
-					pos++;
-					return;
+					// Player freeze?
+					if (specials[pos]->args[1])
+					{
+						playerfreeze = true;
+						players[consoleplayer].cheats |= CF_TOTALLYFROZEN;
+					}
 				}
-				else LineSpecials[specials[pos]->special](line, actor, backside, specials[pos]->args[0],
-					specials[pos]->args[1], specials[pos]->args[2], specials[pos]->args[3], specials[pos]->args[4]);
+				else
+				{
+					LineSpecials[specials[pos]->special](line, actor, backside, specials[pos]->args[0],
+						specials[pos]->args[1], specials[pos]->args[2], 
+						specials[pos]->args[3], specials[pos]->args[4]);
 
-				// Look if we need to bother waiting for more
-				if (IsSectorWaitSpecial(specials[pos]->special)) needwait = true;
-
-				// Have we reached the end? If so, stop
+					// Look if we need to bother waiting for more
+					if (IsSectorWaitSpecial(specials[pos]->special)) needwait = true;
+				}
 				pos++;
-				if (pos == specials.Size())
-					started = false;
 			}
+			// Have we reached the end? If so, stop
+			if (pos == specials.Size()) started = false;
 			if (needwait) currentstatus = DMacroThinker::waiting;
 			else currentstatus = DMacroThinker::done;
 		}
@@ -327,4 +332,58 @@ void DMacroManager::AddMacroSequence(size_t index, macro_t * special)
 
 	if (macro != NULL)
 		macro->AddMacro(special);
+}
+
+
+
+
+bool EV_Line_CopyFlag(int tag1, int tag2)
+{
+	// Let's use the first line we find as the model
+	int im = P_FindLineFromID(tag2, -1);
+	if (im > numlines || im < 0)
+		return false;
+
+	// Model flags
+	DWORD newflags = lines[im].flags;
+
+	// Now look for lines to change
+	int linenum = -1;
+	while ((linenum = P_FindLineFromID (tag1, linenum)) >= 0)
+	{
+		lines[linenum].flags = newflags;
+	}
+	return true;
+}
+
+bool EV_Line_CopyTexture(int tag1, int tag2)
+{
+	// Let's use the first line we find as the model
+	int im = P_FindLineFromID(tag2, -1);
+	if (im > numlines || im < 0)
+		return false;
+
+	// Model sides
+	side_t * side0 = lines[im].sidedef[0];
+	side_t * side1 = lines[im].sidedef[1];
+	if (side1 == NULL) side1 = side0;
+	if (side0 == NULL) return false;
+
+	// Now look for lines to change
+	int linenum = -1;
+	while ((linenum = P_FindLineFromID (tag1, linenum)) >= 0)
+	{
+		side_t *sidedef;
+		for (int i = 0; i < 2; ++i)
+		{
+			sidedef = lines[linenum].sidedef[i];
+			if (sidedef == NULL)
+				continue;
+
+			sidedef->SetTexture(side_t::top,	(i?side1:side0)->GetTexture(side_t::top));
+			sidedef->SetTexture(side_t::mid,	(i?side1:side0)->GetTexture(side_t::mid));
+			sidedef->SetTexture(side_t::bottom,	(i?side1:side0)->GetTexture(side_t::bottom));
+		}
+	}
+	return true;
 }

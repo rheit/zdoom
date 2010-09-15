@@ -68,6 +68,7 @@ private:
 	bool backside;
 	size_t delaycounter;
 	size_t pos;
+	bool playerfreeze;
 };
 
 bool IsSectorWaitSpecial(int i);
@@ -88,5 +89,12 @@ public:
 private:
 	TArray<DMacroThinker *> macros;
 };
+
+
+// Not directly related to running macros, but these are usually
+// used from within a macro so it's the best place for them anyway.
+
+bool EV_Line_CopyFlag(int tag1, int tag2);
+bool EV_Line_CopyTexture(int tag, int tag2);
 
 #endif //__P_MACRO_H__

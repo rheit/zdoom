@@ -1999,6 +1999,15 @@ void P_LoadThingsDoom64 (MapData * map)
 		if (flags & D64TF_DONTSPAWN)		mti[i].flags |= MTF_DONTSPAWN;
 		if (flags & D64TF_ONTOUCH)			mti[i].flags |= MTF_ONTOUCH;
 		if (flags & D64TF_ONDEATH)			mti[i].flags |= MTF_ONDEATH;
+
+		// Camera hack
+		if (mth[i].type == 0 && mth[i].thingid > 0)
+			mti[i].type = 9025; // Basic security camera
+		if (mti[i].thingid)
+			Printf("Thing type %i (%s) has tid %i and flags %x\n",
+			mti[i].type, DoomEdMap.FindType(mti[i].type)
+				?DoomEdMap.FindType(mti[i].type)->TypeName.GetChars()
+				:"Unknown thingamajig", mti[i].thingid, flags);
 	}
 	delete[] mtp;
 }
