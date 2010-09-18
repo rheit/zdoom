@@ -179,11 +179,11 @@ static int P_Set3DFloor(line_t * line, int param,int param2, int alpha)
 							VC_BLOOD, VC_SLUDGE, VC_HAZARD, VC_BOOMWATER};
 						flags|=FF_SWIMMABLE|FF_BOTHPLANES|FF_ALLSIDES|FF_FLOOD;
 
-						l->frontsector->ColorMap = 
-							GetSpecialLights (l->frontsector->ColorMap->Color, 
+						l->frontsector->ColorMaps[LIGHT_GLOBAL] = 
+							GetSpecialLights (l->frontsector->ColorMaps[LIGHT_GLOBAL]->Color, 
 											  (unsigned int)(vavoomcolors[l->args[0]]&VC_COLORMASK), 
 											  (unsigned int)(vavoomcolors[l->args[0]]&VC_ALPHAMASK)>>24);
-										//	  l->frontsector->ColorMap->Desaturate);
+										//	  l->frontsector->ColorMaps[LIGHT_GLOBAL]->Desaturate);
 					}
 					alpha=(alpha*255)/100;
 					break;
@@ -460,7 +460,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 		lightlist[0].plane = sector->ceilingplane;
 		lightlist[0].p_lightlevel = &sector->lightlevel;
 		lightlist[0].caster = NULL;
-		lightlist[0].p_extra_colormap = &sector->ColorMap;
+		lightlist[0].p_extra_colormap = &sector->ColorMaps[LIGHT_GLOBAL];
 		lightlist[0].flags = 0;
 		
 		maxheight = sector->CenterCeiling();
@@ -479,7 +479,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 				newlight.plane = *rover->top.plane;
 				newlight.p_lightlevel = rover->toplightlevel;
 				newlight.caster = rover;
-				newlight.p_extra_colormap=&rover->model->ColorMap;
+				newlight.p_extra_colormap=&rover->model->ColorMaps[LIGHT_GLOBAL];
 				newlight.flags = rover->flags;
 				lightlist.Push(newlight);
 			}
@@ -491,7 +491,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 					// this segment begins over the ceiling and extends beyond it
 					lightlist[0].p_lightlevel = rover->toplightlevel;
 					lightlist[0].caster = rover;
-					lightlist[0].p_extra_colormap=&rover->model->ColorMap;
+					lightlist[0].p_extra_colormap=&rover->model->ColorMaps[LIGHT_GLOBAL];
 					lightlist[0].flags = rover->flags;
 				}
 			}
@@ -510,7 +510,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 					else
 					{
 						newlight.p_lightlevel = &sector->lightlevel;
-						newlight.p_extra_colormap = &sector->ColorMap;
+						newlight.p_extra_colormap = &sector->ColorMaps[LIGHT_GLOBAL];
 					}
 					newlight.flags = rover->flags;
 					lightlist.Push(newlight);

@@ -1537,16 +1537,16 @@ void P_LoadSectors (MapData * map)
 		{
 			if (fogMap == NULL)
 				fogMap = GetSpecialLights (PalEntry (255,255,255), level.outsidefog, 0);
-			ss->ColorMap = fogMap;
+			ss->ColorMaps[LIGHT_GLOBAL] = fogMap;
 		}
 		else
 		{
 			if (normMap == NULL)
 				normMap = GetSpecialLights (PalEntry (255,255,255), level.fadeto, NormalLight.Desaturate);
-			ss->ColorMap = normMap;
+			ss->ColorMaps[LIGHT_GLOBAL] = normMap;
 		}
-		for(int j = 0;j < 5;j++)
-			ss->ExtraColorMaps[j] = ss->ColorMap;
+		for(int j = LIGHT_FLOOR; j < LIGHT_MAX; j++)
+			ss->ColorMaps[j] = ss->ColorMaps[LIGHT_GLOBAL];
 
 		// killough 8/28/98: initialize all sectors to normal friction
 		ss->friction = ORIG_FRICTION;
@@ -1685,29 +1685,30 @@ void P_LoadSectorsDoom64 (MapData * map)
 		{
 			if (fogMap == NULL)
 				fogMap = GetSpecialLights (PalEntry (255,255,255), level.outsidefog, 0);
-			ss->ColorMap = fogMap;
+			ss->ColorMaps[LIGHT_GLOBAL] = fogMap;
 		}
 		else
 		{
 			if (normMap == NULL)
 				normMap = GetSpecialLights (PalEntry (255,255,255), level.fadeto, NormalLight.Desaturate);
-			ss->ColorMap = normMap;
+			ss->ColorMaps[LIGHT_GLOBAL] = normMap;
 		}
 
-		light_t *light = &lights[LittleShort(ms->colors[LIGHT_THING])];
-		ss->ExtraColorMaps[LIGHT_THING] = light->ColorMap();
-		light = &lights[LittleShort(ms->colors[LIGHT_FLOOR])];
-		ss->ExtraColorMaps[LIGHT_FLOOR] = light->ColorMap();
-		light = &lights[LittleShort(ms->colors[LIGHT_CEILING])];
-		ss->ExtraColorMaps[LIGHT_CEILING] = light->ColorMap();
-		DWORD upper = lights[LittleShort(ms->colors[LIGHT_WALLUPPER])].color;
-		DWORD lower = lights[LittleShort(ms->colors[LIGHT_WALLLOWER])].color;
-		ss->ExtraColorMaps[LIGHT_WALLUPPER] = ss->ExtraColorMaps[LIGHT_WALLLOWER] =
-			GetSpecialLights (PalEntry ((RPART(upper)+RPART(lower))/2,(GPART(upper)+GPART(lower))/2,(BPART(upper)+BPART(lower)/2)), level.fadeto, NormalLight.Desaturate);
-		/*light = &lights[LittleShort(ms->colors[LIGHT_WALLUPPER])];
-		ss->ExtraColorMaps[LIGHT_WALLUPPER] = light->ColorMap;
-		light = &lights[LittleShort(ms->colors[LIGHT_WALLLOWER])];
-		ss->ExtraColorMaps[LIGHT_WALLLOWER] = light->ColorMap;*/
+		light_t *light = &lights[LittleShort(ms->colors[LIGHT_THING-1])];
+		ss->ColorMaps[LIGHT_THING] = light->ColorMap();
+		light = &lights[LittleShort(ms->colors[LIGHT_FLOOR-1])];
+		ss->ColorMaps[LIGHT_FLOOR] = light->ColorMap();
+		light = &lights[LittleShort(ms->colors[LIGHT_CEILING-1])];
+		ss->ColorMaps[LIGHT_CEILING] = light->ColorMap();
+		DWORD upper = lights[LittleShort(ms->colors[LIGHT_WALLUPPER-1])].color;
+		DWORD lower = lights[LittleShort(ms->colors[LIGHT_WALLLOWER-1])].color;
+		ss->ColorMaps[LIGHT_WALLBOTH] =
+			GetSpecialLights (PalEntry ((RPART(upper)+RPART(lower))/2,(GPART(upper)+GPART(lower))/2,
+			(BPART(upper)+BPART(lower)/2)), level.fadeto, NormalLight.Desaturate);
+		light = &lights[LittleShort(ms->colors[LIGHT_WALLUPPER-1])];
+		ss->ColorMaps[LIGHT_WALLUPPER] = light->ColorMap();
+		light = &lights[LittleShort(ms->colors[LIGHT_WALLLOWER-1])];
+		ss->ColorMaps[LIGHT_WALLLOWER] = light->ColorMap();
 
 		// killough 8/28/98: initialize all sectors to normal friction
 		ss->friction = ORIG_FRICTION;
@@ -2748,15 +2749,15 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 				{
 					if (sectors[s].tag == tag)
 					{
-						if (!colorgood) color = sectors[s].ColorMap->Color;
-						if (!foggood) fog = sectors[s].ColorMap->Fade;
+						if (!colorgood) color = sectors[s].ColorMaps[LIGHT_GLOBAL]->Color;
+						if (!foggood) fog = sectors[s].ColorMaps[LIGHT_GLOBAL]->Fade;
 						if (colormap == NULL ||
 							colormap->Color != color ||
 							colormap->Fade != fog)
 						{
 							colormap = GetSpecialLights (color, fog, 0);
 						}
-						sectors[s].ColorMap = colormap;
+						sectors[s].ColorMaps[LIGHT_GLOBAL] = colormap;
 					}
 				}
 			}

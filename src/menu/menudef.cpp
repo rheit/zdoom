@@ -750,13 +750,13 @@ static void ParseOptionMenuBody(FScanner &sc, FOptionMenuDescriptor *desc)
 			sc.MustGetStringName(",");
 			sc.MustGetFloat();
 			double step = sc.Float;
-			bool showvalue = true;
+			int showvalue = 1;
 			if (sc.CheckString(","))
 			{
 				sc.MustGetNumber();
-				showvalue = !!sc.Number;
+				showvalue = sc.Number;
 			}
-			FOptionMenuItem *it = new FOptionMenuSliderCVar(text, action, min, max, step, showvalue? 1:-1);
+			FOptionMenuItem *it = new FOptionMenuSliderCVar(text, action, min, max, step, showvalue);
 			desc->mItems.Push(it);
 		}
 		else if (sc.Compare("screenresolution"))
@@ -1007,7 +1007,15 @@ static void BuildPlayerclassMenu()
 			// center the menu on the screen if the top space is larger than the bottom space
 			int totalheight = posy + (numclassitems+1) * ld->mLinespacing - topy;
 
-			if (totalheight <= 190 || numclassitems == 1)
+			if (numclassitems <= 1)
+			{
+				// create a dummy item that auto-chooses the default class.
+				FListMenuItemText *it = new FListMenuItemText(0, 0, 0, 'p', "player", 
+					ld->mFont,ld->mFontColor, NAME_Episodemenu, -1000);
+				ld->mAutoselect = ld->mItems.Push(it);
+				success = true;
+			}
+			else if (totalheight <= 190)
 			{
 				int newtop = (200 - totalheight + topy) / 2;
 				int topdelta = newtop - topy;
@@ -1051,10 +1059,6 @@ static void BuildPlayerclassMenu()
 							pname, ld->mFont,ld->mFontColor, NAME_Episodemenu, 0);
 						ld->mItems.Push(it);
 					}
-				}
-				if (n < 2)
-				{
-					ld->mAutoselect = ld->mSelectedItem;
 				}
 				success = true;
 			}

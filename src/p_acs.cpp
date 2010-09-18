@@ -2557,6 +2557,8 @@ enum
 	APROP_Notrigger		= 23,
 	APROP_DamageFactor	= 24,
 	APROP_MasterTID     = 25,
+	APROP_TargetTID		= 26,
+	APROP_TracerTID		= 27
 };	
 
 // These are needed for ACS's APROP_RenderStyle
@@ -2796,6 +2798,8 @@ int DLevelScript::GetActorProperty (int tid, int property)
 							}
 	case APROP_Score:		return actor->Score;
 	case APROP_MasterTID:	return DoGetMasterTID (actor);
+	case APROP_TargetTID:	return (actor->target != NULL)? actor->target->tid : 0;
+	case APROP_TracerTID:	return (actor->tracer != NULL)? actor->tracer->tid : 0;
 	default:				return 0;
 	}
 }
@@ -2827,6 +2831,8 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_JumpZ:
 		case APROP_Score:
 		case APROP_MasterTID:
+		case APROP_TargetTID:
+		case APROP_TracerTID:
 			return (GetActorProperty(tid, property) == value);
 
 		// Boolean values need to compare to a binary version of value

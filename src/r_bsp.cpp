@@ -410,7 +410,7 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
 			{
 				if (underwater)
 				{
-					tempsec->ColorMap = s->ColorMap;
+					tempsec->ColorMaps[LIGHT_GLOBAL] = s->ColorMaps[LIGHT_GLOBAL];
 					if (!(s->MoreFlags & SECF_NOFAKELIGHT))
 					{
 						tempsec->lightlevel = s->lightlevel;
@@ -486,7 +486,7 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
 			tempsec->ceilingplane = s->floorplane;
 			tempsec->ceilingplane.FlipVert ();
 			tempsec->ceilingplane.ChangeHeight (-1);
-			tempsec->ColorMap = s->ColorMap;
+			tempsec->ColorMaps[LIGHT_GLOBAL] = s->ColorMaps[LIGHT_GLOBAL];
 		}
 
 		// killough 11/98: prevent sudden light changes from non-water sectors:
@@ -535,8 +535,7 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
 			tempsec->floorplane			= s->ceilingplane;
 			tempsec->floorplane.FlipVert ();
 			tempsec->floorplane.ChangeHeight (+1);
-			tempsec->ColorMap			= s->ColorMap;
-			tempsec->ColorMap			= s->ColorMap;
+			tempsec->ColorMaps[LIGHT_GLOBAL] = s->ColorMaps[LIGHT_GLOBAL];
 
 			tempsec->SetTexture(sector_t::ceiling, diffTex ? sec->GetTexture(sector_t::ceiling) : s->GetTexture(sector_t::ceiling), false);
 			tempsec->SetTexture(sector_t::floor, s->GetTexture(sector_t::ceiling), false);
@@ -806,9 +805,9 @@ void R_AddLine (seg_t *line)
 			|| backsector->GetFlags(sector_t::ceiling) != frontsector->GetFlags(sector_t::ceiling)
 
 			// [RH] Also consider colormaps
-			|| backsector->ColorMap != frontsector->ColorMap
-			|| backsector->ExtraColorMaps[LIGHT_FLOOR] != frontsector->ExtraColorMaps[LIGHT_FLOOR]
-			|| backsector->ExtraColorMaps[LIGHT_CEILING] != frontsector->ExtraColorMaps[LIGHT_CEILING]
+			|| backsector->ColorMaps[LIGHT_GLOBAL] != frontsector->ColorMaps[LIGHT_GLOBAL]
+			|| backsector->ColorMaps[LIGHT_FLOOR] != frontsector->ColorMaps[LIGHT_FLOOR]
+			|| backsector->ColorMaps[LIGHT_CEILING] != frontsector->ColorMaps[LIGHT_CEILING]
 
 			// [RH] and scaling
 			|| backsector->GetXScale(sector_t::floor) != frontsector->GetXScale(sector_t::floor)
@@ -1048,7 +1047,7 @@ void R_GetExtraLight (int *light, const secplane_t &plane, FExtraLight *el)
 			}
 			else
 			{
-				basecolormap = el->Lights[i].Master->ColorMap;
+				basecolormap = el->Lights[i].Master->ColorMaps[LIGHT_GLOBAL];
 				*light = el->Lights[i].Master->lightlevel;
 				if (el->Lights[i].bFlooder)
 				{
@@ -1187,7 +1186,7 @@ void R_Subsector (subsector_t *sub)
 	R_GetExtraLight (&ceilinglightlevel, frontsector->ceilingplane, frontsector->ExtraLights);
 
 	// [RH] set foggy flag
-	foggy = level.fadeto || frontsector->ColorMap->Fade || (level.flags & LEVEL_HASFADETABLE);
+	foggy = level.fadeto || frontsector->ColorMaps[LIGHT_GLOBAL]->Fade || (level.flags & LEVEL_HASFADETABLE);
 	r_actualextralight = foggy ? 0 : extralight << 4;
 	basecolormap = COLORMAP(frontsector, LIGHT_CEILING);
 	ceilingplane = frontsector->ceilingplane.ZatPoint (viewx, viewy) > viewz ||
@@ -1252,7 +1251,7 @@ void R_Subsector (subsector_t *sub)
 		}
 	}
 
-	basecolormap = COLORMAP(frontsector, LIGHT_WALLUPPER);
+	basecolormap = COLORMAP(frontsector, LIGHT_WALLBOTH);
 	while (count--)
 	{
 		if (!outersubsector || line->sidedef == NULL || !(line->sidedef->Flags & WALLF_POLYOBJ))

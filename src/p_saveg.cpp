@@ -361,9 +361,9 @@ void P_SerializeWorld (FArchive &arc)
 		sec->e->Serialize(arc);
 		if (arc.IsStoring ())
 		{
-			arc << sec->ColorMap->Color
-				<< sec->ColorMap->Fade;
-			BYTE sat = sec->ColorMap->Desaturate;
+			arc << sec->ColorMaps[LIGHT_GLOBAL]->Color
+				<< sec->ColorMaps[LIGHT_GLOBAL]->Fade;
+			BYTE sat = sec->ColorMaps[LIGHT_GLOBAL]->Desaturate;
 			arc << sat;
 		}
 		else
@@ -372,7 +372,7 @@ void P_SerializeWorld (FArchive &arc)
 			BYTE desaturate;
 			arc << color << fade
 				<< desaturate;
-			sec->ColorMap = GetSpecialLights (color, fade, desaturate);
+			sec->ColorMaps[LIGHT_GLOBAL] = GetSpecialLights (color, fade, desaturate);
 		}
 	}
 
@@ -590,7 +590,7 @@ void P_SerializeSubsectors(FArchive &arc)
 				by = 0;
 				for(int j=0;j<8;j++)
 				{
-					if ((subsectors[i+j].flags & SSECF_DRAWN) && i+j<numsubsectors)
+					if (i+j<numsubsectors && (subsectors[i+j].flags & SSECF_DRAWN))
 					{
 						by |= (1<<j);
 					}

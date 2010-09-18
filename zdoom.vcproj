@@ -1005,11 +1005,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\statistics.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\stats.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\src\stringtable.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\strnatcmp.c"
 				>
 			</File>
 			<File
@@ -1539,6 +1547,10 @@
 			</File>
 			<File
 				RelativePath=".\src\stringtable.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\strnatcmp.h"
 				>
 			</File>
 			<File

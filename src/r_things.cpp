@@ -1756,7 +1756,7 @@ void R_DrawPlayerSprites (void)
 		&ceilinglight, false);
 
 	// [RH] set foggy flag
-	foggy = (level.fadeto || sec->ColorMap->Fade || (level.flags & LEVEL_HASFADETABLE));
+	foggy = (level.fadeto || sec->ColorMaps[LIGHT_GLOBAL]->Fade || (level.flags & LEVEL_HASFADETABLE));
 	r_actualextralight = foggy ? 0 : extralight << 4;
 
 	// [RH] set basecolormap
@@ -2493,7 +2493,7 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 			botplane = &heightsec->ceilingplane;
 			toppic = sector->GetTexture(sector_t::ceiling);
 			botpic = heightsec->GetTexture(sector_t::ceiling);
-			map = heightsec->ColorMap->Maps;
+			map = heightsec->ColorMaps[LIGHT_GLOBAL]->Maps;
 		}
 		else if (fakeside == FAKED_BelowFloor)
 		{
@@ -2501,7 +2501,7 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 			botplane = &sector->floorplane;
 			toppic = heightsec->GetTexture(sector_t::floor);
 			botpic = sector->GetTexture(sector_t::floor);
-			map = heightsec->ColorMap->Maps;
+			map = heightsec->ColorMaps[LIGHT_GLOBAL]->Maps;
 		}
 		else
 		{
@@ -2509,7 +2509,7 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 			botplane = &heightsec->floorplane;
 			toppic = heightsec->GetTexture(sector_t::ceiling);
 			botpic = heightsec->GetTexture(sector_t::floor);
-			map = sector->ColorMap->Maps;
+			map = sector->ColorMaps[LIGHT_GLOBAL]->Maps;
 		}
 	}
 	else
@@ -2518,7 +2518,7 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 		botplane = &sector->floorplane;
 		toppic = sector->GetTexture(sector_t::ceiling);
 		botpic = sector->GetTexture(sector_t::floor);
-		map = sector->ColorMap->Maps;
+		map = sector->ColorMaps[LIGHT_GLOBAL]->Maps;
 	}
 
 	if (botpic != skyflatnum && particle->z < botplane->ZatPoint (particle->x, particle->y))

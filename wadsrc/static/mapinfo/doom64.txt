@@ -11,7 +11,7 @@ gameinfo
 	finalemusic = ""
 	finaleflat = "H37"
 	finalepage = "CREDIT"
-	infopage = "CREDIT"
+	infopage = "CREDIT", "CREDIT2"
 	quitsound = "menu/quit2"
 	borderflat = "HFLATE"
 	border = Doom64Border

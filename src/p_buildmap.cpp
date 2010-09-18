@@ -438,7 +438,7 @@ static void LoadSectors (sectortype *bsec)
 		sec->gravity = 1.f;
 		sec->friction = ORIG_FRICTION;
 		sec->movefactor = ORIG_FRICTION_FACTOR;
-		sec->ColorMap = map;
+		sec->ColorMaps[LIGHT_GLOBAL] = map;
 		sec->ZoneNumber = 0xFFFF;
 
 		if (bsec->floorstat & 4)

@@ -155,8 +155,8 @@ CVAR(Bool, r_fogboundary, true, 0)
 
 inline bool IsFogBoundary (sector_t *front, sector_t *back)
 {
-	return r_fogboundary && fixedcolormap == NULL && front->ColorMap->Fade &&
-		front->ColorMap->Fade != back->ColorMap->Fade &&
+	return r_fogboundary && fixedcolormap == NULL && front->ColorMaps[LIGHT_GLOBAL]->Fade &&
+		front->ColorMaps[LIGHT_GLOBAL]->Fade != back->ColorMaps[LIGHT_GLOBAL]->Fade &&
 		(front->GetTexture(sector_t::ceiling) != skyflatnum || back->GetTexture(sector_t::ceiling) != skyflatnum);
 }
 
@@ -239,7 +239,7 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 	// killough 4/13/98: get correct lightlevel for 2s normal textures
 	const sector_t *sec = R_FakeFlat (frontsector, &tempsec, NULL, NULL, false);
 
-	basecolormap = COLORMAP(sec, LIGHT_WALLUPPER);	// [RH] Set basecolormap
+	basecolormap = COLORMAP(sec, LIGHT_WALLBOTH);	// [RH] Set basecolormap
 
 	wallshade = ds->shade;
 	rw_lightstep = ds->lightstep;
@@ -638,7 +638,7 @@ void wallscan_striped (int x1, int x2, short *uwal, short *dwal, fixed_t *swal, 
 		}
 		else
 		{
-			basecolormap = el->Lights[i].Master->ColorMap;
+			basecolormap = el->Lights[i].Master->ColorMaps[LIGHT_GLOBAL];
 			fogginess = level.fadeto || basecolormap->Fade;
 			wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(fogginess,
 				el->Lights[i].Master->lightlevel) + r_actualextralight);
@@ -1304,8 +1304,8 @@ void R_NewWall (bool needlights)
 				|| backsector->GetFlags(sector_t::floor) != frontsector->GetFlags(sector_t::floor)
 
 				// [RH] Add checks for colormaps
-				|| backsector->ColorMap != frontsector->ColorMap
-				|| backsector->ExtraColorMaps[LIGHT_FLOOR] != frontsector->ExtraColorMaps[LIGHT_FLOOR]
+				|| backsector->ColorMaps[LIGHT_GLOBAL] != frontsector->ColorMaps[LIGHT_GLOBAL]
+				|| backsector->ColorMaps[LIGHT_FLOOR] != frontsector->ColorMaps[LIGHT_FLOOR]
 
 				|| backsector->GetXScale(sector_t::floor) != frontsector->GetXScale(sector_t::floor)
 				|| backsector->GetYScale(sector_t::floor) != frontsector->GetYScale(sector_t::floor)
@@ -1336,8 +1336,8 @@ void R_NewWall (bool needlights)
 				|| backsector->GetFlags(sector_t::ceiling) != frontsector->GetFlags(sector_t::ceiling)
 
 				// [RH] Add check for colormaps
-				|| backsector->ColorMap != frontsector->ColorMap
-				|| backsector->ExtraColorMaps[LIGHT_CEILING] != frontsector->ExtraColorMaps[LIGHT_CEILING]
+				|| backsector->ColorMaps[LIGHT_GLOBAL] != frontsector->ColorMaps[LIGHT_GLOBAL]
+				|| backsector->ColorMaps[LIGHT_CEILING] != frontsector->ColorMaps[LIGHT_CEILING]
 
 				|| backsector->GetXScale(sector_t::ceiling) != frontsector->GetXScale(sector_t::ceiling)
 				|| backsector->GetYScale(sector_t::ceiling) != frontsector->GetYScale(sector_t::ceiling)

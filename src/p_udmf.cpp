@@ -1257,13 +1257,13 @@ public:
 			{
 				if (fogMap == NULL)
 					fogMap = GetSpecialLights (PalEntry (255,255,255), level.outsidefog, 0);
-				sec->ColorMap = fogMap;
+				sec->ColorMaps[LIGHT_GLOBAL] = fogMap;
 			}
 			else
 			{
 				if (normMap == NULL)
 					normMap = GetSpecialLights (PalEntry (255,255,255), level.fadeto, NormalLight.Desaturate);
-				sec->ColorMap = normMap;
+				sec->ColorMaps[LIGHT_GLOBAL] = normMap;
 			}
 		}
 		else
@@ -1278,7 +1278,7 @@ public:
 			}
 			if (desaturation == -1) desaturation = NormalLight.Desaturate;
 
-			sec->ColorMap = GetSpecialLights (lightcolor, fadecolor, desaturation);
+			sec->ColorMaps[LIGHT_GLOBAL] = GetSpecialLights (lightcolor, fadecolor, desaturation);
 		}
 	}
 

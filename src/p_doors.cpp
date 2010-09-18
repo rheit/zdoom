@@ -247,6 +247,7 @@ DSplitDoor::DSplitDoor (sector_t *sec, EVlDoor type, fixed_t speed, int delay, i
 		m_Direction = -1;
 		height = sec->FindLowestCeilingSurrounding (&spot);
 		depth = sec->FindHighestFloorSurrounding (&sspot);
+		m_OriginalDist = sec->floorplane.d;
 		m_TopDist = m_BottomDist
 			// Average height, use that or ((m_Sector->floorplane.d)>>1) + ((sec->ceilingplane.d)>>1);
 			= ((sec->ceilingplane.PointToDist (spot, height - 4*FRACUNIT))>>1)
@@ -260,18 +261,13 @@ DSplitDoor::DSplitDoor (sector_t *sec, EVlDoor type, fixed_t speed, int delay, i
 		height = sec->FindLowestCeilingSurrounding (&spot);
 		depth = sec->FindHighestFloorSurrounding (&sspot);
 		m_TopDist = sec->ceilingplane.PointToDist (spot, height - 4*FRACUNIT);
-		m_BottomDist = sec->floorplane.PointToDist (sspot, depth);
-
-		// Average? It seems from the chainsaw compartment in Staging Area that 
-		// split doors can actually go lower than the highest surrounding floor.
-		if (depth != sec->FindLowestFloorSurrounding (&sspot))
-		{
-			depth = sec->FindLowestFloorSurrounding (&sspot);
-			m_BottomDist += sec->floorplane.PointToDist (sspot, depth);
-			m_BottomDist>>=1;
-		}
-
+		m_BottomDist = sec->floorplane.PointToDist (sspot, depth +  4*FRACUNIT);
 		m_OriginalDist = sec->floorplane.d;
+
+		// The bottom part should not move higher than its starting position.
+		if (m_BottomDist < m_OriginalDist)
+			m_BottomDist = m_OriginalDist;
+
 		if (m_TopDist != sec->ceilingplane.d)
 			DoorSound (true);
 		break;

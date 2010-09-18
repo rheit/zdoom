@@ -104,6 +104,9 @@ void	G_DoWorldDone (void);
 void	G_DoSaveGame (bool okForQuicksave, FString filename, const char *description);
 void	G_DoAutoSave ();
 
+void STAT_Write(FILE *file);
+void STAT_Read(PNGHandle *png);
+
 FIntCVar gameskill ("skill", 2, CVAR_SERVERINFO|CVAR_LATCH);
 CVAR (Int, deathmatch, 0, CVAR_SERVERINFO|CVAR_LATCH);
 CVAR (Bool, chasedemo, false, 0);
@@ -1345,10 +1348,7 @@ void G_PlayerReborn (int player)
 	if (gamestate != GS_TITLELEVEL)
 	{
 		actor->GiveDefaultInventory ();
-
-		// [Spleen] ReadyWeapon will be set when P_MovePsprites calls P_BringUpWeapon
-		p->ReadyWeapon = NULL;
-		//p->ReadyWeapon = p->PendingWeapon;
+		p->ReadyWeapon = p->PendingWeapon;
 	}
 
     //Added by MC: Init bot structure.
@@ -1794,6 +1794,7 @@ void G_DoLoadGame ()
 	}
 
 	G_ReadSnapshots (png);
+	STAT_Read(png);
 	FRandom::StaticReadRNGState (png);
 	P_ReadACSDefereds (png);
 
@@ -2055,6 +2056,7 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 	}
 
 	G_WriteSnapshots (stdfile);
+	STAT_Write(stdfile);
 	FRandom::StaticWriteRNGState (stdfile);
 	P_WriteACSDefereds (stdfile);
 
