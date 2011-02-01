@@ -1183,7 +1183,7 @@ void R_Subsector (subsector_t *sub)
 	}
 	else
 	{
-		basecolormap = frontsector->ColorMaps[LIGHT_GLOBAL];
+		basecolormap = COLORMAP(frontsector, LIGHT_CEILING);
 		ceilinglightlevel = frontsector->lightlevel;
 	}
 
@@ -1215,11 +1215,10 @@ void R_Subsector (subsector_t *sub)
 	}
 	else
 	{
-		basecolormap = frontsector->ColorMaps[LIGHT_GLOBAL];
+		basecolormap = COLORMAP(frontsector, LIGHT_FLOOR);
 		floorlightlevel = frontsector->lightlevel;
 	}
 
-	basecolormap = COLORMAP(frontsector, LIGHT_FLOOR);
 	// killough 3/7/98: Add (x,y) offsets to flats, add deep water check
 	// killough 3/16/98: add floorlightlevel
 	// killough 10/98: add support for skies transferred from sidedefs
@@ -1375,7 +1374,7 @@ void R_Subsector (subsector_t *sub)
 		ceilingplane = backupcp;
 	}
 
-	basecolormap = COLORMAP(frontsector, LIGHT_GLOBAL);
+	basecolormap = COLORMAP(frontsector, LIGHT_THING);
 	floorlightlevel = fll;
 	ceilinglightlevel = cll;
 

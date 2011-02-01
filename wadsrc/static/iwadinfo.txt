@@ -24,7 +24,7 @@ IWad
 {
 	Name = "DOOM 64"
 	Autoname = "Doom64"
-	Game = "Doom"
+	Game = "Doom64"
 	Config = "Doom"
 	Mapinfo = "mapinfo/doom64.txt"
 	MustContain = "ROMINFO"
