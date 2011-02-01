@@ -1592,6 +1592,9 @@ void P_LoadSectors (MapData * map)
 		ss->friction = ORIG_FRICTION;
 		ss->movefactor = ORIG_FRICTION_FACTOR;
 		ss->sectornum = i;
+
+		// Remember what special it is created with, so that it may be copied
+		ss->oldspecial = ss->special;
 	}
 	delete[] msp;
 }

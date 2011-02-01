@@ -108,6 +108,7 @@ typedef enum {
 	hDamage_Sludge = 85,
 	nLight_GlowRandom = 86,
 	Sector_Outside = 87,
+	nLight_StrobeSuperFast = 88,
 
 	// And here are some for Strife
 	sLight_Strobe_Hurt = 104,

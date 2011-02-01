@@ -168,6 +168,7 @@ bool	CheckIfExitIsGood (AActor *self, level_info_t *info);
 
 // at map load
 void	P_SpawnSpecials (void);
+void	P_SpawnSectorSpecial(sector_t * sector);
 
 // every tic
 void	P_UpdateSpecials (void);
@@ -386,9 +387,24 @@ private:
 	int PhaseHelper (sector_t *sector, int index, int light, sector_t *prev);
 };
 
+class DLightGradualTransform : public DLighting
+{
+	DECLARE_CLASS (DLightGradualTransform, DLighting)
+public:
+	DLightGradualTransform (sector_t *sector);
+	DLightGradualTransform (sector_t *sector, sector_t *target);
+	void		Serialize (FArchive &arc);
+	void		Tick ();
+protected:
+	sector_t* 	m_TargetSector;
+private:
+	DLightGradualTransform ();
+};
+
 #define GLOWSPEED				8
 #define GLOWSLOWSPEED			5
 #define STROBEBRIGHT			5
+#define TURBODARK				4
 #define FASTDARK				15
 #define SLOWDARK				TICRATE
 

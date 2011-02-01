@@ -1717,25 +1717,30 @@ FUNC(LS_ACS_Terminate)
 
 FUNC(LS_Macro_Command)
 {
-	if (!(DMacroManager::ActiveMacroManager && 
+	if (arg2 < 3)
+	{
+		if (!(DMacroManager::ActiveMacroManager && 
 		  DMacroManager::ActiveMacroManager->GetMacro(arg0)))
 		return false;
-	Printf("Starting macro %i\n", arg0);
+
+		Printf("Starting macro %i\n", arg0);
+	}
 
 	switch (arg2)
 	{
 		// What exactly is needed here? Start, pause, restart, what else?
-		case 0: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Start(arg1, ln, it, backSide); break;	// start
-		case 1: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Pause(arg1, ln, it, backSide); break;	// pause
-		case 2: DMacroManager::ActiveMacroManager->GetMacro(arg0)->Restart(arg1, ln, it, backSide); break;	// Restart
+		case 0: return DMacroManager::ActiveMacroManager->GetMacro(arg0)->Start(arg1, ln, it, backSide);	// start
+		case 1: return DMacroManager::ActiveMacroManager->GetMacro(arg0)->Pause(arg1, ln, it, backSide);	// pause
+		case 2: return DMacroManager::ActiveMacroManager->GetMacro(arg0)->Restart(arg1, ln, it, backSide);	// restart
+		case 204: level.customvalue = arg1; return true;
+		case 218: return EV_Line_CopyFlag(arg1, level.customvalue);
+		case 219: return EV_Line_CopyTexture(arg1, level.customvalue);
+		case 220: return EV_Sector_CopyFlag(arg1, level.customvalue);
+		case 221: return EV_Sector_CopySpecial(arg1, level.customvalue);
+ 		case 222: return EV_Sector_CopyLight(arg1, level.customvalue);
+		case 223: return EV_Sector_CopyTexture(arg1, level.customvalue);
 		default: return false;
 	}
-	return true;
-}
-
-FUNC(LS_Macro_SetValue)
-{
-	level.customvalue = arg0;
 	return true;
 }
 
@@ -1745,12 +1750,17 @@ FUNC(LS_Macro_Delay)
 	return true;
 }
 
-FUNC(LS_Generic_Update)
+FUNC(LS_Sector_Transform)
 {
-	switch (arg1)
+	switch (arg2)
 	{
-	case 1: return EV_Line_CopyFlag(arg0, level.customvalue);
-	case 2: return EV_Line_CopyTexture(arg0, level.customvalue);
+	case 193: return LS_Floor_MoveToValue(ln, it, backSide, arg0, arg1, level.customvalue, 0, 0);
+	case 226:
+	case 210: Printf("Raising ceiling with values %i, %i, %i, %i, %i\n", arg0, arg1, level.customvalue, 0, 0);
+		return LS_Ceiling_RaiseByValue(ln, it, backSide, arg0, arg1, level.customvalue, 0, 0);
+	case 228:
+	case 212: return LS_Floor_MoveToValue(ln, it, backSide, arg0, arg1, level.customvalue, 0, 0);
+	case 235: return EV_Sector_TransformLight(arg1, level.customvalue);
 	}
 	return true;
 }
@@ -3317,10 +3327,10 @@ lnSpecFunc LineSpecials[256] =
 	/* 161 */ LS_NOP,		// Sector_SetContents in GZDoom and Vavoom
 	/* 162 */ LS_Door_Split,
 	/* 163 */ LS_Macro_Command,
-	/* 164 */ LS_Macro_SetValue,
-	/* 165 */ LS_Macro_Delay,
+	/* 164 */ LS_Macro_Delay,
+	/* 165 */ LS_Sector_Transform,
 	/* 166 */ LS_Thing_Enable,
-	/* 167 */ LS_Generic_Update,
+	/* 167 */ LS_NOP,
 	/* 168 */ LS_NOP,
 	/* 169 */ LS_Generic_Crusher2,
 	/* 170 */ LS_Sector_SetCeilingScale2,

@@ -661,6 +661,7 @@ struct sector_t
 	BYTE 		soundtraversed;	// 0 = untraversed, 1,2 = sndlines -1
 
 	short		special;
+	short		oldspecial;
 	short		tag;
 	int			nexttag,firsttag;	// killough 1/30/98: improves searches for tags.
 

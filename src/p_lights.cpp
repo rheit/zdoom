@@ -29,6 +29,7 @@
 #include "p_local.h"
 
 #include "p_lnspec.h"
+#include "g_level.h"
 
 // State.
 #include "r_state.h"
@@ -930,4 +931,118 @@ void EV_StopLightEffect (int tag)
 			effect->Destroy();
 		}
 	}
+}
+
+
+//-----------------------------------------------------------------------------
+//
+// Slowly changes a sector's colormaps until they match the target sector's.
+//
+//-----------------------------------------------------------------------------
+
+IMPLEMENT_CLASS (DLightGradualTransform)
+DLightGradualTransform::DLightGradualTransform () {}
+DLightGradualTransform::DLightGradualTransform (sector_t *sector)
+: DLighting (sector), m_TargetSector(NULL) {}
+DLightGradualTransform::DLightGradualTransform (sector_t *sector, sector_t *target)
+: DLighting (sector), m_TargetSector(target)
+{
+	m_Sector->lightingdata = this;
+}
+
+void DLightGradualTransform::Tick ()
+{
+	if (m_TargetSector == NULL)
+	{
+		Destroy();
+		return;
+	}
+
+	// It'll be set to false if there are still changes to do
+	bool finished = true;
+
+	// Update all colormaps
+	for (int i = LIGHT_GLOBAL; i < LIGHT_MAX; ++i)
+	{
+		PalEntry color1 = m_Sector->ColorMaps[i]->Color;
+		PalEntry color2 = m_TargetSector->ColorMaps[i]->Color;
+		PalEntry fade1 = m_Sector->ColorMaps[i]->Fade;
+		PalEntry fade2 = m_TargetSector->ColorMaps[i]->Fade;
+		int desat1 = m_Sector->ColorMaps[i]->Desaturate;
+		int desat2 = m_TargetSector->ColorMaps[i]->Desaturate;
+		int light1 = m_Sector->lightlevel;
+		int light2 = m_TargetSector->lightlevel;
+		if (color1 != color2)
+		{
+			// Update the r component
+			if (color1.r > color2.r) 		color1.r--;
+			else if (color1.r < color2.r)	color1.r++;
+
+			// Update the g component
+			if (color1.g > color2.g)		color1.g--;
+			else if (color1.g < color2.g)	color1.g++;
+
+			// Update the b component
+			if (color1.b > color2.b)		color1.b--;
+			else if (color1.b < color2.b)	color1.b++;
+
+			// Update the a component
+			if (color1.a > color2.a)		color1.a--;
+			else if (color1.a < color2.a)	color1.a++;
+		}
+		if (fade1 != fade2)
+		{
+			// Update the r component
+			if (fade1.r > fade2.r) 			fade1.r--;
+			else if (fade1.r < fade2.r)		fade1.r++;
+
+			// Update the g component
+			if (fade1.g > fade2.g)			fade1.g--;
+			else if (fade1.g < fade2.g)		fade1.g++;
+
+			// Update the b component
+			if (fade1.b > fade2.b)			fade1.b--;
+			else if (fade1.b < fade2.b)		fade1.b++;
+
+			// Update the a component
+			if (fade1.a > fade2.a)			fade1.a--;
+			else if (fade1.a < fade2.a)		fade1.a++;
+		}
+		// Update the desaturation
+		if (desat1 > desat2)				desat1--;
+		else if (desat1 < desat2)			desat1++;
+
+		// Update light level
+		if (light1 > light2)				light1--;
+		else if (light1 < light2)			light1++;
+
+		// Were there changes?
+		bool update = false;
+		if (color1	!= m_Sector->ColorMaps[i]->Color)		update = true;
+		if (fade1	!= m_Sector->ColorMaps[i]->Fade)		update = true;
+		if (desat1  != m_Sector->ColorMaps[i]->Desaturate)	update = true;
+
+		// If so, get a new colormap and mark the thinker's job as unfinished
+		if (update)
+		{
+			finished = false;
+			m_Sector->ColorMaps[i] = GetSpecialLights(color1, fade1, desat1);
+		}
+		// Light level is changed in the loop as well as a cheat to make it go faster
+		if (light1	!= m_Sector->lightlevel)
+		{
+			m_Sector->lightlevel = light1;
+			finished = false;
+		}
+	}
+	if (finished)
+	{
+		Destroy();
+	}
+}
+
+void DLightGradualTransform::Serialize (FArchive &arc)
+{
+	Super::Serialize(arc);
+	arc << m_TargetSector;
 }
