@@ -1313,6 +1313,21 @@ void DFrameBuffer::RenderView(player_t *player)
 	FCanvasTextureInfo::UpdateAll ();
 }
 
+//==========================================================================
+//
+//
+//
+//==========================================================================
+extern TDeletingArray<FVoxel *> Voxels;
+
+void DFrameBuffer::RemapVoxels()
+{
+	for (unsigned i=0; i<Voxels.Size(); i++)
+	{
+		Voxels[i]->Remap();
+	}
+}
+
 //===========================================================================
 //
 // Render the view to a savegame picture
@@ -1382,6 +1397,16 @@ void DFrameBuffer::EndSerialize(FArchive &arc)
 int DFrameBuffer::GetMaxViewPitch(bool down)
 {
 	return down? MAX_DN_ANGLE*ANGLE_1 : -MAX_UP_ANGLE*ANGLE_1;
+}
+
+//==========================================================================
+//
+// DFrameBuffer :: GameRestart
+//
+//==========================================================================
+
+void DFrameBuffer::GameRestart()
+{
 }
 
 //===========================================================================
@@ -1605,7 +1630,7 @@ CCMD (vid_setmode)
 // V_Init
 //
 
-void V_Init (void) 
+void V_Init (bool restart) 
 { 
 	const char *i;
 	int width, height, bits;
@@ -1615,40 +1640,43 @@ void V_Init (void)
 	// [RH] Initialize palette management
 	InitPalette ();
 
-	width = height = bits = 0;
-
-	if ( (i = Args->CheckValue ("-width")) )
-		width = atoi (i);
-
-	if ( (i = Args->CheckValue ("-height")) )
-		height = atoi (i);
-
-	if ( (i = Args->CheckValue ("-bits")) )
-		bits = atoi (i);
-
-	if (width == 0)
+	if (!restart)
 	{
-		if (height == 0)
+		width = height = bits = 0;
+
+		if ( (i = Args->CheckValue ("-width")) )
+			width = atoi (i);
+
+		if ( (i = Args->CheckValue ("-height")) )
+			height = atoi (i);
+
+		if ( (i = Args->CheckValue ("-bits")) )
+			bits = atoi (i);
+
+		if (width == 0)
 		{
-			width = vid_defwidth;
-			height = vid_defheight;
+			if (height == 0)
+			{
+				width = vid_defwidth;
+				height = vid_defheight;
+			}
+			else
+			{
+				width = (height * 8) / 6;
+			}
 		}
-		else
+		else if (height == 0)
 		{
-			width = (height * 8) / 6;
+			height = (width * 6) / 8;
 		}
-	}
-	else if (height == 0)
-	{
-		height = (width * 6) / 8;
+
+		if (bits == 0)
+		{
+			bits = vid_defbits;
+		}
+		screen = new DDummyFrameBuffer (width, height);
 	}
 
-	if (bits == 0)
-	{
-		bits = vid_defbits;
-	}
-
-	screen = new DDummyFrameBuffer (width, height);
 
 	BuildTransTable (GPalette.BaseColors);
 }
@@ -1676,6 +1704,7 @@ void V_Init2()
 		Printf ("Resolution: %d x %d\n", SCREENWIDTH, SCREENHEIGHT);
 
 	screen->SetGamma (gamma);
+	screen->RemapVoxels();
 	FBaseCVar::ResetColors ();
 	C_NewModeAdjust();
 	M_InitVideoModesMenu();
@@ -1692,10 +1721,7 @@ void V_Shutdown()
 		s->ObjectFlags |= OF_YesReallyDelete;
 		delete s;
 	}
-	while (FFont::FirstFont != NULL)
-	{
-		delete FFont::FirstFont;
-	}
+	V_ClearFonts();
 }
 
 EXTERN_CVAR (Bool, vid_tft)
@@ -1723,43 +1749,61 @@ CUSTOM_CVAR (Int, vid_aspect, 0, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 // 1: 16:9
 // 2: 16:10
 // 4: 5:4
-int CheckRatio (int width, int height)
+int CheckRatio (int width, int height, int *trueratio)
 {
+	int fakeratio = -1;
+	int ratio;
+
 	if ((vid_aspect >=1) && (vid_aspect <=4))
 	{
 		// [SP] User wants to force aspect ratio; let them.
-		return vid_aspect == 3? 0: int(vid_aspect);
+		fakeratio = vid_aspect == 3? 0: int(vid_aspect);
 	}
 	if (vid_nowidescreen)
 	{
 		if (!vid_tft)
 		{
-			return 0;
+			fakeratio = 0;
 		}
-		return (height * 5/4 == width) ? 4 : 0;
+		else
+		{
+			fakeratio = (height * 5/4 == width) ? 4 : 0;
+		}
 	}
 	// If the size is approximately 16:9, consider it so.
 	if (abs (height * 16/9 - width) < 10)
 	{
-		return 1;
+		ratio = 1;
 	}
 	// 16:10 has more variance in the pixel dimensions. Grr.
-	if (abs (height * 16/10 - width) < 60)
+	else if (abs (height * 16/10 - width) < 60)
 	{
 		// 320x200 and 640x400 are always 4:3, not 16:10
 		if ((width == 320 && height == 200) || (width == 640 && height == 400))
 		{
-			return 0;
+			ratio = 0;
 		}
-		return 2;
+		else
+		{
+			ratio = 2;
+		}
 	}
 	// Unless vid_tft is set, 1280x1024 is 4:3, not 5:4.
-	if (height * 5/4 == width && vid_tft)
+	else if (height * 5/4 == width && vid_tft)
 	{
-		return 4;
+		ratio = 4;
 	}
 	// Assume anything else is 4:3.
-	return 0;
+	else
+	{
+		ratio = 0;
+	}
+
+	if (trueratio != NULL)
+	{
+		*trueratio = ratio;
+	}
+	return (fakeratio >= 0) ? fakeratio : ratio;
 }
 
 // First column: Base width (unused)

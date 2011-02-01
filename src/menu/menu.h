@@ -110,6 +110,23 @@ struct FListMenuDescriptor : public FMenuDescriptor
 	EColorRange mFontColor2;
 	const PClass *mClass;
 	FMenuDescriptor *mRedirect;	// used to redirect overlong skill and episode menus to option menu based alternatives
+	bool mCenter;
+
+	void Reset()
+	{
+		// Reset the default settings (ignore all other values in the struct)
+		mSelectOfsX = 0;
+		mSelectOfsY = 0;
+		mSelector.SetInvalid();
+		mDisplayTop = 0;
+		mXpos = 0;
+		mYpos = 0;
+		mLinespacing = 0;
+		mNetgameMessage = "";
+		mFont = NULL;
+		mFontColor = CR_UNTRANSLATED;
+		mFontColor2 = CR_UNTRANSLATED;
+	}
 };
 
 struct FOptionMenuSettings
@@ -140,6 +157,14 @@ struct FOptionMenuDescriptor : public FMenuDescriptor
 
 	void CalcIndent();
 	FOptionMenuItem *GetItem(FName name);
+	void Reset()
+	{
+		// Reset the default settings (ignore all other values in the struct)
+		mPosition = 0;
+		mScrollTop = 0;
+		mIndent = 0;
+		mDontDim = 0;
+	}
 
 };
 						
@@ -262,9 +287,12 @@ public:
 	virtual bool MenuEvent (int mkey, bool fromcontroller);
 	virtual bool MouseEvent(int type, int x, int y);
 	virtual bool CheckHotkey(int c);
+	virtual int GetWidth();
 	void DrawSelector(int xofs, int yofs, FTextureID tex);
 	void OffsetPositionY(int ydelta) { mYpos += ydelta; }
 	int GetY() { return mYpos; }
+	int GetX() { return mXpos; }
+	void SetX(int x) { mXpos = x; }
 };	
 
 class FListMenuItemStaticPatch : public FListMenuItem
@@ -370,6 +398,7 @@ public:
 	FListMenuItemText(int x, int y, int height, int hotkey, const char *text, FFont *font, EColorRange color, FName child, int param = 0);
 	~FListMenuItemText();
 	void Drawer(bool selected);
+	int GetWidth();
 };
 
 class FListMenuItemPatch : public FListMenuItemSelectable
@@ -378,6 +407,7 @@ class FListMenuItemPatch : public FListMenuItemSelectable
 public:
 	FListMenuItemPatch(int x, int y, int height, int hotkey, FTextureID patch, FName child, int param = 0);
 	void Drawer(bool selected);
+	int GetWidth();
 };
 
 //=============================================================================
@@ -574,6 +604,7 @@ public:
 	FOptionMenuItem *GetItem(FName name);
 	DOptionMenu(DMenu *parent = NULL, FOptionMenuDescriptor *desc = NULL);
 	virtual void Init(DMenu *parent = NULL, FOptionMenuDescriptor *desc = NULL);
+	int FirstSelectable();
 	bool Responder (event_t *ev);
 	bool MenuEvent (int mkey, bool fromcontroller);
 	bool MouseEvent(int type, int x, int y);
@@ -630,6 +661,7 @@ public:
 
 
 struct event_t;
+void M_EnableMenu (bool on) ;
 bool M_Responder (event_t *ev);
 void M_Ticker (void);
 void M_Drawer (void);

@@ -70,7 +70,6 @@ CVAR(Int, m_show_backbutton, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 DMenu *DMenu::CurrentMenu;
 int DMenu::MenuTime;
 
-FListMenuDescriptor *MainMenu;
 FGameStartup GameStartupInfo;
 EMenuState		menuactive;
 bool			M_DemoNoPlay;
@@ -79,6 +78,7 @@ int				MenuButtonTickers[NUM_MKEYS];
 bool			MenuButtonOrigin[NUM_MKEYS];
 int				BackbuttonTime;
 fixed_t			BackbuttonAlpha;
+static bool		MenuEnabled = true;
 
 
 #define KEY_REPEAT_DELAY	(TICRATE*5/12)
@@ -351,7 +351,7 @@ void M_SetMenu(FName menu, int param)
 		GameStartupInfo.Episode = -1;
 		GameStartupInfo.PlayerClass = 
 			param == -1000? NULL :
-			param == -1? "Random" : PlayerClasses[param].Type->Meta.GetMetaString (APMETA_DisplayName);
+			param == -1? "Random" : GetPrintableDisplayName(PlayerClasses[param].Type);
 		break;
 
 	case NAME_Skillmenu:
@@ -360,14 +360,7 @@ void M_SetMenu(FName menu, int param)
 		if ((gameinfo.flags & GI_SHAREWARE) && param > 0)
 		{
 			// Only Doom and Heretic have multi-episode shareware versions.
-			if (gameinfo.gametype == GAME_Doom)
-			{
-				M_StartMessage(GStrings("SWSTRING"), 1);
-			}
-			else
-			{
-				M_StartMessage(GStrings("MNU_ONLYREGISTERED"), 1);
-			}
+			M_StartMessage(GStrings("SWSTRING"), 1);
 			return;
 		}
 
@@ -382,14 +375,15 @@ void M_SetMenu(FName menu, int param)
 
 		const char *msg = AllSkills[param].MustConfirmText;
 		if (*msg==0) msg = GStrings("NIGHTMARE");
-		M_StartMessage (msg, 0, NAME_Startgame);
+		M_StartMessage (msg, 0, NAME_StartgameConfirmed);
 		return;
 	}
 
 	case NAME_Startgame:
 		// sent either from skill menu or confirmation screen. Skill gets only set if sent from skill menu
 		// Now we can finally start the game. Ugh...
-		if (GameStartupInfo.Skill == -1) GameStartupInfo.Skill = param;
+		GameStartupInfo.Skill = param;
+	case NAME_StartgameConfirmed:
 
 		G_DeferedInitNew (&GameStartupInfo);
 		if (gamestate == GS_FULLCONSOLE)
@@ -513,11 +507,7 @@ bool M_Responder (event_t *ev)
 				// do we want mouse input?
 				if (ev->subtype >= EV_GUI_FirstMouseEvent && ev->subtype <= EV_GUI_LastMouseEvent)
 				{
-					// FIXME: Mouse events in SDL code are mostly useless so mouse is 
-					// disabled until that code is fixed
-					#ifdef _WIN32
 						if (!m_use_mouse)
-					#endif
 							return true;
 				}
 
@@ -549,7 +539,7 @@ bool M_Responder (event_t *ev)
 				}
 			}
 		}
-		else if (ev->type == EV_KeyDown || ev->type == EV_KeyUp)
+		else if (menuactive != MENU_WaitKey && (ev->type == EV_KeyDown || ev->type == EV_KeyUp))
 		{
 			keyup = ev->type == EV_KeyUp;
 
@@ -632,7 +622,7 @@ bool M_Responder (event_t *ev)
 		}
 		return DMenu::CurrentMenu->Responder(ev) || !keyup;
 	}
-	else
+	else if (MenuEnabled)
 	{
 		if (ev->type == EV_KeyDown)
 		{
@@ -757,6 +747,18 @@ void M_Init (void)
 {
 	M_ParseMenuDefs();
 	M_CreateMenus();
+}
+
+
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
+void M_EnableMenu (bool on) 
+{
+	MenuEnabled = on;
 }
 
 
@@ -953,6 +955,6 @@ CCMD(reset2defaults)
 CCMD(reset2saved)
 {
 	GameConfig->DoGlobalSetup ();
-	GameConfig->DoGameSetup (GameNames[gameinfo.gametype]);
+	GameConfig->DoGameSetup (gameinfo.ConfigName);
 	R_SetViewSize (screenblocks);
 }

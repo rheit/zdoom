@@ -189,7 +189,7 @@ protected:
 
 private:
 	void CheckForHacks ();
-	void ParsePatch(FScanner &sc, TexPart & part, bool silent);
+	void ParsePatch(FScanner &sc, TexPart & part, bool silent, int usetype);
 };
 
 //==========================================================================
@@ -970,12 +970,12 @@ void FTextureManager::AddTexturesLumps (int lump1, int lump2, int patcheslump)
 //
 //==========================================================================
 
-void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent)
+void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent, int usetype)
 {
 	FString patchname;
 	sc.MustGetString();
 
-	FTextureID texno = TexMan.CheckForTexture(sc.String, TEX_WallPatch);
+	FTextureID texno = TexMan.CheckForTexture(sc.String, usetype);
 	int Mirror = 0;
 
 	if (!texno.isValid())
@@ -996,10 +996,10 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent)
 		}
 		else if (strlen(sc.String) <= 8 && !strpbrk(sc.String, "./"))
 		{
-			int lumpnum = Wads.CheckNumForName(sc.String, ns_patches);
+			int lumpnum = Wads.CheckNumForName(sc.String, usetype == TEX_MiscPatch? ns_graphics : ns_patches);
 			if (lumpnum >= 0)
 			{
-				part.Texture = FTexture::CreateTexture(lumpnum, TEX_WallPatch);
+				part.Texture = FTexture::CreateTexture(lumpnum, usetype);
 				TexMan.AddTexture(part.Texture);
 			}
 		}
@@ -1200,6 +1200,7 @@ FMultiPatchTexture::FMultiPatchTexture (FScanner &sc, int usetype)
 	bMultiPatch = true;
 	sc.SetCMode(true);
 	sc.MustGetString();
+	const char* textureName = NULL;
 	if (sc.Compare("optional"))
 	{
 		bSilent = true;
@@ -1208,11 +1209,11 @@ FMultiPatchTexture::FMultiPatchTexture (FScanner &sc, int usetype)
 		{
 			// this is not right. Apparently a texture named 'optional' is being defined right now...
 			sc.UnGet();
-			sc.String = "optional";
+			textureName = "optional";
 			bSilent = false;
 		}
 	}
-	uppercopy(Name, sc.String);
+	uppercopy(Name, !textureName ? sc.String : textureName);
 	Name[8] = 0;
 	sc.MustGetStringName(",");
 	sc.MustGetNumber();
@@ -1252,7 +1253,15 @@ FMultiPatchTexture::FMultiPatchTexture (FScanner &sc, int usetype)
 			else if (sc.Compare("Patch"))
 			{
 				TexPart part;
-				ParsePatch(sc, part, bSilent);
+				ParsePatch(sc, part, bSilent, TEX_WallPatch);
+				if (part.Texture != NULL) parts.Push(part);
+				part.Texture = NULL;
+				part.Translation = NULL;
+			}
+			else if (sc.Compare("Graphic"))
+			{
+				TexPart part;
+				ParsePatch(sc, part, bSilent, TEX_MiscPatch);
 				if (part.Texture != NULL) parts.Push(part);
 				part.Texture = NULL;
 				part.Translation = NULL;

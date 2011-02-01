@@ -1402,11 +1402,7 @@ static void DoGiveInventory(AActor * receiver, DECLARE_PARAMINFO)
 			item->Amount = amount;
 		}
 		item->flags |= MF_DROPPED;
-		if (item->flags & MF_COUNTITEM)
-		{
-			item->flags&=~MF_COUNTITEM;
-			level.total_items--;
-		}
+		item->ClearCounters();
 		if (item->flags5 & MF5_COUNTSECRET)
 		{
 			item->flags5&=~MF5_COUNTSECRET;
@@ -1546,7 +1542,7 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 			if (!(flags&SIXF_NOCHECKPOSITION) && !P_TestMobjLocation(mo))
 			{
 				// The monster is blocked so don't spawn it at all!
-				if (mo->CountsAsKill()) level.total_monsters--;
+				mo->ClearCounters();
 				mo->Destroy();
 				return false;
 			}
@@ -2048,6 +2044,38 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeTo)
 	{
 		self->Destroy();
 	}
+}
+
+//===========================================================================
+//
+// A_Scale(float scalex, optional float scaley)
+//
+// Scales the actor's graphics. If scaley is 0, use scalex.
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetScale)
+{
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_FIXED(scalex, 0);
+	ACTION_PARAM_FIXED(scaley, 1);
+
+	self->scaleX = scalex;
+	self->scaleY = scaley ? scaley : scalex;
+}
+
+//===========================================================================
+//
+// A_SetMass(int mass)
+//
+// Sets the actor's mass.
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetMass)
+{
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_INT(mass, 0);
+
+	self->Mass = mass;
 }
 
 //===========================================================================
@@ -2662,6 +2690,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetInLOS)
 
 			if (an > (fov / 2) && an < (ANGLE_MAX - (fov / 2)))
 			{
+
 				return; // [KS] Outside of FOV - return
 			}
 
@@ -3007,15 +3036,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeFlag)
 				level.total_items--;
 			}
 		}
-		// and same for secrets
+		// and secretd
 		if (secret_before != secret_after)
 		{
 			if (secret_after)
-			{ // It counts as a secret now.
+			{ // It counts as an secret now.
 				level.total_secrets++;
 			}
 			else
-			{ // It no longer counts as a secret
+			{ // It no longer counts as an secret
 				level.total_secrets--;
 			}
 		}

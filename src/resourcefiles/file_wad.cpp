@@ -114,6 +114,7 @@ bool FWadFile::Open(bool quiet)
 		SetNamespace("T_START", "T_END", ns_newtextures); // Doom 64 Textures
 		SetNamespace("V_START", "V_END", ns_strifevoices);
 		SetNamespace("HI_START", "HI_END", ns_hires);
+		SetNamespace("VX_START", "VX_END", ns_voxels);
 		SkinHack();
 	}
 	delete [] fileinfo;

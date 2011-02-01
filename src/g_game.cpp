@@ -37,7 +37,7 @@
 #include "doomstat.h"
 #include "d_protocol.h"
 #include "d_netinf.h"
-#include "f_finale.h"
+#include "intermission/intermission.h"
 #include "m_argv.h"
 #include "m_misc.h"
 #include "menu/menu.h"
@@ -180,8 +180,6 @@ wbstartstruct_t wminfo; 				// parms for world map / intermission
  
 short			consistancy[MAXPLAYERS][BACKUPTICS];
  
-BYTE*			savebuffer;
- 
  
 #define MAXPLMOVE				(forwardmove[1]) 
  
@@ -240,9 +238,9 @@ CUSTOM_CVAR (Float, turbo, 100.f, 0)
 	{
 		self = 10.f;
 	}
-	else if (self > 256.f)
+	else if (self > 255.f)
 	{
-		self = 256.f;
+		self = 255.f;
 	}
 	else
 	{
@@ -457,6 +455,8 @@ CCMD (drop)
 	}
 }
 
+const PClass *GetFlechetteType(AActor *other);
+
 CCMD (useflechette)
 { // Select from one of arti_poisonbag1-3, whichever the player has
 	static const ENamedName bagnames[3] =
@@ -465,22 +465,26 @@ CCMD (useflechette)
 		NAME_ArtiPoisonBag2,
 		NAME_ArtiPoisonBag3
 	};
-	int i, j;
 
 	if (who == NULL)
 		return;
 
-	if (who->IsKindOf (PClass::FindClass (NAME_ClericPlayer)))
-		i = 0;
-	else if (who->IsKindOf (PClass::FindClass (NAME_MagePlayer)))
-		i = 1;
-	else
-		i = 2;
-
-	for (j = 0; j < 3; ++j)
+	const PClass *type = GetFlechetteType(who);
+	if (type != NULL)
 	{
 		AInventory *item;
-		if ( (item = who->FindInventory (bagnames[(i+j)%3])) )
+		if ( (item = who->FindInventory (type) ))
+		{
+			SendItemUse = item;
+			return;
+		}
+	}
+
+	// The default flechette could not be found. Try all 3 types then.
+	for (int j = 0; j < 3; ++j)
+	{
+		AInventory *item;
+		if ( (item = who->FindInventory (bagnames[j])) )
 		{
 			SendItemUse = item;
 			break;
@@ -1031,7 +1035,7 @@ void G_Ticker ()
 			G_DoCompleted ();
 			break;
 		case ga_slideshow:
-			F_StartSlideshow ();
+			if (gamestate == GS_LEVEL) F_StartIntermission(level.info->slideshow, FSTATE_InLevel);
 			break;
 		case ga_worlddone:
 			G_DoWorldDone ();
@@ -1906,6 +1910,7 @@ FString G_BuildSaveName (const char *prefix, int slot)
 }
 
 CVAR (Int, autosavenum, 0, CVAR_NOSET|CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+static int nextautosave = -1;
 CVAR (Int, disableautosave, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CUSTOM_CVAR (Int, autosavecount, 4, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
@@ -1926,10 +1931,25 @@ void G_DoAutoSave ()
 	const char *readableTime;
 	int count = autosavecount != 0 ? autosavecount : 1;
 	
-	num.Int = (autosavenum + 1) % count;
+	if (nextautosave == -1) 
+	{
+		nextautosave = (autosavenum + 1) % count;
+	}
+
+	num.Int = nextautosave;
 	autosavenum.ForceSet (num, CVAR_Int);
 
-	file = G_BuildSaveName ("auto", num.Int);
+	file = G_BuildSaveName ("auto", nextautosave);
+
+	if (!(level.flags2 & LEVEL2_NOAUTOSAVEHINT))
+	{
+		nextautosave = (nextautosave + 1) % count;
+	}
+	else
+	{
+		// This flag can only be used once per level
+		level.flags2 &= ~LEVEL2_NOAUTOSAVEHINT;
+	}
 
 	readableTime = myasctime ();
 	strcpy (description, "Autosave ");
@@ -2575,6 +2595,7 @@ bool G_CheckDemoStatus (void)
 
 		C_RestoreCVars ();		// [RH] Restore cvars demo might have changed
 		M_Free (demobuffer);
+		demobuffer = NULL;
 
 		P_SetupWeapons_ntohton();
 		demoplayback = false;

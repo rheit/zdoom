@@ -115,23 +115,34 @@ bool FPlayerNameBox::GetString(int i, char *s, int len)
 
 void FPlayerNameBox::DrawBorder (int x, int y, int len)
 {
-	if (gameinfo.gametype & (GAME_DoomStrifeChex))
+	FTexture *left = TexMan[TexMan.CheckForTexture("M_LSLEFT", FTexture::TEX_MiscPatch)];
+	FTexture *mid = TexMan[TexMan.CheckForTexture("M_LSCNTR", FTexture::TEX_MiscPatch)];
+	FTexture *right = TexMan[TexMan.CheckForTexture("M_LSRGHT", FTexture::TEX_MiscPatch)];
+	if (left != NULL && right != NULL && mid != NULL)
 	{
 		int i;
 
-		screen->DrawTexture (TexMan["M_LSLEFT"], x-8, y+7, DTA_Clean, true, TAG_DONE);
+		screen->DrawTexture (left, x-8, y+7, DTA_Clean, true, TAG_DONE);
 
 		for (i = 0; i < len; i++)
 		{
-			screen->DrawTexture (TexMan["M_LSCNTR"], x, y+7, DTA_Clean, true, TAG_DONE);
+			screen->DrawTexture (mid, x, y+7, DTA_Clean, true, TAG_DONE);
 			x += 8;
 		}
 
-		screen->DrawTexture (TexMan["M_LSRGHT"], x, y+7, DTA_Clean, true, TAG_DONE);
+		screen->DrawTexture (right, x, y+7, DTA_Clean, true, TAG_DONE);
 	}
 	else
 	{
-		screen->DrawTexture (TexMan["M_FSLOT"], x, y+1, DTA_Clean, true, TAG_DONE);
+		FTexture *slot = TexMan[TexMan.CheckForTexture("M_FSLOT", FTexture::TEX_MiscPatch)];
+		if (slot != NULL)
+		{
+			screen->DrawTexture (slot, x, y+1, DTA_Clean, true, TAG_DONE);
+		}
+		else
+		{
+			screen->Clear(x, y, x + len, y + SmallFont->GetHeight() * 3/2, -1, 0);
+		}
 	}
 }
 
@@ -161,7 +172,7 @@ void FPlayerNameBox::Drawer(bool selected)
 	else
 	{
 		size_t l = strlen(mEditName);
-		mEditName[l] = (gameinfo.gametype & (GAME_DoomStrifeChex)) ? '_' : '[';
+		mEditName[l] = SmallFont->GetCursor();
 		mEditName[l+1] = 0;
 
 		screen->DrawText (SmallFont, CR_UNTRANSLATED, x + mFrameSize, mYpos, mEditName,
@@ -592,7 +603,7 @@ void DPlayerMenu::Init(DMenu *parent, FListMenuDescriptor *desc)
 	{
 		if (PlayerClasses.Size() == 1)
 		{
-			li->SetString(0, PlayerClasses[0].Type->Meta.GetMetaString (APMETA_DisplayName));
+			li->SetString(0, GetPrintableDisplayName(PlayerClasses[0].Type));
 			li->SetValue(0, 0);
 		}
 		else
@@ -600,7 +611,7 @@ void DPlayerMenu::Init(DMenu *parent, FListMenuDescriptor *desc)
 			li->SetString(0, "Random");
 			for(unsigned i=0; i< PlayerClasses.Size(); i++)
 			{
-				const char *cls = PlayerClasses[i].Type->Meta.GetMetaString (APMETA_DisplayName);
+				const char *cls = GetPrintableDisplayName(PlayerClasses[i].Type);
 				li->SetString(i+1, cls);
 			}
 			li->SetValue(0, players[consoleplayer].userinfo.PlayerClass + 1);
@@ -796,7 +807,7 @@ void DPlayerMenu::UpdateSkins()
 		else
 		{
 			PlayerSkins.Clear();
-			for(unsigned i=0;i<(unsigned)numskins; i++)
+			for(int i=0;i<(int)numskins; i++)
 			{
 				if (PlayerClass->CheckSkin(i))
 				{
@@ -901,8 +912,7 @@ void DPlayerMenu::ClassChanged (FListMenuItem *li)
 		players[consoleplayer].userinfo.PlayerClass = sel-1;
 		PickPlayerClass();
 
-		cvar_set ("playerclass", 
-			sel == 0 ? "Random" : PlayerClass->Type->Meta.GetMetaString (APMETA_DisplayName));
+		cvar_set ("playerclass", sel == 0 ? "Random" : PlayerClass->Type->Meta.GetMetaString (APMETA_DisplayName));
 
 		UpdateSkins();
 		UpdateColorsets();

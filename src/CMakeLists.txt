@@ -380,8 +380,7 @@ endif( SSE_MATTERS )
 
 if( CMAKE_COMPILER_IS_GNUCXX )
 	if( PROFILE )
-		set( CMAKE_C_FLinclude( FindFluidSynth.cmake )
-AGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pg" )
+		set( CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pg" )
 		set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pg" )
 		set( CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -pg" )
 		set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -pg" )
@@ -538,6 +537,7 @@ else( WIN32 )
 		sdl/hardware.cpp
 		sdl/i_cd.cpp
 		sdl/i_input.cpp
+		sdl/i_joystick.cpp
 		sdl/i_main.cpp
 		sdl/i_movie.cpp
 		sdl/i_system.cpp
@@ -635,7 +635,6 @@ add_executable( zdoom WIN32
 	doomstat.cpp
 	dsectoreffect.cpp
 	dthinker.cpp
-	f_finale.cpp
 	f_wipe.cpp
 	farchive.cpp
 	files.cpp
@@ -659,6 +658,7 @@ add_executable( zdoom WIN32
 	m_misc.cpp
 	m_png.cpp
 	m_random.cpp
+	memarena.cpp
 	md5.cpp
 	name.cpp
 	nodebuild.cpp
@@ -709,7 +709,7 @@ add_executable( zdoom WIN32
 	p_xlat.cpp
 	parsecontext.cpp
 	po_man.cpp
-	r_anim.cpp
+	r_3dfloors.cpp
 	r_bsp.cpp
 	r_data.cpp
 	r_draw.cpp
@@ -790,6 +790,8 @@ add_executable( zdoom WIN32
 	g_shared/sbar_mugshot.cpp
 	g_shared/shared_hud.cpp
 	g_shared/shared_sbar.cpp
+	intermission/intermission.cpp
+	intermission/intermission_parse.cpp
 	menu/colorpickermenu.cpp
 	menu/joystickmenu.cpp
 	menu/listmenu.cpp
@@ -829,6 +831,7 @@ add_executable( zdoom WIN32
 	sound/music_mus_midiout.cpp
 	sound/music_smf_midiout.cpp
 	sound/music_hmi_midiout.cpp
+	sound/music_xmi_midiout.cpp
 	sound/music_midistream.cpp
 	sound/music_midi_base.cpp
 	sound/music_midi_timidity.cpp
@@ -838,6 +841,9 @@ add_executable( zdoom WIN32
 	sound/music_softsynth_mididevice.cpp
 	sound/music_timidity_mididevice.cpp
 	sound/music_win_mididevice.cpp
+	sound/music_pseudo_mididevice.cpp
+	textures/animations.cpp
+	textures/anim_switches.cpp
 	textures/automaptexture.cpp
 	textures/bitmap.cpp
 	textures/buildtexture.cpp
@@ -875,7 +881,18 @@ add_executable( zdoom WIN32
 	timidity/resample.cpp
 	timidity/timidity.cpp
 	xlat/parse_xlat.cpp
-	autozend.cpp )
+	fragglescript/t_fspic.cpp
+	fragglescript/t_func.cpp
+	fragglescript/t_load.cpp
+	fragglescript/t_oper.cpp
+	fragglescript/t_parse.cpp
+	fragglescript/t_prepro.cpp
+	fragglescript/t_script.cpp
+	fragglescript/t_spec.cpp
+	fragglescript/t_variable.cpp
+	fragglescript/t_cmd.cpp
+	autozend.cpp
+)
 
 set_source_files_properties( xlat/parse_xlat.cpp PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c" )
 set_source_files_properties( sc_man.cpp PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h" )

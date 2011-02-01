@@ -53,10 +53,12 @@
 class DLoadSaveMenu : public DListMenu
 {
 	DECLARE_CLASS(DLoadSaveMenu, DListMenu)
+	friend void ClearSaveGames();
 
 protected:
-	static TDeletingArray<FSaveGameNode*> SaveGames;
+	static TArray<FSaveGameNode*> SaveGames;
 	static int LastSaved;
+	static int LastAccessed;
 
 	int Selected;
 	int TopItem;
@@ -113,10 +115,26 @@ public:
 
 IMPLEMENT_CLASS(DLoadSaveMenu)
 
-TDeletingArray<FSaveGameNode*> DLoadSaveMenu::SaveGames;
+TArray<FSaveGameNode*> DLoadSaveMenu::SaveGames;
 int DLoadSaveMenu::LastSaved = -1;
+int DLoadSaveMenu::LastAccessed = -1;
 
 FSaveGameNode *quickSaveSlot;
+
+//=============================================================================
+//
+// Save data maintenance (stored statically)
+//
+//=============================================================================
+
+void ClearSaveGames()
+{
+	for(unsigned i=0;i<DLoadSaveMenu::SaveGames.Size(); i++)
+	{
+		delete DLoadSaveMenu::SaveGames[i];
+	}
+	DLoadSaveMenu::SaveGames.Clear();
+}
 
 //=============================================================================
 //
@@ -192,6 +210,8 @@ void DLoadSaveMenu::ReadSaveStrings ()
 		findstate_t c_file;
 		FString filter;
 
+		LastSaved = LastAccessed = -1;
+		quickSaveSlot = NULL;
 		filter = G_BuildSaveName ("*.zds", -1);
 		filefirst = I_FindFirst (filter.GetChars(), &c_file);
 		if (filefirst != ((void *)(-1)))
@@ -336,7 +356,7 @@ void DLoadSaveMenu::NotifyNewSave (const char *file, const char *title, bool okF
 			if (okForQuicksave)
 			{
 				if (quickSaveSlot == NULL) quickSaveSlot = node;
-				LastSaved = i;
+				LastAccessed = LastSaved = i;
 			}
 			return;
 		}
@@ -352,7 +372,7 @@ void DLoadSaveMenu::NotifyNewSave (const char *file, const char *title, bool okF
 	if (okForQuicksave)
 	{
 		if (quickSaveSlot == NULL) quickSaveSlot = node;
-		LastSaved = index;
+		LastAccessed = LastSaved = index;
 	}
 }
 
@@ -506,8 +526,12 @@ void DLoadSaveMenu::ExtractSaveData (int index)
 
 			// Extract pic
 			SavePic = PNGTexture_CreateFromFile(png, node->Filename);
-
 			delete png;
+			if (SavePic->GetWidth() == 1 && SavePic->GetHeight() == 1)
+			{
+				delete SavePic;
+				SavePic = NULL;
+			}
 		}
 		fclose (file);
 	}
@@ -551,7 +575,7 @@ void DLoadSaveMenu::Drawer ()
 		if (SaveGames.Size() > 0)
 		{
 			const char *text =
-				(Selected == -1 || SaveGames[Selected]->bOldVersion)
+				(Selected == -1 || !SaveGames[Selected]->bOldVersion)
 				? GStrings("MNU_NOPICTURE") : GStrings("MNU_DIFFVERSION");
 			const int textlen = SmallFont->StringWidth (text)*CleanXfac;
 
@@ -604,7 +628,7 @@ void DLoadSaveMenu::Drawer ()
 		{
 			color = CR_ORANGE;
 		}
-		else if (j == Selected)
+		else if ((int)j == Selected)
 		{
 			color = CR_WHITE;
 		}
@@ -612,7 +636,8 @@ void DLoadSaveMenu::Drawer ()
 		{
 			color = CR_TAN;
 		}
-		if (j == Selected)
+
+		if ((int)j == Selected)
 		{
 			screen->Clear (listboxLeft, listboxTop+rowHeight*i,
 				listboxRight, listboxTop+rowHeight*(i+1), -1,
@@ -630,10 +655,11 @@ void DLoadSaveMenu::Drawer ()
 					listboxLeft+1, listboxTop+rowHeight*i+CleanYfac, savegamestring,
 					DTA_CleanNoMove, true, TAG_DONE);
 
+				char curs[2] = { SmallFont->GetCursor(), 0 };
 				screen->DrawText (SmallFont, CR_WHITE,
 					listboxLeft+1+SmallFont->StringWidth (savegamestring)*CleanXfac,
 					listboxTop+rowHeight*i+CleanYfac, 
-					(gameinfo.gametype & (GAME_DoomStrifeChex)) ? "_" : "[",
+					curs,
 					DTA_CleanNoMove, true, TAG_DONE);
 			}
 		}
@@ -727,12 +753,18 @@ bool DLoadSaveMenu::MenuEvent (int mkey, bool fromcontroller)
 
 	case MKEY_MBYes:
 	{
-		if (Selected != -1)
+		if (Selected != -1 && Selected < SaveGames.Size())
 		{
+			int listindex = SaveGames[0]->bNoDelete? Selected-1 : Selected;
 			remove (SaveGames[Selected]->Filename.GetChars());
 			UnloadSaveData ();
 			Selected = RemoveSaveSlot (Selected);
 			ExtractSaveData (Selected);
+
+			if (LastSaved == listindex) LastSaved = -1;
+			else if (LastSaved > listindex) LastSaved--;
+			if (LastAccessed == listindex) LastAccessed = -1;
+			else if (LastAccessed > listindex) LastAccessed--;
 		}
 		return true;
 	}
@@ -787,7 +819,7 @@ bool DLoadSaveMenu::Responder (event_t *ev)
 	{
 		if (ev->subtype == EV_GUI_KeyDown)
 		{
-			if (Selected != -1)
+			if (Selected != -1 && Selected < SaveGames.Size())
 			{
 				switch (ev->data1)
 				{
@@ -1035,6 +1067,10 @@ DLoadMenu::DLoadMenu(DMenu *parent, FListMenuDescriptor *desc)
 : DLoadSaveMenu(parent, desc)
 {
 	TopItem = 0;
+	if (LastAccessed != -1)
+	{
+		Selected = LastAccessed;
+	}
 	ExtractSaveData (Selected);
 
 }
@@ -1051,7 +1087,7 @@ bool DLoadMenu::MenuEvent (int mkey, bool fromcontroller)
 	{
 		return true;
 	}
-	if (Selected == -1)
+	if (Selected == -1 || SaveGames.Size() == 0)
 	{
 		return false;
 	}
@@ -1069,6 +1105,7 @@ bool DLoadMenu::MenuEvent (int mkey, bool fromcontroller)
 		}
 		M_ClearMenus();
 		BorderNeedRefresh = screen->GetPageCount ();
+		LastAccessed = Selected;
 		return true;
 	}
 	return false;

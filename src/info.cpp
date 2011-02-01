@@ -52,6 +52,8 @@
 #include "g_level.h"
 
 extern void LoadActors ();
+extern void InitBotStuff();
+extern void ClearStrifeTypes();
 
 
 //==========================================================================
@@ -100,6 +102,7 @@ int GetSpriteIndex(const char * spritename)
 
 void FActorInfo::StaticInit ()
 {
+	sprites.Clear();
 	if (sprites.Size() == 0)
 	{
 		spritedef_t temp;
@@ -120,7 +123,9 @@ void FActorInfo::StaticInit ()
 	}
 
 	Printf ("LoadActors: Load actor definitions.\n");
+	ClearStrifeTypes();
 	LoadActors ();
+	InitBotStuff();
 }
 
 //==========================================================================

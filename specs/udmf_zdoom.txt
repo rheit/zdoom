@@ -1,5 +1,5 @@
 ===============================================================================
-Universal Doom Map Format ZDoom extensions v1.10 - 25.04.2010
+Universal Doom Map Format ZDoom extensions v1.15 - 14.12.2010
 
 
     Copyright (c) 2008 Christoph Oelckers.
@@ -84,6 +84,12 @@ field to 'strifeally', even for the 'Doom' namespace.
 In addition to the standard fields, ZDoom defines the following:
 Note: All <bool> fields default to false unless mentioned otherwise.
 
+   vertex
+   {
+      zfloor = <float>;         // Floor height at this vertex. Only applies to triangular sectors
+      zceiling = <float>;       // Ceiling height at this vertex. Only applies to triangular sectors
+   }
+
    linedef
    {
       alpha = <float>;          // Translucency of this line, default is 1.0
@@ -106,6 +112,7 @@ Note: All <bool> fields default to false unless mentioned otherwise.
       checkswitchrange = <bool>;// Switches can only be activated when vertically reachable.
       blockprojectiles = <bool>;// Line blocks all projectiles
       blockuse = <bool>;		// Line blocks all use actions
+      blocksight = <bool>;		// Line blocks monster line of sight
                     
    }
    
@@ -153,9 +160,11 @@ Note: All <bool> fields default to false unless mentioned otherwise.
                                       // relative to the owning sector's light level.
       lightceilingabsolute = <bool>;  // true = 'lightceiling' is an absolute value. Default is 
                                       // relative to the owning sector's light level.
+      alphafloor = <float>;           // translucency of floor plane (only has meaning with Sector_SetPortal) Default is 1.0.
+      alphaceiling = <float>;         // translucency of ceiling plane (only has meaning with Sector_SetPortal) Default is 1.0.
       gravity = <float>;              // Sector's gravity. Default is 1.0.
-      lightcolor = <integer>;         // Sector'S light color as RRGGBB value, default = 0xffffff.
-      fadecolor = <integer>;          // Sector'S fog color as RRGGBB value, default = 0x000000.
+      lightcolor = <integer>;         // Sector's light color as RRGGBB value, default = 0xffffff.
+      fadecolor = <integer>;          // Sector's fog color as RRGGBB value, default = 0x000000.
       desaturation = <float>;         // Color desaturation factor. 0 = none, 1 = full, default = 0.
       silent = <bool>;                // Actors in this sector make no sound,
       nofallingdamage = <bool>;		  // Falling damage is disabled in this sector
@@ -175,14 +184,11 @@ Note: All <bool> fields default to false unless mentioned otherwise.
    
    thing
    {
-      skill# = <bool>			// Unlike the base spec, # can range from 1-8.
-                                // 8 is the maximum amount of skills the skill 
-                                // menu can display.
-      class# = <bool>			// Unlike the base spec, # can range from 1-8.
-                                // 8 is the maximum amount of classes the class
-                                // menu can display.
+      skill# = <bool>			// Unlike the base spec, # can range from 1-16.
+      class# = <bool>			// Unlike the base spec, # can range from 1-16.
 	  conversation = <int>		// Assigns a conversation dialogue to this thing.
 								// Parameter is the conversation ID, 0 meaning none.
+	  countsecret = <bool>;     // Picking up this actor counts as a secret.
    }
 								
   
@@ -269,13 +275,23 @@ Changed node specifications to deprecate compression of node lump.
 Added 'playeruseback' line trigger flag.
 
 1.11 07.08.2010
-Added 'soundsequnce' sector property.
+Added 'soundsequence' sector property.
 
 1.12 22.08.2010
 Added 'conversation' thing property.
 
 1.13 29.08.2010
 Added 'hidden' sector property.
+
+1.14 19.09.2010
+Added 'countsecret' actor property.
+
+1.15 14.12.2010
+Added vertex floor and ceiling height properties
+
+1.16 23.01.2011
+Added blocksight linedef flag
+Removed remarks of 8 being the maximum number of player classes/skill levels the menu can handle so the spec now properly lists 16 as limit.
 
 ===============================================================================
 EOF

@@ -318,20 +318,10 @@ void ClientObituary (AActor *self, AActor *inflictor, AActor *attacker)
 //
 EXTERN_CVAR (Int, fraglimit)
 
-static int GibHealth(AActor *actor)
-{	
-	return -abs(
-		actor->GetClass()->Meta.GetMetaInt (
-			AMETA_GibHealth,
-			gameinfo.gametype & GAME_DoomChex ?
-				-actor->SpawnHealth() :
-				-actor->SpawnHealth()/2));		
-}
-
 void AActor::Die (AActor *source, AActor *inflictor)
 {
 	// Handle possible unmorph on death
-	bool wasgibbed = (health < GibHealth(this));
+	bool wasgibbed = (health < GibHealth());
 
 	AActor *realthis = NULL;
 	int realstyle = 0;
@@ -342,7 +332,7 @@ void AActor::Die (AActor *source, AActor *inflictor)
 		{
 			if (wasgibbed)
 			{
-				int realgibhealth = GibHealth(realthis);
+				int realgibhealth = realthis->GibHealth();
 				if (realthis->health >= realgibhealth)
 				{
 					realthis->health = realgibhealth -1; // if morphed was gibbed, so must original be (where allowed)
@@ -670,7 +660,7 @@ void AActor::Die (AActor *source, AActor *inflictor)
 	{
 		int flags4 = inflictor == NULL ? 0 : inflictor->flags4;
 
-		int gibhealth = GibHealth(this);
+		int gibhealth = GibHealth();
 		
 		// Don't pass on a damage type this actor cannot handle.
 		// (most importantly, prevent barrels from passing on ice damage.)
@@ -1097,6 +1087,21 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 		}
 	}
 
+	// [RH] Avoid friendly fire if enabled
+	if (!(flags & DMG_FORCED) && source != NULL &&
+		((player && player != source->player) || !player) &&
+		target->IsTeammate (source))
+	{
+		if (player)
+			FriendlyFire = true;
+		if (damage < TELEFRAG_DAMAGE)
+		{ // Still allow telefragging :-(
+			damage = (int)((float)damage * level.teamdamage);
+			if (damage <= 0)
+				return;
+		}
+	}
+
 	//
 	// player specific
 	//
@@ -1125,17 +1130,6 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 				return;
 			}
 
-			// [RH] Avoid friendly fire if enabled
-			if (source != NULL && player != source->player && target->IsTeammate (source))
-			{
-				FriendlyFire = true;
-				if (damage < TELEFRAG_DAMAGE)
-				{ // Still allow telefragging :-(
-					damage = (int)((float)damage * level.teamdamage);
-					if (damage <= 0)
-						return;
-				}
-			}
 			if (!(flags & DMG_NO_ARMOR) && player->mo->Inventory != NULL)
 			{
 				int newdam = damage;
@@ -1174,7 +1168,8 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 			// but telefragging should still do enough damage to kill the player)
 			if ((player->cheats & CF_BUDDHA) && damage < TELEFRAG_DAMAGE)
 			{
-				target->health = player->health = 1;
+				// If this is a voodoo doll we need to handle the real player as well.
+				player->mo->health = target->health = player->health = 1;
 			}
 			else
 			{

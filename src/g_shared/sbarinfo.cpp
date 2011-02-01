@@ -423,6 +423,8 @@ static void FreeSBarInfoScript()
 
 void SBarInfo::Load()
 {
+	FreeSBarInfoScript();
+	MugShotStates.Clear();
 	if(gameinfo.statusbar.IsNotEmpty())
 	{
 		int lump = Wads.CheckNumForFullName(gameinfo.statusbar, true);
@@ -1080,6 +1082,11 @@ public:
 		}
 	}
 
+	bool MustDrawLog (EHudState state)
+	{
+		return script->huds[STBAR_POPUPLOG]->NumCommands() == 0;
+	}
+
 	void SetMugShotState (const char *state_name, bool wait_till_done, bool reset)
 	{
 		script->MugShot.SetState(state_name, wait_till_done, reset);
@@ -1148,8 +1155,8 @@ public:
 
 		if((offsetflags & SBarInfoCommand::CENTER) == SBarInfoCommand::CENTER)
 		{
-			dx -= (texture->GetScaledWidthDouble()/2.0)-texture->LeftOffset;
-			dy -= (texture->GetScaledHeightDouble()/2.0)-texture->TopOffset;
+			dx -= (texture->GetScaledWidthDouble()/2.0)-texture->GetScaledLeftOffsetDouble();
+			dy -= (texture->GetScaledHeightDouble()/2.0)-texture->GetScaledTopOffsetDouble();
 		}
 
 		dx += xOffset;
@@ -1183,7 +1190,7 @@ public:
 			}
 
 			if(clearDontDraw)
-				screen->Clear(static_cast<int>(MAX<double>(dx, dcx)), static_cast<int>(MAX<double>(dy, dcy)), static_cast<int>(dcr), static_cast<int>(dcb), GPalette.BlackIndex, 0);
+				screen->Clear(static_cast<int>(MAX<double>(dx, dcx)), static_cast<int>(MAX<double>(dy, dcy)), static_cast<int>(MIN<double>(dcr,w+MAX<double>(dx, dcx))), static_cast<int>(MIN<double>(dcb,MAX<double>(dy, dcy)+h)), GPalette.BlackIndex, 0);
 			else
 			{
 				if(alphaMap)
@@ -1352,16 +1359,16 @@ public:
 				if(script->spacingCharacter == '\0')
 					ax += font->GetSpaceWidth();
 				else
-					ax += font->GetCharWidth((int) script->spacingCharacter);
+					ax += font->GetCharWidth((unsigned char) script->spacingCharacter);
 				str++;
 				continue;
 			}
 			int width;
 			if(script->spacingCharacter == '\0') //No monospace?
-				width = font->GetCharWidth((int) *str);
+				width = font->GetCharWidth((unsigned char) *str);
 			else
-				width = font->GetCharWidth((int) script->spacingCharacter);
-			FTexture* character = font->GetChar((int) *str, &width);
+				width = font->GetCharWidth((unsigned char) script->spacingCharacter);
+			FTexture* character = font->GetChar((unsigned char) *str, &width);
 			if(character == NULL) //missing character.
 			{
 				str++;
@@ -1378,7 +1385,7 @@ public:
 
 			if(script->spacingCharacter != '\0')
 			{
-				double spacingSize = font->GetCharWidth((int) script->spacingCharacter);
+				double spacingSize = font->GetCharWidth((unsigned char) script->spacingCharacter);
 				switch(script->spacingAlignment)
 				{
 					default:
@@ -1444,7 +1451,7 @@ public:
 			if(script->spacingCharacter == '\0')
 				ax += width + spacing - (character->LeftOffset+1);
 			else //width gets changed at the call to GetChar()
-				ax += font->GetCharWidth((int) script->spacingCharacter) + spacing;
+				ax += font->GetCharWidth((unsigned char) script->spacingCharacter) + spacing;
 			str++;
 		}
 	}

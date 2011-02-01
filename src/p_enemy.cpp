@@ -44,6 +44,7 @@
 #include "thingdef/thingdef.h"
 #include "d_dehacked.h"
 #include "g_level.h"
+#include "teaminfo.h"
 
 #include "gi.h"
 
@@ -308,7 +309,7 @@ bool P_CheckMissileRange (AActor *actor)
 {
 	fixed_t dist;
 		
-	if (!P_CheckSight (actor, actor->target, SF_SEEPASTBLOCKEVERYTHING|SF_SEEPASTSHOOTABLELINES))
+	if (!P_CheckSight (actor, actor->target, SF_SEEPASTBLOCKEVERYTHING))
 		return false;
 		
 	if (actor->flags & MF_JUSTHIT)
@@ -1150,7 +1151,7 @@ bool P_IsVisible(AActor *lookee, AActor *other, INTBOOL allaround, FLookExParams
 	}
 
 	// P_CheckSight is by far the most expensive operation in here so let's do it last.
-	return P_CheckSight(lookee, other, SF_SEEPASTBLOCKEVERYTHING);
+	return P_CheckSight(lookee, other, SF_SEEPASTSHOOTABLELINES);
 }
 
 //---------------------------------------------------------------------------
@@ -1417,9 +1418,7 @@ AActor *LookForEnemiesInBlock (AActor *lookee, int index, void *extparam)
 		other = NULL;
 		if (link->flags & MF_FRIENDLY)
 		{
-			if (deathmatch &&
-				lookee->FriendPlayer != 0 && link->FriendPlayer != 0 &&
-				lookee->FriendPlayer != link->FriendPlayer)
+			if (!lookee->IsFriend(link))
 			{
 				// This is somebody else's friend, so go after it
 				other = link;
@@ -1581,7 +1580,7 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 		}
 #endif
 		// [SP] If you don't see any enemies in deathmatch, look for players (but only when friend to a specific player.)
-		if (actor->FriendPlayer == 0) return result;
+		if (actor->FriendPlayer == 0 && (!teamplay || actor->DesignatedTeam == TEAM_NONE)) return result;
 		if (result || !deathmatch) return true;
 
 
@@ -1664,10 +1663,8 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 		// We're going to ignore our master, but go after his enemies.
 		if ( actor->flags & MF_FRIENDLY )
 		{
-			if ( actor->FriendPlayer == 0 )
-				continue; // I have no friends, I will ignore players.
-			if ( actor->FriendPlayer == player->mo->FriendPlayer )
-				continue; // This is my master.
+			if ( actor->IsFriend(player->mo) )
+				continue;
 		}
 
 		if ((player->mo->flags & MF_SHADOW && !(i_compatflags & COMPATF_INVISIBILITY)) ||
@@ -2166,10 +2163,13 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 
 	if (nightmarefast && G_SkillProperty(SKILLP_FastMonsters))
 	{ // Monsters move faster in nightmare mode
-		actor->tics -= actor->tics / 2;
-		if (actor->tics < 3)
+		if (actor->tics > 3)
 		{
-			actor->tics = 3;
+			actor->tics -= actor->tics / 2;
+			if (actor->tics < 3)
+			{
+				actor->tics = 3;
+			}
 		}
 	}
 
@@ -2514,6 +2514,25 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 			if ( abs(corpsehit-> x - viletryx) > maxdist ||
 				 abs(corpsehit-> y - viletryy) > maxdist )
 				continue;			// not actually touching
+#ifdef _3DFLOORS
+			// Let's check if there are floors in between the archvile and its target
+			sector_t *vilesec = self->Sector;
+			sector_t *corpsec = corpsehit->Sector;
+			// We only need to test if at least one of the sectors has a 3D floor.
+			sector_t *testsec = vilesec->e->XFloor.ffloors.Size() ? vilesec : 
+				(vilesec != corpsec && corpsec->e->XFloor.ffloors.Size()) ? corpsec : NULL;
+			if (testsec)
+			{
+				fixed_t zdist1, zdist2;
+				if (P_Find3DFloor(testsec, corpsehit->x, corpsehit->y, corpsehit->z, false, true, zdist1)
+					!= P_Find3DFloor(testsec, self->x, self->y, self->z, false, true, zdist2))
+				{
+					// Not on same floor
+					if (vilesec == corpsec || abs(zdist1 - self->z) > self->height)
+							continue;
+				}
+			}
+#endif
 
 			corpsehit->velx = corpsehit->vely = 0;
 			// [RH] Check against real height and radius
@@ -2648,7 +2667,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Chase)
 	}
 	else // this is the old default A_Chase
 	{
-		A_DoChase (self, false, self->MeleeState, self->MissileState, true, !!(gameinfo.gametype & GAME_Raven), false);
+		A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false);
 	}
 }
 
@@ -2660,7 +2679,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FastChase)
 DEFINE_ACTION_FUNCTION(AActor, A_VileChase)
 {
 	if (!P_CheckForResurrection(self, true))
-		A_DoChase (self, false, self->MeleeState, self->MissileState, true, !!(gameinfo.gametype & GAME_Raven), false);
+		A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ExtChase)
@@ -2680,7 +2699,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ExtChase)
 // for internal use
 void A_Chase(AActor *self)
 {
-	A_DoChase (self, false, self->MeleeState, self->MissileState, true, !!(gameinfo.gametype & GAME_Raven), false);
+	A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false);
 }
 
 //=============================================================================

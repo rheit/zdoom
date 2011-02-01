@@ -390,6 +390,7 @@ class UDMFParser : public UDMFParserBase
 	TArray<mapsidedef_t> ParsedSideTextures;
 	TArray<sector_t> ParsedSectors;
 	TArray<vertex_t> ParsedVertices;
+	TArray<vertexdata_t> ParsedVertexDatas;
 
 	FDynamicColormap	*fogMap, *normMap;
 
@@ -597,6 +598,11 @@ public:
 			case NAME_Standing:
 				CHECK_N(St | Zd | Zdt | Va)
 				Flag(th->flags, MTF_STANDSTILL, key); 
+				break;
+
+			case NAME_Countsecret:
+				CHECK_N(Zd | Zdt | Va)
+				Flag(th->flags, MTF_SECRET, key); 
 				break;
 
 			default:
@@ -868,6 +874,10 @@ public:
 				Flag(ld->flags, ML_BLOCKUSE, key); 
 				continue;
 
+			case NAME_blocksight:
+				Flag(ld->flags, ML_BLOCKSIGHT, key); 
+				continue;
+
 			default:
 				break;
 			}
@@ -1069,6 +1079,8 @@ public:
 		sec->SetYScale(sector_t::floor, FRACUNIT);
 		sec->SetXScale(sector_t::ceiling, FRACUNIT);
 		sec->SetYScale(sector_t::ceiling, FRACUNIT);
+		sec->SetAlpha(sector_t::floor, FRACUNIT);
+		sec->SetAlpha(sector_t::ceiling, FRACUNIT);
 		sec->thinglist = NULL;
 		sec->touching_thinglist = NULL;		// phares 3/14/98
 		sec->seqType = (level.flags & LEVEL_SNDSEQTOTALCTRL) ? 0 : -1;
@@ -1180,6 +1192,14 @@ public:
 					sec->SetPlaneLight(sector_t::ceiling, CheckInt(key));
 					continue;
 
+				case NAME_Alphafloor:
+					sec->SetAlpha(sector_t::floor, CheckFixed(key));
+					continue;
+
+				case NAME_Alphaceiling:
+					sec->SetAlpha(sector_t::ceiling, CheckFixed(key));
+					continue;
+
 				case NAME_Lightfloorabsolute:
 					if (CheckBool(key)) sec->ChangeFlags(sector_t::floor, 0, PLANEF_ABSLIGHTING);
 					else sec->ChangeFlags(sector_t::floor, PLANEF_ABSLIGHTING, 0);
@@ -1288,9 +1308,10 @@ public:
 	//
 	//===========================================================================
 
-	void ParseVertex(vertex_t *vt)
+	void ParseVertex(vertex_t *vt, vertexdata_t *vd)
 	{
 		vt->x = vt->y = 0;
+		vd->zCeiling = vd->zFloor = vd->flags = 0;
 		sc.MustGetStringName("{");
 		while (!sc.CheckString("}"))
 		{
@@ -1305,9 +1326,21 @@ public:
 			case NAME_X:
 				vt->x = FLOAT2FIXED(strtod(value, NULL));
 				break;
+
 			case NAME_Y:
 				vt->y = FLOAT2FIXED(strtod(value, NULL));
 				break;
+
+			case NAME_ZCeiling:
+				vd->zCeiling = FLOAT2FIXED(strtod(value, NULL));
+				vd->flags |= VERTEXFLAG_ZCeilingEnabled;
+				break;
+
+			case NAME_ZFloor:
+				vd->zFloor = FLOAT2FIXED(strtod(value, NULL));
+				vd->flags |= VERTEXFLAG_ZFloorEnabled;
+				break;
+
 			default:
 				break;
 			}
@@ -1444,7 +1477,7 @@ public:
 				floordrop = true;
 				break;
 			default:
-				Printf("Unknown namespace %s. Using defaults for %s\n", sc.String, GameNames[gameinfo.gametype]);
+				Printf("Unknown namespace %s. Using defaults for %s\n", sc.String, GameTypeName());
 				switch (gameinfo.gametype)
 				{
 				default:			// Shh, GCC
@@ -1505,8 +1538,10 @@ public:
 			else if (sc.Compare("vertex"))
 			{
 				vertex_t vt;
-				ParseVertex(&vt);
+				vertexdata_t vd;
+				ParseVertex(&vt, &vd);
 				ParsedVertices.Push(vt);
+				ParsedVertexDatas.Push(vd);
 			}
 			else
 			{
@@ -1518,6 +1553,11 @@ public:
 		numvertexes = ParsedVertices.Size();
 		vertexes = new vertex_t[numvertexes];
 		memcpy(vertexes, &ParsedVertices[0], numvertexes * sizeof(*vertexes));
+
+		// Create the real vertex datas
+		numvertexdatas = ParsedVertexDatas.Size();
+		vertexdatas = new vertexdata_t[numvertexdatas];
+		memcpy(vertexdatas, &ParsedVertexDatas[0], numvertexdatas * sizeof(*vertexdatas));
 
 		// Create the real sectors
 		numsectors = ParsedSectors.Size();

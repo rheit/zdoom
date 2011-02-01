@@ -364,6 +364,9 @@ public:
 	// Set the rect defining the area affected by blending.
 	virtual void SetBlendingRect (int x1, int y1, int x2, int y2);
 
+	// Remap voxel palette
+	virtual void RemapVoxels();
+
 	// render 3D view
 	virtual void RenderView(player_t *player);
 
@@ -406,6 +409,9 @@ public:
 	// Precaches or unloads a texture
 	virtual void GetHitlist(BYTE *hitlist);
 	virtual void PrecacheTexture(FTexture *tex, int cache);
+
+	// Report a game restart
+	virtual void GameRestart();
 
 	// Screen wiping
 	virtual bool WipeStartScreen(int type);
@@ -473,7 +479,7 @@ extern "C" DWORD Col2RGB8_Inverse[65][256];
 //		--111111111111111111111111111111	= 0x3FFFFFFF
 
 // Allocates buffer screens, call before R_Init.
-void V_Init ();
+void V_Init (bool restart);
 
 // Initializes graphics mode for the first time.
 void V_Init2 ();
@@ -497,7 +503,7 @@ void V_DrawFrame (int left, int top, int width, int height);
 extern "C" void ASM_PatchPitch (void);
 #endif
 
-int CheckRatio (int width, int height);
+int CheckRatio (int width, int height, int *trueratio=NULL);
 static inline int CheckRatio (double width, double height) { return CheckRatio(int(width), int(height)); }
 extern const int BaseRatioSizes[5][4];
 

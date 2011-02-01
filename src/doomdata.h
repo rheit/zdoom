@@ -183,6 +183,7 @@ enum ELineFlags
 	ML_FIRSTSIDEONLY			= 0x00800000,	// activated only when crossed from front side
 	ML_BLOCKPROJECTILE			= 0x01000000,
 	ML_BLOCKUSE					= 0x02000000,	// blocks all use actions through this line
+	ML_BLOCKSIGHT				= 0x04000000,	// blocks monster line of sight
 };
 
 
@@ -442,7 +443,6 @@ enum EMapThingFlags
 	MTF_ONDEATH			= 0x040000,
 	MTF_SECRET			= 0x080000,	// Secret pickup
 	MTF_NOINFIGHTING	= 0x100000,
-
 
 	// BOOM and DOOM compatible versions of some of the above
 

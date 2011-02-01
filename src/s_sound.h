@@ -331,7 +331,7 @@ void S_UpdateSounds (AActor *listener);
 void S_RestoreEvictedChannels();
 
 // [RH] S_sfx "maintenance" routines
-void S_ParseSndInfo ();
+void S_ParseSndInfo (bool redefine);
 void S_ParseReverbDef ();
 void S_UnloadReverbDef ();
 
@@ -379,10 +379,13 @@ enum EMidiDevice
 	MDEV_FMOD = 2,
 	MDEV_TIMIDITY = 3,
 	MDEV_FLUIDSYNTH = 4,
+	MDEV_GUS = 5,
 };
 
+typedef TMap<FName, FName> MusicAliasMap;
 typedef TMap<FName, int> MidiDeviceMap;
 
+extern MusicAliasMap MusicAliases;
 extern MidiDeviceMap MidiDevices;
 
 #endif

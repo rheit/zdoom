@@ -129,6 +129,22 @@ void R_SetDefaultColormap (const char *name)
 
 //==========================================================================
 //
+// R_DeinitColormaps
+//
+//==========================================================================
+
+void R_DeinitColormaps ()
+{
+	fakecmaps.Clear();
+	if (realcolormaps != NULL)
+	{
+		delete[] realcolormaps;
+		realcolormaps = NULL;
+	}
+}
+
+//==========================================================================
+//
 // R_InitColormaps
 //
 //==========================================================================
@@ -140,6 +156,8 @@ void R_InitColormaps ()
 	//		not doing anything with them at all (right?)
 
 	FakeCmap cm;
+
+	R_DeinitColormaps();
 
 	cm.name[0] = 0;
 	cm.blend = 0;
@@ -217,21 +235,6 @@ void R_InitColormaps ()
 
 //==========================================================================
 //
-// R_DeinitColormaps
-//
-//==========================================================================
-
-void R_DeinitColormaps ()
-{
-	if (realcolormaps != NULL)
-	{
-		delete[] realcolormaps;
-		realcolormaps = NULL;
-	}
-}
-
-//==========================================================================
-//
 // [RH] Returns an index into realcolormaps. Multiply it by
 //		256*NUMCOLORMAPS to find the start of the colormap to use.
 //		WATERMAP is an exception and returns a blending value instead.
@@ -288,103 +291,6 @@ void R_InitData ()
 
 //===========================================================================
 //
-// R_GuesstimateNumTextures
-//
-// Returns an estimate of the number of textures R_InitData will have to
-// process. Used by D_DoomMain() when it calls ST_Init().
-//
-//===========================================================================
-
-int R_GuesstimateNumTextures ()
-{
-	int numtex = 0;
-	
-	for(int i = Wads.GetNumLumps()-1; i>=0; i--)
-	{
-		int space = Wads.GetLumpNamespace(i);
-		switch(space)
-		{
-		case ns_flats:
-		case ns_sprites:
-		case ns_newtextures:
-		case ns_hires:
-		case ns_patches:
-		case ns_graphics:
-			numtex++;
-			break;
-
-		default:
-			if (Wads.GetLumpFlags(i) & LUMPF_MAYBEFLAT) numtex++;
-
-			break;
-		}
-	}
-
-	numtex += R_CountBuildTiles ();
-	numtex += R_CountTexturesX ();
-	return numtex;
-}
-
-//===========================================================================
-//
-// R_CountTexturesX
-//
-// See R_InitTextures() for the logic in deciding what lumps to check.
-//
-//===========================================================================
-
-static int R_CountTexturesX ()
-{
-	int count = 0;
-	int wadcount = Wads.GetNumWads();
-	for (int wadnum = 0; wadnum < wadcount; wadnum++)
-	{
-		// Use the most recent PNAMES for this WAD.
-		// Multiple PNAMES in a WAD will be ignored.
-		int pnames = Wads.CheckNumForName("PNAMES", ns_global, wadnum, false);
-
-		// should never happen except for zdoom.pk3
-		if (pnames < 0) continue;
-
-		// Only count the patches if the PNAMES come from the current file
-		// Otherwise they have already been counted.
-		if (Wads.GetLumpFile(pnames) == wadnum) 
-		{
-			count += R_CountLumpTextures (pnames);
-		}
-
-		int texlump1 = Wads.CheckNumForName ("TEXTURE1", ns_global, wadnum);
-		int texlump2 = Wads.CheckNumForName ("TEXTURE2", ns_global, wadnum);
-
-		count += R_CountLumpTextures (texlump1) - 1;
-		count += R_CountLumpTextures (texlump2) - 1;
-	}
-	return count;
-}
-
-//===========================================================================
-//
-// R_CountLumpTextures
-//
-// Returns the number of patches in a PNAMES/TEXTURE1/TEXTURE2 lump.
-//
-//===========================================================================
-
-static int R_CountLumpTextures (int lumpnum)
-{
-	if (lumpnum >= 0)
-	{
-		FWadLump file = Wads.OpenLumpNum (lumpnum); 
-		DWORD numtex;
-
-		file >> numtex;
-		return numtex >= 0 ? numtex : 0;
-	}
-	return 0;
-}
-
-//===========================================================================
-//
 // R_DeinitData
 //
 //===========================================================================
@@ -392,7 +298,6 @@ static int R_CountLumpTextures (int lumpnum)
 void R_DeinitData ()
 {
 	R_DeinitColormaps ();
-	R_DeinitBuildTiles();
 	FCanvasTextureInfo::EmptyList();
 
 	// Free openings
@@ -450,6 +355,304 @@ const BYTE *R_GetColumn (FTexture *tex, int col)
 	return tex->GetColumn (col, NULL);
 }
 
+//==========================================================================
+//
+// GetVoxelRemap
+//
+// Calculates a remap table for the voxel's palette. Results are cached so
+// passing the same palette repeatedly will not require repeated
+// recalculations.
+//
+//==========================================================================
+
+static BYTE *GetVoxelRemap(const BYTE *pal)
+{
+	static BYTE remap[256];
+	static BYTE oldpal[768];
+	static bool firsttime = true;
+
+	if (firsttime || memcmp(oldpal, pal, 768) != 0)
+	{ // Not the same palette as last time, so recalculate.
+		firsttime = false;
+		memcpy(oldpal, pal, 768);
+		for (int i = 0; i < 256; ++i)
+		{
+			// The voxel palette uses VGA colors, so we have to expand it
+			// from 6 to 8 bits per component.
+			remap[i] = BestColor((uint32 *)GPalette.BaseColors,
+				(oldpal[i*3 + 0] << 2) | (oldpal[i*3 + 0] >> 4),
+				(oldpal[i*3 + 1] << 2) | (oldpal[i*3 + 1] >> 4),
+				(oldpal[i*3 + 2] << 2) | (oldpal[i*3 + 2] >> 4));
+		}
+	}
+	return remap;
+}
+
+//==========================================================================
+//
+// CopyVoxelSlabs
+//
+// Copy all the slabs in a block of slabs.
+//
+//==========================================================================
+
+static bool CopyVoxelSlabs(kvxslab_t *dest, const kvxslab_t *src, int size)
+{
+	while (size >= 3)
+	{
+		int slabzleng = src->zleng;
+
+		if (3 + slabzleng > size)
+		{ // slab is too tall
+			return false;
+		}
+
+		dest->ztop = src->ztop;
+		dest->zleng = src->zleng;
+		dest->backfacecull = src->backfacecull;
+
+		for (int j = 0; j < slabzleng; ++j)
+		{
+			dest->col[j] = src->col[j];
+		}
+		slabzleng += 3;
+		src = (kvxslab_t *)((BYTE *)src + slabzleng);
+		dest = (kvxslab_t *)((BYTE *)dest + slabzleng);
+		size -= slabzleng;
+	}
+	return true;
+}
+
+//==========================================================================
+//
+// RemapVoxelSlabs
+//
+// Remaps all the slabs in a block of slabs.
+//
+//==========================================================================
+
+static void RemapVoxelSlabs(kvxslab_t *dest, int size, const BYTE *remap)
+{
+	while (size >= 3)
+	{
+		int slabzleng = dest->zleng;
+
+		for (int j = 0; j < slabzleng; ++j)
+		{
+			dest->col[j] = remap[dest->col[j]];
+		}
+		slabzleng += 3;
+		dest = (kvxslab_t *)((BYTE *)dest + slabzleng);
+		size -= slabzleng;
+	}
+}
+
+//==========================================================================
+//
+// R_LoadKVX
+//
+//==========================================================================
+
+FVoxel *R_LoadKVX(int lumpnum)
+{
+	const kvxslab_t *slabs[MAXVOXMIPS];
+	FVoxel *voxel = new FVoxel;
+	const BYTE *rawmip;
+	int mip, maxmipsize;
+	int i, j, n;
+
+	FMemLump lump = Wads.ReadLump(lumpnum);	// FMemLump adds an extra 0 byte to the end.
+	BYTE *rawvoxel = (BYTE *)lump.GetMem();
+	int voxelsize = (int)(lump.GetSize()-1);
+
+	// Oh, KVX, why couldn't you have a proper header? We'll just go through
+	// and collect each MIP level, doing lots of range checking, and if the
+	// last one doesn't end exactly 768 bytes before the end of the file,
+	// we'll reject it.
+
+	for (mip = 0, rawmip = rawvoxel, maxmipsize = voxelsize - 768 - 4;
+		 mip < MAXVOXMIPS;
+		 mip++)
+	{
+		int numbytes = GetInt(rawmip);
+		if (numbytes > maxmipsize || numbytes < 24)
+		{
+			break;
+		}
+		rawmip += 4;
+
+		FVoxelMipLevel *mipl = &voxel->Mips[mip];
+
+		// Load header data.
+		mipl->SizeX = GetInt(rawmip + 0);
+		mipl->SizeY = GetInt(rawmip + 4);
+		mipl->SizeZ = GetInt(rawmip + 8);
+		mipl->PivotX = GetInt(rawmip + 12);
+		mipl->PivotY = GetInt(rawmip + 16);
+		mipl->PivotZ = GetInt(rawmip + 20);
+
+		// How much space do we have for voxdata?
+		int offsetsize = (mipl->SizeX + 1) * 4 + mipl->SizeX * (mipl->SizeY + 1) * 2;
+		int voxdatasize = numbytes - 24 - offsetsize;
+		if (voxdatasize < 0)
+		{ // Clearly, not enough.
+			break;
+		}
+		if (voxdatasize == 0)
+		{ // This mip level is empty.
+			goto nextmip;
+		}
+
+		// Allocate slab data space.
+		mipl->OffsetX = new int[(numbytes - 24 + 3) / 4];
+		mipl->OffsetXY = (short *)(mipl->OffsetX + mipl->SizeX + 1);
+		mipl->SlabData = (BYTE *)(mipl->OffsetXY + mipl->SizeX * (mipl->SizeY + 1));
+
+		// Load x offsets.
+		for (i = 0, n = mipl->SizeX; i <= n; ++i)
+		{
+			// The X offsets stored in the KVX file are relative to the start of the
+			// X offsets array. Make them relative to voxdata instead.
+			mipl->OffsetX[i] = GetInt(rawmip + 24 + i * 4) - offsetsize;
+		}
+
+		// The first X offset must be 0 (since we subtracted offsetsize), according to the spec:
+		//		NOTE: xoffset[0] = (xsiz+1)*4 + xsiz*(ysiz+1)*2 (ALWAYS)
+		if (mipl->OffsetX[0] != 0)
+		{
+			break;
+		}
+		// And the final X offset must point just past the end of the voxdata.
+		if (mipl->OffsetX[mipl->SizeX] != voxdatasize)
+		{
+			break;
+		}
+
+		// Load xy offsets.
+		i = 24 + i * 4;
+		for (j = 0, n *= mipl->SizeY + 1; j < n; ++j)
+		{
+			mipl->OffsetXY[j] = GetShort(rawmip + i + j * 2);
+		}
+
+		// Ensure all offsets are within bounds.
+		for (i = 0; i < mipl->SizeX; ++i)
+		{
+			int xoff = mipl->OffsetX[i];
+			for (j = 0; j < mipl->SizeY; ++j)
+			{
+				int yoff = mipl->OffsetXY[(mipl->SizeY + 1) * i + j];
+				if (unsigned(xoff + yoff) > unsigned(voxdatasize))
+				{
+					goto bad;
+				}
+			}
+		}
+
+		// Record slab location for the end.
+		slabs[mip] = (kvxslab_t *)(rawmip + 24 + offsetsize);
+
+		// Time for the next mip Level.
+nextmip:
+		rawmip += numbytes;
+		maxmipsize -= numbytes + 4;
+	}
+	// Did we get any mip levels, and if so, does the last one leave just
+	// enough room for the palette after it?
+	if (mip == 0 || rawmip != rawvoxel + voxelsize - 768)
+	{
+bad:	delete voxel;
+		return NULL;
+	}
+
+	// Do not count empty mips at the end.
+	for (; mip > 0; --mip)
+	{
+		if (voxel->Mips[mip - 1].SlabData != NULL)
+			break;
+	}
+	voxel->NumMips = mip;
+
+	for (i = 0; i < mip; ++i)
+	{
+		if (!CopyVoxelSlabs((kvxslab_t *)voxel->Mips[i].SlabData, slabs[i], voxel->Mips[i].OffsetX[voxel->Mips[i].SizeX]))
+		{ // Invalid slabs encountered. Reject this voxel.
+			delete voxel;
+			return NULL;
+		}
+	}
+
+	voxel->LumpNum = lumpnum;
+	voxel->Palette = new BYTE[768];
+	memcpy(voxel->Palette, rawvoxel + voxelsize - 768, 768);
+
+	return voxel;
+}
+
+//==========================================================================
+//
+// FVoxelMipLevel Constructor
+//
+//==========================================================================
+
+FVoxelMipLevel::FVoxelMipLevel()
+{
+	SizeZ = SizeY = SizeX = 0;
+	PivotZ = PivotY = PivotX = 0;
+	OffsetX = NULL;
+	OffsetXY = NULL;
+	SlabData = NULL;
+}
+
+//==========================================================================
+//
+// FVoxelMipLevel Destructor
+//
+//==========================================================================
+
+FVoxelMipLevel::~FVoxelMipLevel()
+{
+	if (OffsetX != NULL)
+	{
+		delete[] OffsetX;
+	}
+}
+
+//==========================================================================
+//
+// FVoxel Constructor
+//
+//==========================================================================
+
+FVoxel::FVoxel()
+{
+	Palette = NULL;
+}
+
+FVoxel::~FVoxel()
+{
+	if (Palette != NULL) delete [] Palette;
+}
+
+//==========================================================================
+//
+// Remap the voxel to the game palette
+//
+//==========================================================================
+
+void FVoxel::Remap()
+{
+	if (Palette != NULL)
+	{
+		BYTE *remap = GetVoxelRemap(Palette);
+		for (int i = 0; i < NumMips; ++i)
+		{
+			RemapVoxelSlabs((kvxslab_t *)Mips[i].SlabData, Mips[i].OffsetX[Mips[i].SizeX], remap);
+		}
+		delete [] Palette;
+		Palette = NULL;
+	}
+}
 
 //==========================================================================
 //
@@ -483,11 +686,5 @@ CCMD (printspans)
 		}
 		Printf ("\n");
 	}
-}
-
-CCMD (picnum)
-{
-	//int picnum = TexMan.GetTexture (argv[1], FTexture::TEX_Any);
-	//Printf ("%d: %s - %s\n", picnum, TexMan[picnum]->Name, TexMan(picnum)->Name);
 }
 #endif

@@ -79,9 +79,18 @@ LISTMENU "MainMenu"
 	IfGame(Doom, Strife, Chex)
 	{
 		PatchItem "M_NGAME", "n", "PlayerclassMenu"
-		PatchItem "M_LOADG", "l", "LoadGameMenu"
-		PatchItem "M_SAVEG", "s", "SaveGameMenu"
-		PatchItem "M_OPTION","o", "OptionsMenu"
+		ifOption(SwapMenu)
+		{
+			PatchItem "M_LOADG", "l", "LoadGameMenu"
+			PatchItem "M_SAVEG", "s", "SaveGameMenu"
+			PatchItem "M_OPTION","o", "OptionsMenu"
+		}
+		else
+		{
+			PatchItem "M_OPTION","o", "OptionsMenu"
+			PatchItem "M_LOADG", "l", "LoadGameMenu"
+			PatchItem "M_SAVEG", "s", "SaveGameMenu"
+		}
 		ifOption(ReadThis)
 		{
 			PatchItem "M_RDTHIS","r", "ReadThisMenu"
@@ -230,7 +239,8 @@ ListMenu "SkillMenu"
 	IfGame (Hexen)
 	{
 		StaticText 74, 16, "$MNU_CHOOSESKILL"
-		Position 38, 44
+		Position 160, 44
+		centermenu
 	}
 	IfGame (Doom64)
 	{
@@ -531,15 +541,25 @@ OptionValue "MenuMouse"
 	2, "Touchscreen-like"
 }
 
+OptionString "Cursors"
+{
+	"None", "Default"
+	"cursor", "Simple arrow"
+	"doomcurs", "Doom"
+	"herecurs", "Heretic"
+	"hexncurs", "Hexen"
+	"strfcurs", "Strife"
+	"chexcurs", "Chex"
+	"-", "System cursor"
+}
+
 OptionMenu "MouseOptions"
 {
 	Title "MOUSE OPTIONS"
 	Option "Enable mouse",				"use_mouse", "YesNo"
-	IfOption(Windows)	// GUI mouse not operable in SDL interface right now.
-	{
-		Option "Enable mouse in menus",	"m_use_mouse", "MenuMouse", "use_mouse"
-		Option "Show back button",		"m_show_backbutton", "Corners", "use_mouse"
-	}
+	Option "Enable mouse in menus",	"m_use_mouse", "MenuMouse", "use_mouse"
+	Option "Show back button",		"m_show_backbutton", "Corners", "use_mouse"
+	Option "Cursor",				"vid_cursor", "Cursors"
 	StaticText 	""
 	Slider "Overall sensitivity",		"mouse_sensitivity", 0.5, 2.5, 0.1
 	Option "Prescale mouse movement",	"m_noprescale", "NoYes"
@@ -648,11 +668,17 @@ OptionValue Contrast
 	2.0, "Smooth"
 }
 
+OptionValue Fuzziness
+{
+	0.0, "Translucent"
+	1.0, "Fuzz"
+	2.0, "Shadow"
+}
+
 OptionMenu "VideoOptions"
 {
 	Title "DISPLAY OPTIONS"
 	
-	Submenu "Message Options", 			"MessageOptions"
 	Submenu "Scoreboard Options", 		"ScoreboardOptions"
 	StaticText " "
 	Slider "Screen size",				"screenblocks", 3.0, 12.0, 1.0, 0
@@ -671,7 +697,7 @@ OptionMenu "VideoOptions"
 	}
 	
 	Option "Stretch short skies",		"r_stretchsky", "OnOff"
-	Option "Use fuzz effect",			"r_drawfuzz", "YesNo"
+	Option "Use fuzz effect",			"r_drawfuzz", "Fuzziness"
 	Slider "Lost Soul translucency",	"transsouls", 0.25, 1.0, 0.05, 2
 	Option "Use fake contrast",			"r_fakecontrast", "Contrast"
 	Option "Rocket Trails",				"cl_rockettrails", "RocketTrailTypes"
@@ -733,6 +759,7 @@ OptionMenu "HUDOptions"
 {
 	Title "HUD Options"
 	Submenu "Alternative HUD",			"AltHudOptions"
+	Submenu "Message Options", 			"MessageOptions"
 	StaticText " "
 	Option "Default Crosshair",			"crosshair", "Crosshairs"
 	Option "Force default crosshair",	"crosshairforce", "OnOff"
@@ -744,6 +771,7 @@ OptionMenu "HUDOptions"
 	Option "Display nametags",			"displaynametags", "DisplayTagsTypes"
 	Option "Nametag color",				"nametagcolor", "TextColors", "displaynametags"
 	Option "Stretch status bar",		"st_scale", "OnOff"
+	Option "Use old ouch mug shot formula",	"st_oldouch", "OnOff"
 }
 	
 //-------------------------------------------------------------------------------------------
@@ -802,9 +830,9 @@ OptionMenu "MiscOptions"
 	{
 		Option "Merge left+right Alt/Ctrl/Shift", 		"k_mergekeys", "OnOff"
 		Option "Alt-Enter toggles fullscreen",			"k_allowfullscreentoggle", "OnOff"
-		Option "Show IWAD selection dialog",			"queryiwad", "OnOff"
-		StaticText " "
 	}
+	Option "Show IWAD selection dialog",			"queryiwad", "OnOff"
+	StaticText " "
 	Option "Enable cheats from all games",			"allcheats", "OnOff"
 	Option "Enable autosaves",						"disableautosave", "OffOn"
 	Slider "Number of autosaves",					"autosavecount", 1, 32, 1, 0
@@ -849,6 +877,13 @@ OptionValue OverlayTypes
 	2, "Overlay Only"
 }
 
+OptionValue MaplabelTypes
+{
+	0, "Never"
+	1, "Always"
+	2, "Not for hubs"
+}
+
 OptionMenu AutomapOptions
 {
 	Title "AUTOMAP OPTIONS"
@@ -859,6 +894,7 @@ OptionMenu AutomapOptions
 	Option "Rotate automap",			"am_rotate", "RotateTypes"
 	Option "Overlay automap",			"am_overlay", "OverlayTypes"
 	Option "Enable textured display",	"am_textured", "OnOff"
+	Option "Follow player",				"am_followplayer", "OnOff"
 	StaticText " "
 	Option "Show item counts",			"am_showitems", "OnOff"
 	Option "Show monster counts",		"am_showmonsters", "OnOff"
@@ -866,8 +902,10 @@ OptionMenu AutomapOptions
 	Option "Show time elapsed",			"am_showtime", "OnOff"
 	Option "Show total time elapsed",	"am_showtotaltime", "OnOff"
 	Option "Show secrets on map",		"am_map_secrets", "SecretTypes"
+	Option "Show map label",			"am_showmaplabel", "MaplabelTypes"
 	Option "Draw map background",		"am_drawmapback", "OnOff"
 	Option "Show keys (cheat)",			"am_showkeys", "OnOff"
+	Option "Show trigger lines",		"am_showtriggerlines", "OnOff"
 }
 
 //-------------------------------------------------------------------------------------------
@@ -913,6 +951,7 @@ OptionMenu MapColorMenu
 	ColorPicker "1-sided walls",							"am_wallcolor"		
 	ColorPicker "2-sided walls with different floors",		"am_fdwallcolor"		
 	ColorPicker "2-sided walls with different ceilings",	"am_cdwallcolor"		
+	ColorPicker "2-sided walls with 3D floors",				"am_efwallcolor"		
 	ColorPicker "Map grid",									"am_gridcolor"		
 	ColorPicker "Center point",								"am_xhaircolor"		
 	ColorPicker "Not-yet-seen walls",						"am_notseencolor"		
@@ -920,6 +959,7 @@ OptionMenu MapColorMenu
 	ColorPicker "Teleporter to the same map",				"am_intralevelcolor"	
 	ColorPicker "Teleporter to a different map",			"am_interlevelcolor"	
 	ColorPicker "Secret sector",							"am_secretsectorcolor"	
+	ColorPicker "Special trigger lines",					"am_specialwallcolor"
 	StaticText " "
 	StaticText "Cheat Mode", 1
 	ColorPicker "Invisible 2-sided walls",		"am_tswallcolor"		
@@ -937,6 +977,7 @@ OptionMenu MapColorMenu
 	ColorPicker "Not-yet-seen walls",			"am_ovunseencolor"	
 	ColorPicker "Teleporter",					"am_ovtelecolor"		
 	ColorPicker "Secret sector",				"am_ovsecretsectorcolor"	
+	ColorPicker "Special trigger lines",		"am_ovspecialwallcolor"
 	StaticText " "
 	StaticText "Overlay Cheat Mode", 1
 	ColorPicker "Actors",						"am_ovthingcolor"		
@@ -1102,12 +1143,12 @@ OptionMenu GameplayOptions
 	StaticText "Deathmatch Settings",1
 	Option "Weapons stay",			"sv_weaponstay", "YesNo"
 	Option "Allow powerups",		"sv_noitems", "NoYes"
-	Option "Allow health",			"sv_nohealth", "YesNo"
-	Option "Allow armor",			"sv_noarmor", "YesNo"
+	Option "Allow health",			"sv_nohealth", "NoYes"
+	Option "Allow armor",			"sv_noarmor", "NoYes"
 	Option "Spawn farthest",		"sv_spawnfarthest", "YesNo"
 	Option "Same map",				"sv_samelevel", "YesNo"
 	Option "Force respawn",			"sv_forcerespawn", "YesNo"
-	Option "Allow exit",			"sv_noexit", "YesNo"
+	Option "Allow exit",			"sv_noexit", "NoYes"
 	Option "Barrels respawn",		"sv_barrelrespawn", "YesNo"
 	Option "Respawn protection",	"sv_respawnprotect", "YesNo"
 	Option "Lose frag if fragged",	"sv_losefrag", "YesNo"
@@ -1390,11 +1431,11 @@ OptionMenu ModReplayerOptions
 	Title "MODULE REPLAYER OPTIONS"
 	Option "Replayer engine",		"mod_dumb", "ModReplayers"
 	StaticText " "
-	Option "Sample rate",			"mod_samplerate", "SampleRates"
-	Option "Interpolation",			"mod_interp", "ModInterpolations"
-	Option "Volume ramping",		"mod_volramp", "ModVolumeRamps"
+	Option "Sample rate",			"mod_samplerate", "SampleRates", "mod_dumb"
+	Option "Interpolation",			"mod_interp", "ModInterpolations", "mod_dumb"
+	Option "Volume ramping",		"mod_volramp", "ModVolumeRamps", "mod_dumb"
 	StaticText " "
-	Option "Chip-o-matic",			"mod_autochip", "OnOff"
+	Option "Chip-o-matic",			"mod_autochip", "OnOff", "mod_dumb"
 	// TODO if the menu system is ever rewritten: Provide a decent
 	// mechanism to edit the chip-o-matic settings like you can with
 	// the foo_dumb preferences in foobar2000.

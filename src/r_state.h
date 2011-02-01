@@ -55,6 +55,8 @@ extern DWORD NumStdSprites;
 
 extern int				numvertexes;
 extern vertex_t*		vertexes;
+extern int				numvertexdatas;
+extern vertexdata_t*		vertexdatas;
 
 extern int				numsegs;
 extern seg_t*			segs;
@@ -86,9 +88,6 @@ extern int 				numgamenodes;
 extern subsector_t * 	gamesubsectors;
 extern int 				numgamesubsectors;
 
-
-extern FExtraLight*		ExtraLights;
-extern FLightStack*		LightStacks;
 
 inline FArchive &operator<< (FArchive &arc, sector_t *&sec)
 {

@@ -312,6 +312,7 @@ static void ReadArrayVars (PNGHandle *png, FWorldGlobalArray *vars, size_t count
 			{
 				SDWORD key, val;
 				key = arc.ReadCount();
+
 				val = arc.ReadCount();
 				vars[i].Insert (key, val);
 			}
@@ -434,11 +435,7 @@ static void DoGiveInv (AActor *actor, const PClass *info, int amount)
 	AInventory *item = static_cast<AInventory *>(Spawn (info, 0,0,0, NO_REPLACE));
 
 	// This shouldn't count for the item statistics!
-	if (item->flags & MF_COUNTITEM)
-	{
-		level.total_items--;
-		item->flags &= ~MF_COUNTITEM;
-	}
+	item->ClearCounters();
 	if (item->flags5 & MF5_COUNTSECRET)
 	{
 		level.total_secrets--;
@@ -1972,6 +1969,7 @@ DLevelScript::~DLevelScript ()
 {
 	if (localvars != NULL)
 		delete[] localvars;
+	localvars = NULL;
 }
 
 void DLevelScript::Unlink ()
@@ -2291,15 +2289,7 @@ int DLevelScript::DoSpawn (int type, fixed_t x, fixed_t y, fixed_t z, int tid, i
 			{
 				// If this is a monster, subtract it from the total monster
 				// count, because it already added to it during spawning.
-				if (actor->CountsAsKill())
-				{
-					level.total_monsters--;
-				}
-				// Same, for items
-				if (actor->flags & MF_COUNTITEM)
-				{
-					level.total_items--;
-				}
+				actor->ClearCounters();
 				// And finally for secrets
 				if (actor->flags5 & MF5_COUNTSECRET)
 				{
@@ -2558,8 +2548,13 @@ enum
 	APROP_DamageFactor	= 24,
 	APROP_MasterTID     = 25,
 	APROP_TargetTID		= 26,
-	APROP_TracerTID		= 27
-};	
+	APROP_TracerTID		= 27,
+	APROP_WaterLevel	= 28,
+	APROP_ScaleX        = 29,
+	APROP_ScaleY        = 30,
+	APROP_Dormant		= 31,
+	APROP_Mass			= 32,
+};
 
 // These are needed for ACS's APROP_RenderStyle
 static const int LegacyRenderStyleIndices[] =
@@ -2726,7 +2721,7 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		actor->Score = value;
 
 	case APROP_NameTag:
-		actor->Tag = FBehavior::StaticLookupString(value);
+		actor->SetTag(FBehavior::StaticLookupString(value));
 		break;
 
 	case APROP_DamageFactor:
@@ -2737,6 +2732,18 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		AActor *other;
 		other = SingleActorFromTID (value, NULL);
 		DoSetMaster (actor, other);
+		break;
+
+	case APROP_ScaleX:
+		actor->scaleX = value;
+		break;
+
+	case APROP_ScaleY:
+		actor->scaleY = value;
+		break;
+
+	case APROP_Mass:
+		actor->Mass = value;
 		break;
 
 	default:
@@ -2779,6 +2786,7 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	case APROP_Friendly:	return !!(actor->flags & MF_FRIENDLY);
 	case APROP_Notarget:	return !!(actor->flags3 & MF3_NOTARGET);
 	case APROP_Notrigger:	return !!(actor->flags6 & MF6_NOTRIGGER);
+	case APROP_Dormant:		return !!(actor->flags2 & MF2_DORMANT);
 	case APROP_SpawnHealth: if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 							{
 								return static_cast<APlayerPawn *>(actor)->MaxHealth;
@@ -2800,6 +2808,11 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	case APROP_MasterTID:	return DoGetMasterTID (actor);
 	case APROP_TargetTID:	return (actor->target != NULL)? actor->target->tid : 0;
 	case APROP_TracerTID:	return (actor->tracer != NULL)? actor->tracer->tid : 0;
+	case APROP_WaterLevel:	return actor->waterlevel;
+	case APROP_ScaleX: 		return actor->scaleX;
+	case APROP_ScaleY: 		return actor->scaleY;
+	case APROP_Mass: 		return actor->Mass;
+
 	default:				return 0;
 	}
 }
@@ -2833,6 +2846,10 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_MasterTID:
 		case APROP_TargetTID:
 		case APROP_TracerTID:
+		case APROP_WaterLevel:
+		case APROP_ScaleX:
+		case APROP_ScaleY:
+		case APROP_Mass:
 			return (GetActorProperty(tid, property) == value);
 
 		// Boolean values need to compare to a binary version of value
@@ -2844,6 +2861,7 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_Friendly:
 		case APROP_Notarget:
 		case APROP_Notrigger:
+		case APROP_Dormant:
 			return (GetActorProperty(tid, property) == (!!value));
 
 		// Strings are not covered by GetActorProperty, so make the check here
@@ -3052,6 +3070,7 @@ enum EACSFunctions
 	ACSF_GetPolyobjX,
 	ACSF_GetPolyobjY,
     ACSF_CheckSight,
+	ACSF_SpawnForced,
 };
 
 int DLevelScript::SideFromID(int id, int side)
@@ -3522,6 +3541,9 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			}
             return 0;
         }
+
+		case ACSF_SpawnForced:
+			return DoSpawn(args[0], args[1], args[2], args[3], args[4], args[5], true);
 
 		default:
 			break;
@@ -5850,106 +5872,41 @@ int DLevelScript::RunScript ()
 		case PCD_GETACTORY:
 		case PCD_GETACTORZ:
 			{
-				if(STACK(1) == 0)
-				{
-					STACK(1) = (&activator->x)[pcd - PCD_GETACTORX];
-				}
-				else
-				{
-					AActor *actor = SingleActorFromTID (STACK(1), activator);
-
-					if (actor == NULL)
-					{
-						STACK(1) = 0;
-					}
-					else
-					{
-						STACK(1) = (&actor->x)[pcd - PCD_GETACTORX];
-					}
-				}
+				AActor *actor = SingleActorFromTID(STACK(1), activator);
+				STACK(1) = actor == NULL ? 0 : (&actor->x)[pcd - PCD_GETACTORX];
 			}
 			break;
 
 		case PCD_GETACTORFLOORZ:
+			{
+				AActor *actor = SingleActorFromTID(STACK(1), activator);
+				STACK(1) = actor == NULL ? 0 : actor->floorz;
+			}
+			break;
+
 		case PCD_GETACTORCEILINGZ:
 			{
-				if(STACK(1) == 0)
-				{
-					if (pcd == PCD_GETACTORFLOORZ)
-					{
-						STACK(1) = activator->floorz;
-					}
-					else if(STACK(1) == 0)
-					{
-						STACK(1) = activator->ceilingz;
-					}
-				}
-				else
-				{
-					AActor *actor = SingleActorFromTID (STACK(1), activator);
-
-					if (actor == NULL)
-					{
-						STACK(1) = 0;
-					}
-					else if (pcd == PCD_GETACTORFLOORZ)
-					{
-						STACK(1) = actor->floorz;
-					}
-					else
-					{
-						STACK(1) = actor->ceilingz;
-					}
-				}
+				AActor *actor = SingleActorFromTID(STACK(1), activator);
+				STACK(1) = actor == NULL ? 0 : actor->ceilingz;
 			}
 			break;
 
 		case PCD_GETACTORANGLE:
 			{
-				if(STACK(1) == 0)
-				{
-					STACK(1) = activator->angle >> 16;
-				}
-				else
-				{
-					AActor *actor = SingleActorFromTID (STACK(1), activator);
-
-					if (actor == NULL)
-					{
-						STACK(1) = 0;
-					}
-					else
-					{
-						STACK(1) = actor->angle >> 16;
-					}
-				}
+				AActor *actor = SingleActorFromTID(STACK(1), activator);
+				STACK(1) = actor == NULL ? 0 : actor->angle >> 16;
 			}
 			break;
 
 		case PCD_GETACTORPITCH:
 			{
-				if(STACK(1) == 0)
-				{
-					STACK(1) = activator->pitch >> 16;
-				}
-				else
-				{
-					AActor *actor = SingleActorFromTID (STACK(1), activator);
-
-					if (actor == NULL)
-					{
-						STACK(1) = 0;
-					}
-					else
-					{
-						STACK(1) = actor->pitch >> 16;
-					}
-				}
+				AActor *actor = SingleActorFromTID(STACK(1), activator);
+				STACK(1) = actor == NULL ? 0 : actor->pitch >> 16;
 			}
 			break;
 
 		case PCD_GETLINEROWOFFSET:
-			if (activationline)
+			if (activationline != NULL)
 			{
 				PushToStack (activationline->sidedef[0]->GetTextureYOffset(side_t::mid) >> FRACBITS);
 			}
@@ -6078,18 +6035,17 @@ int DLevelScript::RunScript ()
 			sp--;
 			break;
 
-		case PCD_CHECKWEAPON:
-			if (activator == NULL || activator->player == NULL || // Non-players do not have weapons
-				activator->player->ReadyWeapon == NULL)
-			{
-				STACK(1) = 0;
-			}
-			else
-			{
-				STACK(1) = 0 == stricmp (FBehavior::StaticLookupString (STACK(1)),
-					activator->player->ReadyWeapon->GetClass()->TypeName.GetChars());
-			}
-			break;
+        case PCD_CHECKWEAPON:
+            if (activator == NULL || activator->player == NULL || // Non-players do not have weapons
+                activator->player->ReadyWeapon == NULL)
+            {
+                STACK(1) = 0;
+            }
+            else
+            {
+				STACK(1) = activator->player->ReadyWeapon->GetClass()->TypeName == FName(FBehavior::StaticLookupString (STACK(1)), true);
+            }
+            break;
 
 		case PCD_SETWEAPON:
 			if (activator == NULL || activator->player == NULL)
@@ -6790,9 +6746,18 @@ DLevelScript::DLevelScript (AActor *who, line_t *where, int num, const ScriptPtr
 	script = num;
 	numlocalvars = code->VarCount;
 	localvars = new SDWORD[code->VarCount];
-	localvars[0] = arg0;
-	localvars[1] = arg1;
-	localvars[2] = arg2;
+	if (code->VarCount > 0)
+	{
+		localvars[0] = arg0;
+		if (code->VarCount > 1)
+		{
+			localvars[1] = arg1;
+			if (code->VarCount > 2)
+			{
+				localvars[2] = arg2;
+			}
+		}
+	}
 	memset (localvars+code->ArgCount, 0, (code->VarCount-code->ArgCount)*sizeof(SDWORD));
 	pc = module->GetScriptAddress (code);
 	activator = who;

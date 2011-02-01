@@ -122,13 +122,7 @@ public:
 	DPusher ();
 	DPusher (EPusher type, line_t *l, int magnitude, int angle, AActor *source, int affectee);
 	void Serialize (FArchive &arc);
-	int CheckForSectorMatch (EPusher type, int tag)
-	{
-		if (m_Type == type && sectors[m_Affectee].tag == tag)
-			return m_Affectee;
-		else
-			return -1;
-	}
+	int CheckForSectorMatch (EPusher type, int tag);
 	void ChangeValues (int magnitude, int angle)
 	{
 		angle_t ang = ((angle_t)(angle<<24)) >> ANGLETOFINESHIFT;
@@ -186,6 +180,8 @@ void 	P_PlayerInSpecialSector (player_t *player, sector_t * sector=NULL);
 void	P_PlayerOnSpecialFlat (player_t *player, int floorType);
 
 void	P_SetSectorFriction (int tag, int amount, bool alterFlag);
+
+void P_GiveSecret(AActor *actor, bool printmessage, bool playsound);
 
 //
 // getSide()
@@ -420,9 +416,6 @@ void	EV_StartLightFading (int tag, int value, int tics);
 bool	P_ChangeSwitchTexture (side_t *side, int useAgain, BYTE special, bool *quest=NULL);
 bool	P_CheckSwitchRange(AActor *user, line_t *line, int sideno);
 
-void	P_InitSwitchList ();
-void	P_ProcessSwitchDef (FScanner &sc);
-
 //
 // P_PLATS
 //
@@ -644,24 +637,12 @@ private:
 bool EV_DoSplitDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
 				int tag, int speed, int delay, int lightTag);
 
-
-struct FDoorAnimation
-{
-	FTextureID BaseTexture;
-	FTextureID *TextureFrames;
-	int NumTextureFrames;
-	FName OpenSound;
-	FName CloseSound;
-};
-
-void P_ParseAnimatedDoor (FScanner &sc);
-
 class DAnimatedDoor : public DMovingCeiling
 {
 	DECLARE_CLASS (DAnimatedDoor, DMovingCeiling)
 public:
 	DAnimatedDoor (sector_t *sector);
-	DAnimatedDoor (sector_t *sector, line_t *line, int speed, int delay);
+	DAnimatedDoor (sector_t *sec, line_t *line, int speed, int delay, FDoorAnimation *anim);
 
 	void Serialize (FArchive &arc);
 	void Tick ();
@@ -670,7 +651,7 @@ public:
 protected:
 	line_t *m_Line1, *m_Line2;
 	int m_Frame;
-	int m_WhichDoorIndex;
+	FDoorAnimation *m_DoorAnim;
 	int m_Timer;
 	fixed_t m_BotDist;
 	int m_Status;
@@ -711,6 +692,7 @@ public:
 		ceilRaiseInstant,
 		ceilCrushAndRaise,
 		ceilLowerAndCrush,
+		ceilLowerAndCrushDist,
 		ceilCrushRaiseAndStay,
 		ceilRaiseToNearest,
 		ceilLowerToLowest,
@@ -737,6 +719,10 @@ public:
 	void Serialize (FArchive &arc);
 	void Tick ();
 
+	static DCeiling *Create(sector_t *sec, DCeiling::ECeiling type, line_t *line, int tag,
+						fixed_t speed, fixed_t speed2, fixed_t height,
+						int crush, int silent, int change, bool hexencrush);
+
 protected:
 	ECeiling	m_Type;
 	fixed_t 	m_BottomHeight;
@@ -762,9 +748,6 @@ protected:
 private:
 	DCeiling ();
 
-	friend bool EV_DoCeiling (DCeiling::ECeiling type, line_t *line,
-		int tag, fixed_t speed, fixed_t speed2, fixed_t height,
-		int crush, int silent, int change, bool hexencrush);
 	friend bool EV_CeilingCrushStop (int tag);
 	friend void P_ActivateInStasisCeiling (int tag);
 };

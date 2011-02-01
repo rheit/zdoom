@@ -2763,7 +2763,7 @@ void D3DFB::Clear (int left, int top, int right, int bottom, int palcolor, uint3
 	{
 		return;
 	}
-	if (palcolor >= 0)
+	if (palcolor >= 0 && color == 0)
 	{
 		color = GPalette.BaseColors[palcolor];
 	}
@@ -3675,6 +3675,14 @@ bool D3DFB::SetStyle(D3DTex *tex, DrawParms &parms, D3DCOLOR &color0, D3DCOLOR &
 	else
 	{
 		alpha = clamp<fixed_t> (parms.alpha, 0, FRACUNIT) / 65536.f;
+	}
+
+	style.CheckFuzz();
+	if (style.BlendOp == STYLEOP_Shadow)
+	{
+		style = LegacyRenderStyles[STYLE_TranslucentStencil];
+		alpha = 0.3f;
+		parms.fillcolor = 0;
 	}
 
 	// FIXME: Fuzz effect is not written

@@ -55,6 +55,7 @@
 #include "r_bsp.h"
 #include "r_plane.h"
 #include "r_segs.h"
+#include "r_3dfloors.h"
 #include "v_palette.h"
 
 #ifdef _MSC_VER
@@ -75,7 +76,7 @@ planefunction_t 		ceilingfunc;
 #define MAXVISPLANES 128    /* must be a power of 2 */
 
 // Avoid infinite recursion with stacked sectors by limiting them.
-#define MAX_SKYBOX_PLANES 100
+#define MAX_SKYBOX_PLANES 1000
 
 // [RH] Allocate one extra for sky box planes.
 static visplane_t		*visplanes[MAXVISPLANES+1];	// killough
@@ -173,6 +174,7 @@ void R_InitPlanes ()
 
 void R_DeinitPlanes ()
 {
+	fakeActive = 0;
 	R_ClearPlanes(false);
 	for (visplane_t *pl = freetail; pl != NULL; )
 	{
@@ -467,6 +469,9 @@ void R_ClearPlanes (bool fullclear)
 {
 	int i, max;
 
+	// kg3D - we can't just clear planes if there are fake planes
+	if(!fullclear && fakeActive) return;
+
 	max = fullclear ? MAXVISPLANES : MAXVISPLANES-1;
 	for (i = 0; i <= max; i++)	// new code -- killough
 		for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )
@@ -522,7 +527,7 @@ static visplane_t *new_visplane (unsigned hash)
 // killough 2/28/98: Add offsets
 //==========================================================================
 
-visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightlevel,
+visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightlevel, fixed_t alpha,
 						 fixed_t xoffs, fixed_t yoffs,
 						 fixed_t xscale, fixed_t yscale, angle_t angle,
 						 int sky, ASkyViewpoint *skybox)
@@ -540,6 +545,7 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 		xscale = 0;
 		yscale = 0;
 		angle = 0;
+		alpha = 0;
 		plane.a = plane.b = plane.d = 0;
 		// [RH] Map floor skies and ceiling skies to separate visplanes. This isn't
 		// always necessary, but it is needed if a floor and ceiling sky are in the
@@ -559,7 +565,13 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 	{
 		plane = height;
 		isskybox = false;
-		sky = 0;	// not skyflatnum so it can't be a sky
+		// kg3D - hack, store alpha in sky
+		// i know there is ->alpha, but this also allows to identify fake plane
+		// and ->alpha is for stacked sectors
+		if (fake3D & (FAKE3D_FAKEFLOOR|FAKE3D_FAKECEILING)) sky = 0x80000000 | fakeAlpha;
+		else sky = 0;	// not skyflatnum so it can't be a sky
+		skybox = NULL;
+		alpha = FRACUNIT;
 	}
 		
 	// New visplane algorithm uses hash table -- killough
@@ -579,7 +591,27 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 						check->viewx == stacked_viewx &&
 						check->viewy == stacked_viewy &&
 						check->viewz == stacked_viewz &&
-						check->viewangle == stacked_angle)
+						(
+							// headache inducing logic... :(
+							(!(skybox->flags & MF_JUSTATTACKED)) ||
+							(
+								check->alpha == alpha &&
+								(alpha == 0 ||	// if alpha is > 0 everything needs to be checked
+									(plane == check->height &&
+									 picnum == check->picnum &&
+									 lightlevel == check->lightlevel &&
+									 xoffs == check->xoffs &&	// killough 2/28/98: Add offset checks
+									 yoffs == check->yoffs &&
+									 basecolormap == check->colormap &&	// [RH] Add more checks
+									 xscale == check->xscale &&
+									 yscale == check->yscale &&
+									 angle == check->angle
+									)
+								) &&
+								check->viewangle == stacked_angle
+							)
+						)
+					   )
 					{
 						return check;
 					}
@@ -600,7 +632,10 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 			xscale == check->xscale &&
 			yscale == check->yscale &&
 			angle == check->angle && 
-			sky == check->sky
+			sky == check->sky &&
+			CurrentMirror == check->CurrentMirror &&
+			MirrorFlags == check->MirrorFlags &&
+			CurrentSkybox == check->CurrentSkybox
 			)
 		{
 		  return check;
@@ -628,6 +663,10 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 	check->viewy = stacked_viewy;
 	check->viewz = stacked_viewz;
 	check->viewangle = stacked_angle;
+	check->alpha = alpha;
+	check->CurrentMirror = CurrentMirror;
+	check->MirrorFlags = MirrorFlags;
+	check->CurrentSkybox = CurrentSkybox;
 
 	clearbufshort (check->top, viewwidth, 0x7fff);
 
@@ -712,6 +751,10 @@ visplane_t *R_CheckPlane (visplane_t *pl, int start, int stop)
 		new_pl->viewz = pl->viewz;
 		new_pl->viewangle = pl->viewangle;
 		new_pl->sky = pl->sky;
+		new_pl->alpha = pl->alpha;
+		new_pl->CurrentMirror = pl->CurrentMirror;
+		new_pl->MirrorFlags = pl->MirrorFlags;
+		new_pl->CurrentSkybox = pl->CurrentSkybox;
 		pl = new_pl;
 		pl->minx = start;
 		pl->maxx = stop;
@@ -944,11 +987,44 @@ void R_DrawPlanes ()
 	{
 		for (pl = visplanes[i]; pl; pl = pl->next)
 		{
-			vpcount++;
-			R_DrawSinglePlane (pl, OPAQUE, false);
+			// kg3D - draw only correct planes
+			if(pl->CurrentMirror != CurrentMirror || pl->CurrentSkybox != CurrentSkybox)
+				continue;
+			// kg3D - draw only real planes now
+			if(pl->sky >= 0) {
+				vpcount++;
+				R_DrawSinglePlane (pl, OPAQUE, false);
+			}
 		}
 	}
 }
+
+// kg3D - draw all visplanes with "height"
+void R_DrawHeightPlanes(fixed_t height)
+{
+	visplane_t *pl;
+	int i;
+
+	ds_color = 3;
+
+	for (i = 0; i < MAXVISPLANES; i++)
+	{
+		for (pl = visplanes[i]; pl; pl = pl->next)
+		{
+			// kg3D - draw only correct planes
+			if(pl->CurrentSkybox != CurrentSkybox)
+				continue;
+			if(pl->sky < 0 && pl->height.Zat0() == height) {
+				viewx = pl->viewx;
+				viewy = pl->viewy;
+				viewangle = pl->viewangle;
+				MirrorFlags = pl->MirrorFlags;
+				R_DrawSinglePlane (pl, pl->sky & 0x7FFFFFFF, true);
+			}
+		}
+	}
+}
+
 
 //==========================================================================
 //
@@ -1034,26 +1110,21 @@ void R_DrawSinglePlane (visplane_t *pl, fixed_t alpha, bool masked)
 CVAR (Bool, r_skyboxes, true, 0)
 static int numskyboxes;
 
-struct VisplaneAndAlpha
-{
-	visplane_t *Visplane;
-	fixed_t Alpha;
-};
-
 void R_DrawSkyBoxes ()
 {
 	static TArray<size_t> interestingStack;
 	static TArray<ptrdiff_t> drawsegStack;
 	static TArray<ptrdiff_t> visspriteStack;
 	static TArray<fixed_t> viewxStack, viewyStack, viewzStack;
-	static TArray<VisplaneAndAlpha> visplaneStack;
+	static TArray<visplane_t *> visplaneStack;
 
 	numskyboxes = 0;
 
 	if (visplanes[MAXVISPLANES] == NULL)
 		return;
 
-	VisplaneAndAlpha vaAdder = { 0 };
+	R_3D_EnterSkybox();
+
 	int savedextralight = extralight;
 	fixed_t savedx = viewx;
 	fixed_t savedy = viewy;
@@ -1142,7 +1213,6 @@ void R_DrawSkyBoxes ()
 
 		// Create a drawseg to clip sprites to the sky plane
 		R_CheckDrawSegs ();
-		R_CheckOpenings ((pl->maxx - pl->minx + 1)*2);
 		ds_p->siz1 = INT_MAX;
 		ds_p->siz2 = INT_MAX;
 		ds_p->sz1 = 0;
@@ -1169,11 +1239,10 @@ void R_DrawSkyBoxes ()
 		viewxStack.Push (viewx);
 		viewyStack.Push (viewy);
 		viewzStack.Push (viewz);
-		vaAdder.Visplane = pl;
-		vaAdder.Alpha = sky->PlaneAlpha;
-		visplaneStack.Push (vaAdder);
+		visplaneStack.Push (pl);
 
 		R_RenderBSPNode (nodes + numnodes - 1);
+		R_3D_ResetClip(); // reset clips (floor/ceiling)
 		R_DrawPlanes ();
 
 		sky->bInSkybox = false;
@@ -1200,13 +1269,13 @@ void R_DrawSkyBoxes ()
 		ds_p = firstdrawseg;
 		vissprite_p = firstvissprite;
 
-		visplaneStack.Pop (vaAdder);
-		if (vaAdder.Alpha > 0)
+		visplaneStack.Pop (pl);
+		if (pl->alpha > 0)
 		{
-			R_DrawSinglePlane (vaAdder.Visplane, vaAdder.Alpha, true);
+			R_DrawSinglePlane (pl, pl->alpha, true);
 		}
-		*freehead = vaAdder.Visplane;
-		freehead = &vaAdder.Visplane->next;
+		*freehead = pl;
+		freehead = &pl->next;
 	}
 	firstvissprite = vissprites;
 	vissprite_p = vissprites + savedvissprite_p;
@@ -1227,8 +1296,13 @@ void R_DrawSkyBoxes ()
 	viewangle = savedangle;
 	R_SetViewAngle ();
 
+	R_3D_LeaveSkybox();
+
+	if(fakeActive) return;
+
 	for (*freehead = visplanes[MAXVISPLANES], visplanes[MAXVISPLANES] = NULL; *freehead; )
 		freehead = &(*freehead)->next;
+
 }
 
 ADD_STAT(skyboxes)

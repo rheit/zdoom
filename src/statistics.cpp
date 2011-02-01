@@ -130,6 +130,7 @@ extern TArray<level_info_t> wadlevelinfos;
 
 static void ParseStatistics(const char *fn, TArray<FStatistics> &statlist)
 {
+	statlist.Clear();
 	try
 	{
 		FScanner sc;
@@ -400,6 +401,8 @@ static void StoreLevelStats()
 {
 	unsigned int i;
 
+	if (gamestate != GS_LEVEL) return;
+
 	if (!(level.flags2&LEVEL2_NOSTATISTICS))	// don't consider maps that were excluded from statistics
 	{
 		for(i=0;i<LevelData.Size();i++)
@@ -451,7 +454,6 @@ void STAT_ChangeLevel(const char *newl)
 		level_info_t *l = FindLevelInfo (newl);
 		nextinfo = l->CheckLevelRedirect ();
 		if (nextinfo == NULL) nextinfo = l;
-
 	}
 
 	if (savestatistics == 1)
@@ -592,15 +594,19 @@ FString GetStatString()
 
 CCMD(printstats)
 {
-	StoreLevelStats();	// Get the current level's current results.
-	Printf("%s", GetStatString());
+	StoreLevelStats();	// Refresh the current level's results.
+	Printf("%s", GetStatString().GetChars());
 }
 
 
 CCMD(finishgame)
 {
 	// This CCMD simulates an end-of-game action and exists to end mods that never exit their last level.
-	G_SetForEndGame (level.nextmap);
-	G_ExitLevel (0, false);
+	G_ChangeLevel(NULL, 0, 0);
 }
 
+ADD_STAT(statistics)
+{
+	StoreLevelStats();	// Refresh the current level's results.
+	return GetStatString();
+}
