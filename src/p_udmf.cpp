@@ -1300,6 +1300,8 @@ public:
 
 			sec->ColorMaps[LIGHT_GLOBAL] = GetSpecialLights (lightcolor, fadecolor, desaturation);
 		}
+		for(int i = 0;i < LIGHT_MAX;i++)
+			sec->ColorMaps[i] = sec->ColorMaps[LIGHT_GLOBAL];
 	}
 
 	//===========================================================================

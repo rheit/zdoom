@@ -2362,7 +2362,7 @@ void R_DrawPlayerSprites ()
 					if(rover->flags & FF_FADEWALLS)
 						basecolormap = sec->ColorMaps[LIGHT_THING];
 					else
-						basecolormap = viewsector->e->XFloor.lightlist[i].extra_colormap;
+						basecolormap = EXTRACOLORMAP(&viewsector->e->XFloor.lightlist[i], LIGHT_THING);
 				}
 				break;
 			}
@@ -2763,7 +2763,7 @@ void R_DrawSprite (vissprite_t *spr)
 					}
 					else
 					{
-						mybasecolormap = spr->sector->e->XFloor.lightlist[i].extra_colormap;
+						mybasecolormap = EXTRACOLORMAP(&spr->sector->e->XFloor.lightlist[i], LIGHT_THING);
 					}
 				}
 				break;

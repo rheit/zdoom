@@ -396,7 +396,7 @@ MapData *P_OpenMapData(const char * mapname)
 			}
 
 			const char* lumpname = Wads.GetLumpFullName(lump_name + 1);
-			if(stricmp(lumpname, "THINGS") != 0)
+			if(!map->isText && stricmp(lumpname, "THINGS") != 0)
 			{
 				DWORD id;
 				map->file = Wads.ReopenLumpNum(lump_name);
@@ -4420,6 +4420,8 @@ void P_SetupLevel (char *lumpname, int position)
 		P_CopySlopes();
 
 		// Spawn 3d floors - must be done before spawning things so it can't be done in P_SpawnSpecials
+		if (map->isDoom64)
+			P_DetectSkyHack ();
 		P_Spawn3DFloors();
 
 		times[14].Clock();

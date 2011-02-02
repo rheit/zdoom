@@ -124,7 +124,6 @@ static bool CheckSkipGameBlock(FScanner &sc)
 	{
 		sc.MustGetString();
 		filter |= CheckGame(sc.String, false);
-		if (sc.Compare("Doom64")) filter |= GAME_Doom64;
 	}
 	while (sc.CheckString(","));
 	sc.MustGetStringName(")");

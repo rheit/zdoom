@@ -1178,7 +1178,7 @@ void R_Subsector (subsector_t *sub)
 	if (fixedlightlev < 0 && frontsector->e && frontsector->e->XFloor.lightlist.Size())
 	{
 		light = P_GetPlaneLight(frontsector, &frontsector->ceilingplane, false);
-		basecolormap = light->extra_colormap;
+		basecolormap = EXTRACOLORMAP(light, LIGHT_CEILING);
 		ceilinglightlevel = *light->p_lightlevel;
 	}
 	else
@@ -1210,7 +1210,7 @@ void R_Subsector (subsector_t *sub)
 	if (fixedlightlev < 0 && frontsector->e && frontsector->e->XFloor.lightlist.Size())
 	{
 		light = P_GetPlaneLight(frontsector, &frontsector->floorplane, false);
-		basecolormap = light->extra_colormap;
+		basecolormap = EXTRACOLORMAP(light, LIGHT_FLOOR);
 		floorlightlevel = *light->p_lightlevel;
 	}
 	else
@@ -1283,7 +1283,7 @@ void R_Subsector (subsector_t *sub)
 				if (fixedlightlev < 0 && sub->sector->e->XFloor.lightlist.Size())
 				{
 					light = P_GetPlaneLight(sub->sector, &frontsector->floorplane, false);
-					basecolormap = light->extra_colormap;
+					basecolormap = EXTRACOLORMAP(light, LIGHT_FLOOR);
 					floorlightlevel = *light->p_lightlevel;
 				}
 
@@ -1327,8 +1327,8 @@ void R_Subsector (subsector_t *sub)
 				R_3D_NewClip();
 			}
 			fakeHeight = fakeFloor->bottom.plane->ZatPoint(frontsector->soundorg[0], frontsector->soundorg[1]);
-			if (fakeHeight > viewz &&
-				fakeHeight < frontsector->ceilingplane.ZatPoint(frontsector->soundorg[0], frontsector->soundorg[1]))
+			if (fakeHeight > viewz)// &&
+				//fakeHeight < frontsector->ceilingplane.ZatPoint(frontsector->soundorg[0], frontsector->soundorg[1]))
 			{
 				fake3D = FAKE3D_FAKECEILING;
 				tempsec = *fakeFloor->model;
@@ -1346,7 +1346,7 @@ void R_Subsector (subsector_t *sub)
 				if (fixedlightlev < 0 && sub->sector->e->XFloor.lightlist.Size())
 				{
 					light = P_GetPlaneLight(sub->sector, &frontsector->ceilingplane, false);
-					basecolormap = light->extra_colormap;
+					basecolormap = EXTRACOLORMAP(light, LIGHT_CEILING);
 					ceilinglightlevel = *light->p_lightlevel;
 				}
 				tempsec.ceilingplane.ChangeHeight(1);

@@ -1,7 +1,6 @@
 #ifndef __SECTORE_H
 #define __SECTORE_H
 
-
 #define CenterSpot(sec) (vertex_t*)&(sec)->soundorg[0]
 
 #define _3DFLOORS
@@ -37,6 +36,7 @@ typedef enum
   FF_ADDITIVETRANS	   = 0x10000000, // Render this floor with additive translucency
   FF_FLOOD			   = 0x20000000, // extends towards the next lowest flooding or solid 3D floor or the bottom of the sector
   FF_THISINSIDE			   = 0x40000000, // hack for software 3D with FF_BOTHPLANES
+  FF_SKYHACK		   = 0x80000000, // Doom 64 sky hack support.
 } ffloortype_e;
 
 // This is for the purpose of Sector_SetContents:
@@ -101,7 +101,7 @@ struct F3DFloor
 	int	validcount;
 
 	FDynamicColormap *GetColormap();
-	void UpdateColormap(FDynamicColormap *&map);
+	void UpdateColormap(FDynamicColormap **&map);
 	PalEntry GetBlend();
 };
 
@@ -111,7 +111,7 @@ struct lightlist_t
 {
 	secplane_t				plane;
 	unsigned char *			p_lightlevel;
-	FDynamicColormap *		extra_colormap;
+	FDynamicColormap **		extra_colormap;
 	PalEntry				blend;
 	int						flags;
 	F3DFloor*				lightsource;
@@ -176,5 +176,7 @@ inline void P_LineOpening_XFloors (FLineOpening &open, AActor * thing, const lin
 
 #endif
 
+
+void P_DetectSkyHack ();
 
 #endif

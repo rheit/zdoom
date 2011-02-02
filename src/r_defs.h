@@ -38,6 +38,7 @@
 
 #include "dthinker.h"
 #include "farchive.h"
+#include "r_sky.h"
 
 #define MAXWIDTH 2560
 #define MAXHEIGHT 1600
@@ -317,6 +318,18 @@ inline FArchive &operator<< (FArchive &arc, secplane_t &plane)
 	return arc;
 }
 
+enum
+{
+	LIGHT_GLOBAL,
+	LIGHT_FLOOR,
+	LIGHT_CEILING,
+	LIGHT_THING,
+	LIGHT_WALLUPPER,
+	LIGHT_WALLLOWER,
+	LIGHT_WALLBOTH,
+	LIGHT_MAX
+};
+
 #include "p_3dfloors.h"
 // Ceiling/floor flags
 enum
@@ -337,6 +350,7 @@ enum
 	SECF_UNDERWATERMASK	= 32+64,
 	SECF_DRAWN			= 128,	// sector has been drawn at least once
 	SECF_HIDDEN			= 256,	// Do not draw on textured automap
+	SECF_SKYHACKED		= 512,	// Sector is involved with the Doom 64 Sky hack
 };
 
 enum
@@ -415,18 +429,6 @@ struct FTransform
 
 	// base values
 	fixed_t base_angle, base_yoffs;
-};
-
-enum
-{
-	LIGHT_GLOBAL,
-	LIGHT_FLOOR,
-	LIGHT_CEILING,
-	LIGHT_THING,
-	LIGHT_WALLUPPER,
-	LIGHT_WALLLOWER,
-	LIGHT_WALLBOTH,
-	LIGHT_MAX
 };
 
 struct sector_t
@@ -589,6 +591,8 @@ struct sector_t
 
 	FTextureID GetTexture(int pos) const
 	{
+		if((MoreFlags&SECF_SKYHACKED) && pos == ceiling)
+			return skyflatnum;
 		return planes[pos].Texture;
 	}
 
@@ -737,8 +741,10 @@ struct sector_t
 
 // Colormap macro for compatibility with both Doom 64 colored sectors and classic ZDoom colored sectors:
 // returns the main colormap if it is set to a non-white value, the precise colormap otherwise.
-#define COLORMAP(sector, pos) \
-	(sector->ColorMaps[LIGHT_GLOBAL]->Color.d == 0xffffff ? sector->ColorMaps[pos] : sector->ColorMaps[LIGHT_GLOBAL])
+#define COLORMAP_SELECT(map, pos) \
+	((map)[LIGHT_GLOBAL]->Color.d == 0xffffff ? (map)[pos] : (map)[LIGHT_GLOBAL])
+#define COLORMAP(sector, pos) COLORMAP_SELECT((sector)->ColorMaps, pos)
+#define EXTRACOLORMAP(light, pos) COLORMAP_SELECT((light)->extra_colormap, pos)
 
 FArchive &operator<< (FArchive &arc, sector_t::splane &p);
 

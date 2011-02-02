@@ -42,6 +42,7 @@
 #include "sc_man.h"
 #include "v_palette.h"
 #include "g_level.h"
+#include "r_sky.h"
 
 #ifdef _3DFLOORS
 
@@ -60,23 +61,23 @@
 FDynamicColormap *F3DFloor::GetColormap()
 {
 	// If there's no fog in either model or target sector this is easy and fast.
-	if ((target->ColorMaps[LIGHT_GLOBAL]->Fade == 0 && model->ColorMaps[LIGHT_GLOBAL]->Fade == 0) || (flags & FF_FADEWALLS))
+	if ((COLORMAP(target, LIGHT_WALLBOTH)->Fade == 0 && COLORMAP(model, LIGHT_WALLBOTH)->Fade == 0) || (flags & FF_FADEWALLS))
 	{
-		return model->ColorMaps[LIGHT_GLOBAL];
+		return COLORMAP(model, LIGHT_WALLBOTH);
 	}
 	else
 	{
 		// We must create a new colormap combining the properties we need
-		return GetSpecialLights(model->ColorMaps[LIGHT_GLOBAL]->Color, target->ColorMaps[LIGHT_GLOBAL]->Fade, model->ColorMaps[LIGHT_GLOBAL]->Desaturate);
+		return GetSpecialLights(COLORMAP(model, LIGHT_WALLBOTH)->Color, COLORMAP(target, LIGHT_WALLBOTH)->Fade, COLORMAP(model, LIGHT_WALLBOTH)->Desaturate);
 	}
 }
 
 PalEntry F3DFloor::GetBlend()
 {
 	// The model sector's fog is used as blend unless FF_FADEWALLS is set.
-	if (!(flags & FF_FADEWALLS) && target->ColorMaps[LIGHT_GLOBAL]->Fade != model->ColorMaps[LIGHT_GLOBAL]->Fade)
+	if (!(flags & FF_FADEWALLS) && COLORMAP(target, LIGHT_WALLBOTH)->Fade != COLORMAP(model, LIGHT_WALLBOTH)->Fade)
 	{
-		return model->ColorMaps[LIGHT_GLOBAL]->Fade;
+		return COLORMAP(model, LIGHT_WALLBOTH)->Fade;
 	}
 	else
 	{
@@ -84,21 +85,24 @@ PalEntry F3DFloor::GetBlend()
 	}
 }
 
-void F3DFloor::UpdateColormap(FDynamicColormap *&map)
+void F3DFloor::UpdateColormap(FDynamicColormap **&map)
 {
-	// If there's no fog in either model or target sector (or both have the same fog) this is easy and fast.
-	if ((target->ColorMaps[LIGHT_GLOBAL]->Fade == 0 && model->ColorMaps[LIGHT_GLOBAL]->Fade == 0) || (flags & FF_FADEWALLS) ||
-		target->ColorMaps[LIGHT_GLOBAL]->Fade == model->ColorMaps[LIGHT_GLOBAL]->Fade)
+	for(int i = 0;i < LIGHT_MAX;i++)
 	{
-		map = model->ColorMaps[LIGHT_GLOBAL];
-	}
-	else
-	{
-		// since rebuilding the map is not a cheap operation let's only do it if something really changed.
-		if (map->Color != model->ColorMaps[LIGHT_GLOBAL]->Color || map->Fade != target->ColorMaps[LIGHT_GLOBAL]->Fade ||
-			map->Desaturate != model->ColorMaps[LIGHT_GLOBAL]->Desaturate)
+		// If there's no fog in either model or target sector (or both have the same fog) this is easy and fast.
+		if ((target->ColorMaps[i]->Fade == 0 && model->ColorMaps[i]->Fade == 0) || (flags & FF_FADEWALLS) ||
+			target->ColorMaps[i]->Fade == model->ColorMaps[i]->Fade)
 		{
-			map = GetSpecialLights(model->ColorMaps[LIGHT_GLOBAL]->Color, target->ColorMaps[LIGHT_GLOBAL]->Fade, model->ColorMaps[LIGHT_GLOBAL]->Desaturate);
+			map[i] = model->ColorMaps[i];
+		}
+		else
+		{
+			// since rebuilding the map is not a cheap operation let's only do it if something really changed.
+			if (map[i]->Color != model->ColorMaps[i]->Color || map[i]->Fade != target->ColorMaps[i]->Fade ||
+				map[i]->Desaturate != model->ColorMaps[i]->Desaturate)
+			{
+				map[i] = GetSpecialLights(model->ColorMaps[i]->Color, target->ColorMaps[i]->Fade, model->ColorMaps[i]->Desaturate);
+			}
 		}
 	}
 }
@@ -123,8 +127,15 @@ static void P_Add3DFloor(sector_t* sec, sector_t* sec2, line_t* master, int flag
 	ffloor->top.model = ffloor->bottom.model = ffloor->model = sec2;
 	ffloor->target = sec;
 	ffloor->ceilingclip = ffloor->floorclip = NULL;
-	
-	if (!(flags&FF_THINFLOOR)) 
+
+	if (flags&FF_SKYHACK)
+	{
+		ffloor->bottom.plane = &sec->ceilingplane;
+		ffloor->bottom.texture = &sec->planes[sector_t::ceiling].Texture;
+		ffloor->bottom.texheight = &sec->planes[sector_t::ceiling].TexZ;
+		ffloor->bottom.isceiling = sector_t::ceiling;
+	}
+	else if (!(flags&FF_THINFLOOR)) 
 	{
 		ffloor->bottom.plane = &sec2->floorplane;
 		ffloor->bottom.texture = &sec2->planes[sector_t::floor].Texture;
@@ -138,8 +149,16 @@ static void P_Add3DFloor(sector_t* sec, sector_t* sec2, line_t* master, int flag
 		ffloor->bottom.texheight = &sec2->planes[sector_t::ceiling].TexZ;
 		ffloor->bottom.isceiling = sector_t::ceiling;
 	}
-	
-	if (!(flags&FF_FIX))
+
+	if (flags&FF_SKYHACK)
+	{
+		ffloor->top.plane = &sec2->ceilingplane;
+		ffloor->top.texture = &sec->planes[sector_t::ceiling].Texture;
+		ffloor->top.texheight = &sec2->planes[sector_t::ceiling].TexZ;
+		ffloor->toplightlevel = &sec->lightlevel;
+		ffloor->top.isceiling = sector_t::floor;
+	}
+	else if (!(flags&FF_FIX))
 	{
 		ffloor->top.plane = &sec2->ceilingplane;
 		ffloor->top.texture = &sec2->planes[sector_t::ceiling].Texture;
@@ -527,7 +546,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 		lightlist[0].p_lightlevel = &sector->lightlevel;
 		lightlist[0].caster = NULL;
 		lightlist[0].lightsource = NULL;
-		lightlist[0].extra_colormap = sector->ColorMaps[LIGHT_GLOBAL];
+		lightlist[0].extra_colormap = sector->ColorMaps;
 		lightlist[0].blend = 0;
 		lightlist[0].flags = 0;
 		
@@ -548,7 +567,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 				newlight.p_lightlevel = rover->toplightlevel;
 				newlight.caster = rover;
 				newlight.lightsource = rover;
-				newlight.extra_colormap = rover->model->ColorMaps[LIGHT_GLOBAL];
+				newlight.extra_colormap = rover->model->ColorMaps;
 				newlight.blend = rover->GetBlend();
 				newlight.flags = rover->flags;
 				lightlist.Push(newlight);
@@ -562,7 +581,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 					lightlist[0].p_lightlevel = rover->toplightlevel;
 					lightlist[0].caster = rover;
 					lightlist[0].lightsource = rover;
-					lightlist[0].extra_colormap = rover->model->ColorMaps[LIGHT_GLOBAL];
+					lightlist[0].extra_colormap = rover->model->ColorMaps;
 					lightlist[0].blend = rover->GetBlend();
 					lightlist[0].flags = rover->flags;
 				}
@@ -585,7 +604,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 					{
 						newlight.lightsource = NULL;
 						newlight.p_lightlevel = &sector->lightlevel;
-						newlight.extra_colormap = sector->ColorMaps[LIGHT_GLOBAL];
+						newlight.extra_colormap = sector->ColorMaps;
 						newlight.blend = 0;
 					}
 					newlight.flags = rover->flags;
@@ -633,7 +652,7 @@ void P_RecalculateLights(sector_t *sector)
 		}
 		else
 		{
-			ll->extra_colormap = sector->ColorMaps[LIGHT_GLOBAL];
+			ll->extra_colormap = sector->ColorMaps;
 			ll->blend = 0;
 		}
 	}
@@ -815,6 +834,45 @@ void P_Spawn3DFloors (void)
 	}
 }
 
+void P_DetectSkyHack ()
+{
+	// Look for double sided lines with a platform protruding from the sky
+	line_t *line = lines;
+	for(int i = 0;i < numlines; i++, line++)
+	{
+		if(line->backsector == NULL)
+			continue;
+
+		sector_t *sector1 = line->frontsector;
+		sector_t *sector2 = line->backsector;
+		sector_t *highersector = sector1->CenterCeiling() > sector2->CenterCeiling() ? sector1 : sector2;
+		sector_t *lowersector = sector1->CenterCeiling() < sector2->CenterCeiling() ? sector1 : sector2;
+		if(highersector->GetTexture(sector_t::ceiling) == skyflatnum && lowersector->GetTexture(sector_t::ceiling) != skyflatnum)
+		{
+			// Now check that the highersector is also lowered in sky
+			bool valid = false;
+			for(int j = 0;j < highersector->linecount;j++)
+			{
+				line_t *higherline = highersector->lines[j];
+				if(higherline->backsector == NULL)
+					continue;
+
+				sector_t *othersector = higherline->frontsector == highersector ? higherline->backsector : higherline->frontsector;
+				if(othersector->GetTexture(sector_t::ceiling) == skyflatnum && othersector->CenterCeiling() > highersector->CenterCeiling())
+				{
+					valid = true;
+					break;
+				}
+			}
+
+			if(valid)
+			{
+				P_Add3DFloor(lowersector, highersector, line, FF_EXISTS|FF_RENDERALL|FF_NOSHADE|FF_UPPERTEXTURE|FF_SKYHACK, 255);
+				lowersector->MoreFlags |= SECF_SKYHACKED;
+			}
+		}
+	}
+}
 
 //==========================================================================
 //
