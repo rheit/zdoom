@@ -2373,7 +2373,6 @@ void P_LoadLineDefs (MapData * map)
 
 		P_AdjustLine (ld);
 		P_SaveLineSpecial (ld);
-		ld->flags |= ML_DRAWMIDTEXTURE; // Always have this set on non-Doom64 maps
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
 		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
@@ -2458,7 +2457,6 @@ void P_LoadLineDefsHexen (MapData * map)
 		P_AdjustLine (ld);
 		P_SetLineID(ld);
 		P_SaveLineSpecial (ld);
-		ld->flags |= ML_DRAWMIDTEXTURE; // Always have this set on non-Doom64 maps
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
 		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
@@ -2474,6 +2472,11 @@ void P_LoadLineDefsHexen (MapData * map)
 // Doom 64 LineDefs
 void P_LoadLineDefsDoom64 (MapData * map)
 {
+	enum
+	{
+		ML_DRAWMIDTEXTURE = 0x200,
+	};
+
 	int i, skipped;
 	line_t *ld;
 	int lumplen = map->Size(ML_LINEDEFS);
@@ -2547,6 +2550,9 @@ void P_LoadLineDefsDoom64 (MapData * map)
 
 		P_SetSideNum (&ld->sidedef[0], LittleShort(mld->sidenum[0]));
 		P_SetSideNum (&ld->sidedef[1], LittleShort(mld->sidenum[1]));
+
+		if (!(mld->flags & ML_DRAWMIDTEXTURE))
+			ld->Alpha = 0;
 
 		P_AdjustLine (ld);
 		P_SaveLineSpecial (ld);

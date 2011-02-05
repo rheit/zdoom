@@ -61,7 +61,6 @@ lineflag 5 = ML_SECRET;
 lineflag 6 = ML_SOUNDBLOCK;
 lineflag 7 = ML_DONTDRAW;
 lineflag 8 = ML_MAPPED;
-lineflag 9 = ML_DRAWMIDTEXTURE;
 
 // Use is not directly part of the type, they are determined by use flags. The following translations
 // are temporary approximation based on the specs.
