@@ -384,6 +384,7 @@ xx(Transparent)
 xx(Passuse)
 xx(Repeatspecial)
 xx(Conversation)
+xx(Drawmidtexture)
 
 xx(Playercross)
 xx(Playeruse)

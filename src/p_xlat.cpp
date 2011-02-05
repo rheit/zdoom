@@ -295,7 +295,7 @@ void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld)
 	maplinedef_t tmp;
 	tmp.v1 = mld->v1;
 	tmp.v2 = mld->v2;
-	tmp.flags = (WORD) (mld->flags & 0x1FF);	// flags from 0x200 and above not supported
+	tmp.flags = (WORD) (mld->flags & 0x2FF);	// flags from 0x400 and above not supported
 
 	// Todo: address this point from the specs:
 	// * Unpeg Top Linedef flag also aligns the y offset of all textures to the nearest 64 grid

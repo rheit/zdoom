@@ -653,6 +653,7 @@ public:
 		ld->Alpha = FRACUNIT;
 		ld->id = -1;
 		ld->sidedef[0] = ld->sidedef[1] = NULL;
+		ld->flags |= ML_DRAWMIDTEXTURE; // Always have this set on non-Doom64 maps
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
 		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
@@ -757,6 +758,11 @@ public:
 			case NAME_Passuse:
 				CHECK_N(Dm | Zd | Zdt | Va)
 				passuse = CheckBool(key); 
+				continue;
+
+			case NAME_Drawmidtexture:
+				CHECK_N(Dm | Zd | Zdt | Va)
+				Flag(ld->flags, ML_DRAWMIDTEXTURE, key);
 				continue;
 
 			default:

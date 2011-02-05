@@ -327,146 +327,149 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 	else if (fixedcolormap != NULL)
 		dc_colormap = fixedcolormap;
 
-	if (!(curline->linedef->flags & ML_WRAP_MIDTEX) &&
-		!(curline->sidedef->Flags & WALLF_WRAP_MIDTEX))
-	{ // Texture does not wrap vertically.
+	if (curline->linedef->flags & ML_DRAWMIDTEXTURE)
+	{
+		if (!(curline->linedef->flags & ML_WRAP_MIDTEX) &&
+			!(curline->sidedef->Flags & WALLF_WRAP_MIDTEX))
+		{ // Texture does not wrap vertically.
 
-		// [RH] Don't bother drawing segs that are completely offscreen
-		if (MulScale12 (globaldclip, ds->sz1) < -textop &&
-			MulScale12 (globaldclip, ds->sz2) < -textop)
-		{ // Texture top is below the bottom of the screen
-			goto clearfog;
-		}
-
-		if (MulScale12 (globaluclip, ds->sz1) > texheight - textop &&
-			MulScale12 (globaluclip, ds->sz2) > texheight - textop)
-		{ // Texture bottom is above the top of the screen
-			goto clearfog;
-		}
-
-		if ((fake3D & FAKE3D_CLIPBOTTOM) && textop <= sclipBottom - viewz)
-		{
-			goto clearfog;
-		}
-		if ((fake3D & FAKE3D_CLIPTOP) && textop - texheight >= sclipTop - viewz)
-		{
-			goto clearfog;
-		}
-
-		WallSZ1 = ds->sz1;
-		WallSZ2 = ds->sz2;
-		WallSX1 = ds->sx1;
-		WallSX2 = ds->sx2;
-
-		if (fake3D & FAKE3D_CLIPTOP)
-		{
-			OWallMost (wallupper, textop < sclipTop - viewz ? textop : sclipTop - viewz);
-		}
-		else
-		{
-			OWallMost (wallupper, textop);
-		}
-		if (fake3D & FAKE3D_CLIPBOTTOM)
-		{
-			OWallMost (walllower, textop - texheight > sclipBottom - viewz ? textop - texheight : sclipBottom - viewz);
-		}
-		else
-		{
-			OWallMost (walllower, textop - texheight);
-		}
-
-		for (i = x1; i <= x2; i++)
-		{
-			if (wallupper[i] < mceilingclip[i])
-				wallupper[i] = mceilingclip[i];
-		}
-		for (i = x1; i <= x2; i++)
-		{
-			if (walllower[i] > mfloorclip[i])
-				walllower[i] = mfloorclip[i];
-		}
-		mfloorclip = walllower;
-		mceilingclip = wallupper;
-
-		// draw the columns one at a time
-		if (drawmode == DoDraw0)
-		{
-			for (dc_x = x1; dc_x <= x2; ++dc_x)
-			{
-				BlastMaskedColumn (R_DrawMaskedColumn, tex);
-			}
-		}
-		else
-		{
-			// [RH] Draw up to four columns at once
-			int stop = (x2+1) & ~3;
-
-			if (x1 > x2)
+			// [RH] Don't bother drawing segs that are completely offscreen
+			if (MulScale12 (globaldclip, ds->sz1) < -textop &&
+				MulScale12 (globaldclip, ds->sz2) < -textop)
+			{ // Texture top is below the bottom of the screen
 				goto clearfog;
-
-			dc_x = x1;
-
-			while ((dc_x < stop) && (dc_x & 3))
-			{
-				BlastMaskedColumn (R_DrawMaskedColumn, tex);
-				dc_x++;
 			}
 
-			while (dc_x < stop)
-			{
-				rt_initcols();
-				BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex); dc_x++;
-				BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex); dc_x++;
-				BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex); dc_x++;
-				BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex);
-				rt_draw4cols (dc_x - 3);
-				dc_x++;
+			if (MulScale12 (globaluclip, ds->sz1) > texheight - textop &&
+				MulScale12 (globaluclip, ds->sz2) > texheight - textop)
+			{ // Texture bottom is above the top of the screen
+				goto clearfog;
 			}
 
-			while (dc_x <= x2)
+			if ((fake3D & FAKE3D_CLIPBOTTOM) && textop <= sclipBottom - viewz)
 			{
-				BlastMaskedColumn (R_DrawMaskedColumn, tex);
-				dc_x++;
+				goto clearfog;
 			}
-		}
-	}
-	else
-	{ // Texture does wrap vertically.
-		WallSZ1 = ds->sz1;
-		WallSZ2 = ds->sz2;
-		WallSX1 = ds->sx1;
-		WallSX2 = ds->sx2;
+			if ((fake3D & FAKE3D_CLIPTOP) && textop - texheight >= sclipTop - viewz)
+			{
+				goto clearfog;
+			}
 
-		if (fake3D & FAKE3D_CLIPTOP)
-		{
-			OWallMost (wallupper, sclipTop - viewz);
+			WallSZ1 = ds->sz1;
+			WallSZ2 = ds->sz2;
+			WallSX1 = ds->sx1;
+			WallSX2 = ds->sx2;
+
+			if (fake3D & FAKE3D_CLIPTOP)
+			{
+				OWallMost (wallupper, textop < sclipTop - viewz ? textop : sclipTop - viewz);
+			}
+			else
+			{
+				OWallMost (wallupper, textop);
+			}
+			if (fake3D & FAKE3D_CLIPBOTTOM)
+			{
+				OWallMost (walllower, textop - texheight > sclipBottom - viewz ? textop - texheight : sclipBottom - viewz);
+			}
+			else
+			{
+				OWallMost (walllower, textop - texheight);
+			}
+
 			for (i = x1; i <= x2; i++)
 			{
 				if (wallupper[i] < mceilingclip[i])
 					wallupper[i] = mceilingclip[i];
 			}
-			mceilingclip = wallupper;
-		}			
-		if (fake3D & FAKE3D_CLIPBOTTOM)
-		{
-			OWallMost (walllower, sclipBottom - viewz);
 			for (i = x1; i <= x2; i++)
 			{
 				if (walllower[i] > mfloorclip[i])
 					walllower[i] = mfloorclip[i];
 			}
 			mfloorclip = walllower;
-		}
+			mceilingclip = wallupper;
 
-		rw_offset = 0;
-		rw_pic = tex;
-		if (colfunc == basecolfunc)
-		{
-			maskwallscan(x1, x2, mceilingclip, mfloorclip, MaskedSWall, maskedtexturecol, ds->yrepeat);
+			// draw the columns one at a time
+			if (drawmode == DoDraw0)
+			{
+				for (dc_x = x1; dc_x <= x2; ++dc_x)
+				{
+					BlastMaskedColumn (R_DrawMaskedColumn, tex);
+				}
+			}
+			else
+			{
+				// [RH] Draw up to four columns at once
+				int stop = (x2+1) & ~3;
+
+				if (x1 > x2)
+					goto clearfog;
+
+				dc_x = x1;
+
+				while ((dc_x < stop) && (dc_x & 3))
+				{
+					BlastMaskedColumn (R_DrawMaskedColumn, tex);
+					dc_x++;
+				}
+
+				while (dc_x < stop)
+				{
+					rt_initcols();
+					BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex); dc_x++;
+					BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex); dc_x++;
+					BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex); dc_x++;
+					BlastMaskedColumn (R_DrawMaskedColumnHoriz, tex);
+					rt_draw4cols (dc_x - 3);
+					dc_x++;
+				}
+
+				while (dc_x <= x2)
+				{
+					BlastMaskedColumn (R_DrawMaskedColumn, tex);
+					dc_x++;
+				}
+			}
 		}
 		else
-		{
-			transmaskwallscan(x1, x2, mceilingclip, mfloorclip, MaskedSWall, maskedtexturecol, ds->yrepeat);
+		{ // Texture does wrap vertically.
+			WallSZ1 = ds->sz1;
+			WallSZ2 = ds->sz2;
+			WallSX1 = ds->sx1;
+			WallSX2 = ds->sx2;
+
+			if (fake3D & FAKE3D_CLIPTOP)
+			{
+				OWallMost (wallupper, sclipTop - viewz);
+				for (i = x1; i <= x2; i++)
+				{
+					if (wallupper[i] < mceilingclip[i])
+						wallupper[i] = mceilingclip[i];
+				}
+				mceilingclip = wallupper;
+			}			
+			if (fake3D & FAKE3D_CLIPBOTTOM)
+			{
+				OWallMost (walllower, sclipBottom - viewz);
+				for (i = x1; i <= x2; i++)
+				{
+					if (walllower[i] > mfloorclip[i])
+						walllower[i] = mfloorclip[i];
+				}
+				mfloorclip = walllower;
+			}
+
+			rw_offset = 0;
+			rw_pic = tex;
+			if (colfunc == basecolfunc)
+			{
+				maskwallscan(x1, x2, mceilingclip, mfloorclip, MaskedSWall, maskedtexturecol, ds->yrepeat);
+			}
+			else
+			{
+				transmaskwallscan(x1, x2, mceilingclip, mfloorclip, MaskedSWall, maskedtexturecol, ds->yrepeat);
+			}
 		}
 	}
 

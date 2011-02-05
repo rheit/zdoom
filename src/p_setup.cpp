@@ -2373,6 +2373,7 @@ void P_LoadLineDefs (MapData * map)
 
 		P_AdjustLine (ld);
 		P_SaveLineSpecial (ld);
+		ld->flags |= ML_DRAWMIDTEXTURE; // Always have this set on non-Doom64 maps
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
 		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
@@ -2457,6 +2458,7 @@ void P_LoadLineDefsHexen (MapData * map)
 		P_AdjustLine (ld);
 		P_SetLineID(ld);
 		P_SaveLineSpecial (ld);
+		ld->flags |= ML_DRAWMIDTEXTURE; // Always have this set on non-Doom64 maps
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
 		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
