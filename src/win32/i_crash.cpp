@@ -845,7 +845,13 @@ HANDLE WriteTextReport ()
 			" Cr0NpxState=%08x\r\n\r\n",
 			(WORD)ctxt->FloatSave.ControlWord, (WORD)ctxt->FloatSave.StatusWord, (WORD)ctxt->FloatSave.TagWord,
 			ctxt->FloatSave.ErrorOffset, ctxt->FloatSave.ErrorSelector, ctxt->FloatSave.DataOffset,
-			ctxt->FloatSave.DataSelector, ctxt->FloatSave.Cr0NpxState);
+			ctxt->FloatSave.DataSelector, ctxt->FloatSave.
+#if (_MSC_VER >= 1800)
+				Spare0
+#else
+				Cr0NpxState
+#endif
+				);
 
 		for (i = 0; i < 8; ++i)
 		{
