@@ -508,6 +508,10 @@ bool	Check_Sides(AActor *, int, int);					// phares
 // [RH] 
 const secplane_t * P_CheckSlopeWalk (AActor *actor, fixed_t &xmove, fixed_t &ymove);
 
+// [Dusk]
+static const int NumLineRenderStyles = 3; // @style is to be within [0, NumLineRenderStyles[
+void P_SetLineRenderStyle (line_t* ld, int style);
+
 //----------------------------------------------------------------------------------
 //
 // Added so that in the source there's a clear distinction between
