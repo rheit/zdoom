@@ -93,7 +93,7 @@ Note: All <bool> fields default to false unless mentioned otherwise.
    linedef
    {
       alpha = <float>;          // Translucency of this line, default is 1.0
-      renderstyle = <string>;   // Render style, can be "translucent" or "add",
+      renderstyle = <string>;   // Render style, can be "translucent", "add" or "subtract",
                                 // default is "translucent".
       playeruseback = <bool>;   // New SPAC flag, true = player can use from back side.
       anycross = <bool>;        // New SPAC flag, true = any non-projectile 
@@ -334,6 +334,9 @@ Added arg0str thing property.
 
 1.21 09.08.2013
 Added waterzone sector property.
+
+1.22 17.12.2013
+Added subtractive renderstyle.
 
 ===============================================================================
 EOF

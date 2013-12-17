@@ -46,6 +46,7 @@
 #include "r_state.h"
 #include "r_data/colormaps.h"
 #include "w_wad.h"
+#include "p_local.h"
 
 //===========================================================================
 //
@@ -869,8 +870,9 @@ public:
 			case NAME_Renderstyle:
 			{
 				const char *str = CheckString(key);
-				if (!stricmp(str, "translucent")) ld->flags &= ~ML_ADDTRANS;
-				else if (!stricmp(str, "add")) ld->flags |= ML_ADDTRANS;
+				if (!stricmp(str, "translucent")) P_SetLineRenderStyle (ld, 0);
+				else if (!stricmp(str, "add")) P_SetLineRenderStyle (ld, 1);
+				else if (!stricmp(str, "subtract")) P_SetLineRenderStyle (ld, 2);
 				else sc.ScriptMessage("Unknown value \"%s\" for 'renderstyle'\n", str);
 				continue;
 			}

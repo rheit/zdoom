@@ -2867,18 +2867,11 @@ FUNC(LS_TranslucentLine)
 	while ((linenum = P_FindLineFromID (arg0, linenum)) >= 0)
 	{
 		lines[linenum].Alpha = Scale(clamp(arg1, 0, 255), FRACUNIT, 255);
-		if (arg2 == 0)
-		{
-			lines[linenum].flags &= ~ML_ADDTRANS;
-		}
-		else if (arg2 == 1)
-		{
-			lines[linenum].flags |= ML_ADDTRANS;
-		}
+
+		if (arg2 >= 0 && arg2 < NumLineRenderStyles)
+			P_SetLineRenderStyle (&lines[linenum], arg2);
 		else
-		{
-			Printf ("Unknown translucency type used with TranslucentLine\n");
-		}
+			Printf ("Unknown translucency type used with TranslucentLine\n"); break;
 	}
 
 	return true;

@@ -154,6 +154,7 @@ enum ELineFlags
 	ML_BLOCKUSE					= 0x02000000,	// blocks all use actions through this line
 	ML_BLOCKSIGHT				= 0x04000000,	// blocks monster line of sight
 	ML_BLOCKHITSCAN				= 0x08000000,	// blocks hitscan attacks
+	ML_SUBTRANS					= 0x10000000,	// [Dusk] subtractive translucency for linedefs
 };
 
 

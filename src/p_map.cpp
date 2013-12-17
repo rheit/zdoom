@@ -5748,3 +5748,22 @@ bool P_ActivateThingSpecial(AActor * thing, AActor * trigger, bool death)
 	// Returns the result
 	return res;
 }
+
+//=============================================================================
+//
+// P_ActivateThingSpecial
+//
+// [Dusk] Sets renderstyle flags for a line
+//
+//=============================================================================
+
+void P_SetLineRenderStyle (line_t* ld, int style)
+{
+	switch (style)
+	{
+		case 0: ld->flags &= ~(ML_ADDTRANS | ML_SUBTRANS); break;
+		case 1: ld->flags = (ld->flags & ~ML_SUBTRANS) | ML_ADDTRANS; break;
+		case 2: ld->flags = (ld->flags & ~ML_ADDTRANS) | ML_SUBTRANS; break;
+		default: break;
+	}
+}

@@ -1986,7 +1986,7 @@ void P_SaveLineSpecial (line_t *ld)
 
 void P_FinishLoadingLineDef(line_t *ld, int alpha)
 {
-	bool additive = false;
+	int renderstyle = 0;
 
 	ld->frontsector = ld->sidedef[0] != NULL ? ld->sidedef[0]->sector : NULL;
 	ld->backsector  = ld->sidedef[1] != NULL ? ld->sidedef[1]->sector : NULL;
@@ -2023,22 +2023,25 @@ void P_FinishLoadingLineDef(line_t *ld, int alpha)
 		if (alpha == SHRT_MIN)
 		{
 			alpha = ld->args[1];
-			additive = !!ld->args[2];
+			renderstyle = ld->args[2];
+
+			if (renderstyle >= NumLineRenderStyles)
+			{
+				Printf ("TranslucentLine: Line #%d has an unknown renderstyle %d\n", linenum, renderstyle);
+				renderstyle = 0;
+			}
 		}
 		else if (alpha < 0)
 		{
 			alpha = -alpha;
-			additive = true;
+			renderstyle = 1;
 		}
 
 		alpha = Scale(alpha, FRACUNIT, 255); 
 		if (!ld->args[0])
 		{
 			ld->Alpha = alpha;
-			if (additive)
-			{
-				ld->flags |= ML_ADDTRANS;
-			}
+			P_SetLineRenderStyle (ld, renderstyle);
 		}
 		else
 		{
@@ -2047,10 +2050,7 @@ void P_FinishLoadingLineDef(line_t *ld, int alpha)
 				if (lines[j].id == ld->args[0])
 				{
 					lines[j].Alpha = alpha;
-					if (additive)
-					{
-						lines[j].flags |= ML_ADDTRANS;
-					}
+					P_SetLineRenderStyle (&lines[j], renderstyle);
 				}
 			}
 		}
