@@ -610,8 +610,6 @@ static int FlushLines (const char *start, const char *stop)
 			break;
 		}
 	}
-	if (i != TopLine)
-		i = i;
 	return i;
 }
 
@@ -1742,7 +1740,7 @@ static bool C_HandleKey (event_t *ev, BYTE *buffer, int len)
 		}
 		break;
 
-#ifdef unix
+#ifdef __unix__
 	case EV_GUI_MButtonDown:
 		C_PasteText(I_GetFromClipboard(true), buffer, len);
 		break;

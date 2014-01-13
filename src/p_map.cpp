@@ -329,8 +329,7 @@ bool P_TeleportMove (AActor *thing, fixed_t x, fixed_t y, fixed_t z, bool telefr
 					
 	spechit.Clear ();
 
-	bool StompAlwaysFrags = (thing->flags2 & MF2_TELESTOMP) || 
-							(level.flags & LEVEL_MONSTERSTELEFRAG) || telefrag;
+	bool StompAlwaysFrags = ((thing->flags2 & MF2_TELESTOMP) || (level.flags & LEVEL_MONSTERSTELEFRAG) || telefrag) && !(thing->flags7 & MF7_NOTELESTOMP);
 
 	FBoundingBox box(x, y, thing->radius);
 	FBlockLinesIterator it(box);
@@ -378,7 +377,8 @@ bool P_TeleportMove (AActor *thing, fixed_t x, fixed_t y, fixed_t z, bool telefr
 
 		// monsters don't stomp things except on boss level
 		// [RH] Some Heretic/Hexen monsters can telestomp
-		if (StompAlwaysFrags && !(th->flags6 & MF6_NOTELEFRAG))
+		// ... and some items can never be telefragged while others will be telefragged by everything that teleports upon them.
+		if ((StompAlwaysFrags && !(th->flags6 & MF6_NOTELEFRAG)) || (th->flags7 & MF7_ALWAYSTELEFRAG))
 		{
 			P_DamageMobj (th, thing, thing, TELEFRAG_DAMAGE, NAME_Telefrag, DMG_THRUSTLESS);
 			continue;
@@ -4879,7 +4879,8 @@ void P_DoCrunch (AActor *thing, FChangePosition *cpos)
 				const PClass *bloodcls = thing->GetBloodType();
 				
 				P_TraceBleed (newdam > 0 ? newdam : cpos->crushchange, thing);
-				if (cl_bloodtype <= 1 && bloodcls != NULL)
+
+				if (bloodcls != NULL)
 				{
 					AActor *mo;
 
@@ -4892,14 +4893,15 @@ void P_DoCrunch (AActor *thing, FChangePosition *cpos)
 					{
 						mo->Translation = TRANSLATION(TRANSLATION_Blood, bloodcolor.a);
 					}
+
+					if (!(cl_bloodtype <= 1)) mo->renderflags |= RF_INVISIBLE;
 				}
+
+				angle_t an;
+				an = (M_Random () - 128) << 24;
 				if (cl_bloodtype >= 1)
 				{
-					angle_t an;
-
-					an = (M_Random () - 128) << 24;
-					P_DrawSplash2 (32, thing->x, thing->y,
-								   thing->z + thing->height/2, an, 2, bloodcolor);
+					P_DrawSplash2(32, thing->x, thing->y, thing->z + thing->height / 2, an, 2, bloodcolor);
 				}
 			}
 			if (thing->CrushPainSound != 0 && !S_GetSoundPlayingInfo(thing, thing->CrushPainSound))
@@ -5042,6 +5044,15 @@ void PIT_FloorDrop (AActor *thing, FChangePosition *cpos)
 			P_CheckFakeFloorTriggers (thing, oldz);
 		}
 	}
+	else if ((thing->z != oldfloorz && !(thing->flags & MF_NOLIFTDROP)))
+	{
+		fixed_t oldz = thing->z;
+		if ((thing->flags & MF_NOGRAVITY) && (thing->flags6 & MF6_RELATIVETOFLOOR))
+		{
+			thing->z = thing->z - oldfloorz + thing->floorz;
+			P_CheckFakeFloorTriggers (thing, oldz);
+		}
+	}
 }
 
 //=============================================================================
@@ -5053,6 +5064,7 @@ void PIT_FloorDrop (AActor *thing, FChangePosition *cpos)
 void PIT_FloorRaise (AActor *thing, FChangePosition *cpos)
 {
 	fixed_t oldfloorz = thing->floorz;
+	fixed_t oldz = thing->z;
 
 	P_AdjustFloorCeil (thing, cpos);
 
@@ -5067,22 +5079,30 @@ void PIT_FloorRaise (AActor *thing, FChangePosition *cpos)
 			return; // do not move bridge things
 		}
 		intersectors.Clear ();
-		fixed_t oldz = thing->z;
 		thing->z = thing->floorz;
-		switch (P_PushUp (thing, cpos))
+	}
+	else
+	{
+		if((thing->flags & MF_NOGRAVITY) && (thing->flags6 & MF6_RELATIVETOFLOOR))
 		{
-		default:
-			P_CheckFakeFloorTriggers (thing, oldz);
-			break;
-		case 1:
-			P_DoCrunch (thing, cpos);
-			P_CheckFakeFloorTriggers (thing, oldz);
-			break;
-		case 2:
-			P_DoCrunch (thing, cpos);
-			thing->z = oldz;
-			break;
+			intersectors.Clear ();
+			thing->z = thing->z - oldfloorz + thing->floorz;
 		}
+		else return;
+	}
+	switch (P_PushUp (thing, cpos))
+	{
+	default:
+		P_CheckFakeFloorTriggers (thing, oldz);
+		break;
+	case 1:
+		P_DoCrunch (thing, cpos);
+		P_CheckFakeFloorTriggers (thing, oldz);
+		break;
+	case 2:
+		P_DoCrunch (thing, cpos);
+		thing->z = oldz;
+		break;
 	}
 }
 

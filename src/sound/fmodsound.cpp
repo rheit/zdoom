@@ -629,7 +629,9 @@ bool FMODSoundRenderer::IsValid()
 //
 //==========================================================================
 
+#ifndef FACILITY_VISUALCPP
 #define FACILITY_VISUALCPP  ((LONG)0x6d)
+#endif
 #define VcppException(sev,err)  ((sev) | (FACILITY_VISUALCPP<<16) | err)
 
 static int CheckException(DWORD code)
@@ -816,7 +818,7 @@ bool FMODSoundRenderer::Init()
 	}
 	
 	result = Sys->getNumDrivers(&driver);
-#ifdef unix
+#ifdef __unix__
 	if (result == FMOD_OK)
 	{
 		// On Linux, FMOD defaults to OSS. If OSS is not present, it doesn't
