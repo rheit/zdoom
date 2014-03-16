@@ -53,9 +53,9 @@
 struct FStringTable::StringEntry
 {
 	StringEntry *Next;
-	char *Name;
+	FString Name;
+	FString String;
 	BYTE PassNum;
-	char String[2];
 };
 
 FStringTable::FStringTable ()
@@ -80,7 +80,7 @@ void FStringTable::FreeData ()
 		while (entry != NULL)
 		{
 			next = entry->Next;
-			M_Free (entry);
+			delete entry;
 			entry = next;
 		}
 	}
@@ -98,7 +98,7 @@ void FStringTable::FreeNonDehackedStrings ()
 			if (entry->PassNum != 0)
 			{
 				*pentry = next;
-				M_Free (entry);
+				delete entry;
 			}
 			else
 			{
@@ -269,7 +269,7 @@ void FStringTable::LoadLanguage (int lumpnum, DWORD code, bool exactMatch, int p
 			cmpval = 1;
 			while (entry != NULL)
 			{
-				cmpval = stricmp (entry->Name, strName.GetChars());
+				cmpval = entry->Name.CompareNoCase(strName);
 				if (cmpval >= 0)
 					break;
 				pentry = &entry->Next;
@@ -278,16 +278,16 @@ void FStringTable::LoadLanguage (int lumpnum, DWORD code, bool exactMatch, int p
 			if (cmpval == 0 && entry->PassNum >= passnum)
 			{
 				*pentry = entry->Next;
-				M_Free (entry);
+				delete entry;
 				entry = NULL;
 			}
 			if (entry == NULL || cmpval > 0)
 			{
-				entry = (StringEntry *)M_Malloc (sizeof(*entry) + strText.Len() + strName.Len());
+				entry = new StringEntry;
 				entry->Next = *pentry;
 				*pentry = entry;
-				strcpy (entry->String, strText.GetChars());
-				strcpy (entry->Name = entry->String + strText.Len() + 1, strName.GetChars());
+				entry->String = strText;
+				entry->Name = strName;
 				entry->PassNum = passnum;
 			}
 		}
@@ -333,10 +333,10 @@ const char *FStringTable::operator[] (const char *name) const
 
 	while (entry != NULL)
 	{
-		int cmpval = stricmp (entry->Name, name);
+		int cmpval = entry->Name.CompareNoCase(name);
 		if (cmpval == 0)
 		{
-			return entry->String;
+			return entry->String.GetChars();
 		}
 		if (cmpval == 1)
 		{
@@ -364,7 +364,7 @@ void FStringTable::FindString (const char *name, StringEntry **&pentry1, StringE
 
 	while (entry != NULL)
 	{
-		int cmpval = stricmp (entry->Name, name);
+		int cmpval = entry->Name.CompareNoCase(name);
 		if (cmpval == 0)
 		{
 			pentry1 = pentry;
@@ -391,9 +391,9 @@ const char *FStringTable::MatchString (const char *string) const
 	{
 		for (StringEntry *entry = Buckets[i]; entry != NULL; entry = entry->Next)
 		{
-			if (strcmp (entry->String, string) == 0)
+			if (entry->String.Compare(string) == 0)
 			{
-				return entry->Name;
+				return entry->Name.GetChars();
 			}
 		}
 	}
@@ -409,9 +409,9 @@ void FStringTable::SetString (const char *name, const char *newString)
 	size_t namelen = strlen (name);
 
 	// Create a new string entry
-	StringEntry *entry = (StringEntry *)M_Malloc (sizeof(*entry) + newlen + namelen);
-	strcpy (entry->String, newString);
-	strcpy (entry->Name = entry->String + newlen + 1, name);
+	StringEntry *entry = new StringEntry;
+	entry->String = newString;
+	entry->Name = name;
 	entry->PassNum = 0;
 
 	// If this is a new string, insert it. Otherwise, replace the old one.
@@ -424,6 +424,6 @@ void FStringTable::SetString (const char *name, const char *newString)
 	{
 		*pentry = entry;
 		entry->Next = oentry->Next;
-		M_Free (oentry);
+		delete oentry;
 	}
 }
