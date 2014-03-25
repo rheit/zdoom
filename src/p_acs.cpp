@@ -4253,6 +4253,8 @@ enum EACSFunctions
 	ACSF_CheckFlag,
 	ACSF_SetLineActivation,
 	ACSF_GetLineActivation,
+	ACSF_GetActorSectorFloorZ, // [Dusk]
+	ACSF_GetActorSectorCeilingZ, // [Dusk]
 
 	// ZDaemon
 	ACSF_GetTeamScore = 19620,	// (int team)
@@ -5317,6 +5319,22 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				return line >= 0 ? lines[line].activation : 0;
 			}
 			break;
+
+		// [Dusk]
+		case ACSF_GetActorSectorFloorZ:
+		case ACSF_GetActorSectorCeilingZ:
+		{
+			AActor* mo = SingleActorFromTID (args[0], activator);
+
+			if (mo != NULL && mo->Sector != NULL)
+			{
+				secplane_t *const plane = &(funcIndex == ACSF_GetActorSectorFloorZ ?
+					mo->Sector->floorplane : mo->Sector->ceilingplane);
+				return plane->ZatPoint (mo->x, mo->y);
+			}
+
+			break;
+		}
 
 		default:
 			break;
