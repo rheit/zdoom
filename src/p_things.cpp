@@ -416,8 +416,9 @@ bool P_Thing_Raise(AActor *thing)
 	if (!(thing->flags & MF_CORPSE) )
 		return true;	// not a corpse
 	
-	if (thing->tics != -1)
-		return true;	// not lying still yet
+	if (thing->tics != -1 && // not lying still yet
+		!thing->state->GetCanRaise()) // or not ready to be raised yet
+		return true;
 	
 	FState * RaiseState = thing->FindState(NAME_Raise);
 	if (RaiseState == NULL)
