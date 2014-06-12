@@ -340,6 +340,7 @@ enum
 	MF7_NOTELESTOMP		= 0x00000002,	// cannot telefrag under any circumstances (even when set by MAPINFO)
 	MF7_ALWAYSTELEFRAG	= 0x00000004,	// will unconditionally be telefragged when in the way. Overrides all other settings.
 	MF7_HANDLENODELAY	= 0x00000008,	// respect NoDelay state flag
+	MF7_NOOBITUARY		= 0x00000010,	// // [CK] actor will not display the obituary
 
 // --- mobj.renderflags ---
 
