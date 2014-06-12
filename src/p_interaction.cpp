@@ -192,6 +192,10 @@ void ClientObituary (AActor *self, AActor *inflictor, AActor *attacker, int dmgf
 	if (self->player == NULL || self->player->mo != self || !show_obituaries)
 		return;
 
+	// [CK] If the inflictor or attacker doesn't want to display an obituary, don't do so
+	if ((inflictor != NULL && (inflictor->flags7 & MF7_NOOBITUARY)) || (attacker != NULL && (attacker->flags7 & MF7_NOOBITUARY)))
+		return;
+
 	gender = self->player->userinfo.GetGender();
 
 	// Treat voodoo dolls as unknown deaths
