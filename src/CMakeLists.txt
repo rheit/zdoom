@@ -1090,7 +1090,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
 	set( ZDOOM_LIBS ${ZDOOM_LIBS} nsl socket)
 endif(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
 
-target_link_libraries( zdoom ${ZDOOM_LIBS} gdtoa dumb lzma )
+if( WIN32 )
+	target_link_libraries( zdoom ${ZDOOM_LIBS} gdtoa dumb lzma )
+else( WIN32 )
+	target_link_libraries( zdoom ${ZDOOM_LIBS} gdtoa dumb lzma output_sdl )
+endif( WIN32 )
+
 include_directories( .
 	g_doom
 	g_heretic
