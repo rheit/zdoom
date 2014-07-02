@@ -5,7 +5,7 @@ make_release_only()
 include_directories( ${FMOD_INCLUDE_DIR} ${SDL_INCLUDE_DIR} )
 
 if( ZD_CMAKE_COMPILER_IS_GNUC_COMPATIBLE )
-	set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-unused-parameter -fomit-frame-pointer" )
+	set( CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -fomit-frame-pointer ${CMAKE_C_FLAGS}" )
 endif( ZD_CMAKE_COMPILER_IS_GNUC_COMPATIBLE )
 
 add_library( output_sdl output_sdl.c )
