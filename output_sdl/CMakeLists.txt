@@ -1,8 +1,12 @@
 cmake_minimum_required( VERSION 2.4 )
-add_library( output_sdl MODULE output_sdl.c )
+
+make_release_only()
+
 include_directories( ${FMOD_INCLUDE_DIR} ${SDL_INCLUDE_DIR} )
 
-FILE( WRITE ${CMAKE_CURRENT_BINARY_DIR}/link-make "if [ ! -e ${ZDOOM_OUTPUT_DIR}/liboutput_sdl.so ]; then ln -sf output_sdl/liboutput_sdl.so ${ZDOOM_OUTPUT_DIR}/liboutput_sdl.so; fi" )
-add_custom_command( TARGET output_sdl POST_BUILD
-	COMMAND chmod +x ${CMAKE_CURRENT_BINARY_DIR}/link-make
-	COMMAND /bin/sh -c ${CMAKE_CURRENT_BINARY_DIR}/link-make )
+if( ZD_CMAKE_COMPILER_IS_GNUC_COMPATIBLE )
+	set( CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -fomit-frame-pointer ${CMAKE_C_FLAGS}" )
+endif( ZD_CMAKE_COMPILER_IS_GNUC_COMPATIBLE )
+
+add_library( output_sdl output_sdl.c )
+target_link_libraries( output_sdl )
