@@ -1,0 +1,2 @@
+// Blank MAPINFO. Defines nothing.
+// For Generic IWADs/PK3s that declare their own info.
