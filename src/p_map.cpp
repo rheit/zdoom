@@ -198,7 +198,7 @@ void P_GetFloorCeilingZ(FCheckPosition &tmf, int flags)
 
 		if (ff_top > tmf.floorz)
 		{
-			if (ff_top <= tmf.z || (!(flags && FFCF_3DRESTRICT) && (tmf.thing != NULL && ff_bottom < tmf.z && ff_top < tmf.z + tmf.thing->MaxStepHeight)))
+			if (ff_top <= tmf.z || (!(flags & FFCF_3DRESTRICT) && (tmf.thing != NULL && ff_bottom < tmf.z && ff_top < tmf.z + tmf.thing->MaxStepHeight)))
 			{
 				tmf.dropoffz = tmf.floorz = ff_top;
 				tmf.floorpic = *rover->top.texture;
@@ -1919,13 +1919,13 @@ bool P_TryMove(AActor *thing, fixed_t x, fixed_t y,
 		}
 
 		//Added by MC: To prevent bot from getting into dangerous sectors.
-		if (thing->player && thing->player->isbot && thing->flags & MF_SHOOTABLE)
+		if (thing->player && thing->player->Bot != NULL && thing->flags & MF_SHOOTABLE)
 		{
 			if (tm.sector != thing->Sector
 				&& bglobal.IsDangerous(tm.sector))
 			{
-				thing->player->prev = thing->player->dest;
-				thing->player->dest = NULL;
+				thing->player->Bot->prev = thing->player->Bot->dest;
+				thing->player->Bot->dest = NULL;
 				thing->velx = 0;
 				thing->vely = 0;
 				thing->z = oldz;
@@ -2157,7 +2157,7 @@ bool P_CheckMove(AActor *thing, fixed_t x, fixed_t y)
 			{ // too big a step up
 				return false;
 			}
-			else if ((thing->flags & MF_MISSILE) && !(thing->flags6 && MF6_STEPMISSILE) && tm.floorz > newz)
+			else if ((thing->flags & MF_MISSILE) && !(thing->flags6 & MF6_STEPMISSILE) && tm.floorz > newz)
 			{ // [RH] Don't let normal missiles climb steps
 				return false;
 			}
