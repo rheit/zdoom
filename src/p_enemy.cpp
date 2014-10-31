@@ -3337,7 +3337,11 @@ int P_Massacre ()
 	{
 		if (!(actor->flags2 & MF2_DORMANT) && (actor->flags3 & MF3_ISMONSTER))
 		{
-			killcount += actor->Massacre();
+			//[MC]Don't add it to the count, because they literally cannot die. 
+			//No chance of going to a backup Pain.Massacre state either because 
+			//of NOPAIN so lets narrow down our list of false positives.
+			if ((!(actor->flags5 & MF5_NODAMAGE)) && (!(actor->flags5 & MF5_NOPAIN)))
+				killcount += actor->Massacre();
 		}
 	}
 	return killcount;
