@@ -1059,7 +1059,7 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 
 			if (damage == -1)
 			{
-				if (target->flags7 & MF7_ALLOWPAIN) //Hold off ending the function before we can deal the pain chances.
+				if ((target->flags7 & MF7_ALLOWPAIN) || (inflictor->flags7 & MF7_CAUSEPAIN)) //Hold off ending the function before we can deal the pain chances.
 					goto fakepain;
 				return -1;
 			}
