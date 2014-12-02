@@ -513,6 +513,7 @@ void AInventory::BeginPlay ()
 	Super::BeginPlay ();
 	ChangeStatNum (STAT_INVENTORY);
 	flags |= MF_DROPPED;	// [RH] Items are dropped by default
+	pickedUp = false;
 }
 
 //===========================================================================
@@ -1336,8 +1337,15 @@ bool AInventory::TryPickup (AActor *&toucher)
 			copy->Owner = NULL;
 			copy->ItemFlags &= ~IF_CREATECOPYMOVED;
 		}
+
+		// Attach the current pickedUp flag to the cloned item, for the purposes of adding/not adding ammo.
+		copy->pickedUp = pickedUp;
+
 		// Continue onwards with the rest
 		copy->AttachToOwner (newtoucher);
+
+		copy->pickedUp = pickedUp = true;
+
 		if (ItemFlags & IF_AUTOACTIVATE)
 		{
 			if (copy->Use (true))

@@ -180,6 +180,7 @@ public:
 	const PClass *SpawnPointClass;	// For respawning like Heretic's mace
 
 	DWORD ItemFlags;
+	bool pickedUp;
 	const PClass *PickupFlash;	// actor to spawn as pickup flash
 
 	FSoundIDNoInit PickupSound;
