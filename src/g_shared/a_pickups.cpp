@@ -457,6 +457,8 @@ void AInventory::Serialize (FArchive &arc)
 {
 	Super::Serialize (arc);
 	arc << Owner << Amount << MaxAmount << RespawnTics << ItemFlags << Icon << PickupSound << SpawnPointClass;
+
+	if(SaveVersion >= 4517) arc << pickedUp;
 }
 
 //===========================================================================
