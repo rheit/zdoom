@@ -1346,7 +1346,9 @@ bool AInventory::TryPickup (AActor *&toucher)
 		// Continue onwards with the rest
 		copy->AttachToOwner (newtoucher);
 
-		copy->pickedUp = pickedUp = true;
+		// Set pickedUp on both of these to true, because they've officially been pickedUp
+		// NOTE: This won't really affect anything unless ShouldStay()
+		if(ShouldStay()) pickedUp = true;
 
 		if (ItemFlags & IF_AUTOACTIVATE)
 		{

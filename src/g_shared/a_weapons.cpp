@@ -310,7 +310,7 @@ void AWeapon::AttachToOwner (AActor *other)
 	Super::AttachToOwner (other);
 
 		// If this item was picked up previously, do not add ammo.
-	if(this->pickedUp)
+	if(pickedUp)
 	{
 		Ammo1 = static_cast<AAmmo *>(other->FindInventory(AmmoType1));
 		Ammo2 = static_cast<AAmmo *>(other->FindInventory(AmmoType2));
@@ -319,8 +319,6 @@ void AWeapon::AttachToOwner (AActor *other)
 	{
 		Ammo1 = AddAmmo(Owner, AmmoType1, AmmoGive1);
 		Ammo2 = AddAmmo(Owner, AmmoType2, AmmoGive2);
-
-		pickedUp = true;
 	}
 
 	SisterWeapon = AddWeapon (SisterWeaponType);
@@ -444,13 +442,9 @@ AWeapon *AWeapon::AddWeapon (const PClass *weapontype)
 
 bool AWeapon::ShouldStay ()
 {
-	if (((multiplayer &&
+	return (((multiplayer &&
 		(!deathmatch && !alwaysapplydmflags)) || (dmflags & DF_WEAPONS_STAY)) &&
-		!(flags & MF_DROPPED))
-	{
-		return true;
-	}
-	return false;
+		!(flags & MF_DROPPED));
 }
 
 //===========================================================================
