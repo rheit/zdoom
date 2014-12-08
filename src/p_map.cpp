@@ -1284,7 +1284,7 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 			P_GiveBody(thing, -damage);
 		}
 
-		if ((thing->flags7 & MF7_THRUREFLECT) && (tm.thing->flags & MF_MISSILE))
+		if ((thing->flags7 & MF7_THRUREFLECT) && (thing->flags2 & MF2_REFLECTIVE) && (tm.thing->flags & MF_MISSILE))
 		{
 			if (tm.thing->flags2 & MF2_SEEKERMISSILE)
 			{
@@ -2993,7 +2993,8 @@ bool P_BounceWall(AActor *mo)
 extern FRandom pr_bounce;
 bool P_BounceActor(AActor *mo, AActor *BlockingMobj, bool ontop)
 {
-	if (BlockingMobj && (BlockingMobj->flags7 & MF7_THRUREFLECT)) return true; //Don't go through all of this if the actor is reflective and wants things to pass through them.
+	//Don't go through all of this if the actor is reflective and wants things to pass through them.
+	if (BlockingMobj && ((BlockingMobj->flags2 & MF2_REFLECTIVE) && (BlockingMobj->flags7 & MF7_THRUREFLECT))) return true;
 	if (mo && BlockingMobj && ((mo->BounceFlags & BOUNCE_AllActors)
 		|| ((mo->flags & MF_MISSILE) && (!(mo->flags2 & MF2_RIP) 
 		|| (BlockingMobj->flags5 & MF5_DONTRIP) 
@@ -5101,7 +5102,7 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 		// is normally for projectiles which would have exploded by now anyway...
 		if (thing->flags6 & MF6_THRUSPECIES && thing->GetSpecies() == intersect->GetSpecies())
 			continue;
-		if ((thing->flags & MF_MISSILE) && (intersect->flags7 & MF7_THRUREFLECT))
+		if ((thing->flags & MF_MISSILE) && (intersect->flags2 & MF2_REFLECTIVE) && (intersect->flags7 & MF7_THRUREFLECT))
 			continue;
 		if (!(intersect->flags2 & MF2_PASSMOBJ) ||
 			(!(intersect->flags3 & MF3_ISMONSTER) && intersect->Mass > mymass) ||
