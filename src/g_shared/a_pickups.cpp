@@ -458,7 +458,7 @@ void AInventory::Serialize (FArchive &arc)
 	Super::Serialize (arc);
 	arc << Owner << Amount << MaxAmount << RespawnTics << ItemFlags << Icon << PickupSound << SpawnPointClass;
 
-	if(SaveVersion >= 4517) arc << pickedUp;
+	if(SaveVersion >= 4517) arc << allowDispense;
 }
 
 //===========================================================================
@@ -515,7 +515,7 @@ void AInventory::BeginPlay ()
 	Super::BeginPlay ();
 	ChangeStatNum (STAT_INVENTORY);
 	flags |= MF_DROPPED;	// [RH] Items are dropped by default
-	pickedUp = false;
+	allowDispense = true;
 }
 
 //===========================================================================
@@ -1340,15 +1340,14 @@ bool AInventory::TryPickup (AActor *&toucher)
 			copy->ItemFlags &= ~IF_CREATECOPYMOVED;
 		}
 
-		// Attach the current pickedUp flag to the cloned item, for the purposes of adding/not adding ammo.
-		copy->pickedUp = pickedUp;
+		// Attach the current allowDispense flag to the cloned item, for the purposes of adding/not adding ammo.
+		copy->allowDispense = allowDispense;
 
 		// Continue onwards with the rest
 		copy->AttachToOwner (newtoucher);
 
-		// Set pickedUp on both of these to true, because they've officially been pickedUp
-		// NOTE: This won't really affect anything unless ShouldStay()
-		if(ShouldStay()) pickedUp = true;
+		// Set allowDispense to false, because if this item should stay then it may not want to dispense again.
+		if(ShouldStay()) allowDispense = false;
 
 		if (ItemFlags & IF_AUTOACTIVATE)
 		{

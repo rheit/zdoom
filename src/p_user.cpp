@@ -1250,7 +1250,7 @@ void APlayerPawn::GiveDefaultInventory ()
 				item = static_cast<AInventory *>(Spawn (ti, 0,0,0, NO_REPLACE));
 				item->ItemFlags|=IF_IGNORESKILL;	// no skill multiplicators here
 				item->Amount = di->amount;
-				item->pickedUp = false;
+				item->allowDispense = true;
 
 				if (item->IsKindOf (RUNTIME_CLASS (AWeapon)))
 				{

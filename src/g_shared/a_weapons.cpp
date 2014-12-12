@@ -310,15 +310,15 @@ void AWeapon::AttachToOwner (AActor *other)
 	Super::AttachToOwner (other);
 
 		// If this item was picked up previously, do not add ammo.
-	if(pickedUp)
-	{
-		Ammo1 = static_cast<AAmmo *>(other->FindInventory(AmmoType1));
-		Ammo2 = static_cast<AAmmo *>(other->FindInventory(AmmoType2));
-	}
-	else
+	if(allowDispense)
 	{
 		Ammo1 = AddAmmo(Owner, AmmoType1, AmmoGive1);
 		Ammo2 = AddAmmo(Owner, AmmoType2, AmmoGive2);
+	}
+	else
+	{
+		Ammo1 = static_cast<AAmmo *>(other->FindInventory(AmmoType1));
+		Ammo2 = static_cast<AAmmo *>(other->FindInventory(AmmoType2));
 	}
 
 	SisterWeapon = AddWeapon (SisterWeaponType);
