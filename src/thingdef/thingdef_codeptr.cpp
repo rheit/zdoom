@@ -5032,18 +5032,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpeed)
 	self->Speed = speed;
 }
 
-static bool DoCheckSpecies(AActor *mo, FName species, bool exclude)
-{
-	FName spec = mo->Species;
-	return (!(species) || !(stricmp(species, "")) || (species && ((exclude) ? (spec != species) : (spec == species))));
-}
-
-static bool DoCheckFilter(AActor *mo, const PClass *filter, bool exclude)
-{
-	const PClass *c1 = mo->GetClass();
-	return (!(filter) || (filter == NULL) || (filter && ((exclude) ? (c1 != filter) : (c1 == filter))));
-}
-
 //===========================================================================
 //
 // Common A_Damage handler
@@ -5059,7 +5047,6 @@ static bool DoCheckFilter(AActor *mo, const PClass *filter, bool exclude)
 //	with a species "DemonicSpecies" will be affected. Use 0 to not filter by actor.
 //
 //===========================================================================
-
 enum DMSS
 {
 	DMSS_FOILINVUL			= 1,	//Foil invulnerability
@@ -5073,10 +5060,23 @@ enum DMSS
 	DMSS_EITHER				= 256,  //Allow either type or species to be affected.
 };
 
-static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags, const PClass *filter, FName species)
+static bool DoCheckSpecies(AActor *mo, FName species, bool exclude)
 {
-	bool filterpass = DoCheckFilter(dmgtarget, filter, (flags & DMSS_EXFILTER) ? true : false),
-		speciespass = DoCheckSpecies(dmgtarget, species, (flags & DMSS_EXSPECIES) ? true : false);
+	FName spec = mo->Species;
+	return (!(species) || !(stricmp(species, "")) || (species && ((exclude) ? (spec != species) : (spec == species))));
+}
+
+static bool DoCheckFilter(AActor *mo, FName filter, bool exclude)
+{
+	const PClass *c1 = PClass::FindClass(filter);
+	const PClass *c2 = mo->GetClass();
+	return (!(filter) || !(c1) || !(stricmp(filter, "")) || (filter && ((exclude) ? (c1 != c2) : (c1 == c2))));
+}
+
+static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags, FName filter, FName species)
+{
+	bool filterpass = DoCheckFilter(dmgtarget, filter, (flags & DMSS_EXFILTER) ? true : false);
+	bool speciespass = DoCheckSpecies(dmgtarget, species, (flags & DMSS_EXSPECIES) ? true : false);
 	if ((flags & DMSS_EITHER) ? (filterpass || speciespass) : (filterpass && speciespass))
 	{
 		int dmgFlags = 0;
@@ -5115,7 +5115,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
 
 		DoDamage(self, self, amount, DamageType, flags, filter, species);
@@ -5132,7 +5132,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
 
 	if (self->target != NULL)
@@ -5152,7 +5152,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
 
 	if (self->tracer != NULL)
@@ -5172,7 +5172,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
 
 	if (self->master != NULL)
@@ -5192,7 +5192,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
 
 	TThinkerIterator<AActor> it;
@@ -5218,7 +5218,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
 
 	TThinkerIterator<AActor> it;
@@ -5253,10 +5253,10 @@ enum KILS
 	KILS_EITHER			= 1 << 6,
 };
 
-static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags, const PClass *filter, FName species)
+static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags, FName filter, FName species)
 {
-	bool filterpass = DoCheckFilter(killtarget, filter, (flags & KILS_EXFILTER) ? true : false),
-		speciespass = DoCheckSpecies(killtarget, species, (flags & KILS_EXSPECIES) ? true : false);
+	bool filterpass = DoCheckFilter(killtarget, filter, (flags & KILS_EXFILTER) ? true : false);
+	bool speciespass = DoCheckSpecies(killtarget, species, (flags & KILS_EXSPECIES) ? true : false);
 	if ((flags & KILS_EITHER) ? (filterpass || speciespass) : (filterpass && speciespass)) //Check this first. I think it'll save the engine a lot more time this way.
 	{
 		int dmgFlags = DMG_NO_ARMOR + DMG_NO_FACTOR;
@@ -5296,7 +5296,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	if (self->target != NULL)
@@ -5315,7 +5315,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	if (self->tracer != NULL)
@@ -5334,7 +5334,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	if (self->master != NULL)
@@ -5353,7 +5353,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	TThinkerIterator<AActor> it;
@@ -5378,7 +5378,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	TThinkerIterator<AActor> it;
@@ -5413,10 +5413,10 @@ enum RMVF_flags
 	RMVF_EITHER			= 1 << 6,
 };
 
-static void DoRemove(AActor *removetarget, int flags, const PClass *filter, FName species)
+static void DoRemove(AActor *removetarget, int flags, FName filter, FName species)
 {
-	bool filterpass = DoCheckFilter(removetarget, filter, (flags & RMVF_EXFILTER) ? true : false),
-		speciespass = DoCheckSpecies(removetarget, species, (flags & RMVF_EXSPECIES) ? true : false);
+	bool filterpass = DoCheckFilter(removetarget, filter, (flags & RMVF_EXFILTER) ? true : false);
+	bool speciespass = DoCheckSpecies(removetarget, species, (flags & RMVF_EXSPECIES) ? true : false);
 	if ((flags & RMVF_EITHER) ? (filterpass || speciespass) : (filterpass && speciespass))
 	{
 		if ((flags & RMVF_EVERYTHING))
@@ -5447,7 +5447,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveTarget)
 {
 	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(flags, 0);
-	ACTION_PARAM_CLASS(filter, 1);
+	ACTION_PARAM_NAME(filter, 1);
 	ACTION_PARAM_NAME(species, 2);
 	
 	if (self->target != NULL)
@@ -5465,7 +5465,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveTracer)
 {
 	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(flags, 0);
-	ACTION_PARAM_CLASS(filter, 1);
+	ACTION_PARAM_NAME(filter, 1);
 	ACTION_PARAM_NAME(species, 2);
 	
 	if (self->tracer != NULL)
@@ -5483,7 +5483,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveMaster)
 {
 	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(flags, 0);
-	ACTION_PARAM_CLASS(filter, 1);
+	ACTION_PARAM_NAME(filter, 1);
 	ACTION_PARAM_NAME(species, 2);
 	
 	if (self->master != NULL)
@@ -5504,7 +5504,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveChildren)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_BOOL(removeall, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 	
 
@@ -5529,7 +5529,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveSiblings)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_BOOL(removeall, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	if (self->master != NULL)
@@ -5554,7 +5554,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Remove)
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_INT(removee, 0);
 	ACTION_PARAM_INT(flags, 1);
-	ACTION_PARAM_CLASS(filter, 2);
+	ACTION_PARAM_NAME(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
 	AActor *reference = COPY_AAPTR(self, removee);
