@@ -5070,7 +5070,7 @@ static bool DoCheckFilter(AActor *mo, FName filter, bool exclude)
 {
 	const PClass *c1 = PClass::FindClass(filter);
 	const PClass *c2 = mo->GetClass();
-	return (!(filter) || !(c1) || !(stricmp(filter, "")) || (filter && ((exclude) ? (c1 != c2) : (c1 == c2))));
+	return (!(filter) || !(c1) || !(stricmp(filter, "")) || (c1 && ((exclude) ? (c1 != c2) : (c1 == c2))));
 }
 
 static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags, FName filter, FName species)
