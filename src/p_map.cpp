@@ -1222,7 +1222,7 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 			return true;
 		}
 
-		if ((tm.DoRipping && !(thing->flags5 & MF5_DONTRIP)) && CheckRipLevel(thing, tm.thing))
+		if ((tm.DoRipping && !(thing->flags5 & MF5_DONTRIP)) && ((tm.thing->RipFlags & RIP_IgnoreLevels) || (CheckRipLevel(thing, tm.thing))))
 		{
 			if (!(tm.thing->flags6 & MF6_NOBOSSRIP) || !(thing->flags2 & MF2_BOSS))
 			{
