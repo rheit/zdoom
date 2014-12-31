@@ -28,9 +28,9 @@ ACTOR Actor native //: Thinker
 	DeathType Normal
 	TeleFogSourceType "TeleportFog"
 	TeleFogDestType "TeleportFog"
-	RipperLevel 0
-	RipLevelMin 0
-	RipLevelMax 0
+	RipperLevel 5
+	RipLevelMin 5
+	RipLevelMax 5
 
 	// Variables for the expression evaluator
 	// NOTE: fixed_t and angle_t are only used here to ensure proper conversion
