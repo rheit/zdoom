@@ -5614,6 +5614,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
 	}
 }
 
+enum RLF_flags
+{
+	RLF_NOCHANGE		= 1 << 0,
+	RLF_IGNORELEVELS	= 1 << 1,
+};
+
 //===========================================================================
 //
 // A_SetRipperLevel(int level)
@@ -5623,9 +5629,19 @@ DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(level, 0);
-	self->RipperLevel = level;
+	ACTION_PARAM_INT(flags, 1);
+
+	if (!(flags & RLF_NOCHANGE))
+		self->RipperLevel = level;
+	if ((flags & RLF_IGNORELEVELS))
+	{
+		if (!(self->RipFlags & RIP_IgnoreLevels))
+			self->RipFlags |= RIP_IgnoreLevels;
+	}
+	else
+		self->RipFlags &= ~RIP_IgnoreLevels;
 }
 
 //===========================================================================

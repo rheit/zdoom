@@ -1442,11 +1442,17 @@ DEFINE_PROPERTY(telefogdesttype, S, Actor)
 DEFINE_PROPERTY(ripperlevel, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	if (id < 0)
+	if (id < 0 && gameinfo.RipperLevel < 0)
 	{
-		I_Error ("RipperLevel must not be negative");
+		I_Error("RipperLevel must not be negative");
 	}
-	defaults->RipperLevel = id;
+	else
+	{
+		if (id <= 0)
+			defaults->RipperLevel = gameinfo.RipperLevel;
+		else
+			defaults->RipperLevel = id;
+	}
 }
 
 //==========================================================================
@@ -1455,11 +1461,17 @@ DEFINE_PROPERTY(ripperlevel, I, Actor)
 DEFINE_PROPERTY(riplevelmin, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	if (id < 0)
+	if (id < 0 && gameinfo.RipLevelMin < 0)
 	{
-		I_Error ("RipLevelMin must not be negative");
+		I_Error("RipLevelMin must not be negative");
 	}
-	defaults->RipLevelMin = id;
+	else
+	{
+		if (id <= 0)
+			defaults->RipLevelMin = gameinfo.RipLevelMin;
+		else
+			defaults->RipLevelMin = id;
+	}
 }
 
 //==========================================================================
@@ -1468,11 +1480,34 @@ DEFINE_PROPERTY(riplevelmin, I, Actor)
 DEFINE_PROPERTY(riplevelmax, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	if (id < 0)
+	if (id < 0 && gameinfo.RipLevelMax < 0)
 	{
-		I_Error ("RipLevelMax must not be negative");
+		I_Error("RipLevelMax must not be negative");
 	}
-	defaults->RipLevelMax = id;
+	else
+	{
+		if (id <= 0)
+			defaults->RipLevelMax = gameinfo.RipLevelMax;
+		else
+			defaults->RipLevelMax = id;
+	}
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(ripflags, S, Actor)
+{
+	static const char *names[] = { "None", "IgnoreLevels", NULL };
+	static const int flags[] = { RIP_None, RIP_IgnoreLevels, };
+	PROP_STRING_PARM(id, 0);
+	int match = MatchString(id, names);
+	if (match < 0)
+	{
+		I_Error("Unknown ripflag %s", id);
+		match = 0;
+	}
+	defaults->RipFlags |= flags[match];
 }
 
 //==========================================================================

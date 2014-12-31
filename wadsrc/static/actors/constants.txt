@@ -445,6 +445,12 @@ enum
 	FTF_CLAMP =		1 << 1,
 };
 
+// Flags for A_SetRipperLevel
+enum
+{
+	RLF_NOCHANGE		= 1 << 0,
+	RLF_IGNORELEVELS	= 1 << 1,
+};
 
 // This is only here to provide one global variable for testing.
 native int testglobalvar;

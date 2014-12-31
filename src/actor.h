@@ -491,6 +491,12 @@ enum EThingSpecialActivationType
 	THINGSPEC_Switch			= 1<<10,	// The thing is alternatively activated and deactivated when triggered
 };
 
+enum ERipperFlags
+{
+	RIP_None			= 0,	// Default behavior, respect ripping levels.
+	RIP_IgnoreLevels	= 1,	// Ignores ripping levels, so the only thing that stops these rippers is DONTRIP or NOBOSSRIP.
+};
+
 // [RH] Like msecnode_t, but for the blockmap
 struct FBlockNode
 {
@@ -988,6 +994,7 @@ public:
 	int RipperLevel;
 	int RipLevelMin;
 	int RipLevelMax;
+	int RipFlags;
 
 	FState *SpawnState;
 	FState *SeeState;

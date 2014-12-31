@@ -554,6 +554,18 @@ static int ParseThingActivation (FScanner &sc)
 	return ParseFlagExpressionString(sc, activationstyles);
 }
 
+static int ParseRipFlags(FScanner &sc)
+{
+	static const FParseValue ripflags[] = {
+
+		{ "RIP_None", RIP_None },
+		{ "RIP_IgnoreLevels", RIP_IgnoreLevels },
+		{ NULL, 0 }
+	};
+
+	return ParseFlagExpressionString(sc, ripflags);
+}
+
 //==========================================================================
 //
 // For getting a state address from the parent
