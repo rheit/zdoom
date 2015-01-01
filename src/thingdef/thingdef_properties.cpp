@@ -1437,42 +1437,38 @@ DEFINE_PROPERTY(telefogdesttype, S, Actor)
 }
 
 //==========================================================================
-//
+
 //==========================================================================
-DEFINE_PROPERTY(ripperlevel, I, Actor)
+DEFINE_PROPERTY(riptype, S, Actor)
 {
-	PROP_INT_PARM(id, 0);
-	if (id < 0)
-	{
-		I_Error ("RipperLevel must not be negative");
-	}
-	defaults->RipperLevel = id;
+	PROP_STRING_PARM(str, 0);
+	if (!stricmp(str, "Normal")) defaults->RipType = NAME_None;
+	else defaults->RipType = str;
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(riplevelmin, I, Actor)
+DEFINE_PROPERTY(ripperlevel, ZI, Actor)
 {
-	PROP_INT_PARM(id, 0);
+	PROP_STRING_PARM(str, 0);
+	PROP_INT_PARM(id, 1);
 	if (id < 0)
 	{
-		I_Error ("RipLevelMin must not be negative");
+		I_Error("RipperLevel must not be negative");
 	}
-	defaults->RipLevelMin = id;
-}
+	else if (str == NULL)
+	{
+		defaults->RipperLevel = id;
+	}
+	else
+	{
+		FName ripType;
+		if (!stricmp(str, "Normal")) ripType = NAME_None;
+		else ripType = str;
 
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(riplevelmax, I, Actor)
-{
-	PROP_INT_PARM(id, 0);
-	if (id < 0)
-	{
-		I_Error ("RipLevelMax must not be negative");
+		defaults->SetRipLevel(ripType, id);
 	}
-	defaults->RipLevelMax = id;
 }
 
 //==========================================================================

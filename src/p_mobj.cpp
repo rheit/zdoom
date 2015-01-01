@@ -340,9 +340,11 @@ void AActor::Serialize (FArchive &arc)
 	}
 	if (SaveVersion >= 4518)
 	{
-		arc << RipperLevel
-			<< RipLevelMin
-			<< RipLevelMax;
+		arc << RipperLevel;
+	}
+	if (SaveVersion >= 4519)
+	{
+		arc << RipType;
 	}
 
 	{
@@ -3696,6 +3698,20 @@ void AActor::Tick ()
 			return;
 
 		P_NightmareRespawn (this);
+	}
+}
+
+void AActor::SetRipLevel(FName type, int riplevel)
+{
+	if (riplevel >= 0)
+	{
+		if (RipLevels == NULL) RipLevels = new RipLevelList;
+			RipLevels->Insert(type, riplevel);
+	}
+	else
+	{
+		if (RipLevels != NULL)
+			RipLevels->Remove(type);
 	}
 }
 

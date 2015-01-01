@@ -5616,42 +5616,40 @@ DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
 
 //===========================================================================
 //
-// A_SetRipperLevel(int level)
+// A_SetRipperLevel(int level, str id)
 //
 // Sets the ripper level/requirement of the calling actor.
 // Also sets the minimum and maximum levels to rip through.
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(level, 0);
-	self->RipperLevel = level;
-}
+	ACTION_PARAM_NAME(id, 1);
+	ACTION_PARAM_BOOL(notype, 2);
 
-//===========================================================================
-//
-// A_SetRipMin(int min)
-//
-// Sets the ripper level/requirement of the calling actor.
-// Also sets the minimum and maximum levels to rip through.
-//===========================================================================
-DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
-{
-	ACTION_PARAM_START(1);
-	ACTION_PARAM_INT(min, 1);
-	self->RipLevelMin = min; 
-}
+	if (id == NAME_None || !stricmp(id, "none") || !stricmp(id, "null"))
+	{
 
-//===========================================================================
-//
-// A_SetRipMin(int min)
-//
-// Sets the ripper level/requirement of the calling actor.
-// Also sets the minimum and maximum levels to rip through.
-//===========================================================================
-DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
-{
-	ACTION_PARAM_START(1);
-	ACTION_PARAM_INT(max, 1);
-	self->RipLevelMax = max;
+		//Monsters and projectiles will use the same global ripper level
+		//when no type is specified. If notype is true, reset the
+		//type to none. Otherwise, don't modify it.
+		self->RipperLevel = level;
+		if (notype)
+			self->RipType = NAME_None;
+	}
+	else
+	{
+		if (self->flags & MF_SHOOTABLE)
+		{
+			//Don't bother setting this for non-shootable entities.
+			self->SetRipLevel(id, level);	
+		}
+		else
+		{
+			//All others will have their levels adjusted and their rip types set.
+			self->RipperLevel = level;
+			self->RipType = id;
+		}
+	}
 }

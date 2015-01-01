@@ -575,7 +575,7 @@ extern FDropItemPtrArray DropItemList;
 void FreeDropItemChain(FDropItem *chain);
 int StoreDropItemChain(FDropItem *chain);
 
-
+typedef TMap<FName, int> RipLevelList;
 
 // Map Object definition.
 class AActor : public DThinker
@@ -827,6 +827,9 @@ public:
 	// Triggers SECSPAC_Exit/SECSPAC_Enter and related events if oldsec != current sector
 	void CheckSectorTransition(sector_t *oldsec);
 
+
+	void SetRipLevel(FName type, int riplevel);
+
 // info for drawing
 // NOTE: The first member variable *must* be x.
 	fixed_t	 		x,y,z;
@@ -980,14 +983,13 @@ public:
 	FNameNoInit DamageTypeReceived;
 	fixed_t DamageFactor;
 	fixed_t DamageMultiply;
-
+	RipLevelList *RipLevels;
+	FNameNoInit RipType;
 	FNameNoInit PainType;
 	FNameNoInit DeathType;
 	const PClass *TeleFogSourceType;
 	const PClass *TeleFogDestType;
 	int RipperLevel;
-	int RipLevelMin;
-	int RipLevelMax;
 
 	FState *SpawnState;
 	FState *SeeState;
