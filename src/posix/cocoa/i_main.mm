@@ -214,9 +214,6 @@ int OriginalMain(int argc, char** argv)
 		progdir = [[exePath stringByDeletingLastPathComponent] UTF8String];
 		progdir += "/";
 
-		I_StartupJoysticks();
-		atterm(I_ShutdownJoysticks);
-
 		C_InitConsole(80 * 8, 25 * 8, false);
 		D_DoomMain();
 	}

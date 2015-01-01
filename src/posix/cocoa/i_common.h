@@ -47,8 +47,6 @@ inline bool I_IsHiDPISupported()
 
 void I_ProcessEvent(NSEvent* event);
 
-void I_StartupJoysticks();
-void I_ShutdownJoysticks();
 void I_ProcessJoysticks();
 
 NSSize I_GetContentViewSize(const NSWindow* window);
