@@ -1442,7 +1442,7 @@ DEFINE_PROPERTY(telefogdesttype, S, Actor)
 DEFINE_PROPERTY(riptype, S, Actor)
 {
 	PROP_STRING_PARM(str, 0);
-	if (!stricmp(str, "Normal")) defaults->RipType = NAME_None;
+	if (!str || !stricmp(str, "none") || !stricmp(str, "null")) defaults->RipType = NAME_None;
 	else defaults->RipType = str;
 }
 
@@ -1464,7 +1464,7 @@ DEFINE_PROPERTY(ripperlevel, ZI, Actor)
 	else
 	{
 		FName ripType;
-		if (!stricmp(str, "Normal")) ripType = NAME_None;
+		if (!str || !stricmp(str, "none") || !stricmp(str, "null")) ripType = NAME_None;
 		else ripType = str;
 
 		defaults->SetRipLevel(ripType, id);
