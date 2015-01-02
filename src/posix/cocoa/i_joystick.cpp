@@ -42,6 +42,7 @@
 #include "d_event.h"
 #include "doomdef.h"
 #include "templates.h"
+#include "i_system.h"
 #include "i_osversion.h"
 
 
@@ -737,27 +738,6 @@ IOKitJoystickManager* s_joystickManager;
 // ---------------------------------------------------------------------------
 	
 
-void I_StartupJoysticks()
-{
-	if (NULL != s_joystickManager)
-	{
-		return;
-	}
-
-	// HID Manager API is available on 10.5 (Darwin 9.x) or newer
-
-	if (darwinVersion.major >= 9)
-	{
-		s_joystickManager = new IOKitJoystickManager;
-	}
-}
-
-void I_ShutdownJoysticks()
-{
-	delete s_joystickManager;
-	s_joystickManager = NULL;
-}
-
 void I_GetJoysticks( TArray< IJoystickConfig* >& sticks )
 {
 	if ( NULL != s_joystickManager )
@@ -793,23 +773,42 @@ IJoystickConfig* I_UpdateDeviceList()
 // ---------------------------------------------------------------------------
 
 
+static void ShutdownJoysticks()
+{
+	delete s_joystickManager;
+	s_joystickManager = NULL;
+}
+
 void I_ProcessJoysticks()
 {
-	if ( use_joystick && NULL != s_joystickManager )
+	if (!use_joystick)
 	{
-		s_joystickManager->Update();
+		return;
 	}
+
+	// HID Manager API is available on 10.5 (Darwin 9.x) or newer
+
+	if (darwinVersion.major < 9)
+	{
+		return;
+	}
+
+	// Instances of IOKitJoystick depend on GameConfig object.
+	// M_SaveDefaultsFinal() must be called after destruction of IOKitJoystickManager.
+	// To ensure this, its initialization is moved here.
+	// As M_LoadDefaults() was already called at this moment,
+	// the order of atterm's functions will be correct
+
+	if (NULL == s_joystickManager)
+	{
+		s_joystickManager = new IOKitJoystickManager;
+		atterm(ShutdownJoysticks);
+	}
+
+	s_joystickManager->Update();
 }
 
 #else // prior to 10.5
-
-void I_StartupJoysticks()
-{
-}
-
-void I_ShutdownJoysticks()
-{
-}
 
 void I_GetJoysticks(TArray<IJoystickConfig*>& sticks)
 {
@@ -834,3 +833,10 @@ void I_ProcessJoysticks()
 }
 
 #endif // 10.5 or higher
+
+
+void I_ShutdownJoysticks()
+{
+	// Needed in order to support existing interface
+	// Left empty intentionally
+}
