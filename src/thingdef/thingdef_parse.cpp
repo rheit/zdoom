@@ -1229,6 +1229,47 @@ static void ParseDamageDefinition(FScanner &sc)
 
 //==========================================================================
 //
+// Reads a ripper list definition
+//
+//==========================================================================
+
+static void ParseRipperDefinition(FScanner &sc)
+{
+	sc.SetCMode(true); // This may be 100% irrelevant for such a simple syntax, but I don't know
+
+	// Get RipperLevel
+
+	sc.MustGetString();
+	FName ripperType = sc.String;
+
+	RipperLevelDefinition rld;
+
+	sc.MustGetToken('{');
+	while (sc.MustGetAnyToken(), sc.TokenType != '}')
+	{
+		if (sc.Compare("LEVEL"))
+		{
+			sc.MustGetNumber();
+			rld.DefaultLevel = sc.Number;
+			if (!rld.DefaultLevel) rld.ReplaceLevel = true;
+		}
+		else if (sc.Compare("REPLACELEVEL"))
+		{
+			rld.ReplaceLevel = true;
+		}
+		else
+		{
+			sc.ScriptError("Unexpected data (%s) in ripper level definition.", sc.String);
+		}
+	}
+
+	rld.Apply(ripperType);
+
+	sc.SetCMode(false); // (set to true earlier in function)
+}
+
+//==========================================================================
+//
 // ParseDecorate
 //
 // Parses a single DECORATE lump
@@ -1312,6 +1353,11 @@ void ParseDecorate (FScanner &sc)
 			else if (sc.Compare("DAMAGETYPE"))
 			{
 				ParseDamageDefinition(sc);
+				break;
+			}
+			else if (sc.Compare("MONRIPPERLEVEL"))
+			{
+				ParseRipperDefinition(sc);
 				break;
 			}
 		default:

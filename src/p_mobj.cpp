@@ -3701,6 +3701,14 @@ void AActor::Tick ()
 	}
 }
 
+//==========================================================================
+//
+// AActor :: SetRipLevel
+//
+// Used to insert and remove ripping level types in-game.
+//
+//==========================================================================
+
 void AActor::SetRipLevel(FName type, int riplevel)
 {
 	if (riplevel >= 0)
@@ -3713,6 +3721,61 @@ void AActor::SetRipLevel(FName type, int riplevel)
 		if (RipLevels != NULL)
 			RipLevels->Remove(type);
 	}
+}
+
+TMap<FName, RipperLevelDefinition> GlobalRipperLevels;
+
+void RipperLevelDefinition::Apply(FName const type)
+{
+	GlobalRipperLevels[type] = *this;
+}
+
+RipperLevelDefinition *RipperLevelDefinition::Get(FName const type)
+{
+	return GlobalRipperLevels.CheckKey(type);
+}
+
+int RipperLevelDefinition::ApplyMobjRipperLevel(int level, FName const type, RipLevelList * factors)
+{
+	if (factors)
+	{
+		// If the actor has named ripper type, look for a specific factor
+		int *pdf = factors->CheckKey(type);
+		if (pdf) return *pdf; // type specific ripper
+
+		// If this was nonspecific ripper type, don't fall back to nonspecific search
+		if (type == NAME_None) return level;
+	}
+
+	// If this was nonspecific ripper type, don't fall back to nonspecific search
+	else if (type == NAME_None)
+	{
+		return level;
+	}
+	else
+	{
+		// Normal is unsupplied / 1, so there's no difference between modifying and overriding
+		RipperLevelDefinition *rld = Get(type);
+		return rld ? rld->DefaultLevel : level;
+	}
+
+	{
+		int *pdf = factors->CheckKey(NAME_None);
+		RipperLevelDefinition *rld = Get(type);
+		// Here we are looking for modifications to untyped rippers
+		// If the calling actor defines untyped ripper levels, that is contained in "pdf".
+		if (pdf) // normal levels available
+		{
+			if (rld && rld->ReplaceLevel)
+				return rld->DefaultLevel; // use default instead of untyped factor
+			return level; // there was no default, so actor default is used
+		}
+		else if (rld)
+		{
+			return rld->DefaultLevel; // implicit untyped factor 1.0 does not need to be applied/replaced explicitly
+		}
+	}
+	return level;
 }
 
 //==========================================================================

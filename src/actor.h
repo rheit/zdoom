@@ -1121,6 +1121,25 @@ public:
 	}
 };
 
+struct RipperLevelDefinition
+{
+public:
+	RipperLevelDefinition() { Clear(); }
+
+	int DefaultLevel;
+	bool ReplaceLevel;
+
+	void Apply(FName const type);
+	void Clear()
+	{
+		DefaultLevel = 0;
+		ReplaceLevel = false;
+	}
+
+	static RipperLevelDefinition *Get(FName const type);
+	static int ApplyMobjRipperLevel(int level, FName const type, RipLevelList * factors);
+};
+
 bool P_IsTIDUsed(int tid);
 int P_FindUniqueTID(int start_tid, int limit);
 

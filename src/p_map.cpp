@@ -896,8 +896,10 @@ bool PIT_CheckLine(line_t *ld, const FBoundingBox &box, FCheckPosition &tm)
 
 static bool CheckRipLevel(AActor *victim, AActor *projectile)
 {
+	
 	RipLevelList *v = victim->RipLevels;
 	int rip = victim->RipperLevel;
+	FName temp = projectile->RipType;
 	if (v != NULL)
 	{
 		int *vrt = v->CheckKey((projectile->RipType));
@@ -905,7 +907,8 @@ static bool CheckRipLevel(AActor *victim, AActor *projectile)
 			rip = *vrt;
 	}
 
-	if (rip > 0 && projectile->RipperLevel < rip) return false;
+	int proj = RipperLevelDefinition::ApplyMobjRipperLevel(rip, temp, v);
+	if (proj > 0 && projectile->RipperLevel < proj) return false;
 	return true;
 }
 
