@@ -3711,15 +3711,14 @@ void AActor::Tick ()
 
 void AActor::SetRipLevel(FName type, int riplevel)
 {
-	if (riplevel >= 0)
+	if (RipLevels == GetDefault()->RipLevels)
 	{
-		if (RipLevels == NULL) RipLevels = new RipLevelList;
-			RipLevels->Insert(type, riplevel);
-	}
-	else
-	{
-		if (RipLevels != NULL)
-			RipLevels->Remove(type);
+		// copy list from default
+		RipLevels = new RipLevelList;
+		*RipLevels = *GetDefault()->RipLevels;
+
+		// modify custom list
+		RipLevels->Insert(type, riplevel);
 	}
 }
 
@@ -4297,6 +4296,11 @@ void AActor::Deactivate (AActor *activator)
 
 void AActor::Destroy ()
 {
+	if (RipLevels && RipLevels != GetDefault()->RipLevels)
+	{
+		delete RipLevels;
+		RipLevels = NULL;
+	}
 	// [RH] Destroy any inventory this actor is carrying
 	DestroyAllInventory ();
 
