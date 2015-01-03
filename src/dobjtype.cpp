@@ -139,6 +139,11 @@ void PClass::StaticFreeData (PClass *type)
 {
 	if (type->Defaults != NULL)
 	{
+		if (((AActor*)(type->Defaults))->RipLevels)
+		{
+			delete ((AActor*)(type->Defaults))->RipLevels;
+			((AActor*)(type->Defaults))->RipLevels = NULL;
+		}
 		M_Free(type->Defaults);
 		type->Defaults = NULL;
 	}
