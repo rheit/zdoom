@@ -5679,15 +5679,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
 enum SHF_flags
 {
 	SHF_ADDITIVE =		1 << 0, // Adds (or subtracts) their health to/from the number specified.
-	SHF_SELF =			1 << 1, // Affect self if the pointer is not set to self as well.
+	SHF_FORCED =		1 << 1, // Bypass NODAMAGE.
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
 {
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_INT(health, 0);
-	ACTION_PARAM_INT(ptr, 1);
-	ACTION_PARAM_INT(flags, 2);
-	ACTION_PARAM_NAME(damagetype, 3);
+	ACTION_PARAM_INT(flags, 1);
+	ACTION_PARAM_NAME(damagetype, 2);
+	ACTION_PARAM_INT(ptr, 3);
 
 	AActor *mo = COPY_AAPTR(self, ptr);
 	int newhealth = health + ((flags & SHF_ADDITIVE) ? mo->health : 0);
@@ -5698,22 +5698,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
 		{
 			if (mo->flags & MF_MISSILE)
 			{
-				if ((flags & SHF_SELF) && (mo != self) && (self->flags & MF_MISSILE))	
-					P_ExplodeMissile(self, NULL, NULL);
-				P_ExplodeMissile(mo, NULL, NULL);
+				if ((!(mo->flags5 & MF5_NODAMAGE) || (flags & SHF_FORCED)))
+					P_ExplodeMissile(mo, NULL, NULL);
 			}
 			else
 			{
-				if ((flags & SHF_SELF) && (mo != self))
-					P_DamageMobj(self, self, self, newhealth, damagetype, DMG_FORCED);
-				P_DamageMobj(mo, self, self, newhealth, damagetype, DMG_FORCED);
+				if (!(mo->flags5 & MF5_NODAMAGE) || (flags & SHF_FORCED))
+				{
+					mo->flags |= MF_SHOOTABLE;
+					P_DamageMobj(mo, self, self, newhealth, damagetype, DMG_FORCED);
+				}
 			}
 		}
 		else
 		{
 			mo->health = newhealth;
-			if ((flags & SHF_SELF) && (mo != self))
-				self->health = newhealth;
 		}
 	}
 }
