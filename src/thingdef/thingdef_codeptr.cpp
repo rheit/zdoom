@@ -5656,7 +5656,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
 //
 // A_SetFloatBobPhase
 //
-// Changes the FloatBobPhase of the 
+// Changes the FloatBobPhase of the actor.
 //===========================================================================
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
@@ -5667,6 +5667,54 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
 	//Respect float bob phase limits.
 	if (self && (bob >= 0 && bob <= 63))
 		self->FloatBobPhase = bob;
+}
+
+//===========================================================================
+// A_SetHealth
+//
+// Changes the health of the actor.
+// Takes a pointer and a couple flags.
+// Damagetype is only taken into account if health is set to 0 for monsters.
+//===========================================================================
+enum SHF_flags
+{
+	SHF_ADDITIVE =		1 << 0, // Adds (or subtracts) their health to/from the number specified.
+	SHF_FORCED =		1 << 1, // Bypass NODAMAGE.
+};
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
+{
+	ACTION_PARAM_START(4);
+	ACTION_PARAM_INT(health, 0);
+	ACTION_PARAM_INT(flags, 1);
+	ACTION_PARAM_NAME(damagetype, 2);
+	ACTION_PARAM_INT(ptr, 3);
+
+	AActor *mo = COPY_AAPTR(self, ptr);
+	int newhealth = health + ((flags & SHF_ADDITIVE) ? mo->health : 0);
+
+	if (mo)
+	{
+		if (newhealth <= 0)
+		{
+			if (mo->flags & MF_MISSILE)
+			{
+				if ((!(mo->flags5 & MF5_NODAMAGE) || (flags & SHF_FORCED)))
+					P_ExplodeMissile(mo, NULL, NULL);
+			}
+			else
+			{
+				if (!(mo->flags5 & MF5_NODAMAGE) || (flags & SHF_FORCED))
+				{
+					mo->flags |= MF_SHOOTABLE;
+					P_DamageMobj(mo, self, self, newhealth, damagetype, DMG_FORCED);
+				}
+			}
+		}
+		else
+		{
+			mo->health = newhealth;
+		}
+	}
 }
 
 //===========================================================================
