@@ -1263,9 +1263,11 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 			{ // player is invulnerable, so don't hurt him
 				//Make sure no godmodes and NOPAIN flags are found first.
 				//Then, check to see if the player has NODAMAGE or ALLOWPAIN, or inflictor has CAUSEPAIN.
-				if ((player->cheats & CF_GODMODE) || (player->cheats & CF_GODMODE2) || (player->mo->flags5 & MF5_NOPAIN))
+				if ((player->cheats & CF_GODMODE) || (player->cheats & CF_GODMODE2) || (player->mo->flags5 & MF5_NOPAIN) ||
+					(((player->mo->flags2 & MF2_INVULNERABLE) && !(player->mo->flags7 & MF7_ALLOWPAIN))))
 					return -1;
-				else if ((((player->mo->flags7 & MF7_ALLOWPAIN) || (player->mo->flags5 & MF5_NODAMAGE)) || ((inflictor != NULL) && (inflictor->flags7 & MF7_CAUSEPAIN))))
+				else if ((((player->mo->flags7 & MF7_ALLOWPAIN) || (player->mo->flags5 & MF5_NODAMAGE)) ||
+					((inflictor != NULL) && (inflictor->flags7 & MF7_CAUSEPAIN))))
 				{
 					invulpain = true;
 					fakeDamage = damage;
