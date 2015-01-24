@@ -5814,20 +5814,16 @@ enum CPRF_flags
 	CPRF_SPECIAL =			0x00000040,
 	CPRF_TID =				0x00000080,
 	CPRF_TIDTOHATE =		0x00000100,
-	CPRF_X =				0x00000200,
-	CPRF_Y =				0x00000400,
-	CPRF_Z =				0x00000800,
-	CPRF_VELX =				0x00001000,
-	CPRF_VELY =				0x00002000,
-	CPRF_VELZ =				0x00004000,
-	CPRF_SCALEX =			0x00008000,
-	CPRF_SCALEY =			0x00010000,
-	CPRF_SCORE =			0x00020000,
-	CPRF_ACCURACY =			0x00040000,
-	CPRF_STAMINA =			0x00080000,
-	CPRF_REACTIONTIME =		0x00100000,
-	CPRF_SPEED =			0x00200000,
-	CPRF_ROLL =				0x00400000,
+	CPRF_POSITION =			0x00000200,
+	CPRF_VELOCITY =			0x00000400,
+	CPRF_SCALEX =			0x00000800,
+	CPRF_SCALEY =			0x00001000,
+	CPRF_SCORE =			0x00002000,
+	CPRF_ACCURACY =			0x00004000,
+	CPRF_STAMINA =			0x00008000,
+	CPRF_REACTIONTIME =		0x00010000,
+	CPRF_SPEED =			0x00020000,
+	CPRF_ROLL =				0x00040000,
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopyProperties)
 {
@@ -5889,17 +5885,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopyProperties)
 
 	if (flags & CPRF_TIDTOHATE)		recip->TIDtoHate = source->TIDtoHate;
 
-	if (flags & CPRF_VELX)		recip->velx = source->velx;
-	if (flags & CPRF_VELY)		recip->vely = source->vely;
-	if (flags & CPRF_VELZ)		recip->velz = source->velz;
-
-	if (flags & (CPRF_X | CPRF_Y | CPRF_Z))
+	if (flags & CPRF_VELOCITY)
 	{
-		fixed_t x = (flags & CPRF_X) ? source->x : recip->x;
-		fixed_t y = (flags & CPRF_Y) ? source->y : recip->y;
-		fixed_t z = (flags & CPRF_Z) ? source->z : recip->z;
-		recip->SetOrigin(x, y, z);
+		recip->velx = source->velx;
+		recip->vely = source->vely;
+		recip->velz = source->velz;
 	}
+
+	if (flags & CPRF_POSITION)
+		recip->SetOrigin(source->x, source->y, source->z);
+	
 	if (flags & CPRF_SCALEX)		recip->scaleX = source->scaleX;
 	if (flags & CPRF_SCALEY)		recip->scaleY = source->scaleY;
 	if (flags & CPRF_SCORE)			recip->Score = source->Score;
