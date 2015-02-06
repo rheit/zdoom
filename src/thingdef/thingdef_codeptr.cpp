@@ -5806,12 +5806,126 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ResetHealth)
 	player_t *player = mobj->player;
 	if (player && (player->mo->health > 0))
 	{
-		player->health = player->mo->health = player->mo->GetDefault()->health; //Copied from the resurrect cheat.
+		player->health = player->mo->health = player->mo->GetMaxHealth(); //Copied from the resurrect cheat.
 	}
 	else if (mobj && (mobj->health > 0))
 	{
 		mobj->health = mobj->SpawnHealth();
 	}
+}
+//===========================================================================
+// A_CopyProperties
+//
+// Copies properties of an actor to another.
+//===========================================================================
+enum CPRF_flags
+{
+	CPRF_ALPHA =			0x00000001,
+	CPRF_ANGLE =			0x00000002,
+	CPRF_ARGS =				0x00000004,
+	CPRF_HEALTH =			0x00000008,
+	CPRF_MASS =				0x00000010,
+	CPRF_PITCH =			0x00000020,
+	CPRF_SPECIAL =			0x00000040,
+	CPRF_TID =				0x00000080,
+	CPRF_TIDTOHATE =		0x00000100,
+	CPRF_POSITION =			0x00000200,
+	CPRF_VELOCITY =			0x00000400,
+	CPRF_SCALEX =			0x00000800,
+	CPRF_SCALEY =			0x00001000,
+	CPRF_SCORE =			0x00002000,
+	CPRF_ACCURACY =			0x00004000,
+	CPRF_STAMINA =			0x00008000,
+	CPRF_REACTIONTIME =		0x00010000,
+	CPRF_SPEED =			0x00020000,
+	CPRF_ROLL =				0x00040000,
+};
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopyProperties)
+{
+	ACTION_PARAM_START(4);
+	
+	ACTION_PARAM_INT(src, 0);
+	ACTION_PARAM_INT(rec, 1);
+	ACTION_PARAM_INT(flags, 2);
+	ACTION_PARAM_STATE(success_state, 3);
+
+	AActor *source, *recip;
+
+	source = COPY_AAPTR(self, src);
+	recip = COPY_AAPTR(self, rec);
+
+	if (!source || !recip || source == recip || !flags)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	if (flags & CPRF_ALPHA)		recip->alpha = source->alpha;
+
+	if (flags & CPRF_ANGLE)		recip->angle = source->angle;
+
+	if (flags & CPRF_ARGS)
+	{
+		recip->args[0] = source->args[0];
+		recip->args[1] = source->args[1];
+		recip->args[2] = source->args[2];
+		recip->args[3] = source->args[3];
+		recip->args[4] = source->args[4];
+	}
+
+	if (flags & CPRF_HEALTH)
+	{
+		player_t *player = recip->player;
+		if (player && source->health > 0)
+		{
+			player->mo->health = recip->health = player->health = source->health; //Copied from the buddha cheat.
+		}
+		else if (source->health > 0)
+		{
+			recip->health = source->health;
+		}
+	}
+
+	if (flags & CPRF_MASS)		recip->Mass = source->Mass;
+
+	if (flags & CPRF_PITCH)		recip->pitch = source->pitch;
+
+	if (flags & CPRF_SPECIAL)		recip->special = source->special;
+
+	if ((flags & CPRF_TID) && source->tid != 0)
+	{
+		recip->tid = source->tid;
+		recip->AddToHash();
+	}
+
+	if (flags & CPRF_TIDTOHATE)		recip->TIDtoHate = source->TIDtoHate;
+
+	if (flags & CPRF_VELOCITY)
+	{
+		recip->velx = source->velx;
+		recip->vely = source->vely;
+		recip->velz = source->velz;
+	}
+
+	if (flags & CPRF_POSITION)
+		recip->SetOrigin(source->x, source->y, source->z);
+	
+	if (flags & CPRF_SCALEX)		recip->scaleX = source->scaleX;
+	if (flags & CPRF_SCALEY)		recip->scaleY = source->scaleY;
+	if (flags & CPRF_SCORE)			recip->Score = source->Score;
+	if (flags & CPRF_REACTIONTIME)	recip->reactiontime = source->reactiontime;
+	if (flags & CPRF_SPEED)			recip->Speed = source->Speed;
+	if (flags & CPRF_ROLL)			recip->roll = source->roll;
+
+	if (success_state)
+	{
+		ACTION_SET_RESULT(false);	// Jumps should never set the result for inventory state chains!
+		// in this case, you have the statejump to help you handle all the success anyway.
+		ACTION_JUMP(success_state);
+		return;
+	}
+
+	ACTION_SET_RESULT(true);
 }
 
 //===========================================================================
