@@ -577,7 +577,7 @@ CCMD (summonfoe)
 
 TMap<FName, DamageTypeDefinition> GlobalDamageDefinitions;
 
-void DamageTypeDefinition::Apply(FName type) 
+void DamageTypeDefinition::Apply(FName const &type) 
 { 
 	GlobalDamageDefinitions[type] = *this; 
 }
