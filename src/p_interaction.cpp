@@ -1261,7 +1261,7 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 				(player->cheats & CF_GODMODE2) || (player->mo->flags5 & MF5_NODAMAGE))
 				//Absolutely no hurting if NODAMAGE is involved. Same for GODMODE2.
 			{ // player is invulnerable, so don't hurt him
-				//Make sure no godmodes and NOPAIN flags are found first.
+				//Make sure now godmodes and NOPAIN flags are found first.
 				//Then, check to see if the player has NODAMAGE or ALLOWPAIN, or inflictor has CAUSEPAIN.
 				if ((player->cheats & CF_GODMODE) || (player->cheats & CF_GODMODE2) || (player->mo->flags5 & MF5_NOPAIN))
 					return -1;

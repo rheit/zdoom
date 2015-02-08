@@ -52,7 +52,7 @@ AActor *COPY_AAPTR(AActor *origin, int selector)
 		switch (selector & AAPTR_GENERAL_SELECTORS)
 		{
 		case AAPTR_TARGET: return origin->target;
-		case AAPTR_MASTER: return origin->master;
+		case AAPTR_MASTER: return GetMaster(origin);
 		case AAPTR_TRACER: return origin->tracer;
 		case AAPTR_FRIENDPLAYER:
 			return origin->FriendPlayer ? AAPTR_RESOLVE_PLAYERNUM(origin->FriendPlayer - 1) : NULL;
@@ -183,4 +183,15 @@ void ASSIGN_AAPTR(AActor *toActor, int toSlot, AActor *ptr, int flags)
 			toActor->tracer = ptr; 
 			break;
 	}
+}
+
+bool IsMaster(AActor *minion, AActor *candidate)
+{
+	// [ZzZombo] ACS APROP_MasterTID doesn't set master to players, instead setting FriendPlayer.
+	return candidate != NULL && GetMaster(minion) == candidate;
+}
+
+AActor *GetMaster(AActor *minion)
+{
+	return(minion->master ? minion->master : (minion->FriendPlayer>0 ? players[minion->FriendPlayer-1].mo : NULL));
 }

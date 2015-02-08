@@ -5193,6 +5193,8 @@ enum DMSS
 	DMSS_EXFILTER			= 64,	//Changes filter into a blacklisted class instead of whitelisted.
 	DMSS_EXSPECIES			= 128,	// ^ but with species instead.
 	DMSS_EITHER				= 256,  //Allow either type or species to be affected.
+	DMSS_PERCENT			= 512,  //takes/gives a percent of maximum health.
+	DMSS_CURPERCENT			= 1024  //same, but uses current health percentage, overrides.
 };
 
 static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags, const PClass *filter, FName species)
@@ -5214,6 +5216,15 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 			amount += dmgtarget->health;
 		if (flags & DMSS_NOPROTECT) //Ignore PowerProtection.
 			dmgFlags += DMG_NO_PROTECT;
+
+		if(flags & (DMSS_PERCENT|DMSS_CURPERCENT))
+		{
+			int maxhealth=self->player ? static_cast<APlayerPawn *>(self)->GetMaxHealth() : self->SpawnHealth();
+			if(flags & DMSS_CURPERCENT)
+				amount *= static_cast<int>(self->health / maxhealth) * 100;
+			else
+				amount *= static_cast<int>(maxhealth / 100.f);
+		}
 	
 		if (amount > 0)
 			P_DamageMobj(dmgtarget, self, self, amount, DamageType, dmgFlags); //Should wind up passing them through just fine.
@@ -5322,7 +5333,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 
 	while ( (mo = it.Next()) )
 	{
-		if (mo->master == self)
+		if (IsMaster(mo,self))
 		{
 			DoDamage(mo, self, amount, DamageType, flags, filter, species);
 		}
@@ -5344,13 +5355,13 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 	ACTION_PARAM_NAME(species, 4);
 
 	TThinkerIterator<AActor> it;
-	AActor * mo;
+	AActor *mo,*master=GetMaster(self);
 
-	if (self->master != NULL)
+	if (master != NULL)
 	{
-		while ((mo = it.Next()))
+		while (mo = it.Next())
 		{
-			if (mo->master == self->master && mo != self)
+			if (GetMaster(mo) == master && mo != self)
 			{
 				DoDamage(mo, self, amount, DamageType, flags, filter, species);
 			}
@@ -5459,9 +5470,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 	ACTION_PARAM_CLASS(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
 
-	if (self->master != NULL)
+	AActor *master=GetMaster(self);
+
+	if (master != NULL)
 	{
-		DoKill(self->master, self, damagetype, flags, filter, species);
+		DoKill(master, self, damagetype, flags, filter, species);
 	}
 }
 
@@ -5483,7 +5496,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 
 	while ( (mo = it.Next()) )
 	{
-		if (mo->master == self) 
+		if (GetMaster(mo) == self) 
 		{
 			DoKill(mo, self, damagetype, flags, filter, species);
 		}
@@ -5504,13 +5517,13 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 	ACTION_PARAM_NAME(species, 3);
 
 	TThinkerIterator<AActor> it;
-	AActor *mo;
+	AActor *mo,*master=GetMaster(self);
 
-	if (self->master != NULL)
+	if (master != NULL)
 	{
 		while ( (mo = it.Next()) )
 		{
-			if (mo->master == self->master && mo != self)
+			if (GetMaster(mo) == master && mo != self)
 			{ 
 				DoKill(mo, self, damagetype, flags, filter, species);
 			}
@@ -5537,6 +5550,8 @@ enum RMVF_flags
 
 static void DoRemove(AActor *removetarget, int flags, const PClass *filter, FName species)
 {
+	if(!removetarget)
+		return;
 	bool filterpass = DoCheckFilter(removetarget, filter, (flags & RMVF_EXFILTER) ? true : false),
 		speciespass = DoCheckSpecies(removetarget, species, (flags & RMVF_EXSPECIES) ? true : false);
 	if ((flags & RMVF_EITHER) ? (filterpass || speciespass) : (filterpass && speciespass))
@@ -5571,11 +5586,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveTarget)
 	ACTION_PARAM_INT(flags, 0);
 	ACTION_PARAM_CLASS(filter, 1);
 	ACTION_PARAM_NAME(species, 2);
-	
-	if (self->target != NULL)
-	{
-		DoRemove(self->target, flags, filter, species);
-	}
+
+	DoRemove(self->target, flags, filter, species);
 }
 
 //===========================================================================
@@ -5589,11 +5601,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveTracer)
 	ACTION_PARAM_INT(flags, 0);
 	ACTION_PARAM_CLASS(filter, 1);
 	ACTION_PARAM_NAME(species, 2);
-	
-	if (self->tracer != NULL)
-	{
-		DoRemove(self->tracer, flags, filter, species);
-	}
+
+	DoRemove(self->tracer, flags, filter, species);
 }
 
 //===========================================================================
@@ -5608,10 +5617,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveMaster)
 	ACTION_PARAM_CLASS(filter, 1);
 	ACTION_PARAM_NAME(species, 2);
 	
-	if (self->master != NULL)
-	{
-		DoRemove(self->master, flags, filter, species);
-	}
+	DoRemove(GetMaster(self), flags, filter, species);
 }
 
 //===========================================================================
@@ -5630,9 +5636,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveChildren)
 	ACTION_PARAM_NAME(species, 3);
 	
 
-	while ((mo = it.Next()) != NULL)
+	while (mo = it.Next())
 	{
-		if (mo->master == self && (mo->health <= 0 || removeall))
+		if (GetMaster(mo) == self && (mo->health <= 0 || removeall))
 		{
 			DoRemove(mo, flags, filter, species);
 		}
@@ -5647,7 +5653,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveChildren)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveSiblings)
 {
 	TThinkerIterator<AActor> it;
-	AActor *mo;
+	AActor *mo,*master=GetMaster(self);
 	ACTION_PARAM_START(4);
 	ACTION_PARAM_BOOL(removeall, 0);
 	ACTION_PARAM_INT(flags, 1);
@@ -5656,9 +5662,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveSiblings)
 
 	if (self->master != NULL)
 	{
-		while ((mo = it.Next()) != NULL)
+		while (mo = it.Next())
 		{
-			if (mo->master == self->master && mo != self && (mo->health <= 0 || removeall))
+			if (GetMaster(mo) == self->master && mo != self && (mo->health <= 0 || removeall))
 			{
 				DoRemove(mo, flags, filter, species);
 			}
@@ -5680,10 +5686,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Remove)
 	ACTION_PARAM_NAME(species, 3);
 
 	AActor *reference = COPY_AAPTR(self, removee);
-	if (reference != NULL)
-	{
-		DoRemove(reference, flags, filter, species);
-	}
+	DoRemove(reference, flags, filter, species);
 }
 
 //===========================================================================
@@ -5767,12 +5770,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
 	ACTION_PARAM_INT(health, 0);
 	ACTION_PARAM_INT(ptr, 1);
 
-	AActor *mobj = COPY_AAPTR(self, ptr);
-
-	if (!mobj)
-	{
-		return;
-	}
+	AActor *mobj;
+	COPY_AAPTR_NOT_NULL(self, mobj, ptr);
 
 	player_t *player = mobj->player;
 	if (player)
@@ -5803,12 +5802,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ResetHealth)
 	ACTION_PARAM_START(1);
 	ACTION_PARAM_INT(ptr, 0);
 
-	AActor *mobj = COPY_AAPTR(self, ptr);
-
-	if (!mobj)
-	{
-		return;
-	}
+	AActor *mobj;
+	
+	COPY_AAPTR_NOT_NULL(self, mobj, ptr);
 
 	player_t *player = mobj->player;
 	if (player && (player->mo->health > 0))
