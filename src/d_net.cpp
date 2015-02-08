@@ -2055,7 +2055,7 @@ void FDynamicBuffer::SetData (const BYTE *data, int len)
 	else
 	{
 		m_Len = 0;
-		M_Free((void *)data);
+		M_Free((void *)m_Data);
 	}
 }
 
