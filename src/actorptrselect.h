@@ -95,5 +95,7 @@ enum PTROP
 
 void VerifyTargetChain(AActor *self, bool preciseMissileCheck=true);
 void VerifyMasterChain(AActor *self);
-void ASSIGN_AAPTR(AActor *toActor, int toSlot, AActor *ptr, int flags) ;
+void ASSIGN_AAPTR(AActor *toActor, int toSlot, AActor *ptr, int flags);
 
+bool IsMaster(AActor *minion, AActor *candidate);
+AActor *GetMaster(AActor *minion);
