@@ -457,6 +457,12 @@ enum
 	FAF_NODISTFACTOR = 8,
 };
 
+// Flags for A_Repeat
+enum
+{
+	RPF_OVERCOUNT		= 1,
+	RPF_KEEPVAR			= 1 << 1,
+};
 
 // This is only here to provide one global variable for testing.
 native int testglobalvar;
