@@ -4203,7 +4203,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserVar)
 		return;
 	}
 	// Set the value of the specified user variable.
-	*(int *)(reinterpret_cast<BYTE *>(self) + var->offset) = value;
+	*(int *)(reinterpret_cast<BYTE *>(self)+var->offset) = value;
 }
 
 //===========================================================================
@@ -4238,6 +4238,164 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserArray)
 	}
 	// Set the value of the specified user array at index pos.
 	((int *)(reinterpret_cast<BYTE *>(self) + var->offset))[pos] = value;
+}
+
+//===========================================================================
+//
+// A_RepeatVar(state progress, user var, increment, limit, flags, state finished, final var)
+//
+//===========================================================================
+enum RPF_Flags
+{
+	RPF_OVERCOUNT = 1,
+	RPF_KEEPVAR = 1 << 1,
+};
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RepeatVar)
+{
+	ACTION_PARAM_START(7);
+	ACTION_PARAM_STATE(progress, 0);
+	ACTION_PARAM_NAME(varname, 1);
+	ACTION_PARAM_INT(increment, 2);
+	ACTION_PARAM_INT(limit, 3);
+	ACTION_PARAM_INT(flags, 4);
+	ACTION_PARAM_INT(finalvar, 5);
+	ACTION_PARAM_STATE(finished, 6);
+
+	PSymbol *sym = self->GetClass()->Symbols.FindSymbol(varname, true);
+	PSymbolVariable *var;
+
+	if (sym == NULL || sym->SymbolType != SYM_Variable ||
+		!(var = static_cast<PSymbolVariable *>(sym))->bUserVar ||
+		var->ValueType.Type != VAL_Int)
+	{
+		Printf("%s is not a user variable in class %s\n", varname.GetChars(),
+			self->GetClass()->TypeName.GetChars());
+		return;
+	}
+	//Retrieve the user variable for manipulation.
+	int current = *(int *)(reinterpret_cast<BYTE *>(self)+var->offset);
+	//Are we counting up or down?
+	bool countdown = (limit < current) ? true : false;
+	bool reached = false;
+	int overcount;
+
+	//We've reached our destination, or gone beyond it. Or we don't want this to 
+	if ((!(countdown)) && (((current + increment) >= limit) || (current >= limit) || (increment >= limit)))
+	{
+		overcount = (flags & RPF_OVERCOUNT) ? ((current + increment) - limit) : 0;
+		reached = true;
+	}
+	else if ((countdown) && (((current - increment) <= limit) || (current <= limit) || (increment <= limit)))
+	{ //...Or we've gone below it.
+		overcount = (flags & RPF_OVERCOUNT) ? ((current - increment) + limit) : 0;
+		reached = true;
+	}
+	else if (!reached)//Not there yet!
+	{
+		//Still, make sure to respect the direction we're going.
+		current += countdown ? (-increment) : increment;
+		//Now we make some progress!
+		*(int *)(reinterpret_cast<BYTE *>(self)+var->offset) = current;
+		ACTION_JUMP(progress);
+		ACTION_SET_RESULT(false); //Don't set it for inventory items.
+		return;
+	}
+
+	if (flags & RPF_KEEPVAR)
+		current = (finalvar ? finalvar : limit) + overcount;
+	else
+		current = finalvar + overcount;
+
+	*(int *)(reinterpret_cast<BYTE *>(self)+var->offset) = current;
+
+	if (!finished)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	ACTION_JUMP(finished);
+}
+
+//===========================================================================
+//
+// A_RepeatArray(state progress, user var, index, increment, limit, flags, state finished, final var)
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RepeatArray)
+{
+	ACTION_PARAM_START(8);
+	ACTION_PARAM_STATE(progress, 0);
+	ACTION_PARAM_NAME(varname, 1);
+	ACTION_PARAM_INT(pos, 2);
+	ACTION_PARAM_INT(increment, 3);
+	ACTION_PARAM_INT(limit, 4);
+	ACTION_PARAM_INT(flags, 5);
+	ACTION_PARAM_INT(finalvar, 6);
+	ACTION_PARAM_STATE(finished, 7);
+
+	PSymbol *sym = self->GetClass()->Symbols.FindSymbol(varname, true);
+	PSymbolVariable *var;
+
+	if (sym == NULL || sym->SymbolType != SYM_Variable ||
+		!(var = static_cast<PSymbolVariable *>(sym))->bUserVar ||
+		var->ValueType.Type != VAL_Array || var->ValueType.BaseType != VAL_Int)
+	{
+		Printf("%s is not a user array in class %s\n", varname.GetChars(),
+			self->GetClass()->TypeName.GetChars());
+		return;
+	}
+	if (pos < 0 || pos >= var->ValueType.size)
+	{
+		Printf("%d is out of bounds in array %s in class %s\n", pos, varname.GetChars(),
+			self->GetClass()->TypeName.GetChars());
+		return;
+	}
+	
+	//Retrieve the user variable for manipulation.
+	int current = ((int *)(reinterpret_cast<BYTE *>(self)+var->offset))[pos];
+	//Are we counting up or down?
+	bool countdown = (limit < current) ? true : false;
+	bool reached = false;
+	int overcount;
+
+	//We've reached our destination, or gone beyond it. Or we don't want this to 
+	if ((!(countdown)) && (((current + increment) >= limit) || (current >= limit) || (increment >= limit)))
+	{
+		overcount = (flags & RPF_OVERCOUNT) ? ((current + increment) - limit) : 0;
+		reached = true;
+	}
+	else if ((countdown) && (((current - increment) <= limit) || (current <= limit) || (increment <= limit)))
+	{ //...Or we've gone below it.
+		overcount = (flags & RPF_OVERCOUNT) ? ((current - increment) + limit) : 0;
+		reached = true;
+	}
+	else if (!reached)//Not there yet!
+	{
+		//Still, make sure to respect the direction we're going.
+		current += countdown ? (-increment) : increment;
+		//Now we make some progress!
+		((int *)(reinterpret_cast<BYTE *>(self)+var->offset))[pos] = current;
+		ACTION_JUMP(progress);
+		ACTION_SET_RESULT(false); //Don't set it for inventory items.
+		return;
+	}
+
+	if (flags & RPF_KEEPVAR)
+		current = (finalvar ? finalvar : limit) + overcount;
+	else
+		current = finalvar + overcount;
+
+	((int *)(reinterpret_cast<BYTE *>(self)+var->offset))[pos] = current;
+
+	if (!finished)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	ACTION_JUMP(finished);
 }
 
 //===========================================================================
@@ -5178,7 +5336,7 @@ static bool DoCheckFilter(AActor *mo, const PClass *filter, bool exclude)
 //
 // Examples: 
 // A_Damage(20,"Normal",DMSS_FOILINVUL,0,"DemonicSpecies") <--Only actors 
-//	with a species "DemonicSpecies" will be affected. Use 0 to not filter by actor.
+// with a species "DemonicSpecies" will be affected. Use "None" to not filter by actor.
 //
 //===========================================================================
 
@@ -5794,7 +5952,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
 //===========================================================================
 // A_ResetHealth
 //
-// Resets the health of the actor to default, except if their dead.
+// Resets the health of the actor to default, except if they're dead.
 // Takes a pointer.
 //===========================================================================
 
