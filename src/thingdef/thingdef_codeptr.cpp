@@ -2102,6 +2102,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 	ACTION_PARAM_INT(flags, 8);
 	ACTION_PARAM_INT(chance, 9);
 	ACTION_PARAM_INT(tid, 10);
+	ACTION_PARAM_STATE(success_state, 11);
 
 	if (!missile) 
 	{
@@ -2168,6 +2169,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 			mo->velz = zvel;
 		}
 		mo->angle = Angle;
+
+		if (success_state != NULL)
+		{
+			ACTION_SET_RESULT(false); //[MC] I believe this might be needed here? Better safe than sorry?
+			ACTION_JUMP(success_state);
+		}
 	}
 }
 
@@ -4345,10 +4352,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Teleport)
 			}
 		}
 		
-		if (Flags & TF_USESPOTZ)
-			self->z = spot->z;
-		else
-			self->z = self->floorz;
+		self->z = (Flags & TF_USESPOTZ) ? spot->z : self->floorz;
 
 		if (!(Flags & TF_KEEPANGLE))
 			self->angle = spot->angle;
