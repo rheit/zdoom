@@ -1813,6 +1813,77 @@ ExpVal FxFRandom::EvalExpression (AActor *self)
 //
 //
 //==========================================================================
+FxFRandomPick::FxFRandomPick(FRandom * r, TArray<FxExpression*> mi, const FScriptPosition &pos)
+: FxExpression(pos)
+{
+	for (unsigned int index = 0; index < mi.Size(); index++)
+	{
+		min.Push(new FxIntCast(mi[index]));
+	}
+	rng = r;
+	ValueType = VAL_Float;
+}
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+FxFRandomPick::~FxFRandomPick()
+{
+}
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+FxExpression *FxFRandomPick::Resolve(FCompileContext &ctx)
+{
+	CHECKRESOLVED();
+	for (unsigned int index = 0; index < min.Size(); index++)
+	{
+		RESOLVE(min[index], ctx);
+		ABORT(min[index]);
+	}
+	return this;
+};
+
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+ExpVal FxFRandomPick::EvalExpression(AActor *self)
+{
+	ExpVal val;
+	val.Type = VAL_Float;
+	int max = min.Size();
+	int random = (*rng)(0x40000000);
+	double frandom = random / double(0x40000000);
+
+	if (max > 0)
+	{
+		int select = (*rng)(max);
+		val.Float = min[select]->EvalExpression(self).GetFloat();
+	}
+	else
+	{
+		val.Float = (*rng)();
+	}
+	return val;
+	
+}
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
 
 FxRandom2::FxRandom2(FRandom *r, FxExpression *m, const FScriptPosition &pos)
 : FxExpression(pos)
