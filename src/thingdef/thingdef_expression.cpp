@@ -1878,19 +1878,6 @@ ExpVal FxFRandomPick::EvalExpression(AActor *self)
 	return val;
 	
 }
-/*ExpVal val;
-val.Type = VAL_Int;
-int max = min.Size();
-if (max > 0)
-{
-int select = (*rng)(max);
-val.Int = min[select]->EvalExpression(self).GetInt();
-}
-else
-{
-val.Int = (*rng)();
-}
-return val;*/
 
 //==========================================================================
 //
