@@ -198,6 +198,7 @@ fixed_t			forwardmove[2], sidemove[2];
 fixed_t 		angleturn[4] = {640, 1280, 320, 320};		// + slow turn
 fixed_t			flyspeed[2] = {1*256, 3*256};
 int				lookspeed[2] = {450, 512};
+int				rollspeed[2] = {256, 512};
 
 #define SLOWTURNTICS	6 
 
@@ -595,6 +596,17 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 		LocalKeyboardTurner = true;
 	}
 
+	if (Button_RollLeft.bDown)
+	{
+		G_AddViewRoll(rollspeed[speed]);
+		LocalKeyboardTurner = true;
+	}
+	if (Button_RollRight.bDown)
+	{
+		G_AddViewRoll(-rollspeed[speed]);
+		LocalKeyboardTurner = true;
+	}
+
 	if (Button_MoveUp.bDown)
 		fly += flyspeed[speed];
 	if (Button_MoveDown.bDown)
@@ -647,6 +659,8 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 	if (Button_MoveDown.bDown)		cmd->ucmd.buttons |= BT_MOVEDOWN;
 	if (Button_MoveUp.bDown)		cmd->ucmd.buttons |= BT_MOVEUP;
 	if (Button_ShowScores.bDown)	cmd->ucmd.buttons |= BT_SHOWSCORES;
+	if (Button_RollLeft.bDown)		cmd->ucmd.buttons |= BT_ROLLLEFT;
+	if (Button_RollRight.bDown)		cmd->ucmd.buttons |= BT_ROLLRIGHT;
 
 	// Handle joysticks/game controllers.
 	float joyaxes[NUM_JOYAXIS];
@@ -673,6 +687,11 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 	if (joyaxes[JOYAXIS_Yaw] != 0)
 	{
 		G_AddViewAngle(joyint(-1280 * joyaxes[JOYAXIS_Yaw]));
+		LocalKeyboardTurner = true;
+	}
+	if (joyaxes[JOYAXIS_Roll] != 0)
+	{
+		G_AddViewRoll(joyint(512 * joyaxes[JOYAXIS_Roll]));
 		LocalKeyboardTurner = true;
 	}
 
@@ -713,8 +732,10 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 	cmd->ucmd.sidemove += side;
 	cmd->ucmd.yaw = LocalViewAngle >> 16;
 	cmd->ucmd.upmove = fly;
+	cmd->ucmd.roll = LocalViewRoll >> 16;
 	LocalViewAngle = 0;
 	LocalViewPitch = 0;
+	LocalViewRoll = 0;
 
 	// special buttons
 	if (sendturn180)
@@ -822,6 +843,26 @@ void G_AddViewAngle (int yaw)
 	}
 	LocalViewAngle -= yaw;
 	if (yaw != 0)
+	{
+		LocalKeyboardTurner = smooth_mouse;
+	}
+}
+
+void G_AddViewRoll(int roll)
+{
+	if (gamestate == GS_TITLELEVEL)
+	{
+		return;
+	}
+	roll <<= 16;
+	if (players[consoleplayer].playerstate != PST_DEAD &&	// No adjustment while dead.
+		players[consoleplayer].ReadyWeapon != NULL &&		// No adjustment if no weapon.
+		players[consoleplayer].ReadyWeapon->FOVScale > 0)	// No adjustment if it is non-positive.
+	{
+		roll = int(roll * players[consoleplayer].ReadyWeapon->FOVScale);
+	}
+	LocalViewRoll -= roll;
+	if (roll != 0)
 	{
 		LocalKeyboardTurner = smooth_mouse;
 	}
@@ -1177,7 +1218,7 @@ void G_Ticker ()
 				if (players[i].mo)
 				{
 					DWORD sum = rngsum + players[i].mo->x + players[i].mo->y + players[i].mo->z
-						+ players[i].mo->angle + players[i].mo->pitch;
+						+ players[i].mo->angle + players[i].mo->pitch + players[i].mo->roll;
 					sum ^= players[i].health;
 					consistancy[i][buf] = sum;
 				}

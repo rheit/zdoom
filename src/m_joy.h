@@ -13,7 +13,7 @@ enum EJoyAxis
 	JOYAXIS_Forward,
 	JOYAXIS_Side,
 	JOYAXIS_Up,
-//	JOYAXIS_Roll,		// Ha ha. No roll for you.
+	JOYAXIS_Roll,
 	NUM_JOYAXIS,
 };
 
