@@ -770,9 +770,9 @@ bool R_GetViewInterpolationStatus()
 //
 //==========================================================================
 
-static fixed_t QuakePower(fixed_t factor, fixed_t intensity)
+static fixed_t QuakePower(fixed_t factor, fixed_t intensity, bool sine)
 {
-	return FixedMul(factor, pr_torchflicker(intensity * 2) - intensity);
+	return sine ? FixedMul(factor,intensity) : FixedMul(factor, pr_torchflicker(intensity * 2) - intensity);
 }
 
 //==========================================================================
@@ -886,39 +886,40 @@ void R_SetupFrame (AActor *actor)
 	if (!paused)
 	{
 		fixed_t intensityX, intensityY, intensityZ, relIntensityX, relIntensityY, relIntensityZ;
+		bool sineOriented;
 		if (DEarthquake::StaticGetQuakeIntensities(camera,
 			intensityX, intensityY, intensityZ,
-			relIntensityX, relIntensityY, relIntensityZ) > 0)
+			relIntensityX, relIntensityY, relIntensityZ, sineOriented) > 0)
 		{
 			fixed_t quakefactor = FLOAT2FIXED(r_quakeintensity);
 
 			if (relIntensityX != 0)
 			{
 				int ang = (camera->angle) >> ANGLETOFINESHIFT;
-				fixed_t power = QuakePower(quakefactor, relIntensityX);
+				fixed_t power = QuakePower(quakefactor, relIntensityX, sineOriented);
 				viewx += FixedMul(finecosine[ang], power);
 				viewy += FixedMul(finesine[ang], power);
 			}
 			if (relIntensityY != 0)
 			{
 				int ang = (camera->angle + ANG90) >> ANGLETOFINESHIFT;
-				fixed_t power = QuakePower(quakefactor, relIntensityY);
+				fixed_t power = QuakePower(quakefactor, relIntensityY, sineOriented);
 				viewx += FixedMul(finecosine[ang], power);
 				viewy += FixedMul(finesine[ang], power);
 			}
 			if (intensityX != 0)
 			{
-				viewx += QuakePower(quakefactor, intensityX);
+				viewx += QuakePower(quakefactor, intensityX, sineOriented);
 			}
 			if (intensityY != 0)
 			{
-				viewy += QuakePower(quakefactor, intensityY);
+				viewy += QuakePower(quakefactor, intensityY, sineOriented);
 			}
 			// FIXME: Relative Z is not relative
 			intensityZ = MAX(intensityZ, relIntensityZ);
 			if (intensityZ != 0)
 			{
-				viewz += QuakePower(quakefactor, intensityZ);
+				viewz += QuakePower(quakefactor, intensityZ, sineOriented);
 			}
 		}
 	}

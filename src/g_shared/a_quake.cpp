@@ -184,7 +184,14 @@ fixed_t DEarthquake::GetModIntensity(int intensity) const
 			scalar = m_CountdownStart - m_Countdown;
 		}
 		assert(m_CountdownStart > 0);
-		intensity = intensity * (scalar << FRACBITS) / m_CountdownStart;
+		if (m_Flags & QF_SINE)
+		{
+			intensity = intensity * finesine[(scalar * (FINEANGLES / 4)) / m_CountdownStart];
+		}
+		else
+		{
+			intensity = intensity * (scalar << FRACBITS) / m_CountdownStart;
+		}
 	}
 	else
 	{
@@ -204,12 +211,13 @@ fixed_t DEarthquake::GetModIntensity(int intensity) const
 
 int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 	fixed_t &intensityX, fixed_t &intensityY, fixed_t &intensityZ,
-	fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ)
+	fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ, bool &sineOriented)
 {
 	if (victim->player != NULL && (victim->player->cheats & CF_NOCLIP))
 	{
 		return 0;
 	}
+	sineOriented = false;
 	intensityX = intensityY = intensityZ = relIntensityX = relIntensityY = relIntensityZ = 0;
 
 	TThinkerIterator<DEarthquake> iterator(STAT_EARTHQUAKE);
@@ -228,6 +236,7 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 				fixed_t x = quake->GetModIntensity(quake->m_IntensityX);
 				fixed_t y = quake->GetModIntensity(quake->m_IntensityY);
 				fixed_t z = quake->GetModIntensity(quake->m_IntensityZ);
+				sineOriented = (quake->m_Flags & QF_SINE) ? true : false;
 				if (quake->m_Flags & QF_RELATIVE)
 				{
 					relIntensityX = MAX(relIntensityX, x);
