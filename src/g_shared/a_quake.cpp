@@ -34,7 +34,8 @@ DEarthquake::DEarthquake()
 //==========================================================================
 
 DEarthquake::DEarthquake (AActor *center, int intensityX, int intensityY, int intensityZ, int duration,
-						  int damrad, int tremrad, FSoundID quakesound, int flags)
+						  int damrad, int tremrad, FSoundID quakesound, int flags, 
+						  double mulWaveX, double mulWaveY, double mulWaveZ)
 						  : DThinker(STAT_EARTHQUAKE)
 {
 	m_QuakeSFX = quakesound;
@@ -48,6 +49,9 @@ DEarthquake::DEarthquake (AActor *center, int intensityX, int intensityY, int in
 	m_CountdownStart = duration;
 	m_Countdown = duration;
 	m_Flags = flags;
+	m_mulWaveX = FLOAT2FIXED(mulWaveX);
+	m_mulWaveY = FLOAT2FIXED(mulWaveY);
+	m_mulWaveZ = FLOAT2FIXED(mulWaveZ);
 }
 
 //==========================================================================
@@ -79,6 +83,14 @@ void DEarthquake::Serialize (FArchive &arc)
 	else
 	{
 		arc << m_CountdownStart;
+	}
+	if (SaveVersion < 4521)
+	{
+		m_mulWaveX = m_mulWaveY = m_mulWaveZ = 0;
+	}
+	else
+	{
+		arc << m_mulWaveX << m_mulWaveY << m_mulWaveZ;
 	}
 }
 
@@ -151,6 +163,20 @@ void DEarthquake::Tick ()
 	}
 }
 
+fixed_t DEarthquake::GetModWave(fixed_t intensity, fixed_t waveMultiplier) const
+{
+	intensity += intensity;
+	//QF_WAVE converts intensity into amplitude and unlocks a new property, the wave length.
+	//This is, in short, waves per second (full cycles, mind you, from 0 to 360.)
+	//Named waveMultiplier because that's as the name implies: adds more waves per second.
+
+	fixed_t wavesPerSecond = (waveMultiplier >> 15) * ((m_CountdownStart - m_Countdown)) % (TICRATE * 2);
+	fixed_t index = (wavesPerSecond * (FINEANGLES / 2)) / (TICRATE);
+
+	intensity = intensity * finesine[index];
+	return intensity;
+}
+
 //==========================================================================
 //
 // DEarthquake :: GetModIntensity
@@ -159,17 +185,19 @@ void DEarthquake::Tick ()
 //
 //==========================================================================
 
-fixed_t DEarthquake::GetModIntensity(int intensity) const
+fixed_t DEarthquake::GetModIntensity(fixed_t intensity) const
 {
 	assert(m_CountdownStart >= m_Countdown);
 	intensity += intensity;		// always doubled
+
 	if (m_Flags & (QF_SCALEDOWN | QF_SCALEUP))
 	{
 		int scalar;
 		if ((m_Flags & (QF_SCALEDOWN | QF_SCALEUP)) == (QF_SCALEDOWN | QF_SCALEUP))
 		{
 			scalar = (m_Flags & QF_MAX) ? MAX(m_Countdown, m_CountdownStart - m_Countdown)
-										: MIN(m_Countdown, m_CountdownStart - m_Countdown);
+				: MIN(m_Countdown, m_CountdownStart - m_Countdown);
+
 			if (m_Flags & QF_FULLINTENSITY)
 			{
 				scalar *= 2;
@@ -184,18 +212,7 @@ fixed_t DEarthquake::GetModIntensity(int intensity) const
 			scalar = m_CountdownStart - m_Countdown;
 		}
 		assert(m_CountdownStart > 0);
-		if (m_Flags & QF_SINE)
-		{
-			intensity = intensity * finesine[(scalar * (FINEANGLES / 4)) / m_CountdownStart];
-		}
-		else
-		{
-			intensity = intensity * (scalar << FRACBITS) / m_CountdownStart;
-		}
-	}
-	else
-	{
-		intensity <<= FRACBITS;
+		intensity = intensity * (scalar << FRACBITS) / m_CountdownStart;
 	}
 	return intensity;
 }
@@ -211,14 +228,17 @@ fixed_t DEarthquake::GetModIntensity(int intensity) const
 
 int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 	fixed_t &intensityX, fixed_t &intensityY, fixed_t &intensityZ,
-	fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ, bool &sineOriented)
+	fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ, 
+	bool &sineOriented, fixed_t &mulWaveX, fixed_t &mulWaveY, fixed_t &mulWaveZ)
 {
 	if (victim->player != NULL && (victim->player->cheats & CF_NOCLIP))
 	{
 		return 0;
 	}
 	sineOriented = false;
-	intensityX = intensityY = intensityZ = relIntensityX = relIntensityY = relIntensityZ = 0;
+	intensityX = intensityY = intensityZ = relIntensityX = relIntensityY = relIntensityZ = 
+		mulWaveX = mulWaveY = mulWaveZ = 0;
+	
 
 	TThinkerIterator<DEarthquake> iterator(STAT_EARTHQUAKE);
 	DEarthquake *quake;
@@ -233,21 +253,34 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 			if (dist < quake->m_TremorRadius)
 			{
 				++count;
+				sineOriented = (quake->m_Flags & QF_WAVE) ? true : false;
+				//fixed_t x = sineOriented ? quake->GetModWave(quake->m_IntensityX, quake->m_mulWaveX) : quake->GetModIntensity(quake->m_IntensityX);
+				//fixed_t y = sineOriented ? quake->GetModWave(quake->m_IntensityY, quake->m_mulWaveY) : quake->GetModIntensity(quake->m_IntensityY);
+				//fixed_t z = sineOriented ? quake->GetModWave(quake->m_IntensityZ, quake->m_mulWaveZ) : quake->GetModIntensity(quake->m_IntensityZ);
 				fixed_t x = quake->GetModIntensity(quake->m_IntensityX);
 				fixed_t y = quake->GetModIntensity(quake->m_IntensityY);
 				fixed_t z = quake->GetModIntensity(quake->m_IntensityZ);
-				sineOriented = (quake->m_Flags & QF_SINE) ? true : false;
+
 				if (quake->m_Flags & QF_RELATIVE)
 				{
-					relIntensityX = MAX(relIntensityX, x);
-					relIntensityY = MAX(relIntensityY, y);
-					relIntensityZ = MAX(relIntensityZ, z);
+					relIntensityX = (x > 0) ? MAX(x, relIntensityX) : MIN(x, relIntensityX);
+					relIntensityY = (y > 0) ? MAX(y, relIntensityY) : MIN(y, relIntensityY);
+					relIntensityZ = (z > 0) ? MAX(z, relIntensityZ) : MIN(z, relIntensityZ);
 				}
 				else
 				{
-					intensityX = MAX(intensityX, x);
-					intensityY = MAX(intensityY, y);
-					intensityZ = MAX(intensityZ, z);
+					intensityX = (x > 0) ? MAX(x, intensityX) : MIN(x, intensityX);
+					intensityY = (y > 0) ? MAX(y, intensityY) : MIN(y, intensityY);
+					intensityZ = (z > 0) ? MAX(z, intensityZ) : MIN(z, intensityZ);
+				}
+				if (sineOriented)
+				{
+					x = quake->GetModWave(quake->m_IntensityX, quake->m_mulWaveX); //Actually returns a little differently.
+					y = quake->GetModWave(quake->m_IntensityY, quake->m_mulWaveY);
+					z = quake->GetModWave(quake->m_IntensityZ, quake->m_mulWaveZ);
+					mulWaveX = x;//(x > 0) ? MAX(x, quake->m_mulWaveX) : MIN(x, quake->m_mulWaveX);
+					mulWaveY = y;//(y > 0) ? MAX(y, quake->m_mulWaveY) : MIN(y, quake->m_mulWaveY);
+					mulWaveZ = z;//(z > 0) ? MAX(z, quake->m_mulWaveZ) : MIN(z, quake->m_mulWaveZ);
 				}
 			}
 		}
@@ -261,7 +294,8 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 //
 //==========================================================================
 
-bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY, int intensityZ, int duration, int damrad, int tremrad, FSoundID quakesfx, int flags)
+bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY, int intensityZ, int duration, int damrad, int tremrad, FSoundID quakesfx, int flags,
+	double mulWaveX, double mulWaveY, double mulWaveZ)
 {
 	AActor *center;
 	bool res = false;
@@ -274,7 +308,7 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 	{
 		if (activator != NULL)
 		{
-			new DEarthquake(activator, intensityX, intensityY, intensityZ, duration, damrad, tremrad, quakesfx, flags);
+			new DEarthquake(activator, intensityX, intensityY, intensityZ, duration, damrad, tremrad, quakesfx, flags, mulWaveX, mulWaveY, mulWaveZ);
 			return true;
 		}
 	}
@@ -284,7 +318,7 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 		while ( (center = iterator.Next ()) )
 		{
 			res = true;
-			new DEarthquake(center, intensityX, intensityY, intensityZ, duration, damrad, tremrad, quakesfx, flags);
+			new DEarthquake(center, intensityX, intensityY, intensityZ, duration, damrad, tremrad, quakesfx, flags, mulWaveX, mulWaveY, mulWaveZ);
 		}
 	}
 	
@@ -293,5 +327,5 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 
 bool P_StartQuake(AActor *activator, int tid, int intensity, int duration, int damrad, int tremrad, FSoundID quakesfx)
 {	//Maintains original behavior by passing 0 to intensityZ, and flags.
-	return P_StartQuakeXYZ(activator, tid, intensity, intensity, 0, duration, damrad, tremrad, quakesfx, 0);
+	return P_StartQuakeXYZ(activator, tid, intensity, intensity, 0, duration, damrad, tremrad, quakesfx, 0, 0, 0, 0);
 }

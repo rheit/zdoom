@@ -885,41 +885,48 @@ void R_SetupFrame (AActor *actor)
 
 	if (!paused)
 	{
-		fixed_t intensityX, intensityY, intensityZ, relIntensityX, relIntensityY, relIntensityZ;
+		fixed_t intensityX, intensityY, intensityZ, 
+			relIntensityX, relIntensityY, relIntensityZ, 
+			mulWaveX, mulWaveY, mulWaveZ;
+		
 		bool sineOriented;
 		if (DEarthquake::StaticGetQuakeIntensities(camera,
 			intensityX, intensityY, intensityZ,
-			relIntensityX, relIntensityY, relIntensityZ, sineOriented) > 0)
+			relIntensityX, relIntensityY, relIntensityZ, sineOriented, mulWaveX, mulWaveY, mulWaveZ) > 0)
 		{
 			fixed_t quakefactor = FLOAT2FIXED(r_quakeintensity);
-
-			if (relIntensityX != 0)
+			
+			if (relIntensityX != 0.0)
 			{
 				int ang = (camera->angle) >> ANGLETOFINESHIFT;
 				fixed_t power = QuakePower(quakefactor, relIntensityX, sineOriented);
-				viewx += FixedMul(finecosine[ang], power);
-				viewy += FixedMul(finesine[ang], power);
+				viewx += FixedMul(finecosine[ang], power + mulWaveX);
+				viewy += FixedMul(finesine[ang], power + mulWaveY);
 			}
-			if (relIntensityY != 0)
+			if (relIntensityY != 0.0)
 			{
 				int ang = (camera->angle + ANG90) >> ANGLETOFINESHIFT;
 				fixed_t power = QuakePower(quakefactor, relIntensityY, sineOriented);
-				viewx += FixedMul(finecosine[ang], power);
-				viewy += FixedMul(finesine[ang], power);
-			}
-			if (intensityX != 0)
-			{
-				viewx += QuakePower(quakefactor, intensityX, sineOriented);
-			}
-			if (intensityY != 0)
-			{
-				viewy += QuakePower(quakefactor, intensityY, sineOriented);
+				viewx += FixedMul(finecosine[ang], power + mulWaveX);
+				viewy += FixedMul(finesine[ang], power + mulWaveY);
 			}
 			// FIXME: Relative Z is not relative
-			intensityZ = MAX(intensityZ, relIntensityZ);
-			if (intensityZ != 0)
+			// [MC]On it! Will be introducing pitch after QF_WAVE.
+			if (relIntensityZ != 0.0)
 			{
-				viewz += QuakePower(quakefactor, intensityZ, sineOriented);
+				viewz += QuakePower(quakefactor, relIntensityZ, sineOriented) + mulWaveZ;
+			}
+			if (intensityX != 0.0)
+			{
+				viewx += QuakePower(quakefactor, intensityX, sineOriented) + mulWaveX;
+			}
+			if (intensityY != 0.0)
+			{
+				viewy += QuakePower(quakefactor, intensityY, sineOriented) + mulWaveY;
+			}
+			if (intensityZ != 0.0)
+			{
+				viewz += QuakePower(quakefactor, intensityZ, sineOriented) + mulWaveZ;
 			}
 		}
 	}
