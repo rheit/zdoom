@@ -163,19 +163,56 @@ void DEarthquake::Tick ()
 	}
 }
 
-//fixed_t DEarthquake::GetModWave(fixed_t intensity, fixed_t waveMultiplier) const
-fixed_t DEarthquake::GetModWave(fixed_t waveMultiplier) const
+fixed_t DEarthquake::GetModCountdown(int countdown, bool up) const
+{
+	if (up)
+		return m_CountdownStart - countdown;
+	else
+		return countdown;
+}
+
+fixed_t DEarthquake::GetModWave(fixed_t waveMultiplier, fixed_t time) const
 {
 	//QF_WAVE converts intensity into amplitude and unlocks a new property, the wave length.
 	//This is, in short, waves per second (full cycles, mind you, from 0 to 360.)
 	//Named waveMultiplier because that's as the name implies: adds more waves per second.
+	fixed_t wavesPerSecond;
+	fixed_t index;
+	assert(m_CountdownStart >= m_Countdown);
+	if (m_Flags & (QF_SCALEDOWN | QF_SCALEUP))
+	{
+		fixed_t scalar;
+		if ((m_Flags & (QF_SCALEDOWN | QF_SCALEUP)) == (QF_SCALEDOWN | QF_SCALEUP))
+		{
+			scalar = (m_Flags & QF_MAX) ? MAX(time, m_CountdownStart - time)
+				: MIN(time, m_CountdownStart - time);
 
-	fixed_t wavesPerSecond = (waveMultiplier >> 15) * ((m_CountdownStart - m_Countdown)) % (TICRATE * 2);
-	fixed_t index = (wavesPerSecond * (FINEANGLES / 2)) / (TICRATE);
-
-	//intensity = intensity * finesine[index];
-	//return intensity * finesine[index];
-	return index;
+			if (m_Flags & QF_FULLINTENSITY)
+			{
+				scalar *= 2;
+			}
+		}
+		else if (m_Flags & QF_SCALEDOWN)
+		{
+			scalar = m_Countdown;
+		}
+		else			// QF_SCALEUP
+		{
+			scalar = m_CountdownStart - m_Countdown;
+		}
+		assert(m_CountdownStart > 0);
+		//assert(scalar > 0);
+		//Need some help here...
+		wavesPerSecond = (waveMultiplier >> 15) * time % (TICRATE * 2);
+		index = ((wavesPerSecond * (FINEANGLES / 2)) / (TICRATE));
+	}
+	else
+	{
+		wavesPerSecond = (waveMultiplier >> 15) * time % (TICRATE * 2);
+		index = ((wavesPerSecond * (FINEANGLES / 2)) / (TICRATE));
+	}
+	
+	return finesine[index];
 }
 
 //==========================================================================
@@ -232,7 +269,7 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 	fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ, 
 	bool &sineOriented, 
 	fixed_t &mulWaveX, fixed_t &mulWaveY, fixed_t &mulWaveZ, 
-	fixed_t &relmulWaveX, fixed_t &relmulWaveY, fixed_t &relmulWaveZ)
+	fixed_t &relmulWaveX, fixed_t &relmulWaveY, fixed_t &relmulWaveZ, int &countdown)
 {
 	if (victim->player != NULL && (victim->player->cheats & CF_NOCLIP))
 	{
@@ -240,7 +277,8 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 	}
 	sineOriented = false;
 	intensityX = intensityY = intensityZ = relIntensityX = relIntensityY = relIntensityZ = 
-		mulWaveX = mulWaveY = mulWaveZ = relmulWaveX = relmulWaveY = relmulWaveZ = 0;
+		mulWaveX = mulWaveY = mulWaveZ = relmulWaveX = relmulWaveY = relmulWaveZ = 
+		countdown = 0;
 	
 
 	TThinkerIterator<DEarthquake> iterator(STAT_EARTHQUAKE);
@@ -277,21 +315,26 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 				}
 				if (sineOriented)
 				{
-					fixed_t mx = quake->GetModWave(quake->m_mulWaveX);
-					fixed_t my = quake->GetModWave(quake->m_mulWaveY);
-					fixed_t mz = quake->GetModWave(quake->m_mulWaveZ);
-
+					fixed_t time = quake->GetModCountdown(quake->m_Countdown, true);
+					countdown = (time > countdown) ? time : countdown;
+					fixed_t mx = quake->GetModWave(quake->m_mulWaveX, countdown);
+					fixed_t my = quake->GetModWave(quake->m_mulWaveY, countdown);
+					fixed_t mz = quake->GetModWave(quake->m_mulWaveZ, countdown);
+					
+					
+					int mul = 8;
+					int halfmul = mul / 2;
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-						relmulWaveX += finesine[mx] * quake->m_IntensityX;
-						relmulWaveY += finesine[my] * quake->m_IntensityY;
-						relmulWaveZ += finesine[mz] * quake->m_IntensityZ;
+						relmulWaveX = (relIntensityX) ? mx * (MAX(x, relIntensityX) >> 18) : mul * mx;
+						relmulWaveY = (relIntensityY) ? my * (MAX(y, relIntensityY) >> 18) : mul * my;
+						relmulWaveZ = (relIntensityZ) ? mz * (MAX(z, relIntensityZ) >> 18) : mul * mz;
 					}
 					else
 					{
-						mulWaveX += finesine[mx] * quake->m_IntensityX;
-						mulWaveY += finesine[my] * quake->m_IntensityY;
-						mulWaveZ += finesine[mz] * quake->m_IntensityZ;
+						mulWaveX = (intensityX) ? mx * (MAX(x, intensityX) >> 18) : mul * mx;
+						mulWaveY = (intensityY) ? my * (MAX(y, intensityY) >> 18) : mul * my;
+						mulWaveZ = (intensityZ) ? mz * (MAX(z, intensityZ) >> 18) : mul * mz;
 					}
 				}
 			}

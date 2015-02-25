@@ -161,13 +161,15 @@ public:
 	fixed_t m_mulWaveX, m_mulWaveY, m_mulWaveZ;
 
 	fixed_t GetModIntensity(fixed_t intensity) const;
-	fixed_t GetModWave(fixed_t waveMultiplier) const;
+	fixed_t GetModWave(fixed_t waveMultiplier, fixed_t time) const;
+	fixed_t GetModCountdown(fixed_t countdown, bool up) const;
 
 	static int StaticGetQuakeIntensities(AActor *viewer,
 		fixed_t &intensityX, fixed_t &intensityY, fixed_t &intensityZ,
 		fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ, 
 		bool &sineOriented, 
-		fixed_t &mulWaveX, fixed_t &mulWaveY, fixed_t &mulWaveZ, fixed_t &relmulWaveX, fixed_t &relmulWaveY, fixed_t &relmulWaveZ);
+		fixed_t &mulWaveX, fixed_t &mulWaveY, fixed_t &mulWaveZ, 
+		fixed_t &relmulWaveX, fixed_t &relmulWaveY, fixed_t &relmulWaveZ, int &countdown);
 
 private:
 	DEarthquake ();

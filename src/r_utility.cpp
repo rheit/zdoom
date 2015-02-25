@@ -888,13 +888,14 @@ void R_SetupFrame (AActor *actor)
 		fixed_t intensityX, intensityY, intensityZ, 
 			relIntensityX, relIntensityY, relIntensityZ, 
 			mulWaveX, mulWaveY, mulWaveZ, relmulWaveX, relmulWaveY, relmulWaveZ;
+		int countdown;
 		
 		bool sineOriented;
 		if (DEarthquake::StaticGetQuakeIntensities(camera,
 			intensityX, intensityY, intensityZ,
 			relIntensityX, relIntensityY, relIntensityZ, sineOriented, 
 			mulWaveX, mulWaveY, mulWaveZ, 
-			relmulWaveX, relmulWaveY, relmulWaveZ) > 0)
+			relmulWaveX, relmulWaveY, relmulWaveZ, countdown) > 0)
 		{
 			fixed_t quakefactor = FLOAT2FIXED(r_quakeintensity);
 			
