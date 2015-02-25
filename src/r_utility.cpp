@@ -770,9 +770,9 @@ bool R_GetViewInterpolationStatus()
 //
 //==========================================================================
 
-static fixed_t QuakePower(fixed_t factor, fixed_t intensity, bool sine)
+static fixed_t QuakePower(fixed_t factor, fixed_t intensity, fixed_t sineOffset)
 {
-	return sine ? FixedMul(factor,intensity) : FixedMul(factor, pr_torchflicker(intensity * 2) - intensity);
+	return FixedMul(factor, pr_torchflicker(intensity * 2) - intensity + sineOffset);
 }
 
 //==========================================================================
@@ -887,46 +887,76 @@ void R_SetupFrame (AActor *actor)
 	{
 		fixed_t intensityX, intensityY, intensityZ, 
 			relIntensityX, relIntensityY, relIntensityZ, 
-			mulWaveX, mulWaveY, mulWaveZ;
+			mulWaveX, mulWaveY, mulWaveZ, relmulWaveX, relmulWaveY, relmulWaveZ;
 		
 		bool sineOriented;
 		if (DEarthquake::StaticGetQuakeIntensities(camera,
 			intensityX, intensityY, intensityZ,
-			relIntensityX, relIntensityY, relIntensityZ, sineOriented, mulWaveX, mulWaveY, mulWaveZ) > 0)
+			relIntensityX, relIntensityY, relIntensityZ, sineOriented, 
+			mulWaveX, mulWaveY, mulWaveZ, 
+			relmulWaveX, relmulWaveY, relmulWaveZ) > 0)
 		{
 			fixed_t quakefactor = FLOAT2FIXED(r_quakeintensity);
 			
+			if (relmulWaveX != 0.0)
+			{
+				int ang = (camera->angle) >> ANGLETOFINESHIFT;
+				viewx += FixedMul(finecosine[ang], relmulWaveX);
+				viewy += FixedMul(finesine[ang], relmulWaveX);
+			}
+			if (relmulWaveY != 0.0)
+			{
+				int ang = (camera->angle) >> ANGLETOFINESHIFT;
+				viewx += FixedMul(finecosine[ang], relmulWaveY);
+				viewy += FixedMul(finesine[ang], relmulWaveY);
+			}
+			if (relmulWaveZ != 0.0)
+			{
+				viewz += relmulWaveZ;
+			}
+			if (mulWaveX != 0.0)
+			{
+				viewx += mulWaveX;
+			}
+			if (mulWaveY != 0.0)
+			{
+				viewy += mulWaveY;
+			}
+			if (mulWaveZ != 0.0)
+			{
+				viewz += mulWaveZ;
+			}
 			if (relIntensityX != 0.0)
 			{
 				int ang = (camera->angle) >> ANGLETOFINESHIFT;
-				fixed_t power = QuakePower(quakefactor, relIntensityX, sineOriented);
-				viewx += FixedMul(finecosine[ang], power + mulWaveX);
-				viewy += FixedMul(finesine[ang], power + mulWaveY);
+				fixed_t power = QuakePower(quakefactor, relIntensityX, mulWaveX);
+				viewx += FixedMul(finecosine[ang], power);
+				viewy += FixedMul(finesine[ang], power);
 			}
 			if (relIntensityY != 0.0)
 			{
 				int ang = (camera->angle + ANG90) >> ANGLETOFINESHIFT;
-				fixed_t power = QuakePower(quakefactor, relIntensityY, sineOriented);
-				viewx += FixedMul(finecosine[ang], power + mulWaveX);
-				viewy += FixedMul(finesine[ang], power + mulWaveY);
+				fixed_t power = QuakePower(quakefactor, relIntensityY, mulWaveY);
+				viewx += FixedMul(finecosine[ang], power);
+				viewy += FixedMul(finesine[ang], power);
 			}
 			// FIXME: Relative Z is not relative
 			// [MC]On it! Will be introducing pitch after QF_WAVE.
 			if (relIntensityZ != 0.0)
 			{
-				viewz += QuakePower(quakefactor, relIntensityZ, sineOriented) + mulWaveZ;
+				viewz += QuakePower(quakefactor, relIntensityZ, relmulWaveZ);
 			}
 			if (intensityX != 0.0)
 			{
-				viewx += QuakePower(quakefactor, intensityX, sineOriented) + mulWaveX;
+				viewx += QuakePower(quakefactor, intensityX, mulWaveX);
 			}
 			if (intensityY != 0.0)
 			{
-				viewy += QuakePower(quakefactor, intensityY, sineOriented) + mulWaveY;
+				viewy += QuakePower(quakefactor, intensityY, mulWaveY);
 			}
 			if (intensityZ != 0.0)
 			{
-				viewz += QuakePower(quakefactor, intensityZ, sineOriented) + mulWaveZ;
+				viewz += QuakePower(quakefactor, intensityZ, mulWaveZ);
 			}
 		}
 	}
