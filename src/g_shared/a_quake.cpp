@@ -322,19 +322,19 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 					fixed_t mz = quake->GetModWave(quake->m_mulWaveZ, countdown);
 					
 					
-					int mul = 8;
+					int mul = 16;
 					int halfmul = mul / 2;
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-						relmulWaveX = (relIntensityX) ? mx * (MAX(x, relIntensityX) >> 18) : mul * mx;
-						relmulWaveY = (relIntensityY) ? my * (MAX(y, relIntensityY) >> 18) : mul * my;
-						relmulWaveZ = (relIntensityZ) ? mz * (MAX(z, relIntensityZ) >> 18) : mul * mz;
+						relmulWaveX += (relIntensityX) ? mx * (MAX(x, relIntensityX) >> 18) : mul * mx;
+						relmulWaveY += (relIntensityY) ? my * (MAX(y, relIntensityY) >> 18) : mul * my;
+						relmulWaveZ += (relIntensityZ) ? mz * (MAX(z, relIntensityZ) >> 18) : mul * mz;
 					}
 					else
 					{
-						mulWaveX = (intensityX) ? mx * (MAX(x, intensityX) >> 18) : mul * mx;
-						mulWaveY = (intensityY) ? my * (MAX(y, intensityY) >> 18) : mul * my;
-						mulWaveZ = (intensityZ) ? mz * (MAX(z, intensityZ) >> 18) : mul * mz;
+						mulWaveX += (intensityX) ? mx * (MAX(x, intensityX) >> 18) : mul * mx;
+						mulWaveY += (intensityY) ? my * (MAX(y, intensityY) >> 18) : mul * my;
+						mulWaveZ += (intensityZ) ? mz * (MAX(z, intensityZ) >> 18) : mul * mz;
 					}
 				}
 			}

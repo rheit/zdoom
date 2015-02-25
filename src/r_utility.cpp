@@ -772,7 +772,7 @@ bool R_GetViewInterpolationStatus()
 
 static fixed_t QuakePower(fixed_t factor, fixed_t intensity, fixed_t sineOffset)
 {
-	return FixedMul(factor, pr_torchflicker(intensity * 2) - intensity + sineOffset);
+	return FixedMul(factor, (pr_torchflicker(intensity * 2) - intensity));
 }
 
 //==========================================================================
@@ -907,7 +907,7 @@ void R_SetupFrame (AActor *actor)
 			}
 			if (relmulWaveY != 0.0)
 			{
-				int ang = (camera->angle) >> ANGLETOFINESHIFT;
+				int ang = (camera->angle + ANG90) >> ANGLETOFINESHIFT;
 				viewx += FixedMul(finecosine[ang], relmulWaveY);
 				viewy += FixedMul(finesine[ang], relmulWaveY);
 			}
