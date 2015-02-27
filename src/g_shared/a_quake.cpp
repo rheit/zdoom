@@ -302,15 +302,21 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 				{
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-						relIntensityX = (x > 0) ? MAX(x, relIntensityX) : MIN(x, relIntensityX);
-						relIntensityY = (y > 0) ? MAX(y, relIntensityY) : MIN(y, relIntensityY);
-						relIntensityZ = (z > 0) ? MAX(z, relIntensityZ) : MIN(z, relIntensityZ);
+						//relIntensityX = (x > 0) ? MAX(x, relIntensityX) : MIN(x, relIntensityX);
+						//relIntensityY = (y > 0) ? MAX(y, relIntensityY) : MIN(y, relIntensityY);
+						//relIntensityZ = (z > 0) ? MAX(z, relIntensityZ) : MIN(z, relIntensityZ);
+						relIntensityX = MAX(x, relIntensityX);
+						relIntensityY = MAX(y, relIntensityY);
+						relIntensityZ = MAX(z, relIntensityZ);
 					}
 					else
 					{
-						intensityX = (x > 0) ? MAX(x, intensityX) : MIN(x, intensityX);
-						intensityY = (y > 0) ? MAX(y, intensityY) : MIN(y, intensityY);
-						intensityZ = (z > 0) ? MAX(z, intensityZ) : MIN(z, intensityZ);
+						//intensityX = (x > 0) ? MAX(x, intensityX) : MIN(x, intensityX);
+						//intensityY = (y > 0) ? MAX(y, intensityY) : MIN(y, intensityY);
+						//intensityZ = (z > 0) ? MAX(z, intensityZ) : MIN(z, intensityZ);
+						intensityX = MAX(x, intensityX);
+						intensityY = MAX(y, intensityY);
+						intensityZ = MAX(z, intensityZ);
 					}
 				}
 				if (sineOriented)
@@ -327,15 +333,15 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 					int ls = 19, rs = 19;
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-						relmulWaveX = (relIntensityX) ? mx * (MAX(x >> ls, relIntensityX >> rs)) : mul * mx;
-						relmulWaveY = (relIntensityY) ? my * (MAX(y >> ls, relIntensityY >> rs)) : mul * my;
-						relmulWaveZ = (relIntensityZ) ? mz * (MAX(z >> ls, relIntensityZ >> rs)) : mul * mz;
+						relmulWaveX = (relIntensityX) ? mx * (x >> ls) : mul * mx;
+						relmulWaveY = (relIntensityY) ? my * (y >> ls) : mul * my;
+						relmulWaveZ = (relIntensityZ) ? mz * (z >> ls) : mul * mz;
 					}
 					else
 					{
-						mulWaveX = (intensityX) ? mx * (MAX(x >> ls, intensityX >> rs)) : mul * mx;
-						mulWaveY = (intensityY) ? my * (MAX(y >> ls, intensityY >> rs)) : mul * my;
-						mulWaveZ = (intensityZ) ? mz * (MAX(z >> ls, intensityZ >> rs)) : mul * mz;
+						mulWaveX = (intensityX) ? mx * (x >> ls) : mul * mx;
+						mulWaveY = (intensityY) ? my * (y >> ls) : mul * my;
+						mulWaveZ = (intensityZ) ? mz * (z >> ls) : mul * mz;
 					}
 				}
 			}
