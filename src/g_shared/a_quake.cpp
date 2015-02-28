@@ -327,23 +327,6 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 					int ls = 19, rs = 19;
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-<<<<<<< HEAD
-						/*relmulWaveX = (relIntensityX) ? mx * (MAX(x >> ls, relIntensityX >> rs)) : mul * mx;
-						relmulWaveY = (relIntensityY) ? my * (MAX(y >> ls, relIntensityY >> rs)) : mul * my;
-						relmulWaveZ = (relIntensityZ) ? mz * (MAX(z >> ls, relIntensityZ >> rs)) : mul * mz; */
-						relmulWaveX = (relIntensityX) ? mx * (x >> ls) : mul * mx;
-						relmulWaveY = (relIntensityY) ? my * (y >> ls) : mul * my;
-						relmulWaveZ = (relIntensityZ) ? mz * (z >> ls) : mul * mz;
-					}
-					else
-					{
-						/*mulWaveX = (intensityX) ? mx * (MAX(x >> ls, intensityX >> rs)) : mul * mx;
-						mulWaveY = (intensityY) ? my * (MAX(y >> ls, intensityY >> rs)) : mul * my;
-						mulWaveZ = (intensityZ) ? mz * (MAX(z >> ls, intensityZ >> rs)) : mul * mz;*/
-						mulWaveX = (intensityX) ? mx * (x >> ls, intensityX >> rs) : mul * mx;
-						mulWaveY = (intensityY) ? my * (y >> ls, intensityY >> rs) : mul * my;
-						mulWaveZ = (intensityZ) ? mz * (z >> ls, intensityZ >> rs) : mul * mz;
-=======
 						relmulWaveX = (relIntensityX) ? mx * (MAX(x >> ls, relIntensityX >> rs)) : mul * mx;
 						relmulWaveY = (relIntensityY) ? my * (MAX(y >> ls, relIntensityY >> rs)) : mul * my;
 						relmulWaveZ = (relIntensityZ) ? mz * (MAX(z >> ls, relIntensityZ >> rs)) : mul * mz;
@@ -353,7 +336,6 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 						mulWaveX = (intensityX) ? mx * (MAX(x >> ls, intensityX >> rs)) : mul * mx;
 						mulWaveY = (intensityY) ? my * (MAX(y >> ls, intensityY >> rs)) : mul * my;
 						mulWaveZ = (intensityZ) ? mz * (MAX(z >> ls, intensityZ >> rs)) : mul * mz;
->>>>>>> parent of c5093d9... Some more progress, but...
 					}
 				}
 			}
