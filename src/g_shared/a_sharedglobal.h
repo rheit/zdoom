@@ -160,7 +160,7 @@ public:
 	int m_IntensityX, m_IntensityY, m_IntensityZ;
 	fixed_t m_mulWaveX, m_mulWaveY, m_mulWaveZ;
 
-	fixed_t GetModIntensity(fixed_t intensity) const;
+	fixed_t GetModIntensity(fixed_t intensity, fixed_t time, bool isWave = 0) const;
 	fixed_t GetModWave(fixed_t waveMultiplier, fixed_t time) const;
 	fixed_t GetModCountdown(fixed_t countdown, bool up) const;
 

@@ -176,12 +176,28 @@ fixed_t DEarthquake::GetModWave(fixed_t waveMultiplier, fixed_t time) const
 	//QF_WAVE converts intensity into amplitude and unlocks a new property, the wave length.
 	//This is, in short, waves per second (full cycles, mind you, from 0 to 360.)
 	//Named waveMultiplier because that's as the name implies: adds more waves per second.
-	fixed_t wavesPerSecond;
-	fixed_t index;
+
+	fixed_t wavesPerSecond = (waveMultiplier >> 15) * time % (TICRATE * 2);
+	fixed_t index = ((wavesPerSecond * (FINEANGLES / 2)) / (TICRATE));	
+	return finesine[index];
+}
+
+//==========================================================================
+//
+// DEarthquake :: GetModIntensity
+//
+// Given a base intensity, modify it according to the quake's flags.
+//
+//==========================================================================
+
+fixed_t DEarthquake::GetModIntensity(fixed_t intensity, fixed_t time, bool isWave) const
+{
 	assert(m_CountdownStart >= m_Countdown);
+	intensity += intensity;		// always doubled
+
 	if (m_Flags & (QF_SCALEDOWN | QF_SCALEUP))
 	{
-		fixed_t scalar;
+		int scalar;
 		if ((m_Flags & (QF_SCALEDOWN | QF_SCALEUP)) == (QF_SCALEDOWN | QF_SCALEUP))
 		{
 			scalar = (m_Flags & QF_MAX) ? MAX(time, m_CountdownStart - time)
@@ -194,63 +210,14 @@ fixed_t DEarthquake::GetModWave(fixed_t waveMultiplier, fixed_t time) const
 		}
 		else if (m_Flags & QF_SCALEDOWN)
 		{
-			scalar = m_Countdown;
+			scalar = time;
 		}
 		else			// QF_SCALEUP
 		{
-			scalar = m_CountdownStart - m_Countdown;
+			scalar = m_CountdownStart - time;
 		}
 		assert(m_CountdownStart > 0);
-		//assert(scalar > 0);
-		//Need some help here...
-		wavesPerSecond = (waveMultiplier >> 15) * time % (TICRATE * 2);
-		index = ((wavesPerSecond * (FINEANGLES / 2)) / (TICRATE));
-	}
-	else
-	{
-		wavesPerSecond = (waveMultiplier >> 15) * time % (TICRATE * 2);
-		index = ((wavesPerSecond * (FINEANGLES / 2)) / (TICRATE));
-	}
-	
-	return finesine[index];
-}
-
-//==========================================================================
-//
-// DEarthquake :: GetModIntensity
-//
-// Given a base intensity, modify it according to the quake's flags.
-//
-//==========================================================================
-
-fixed_t DEarthquake::GetModIntensity(fixed_t intensity) const
-{
-	assert(m_CountdownStart >= m_Countdown);
-	intensity += intensity;		// always doubled
-
-	if (m_Flags & (QF_SCALEDOWN | QF_SCALEUP))
-	{
-		int scalar;
-		if ((m_Flags & (QF_SCALEDOWN | QF_SCALEUP)) == (QF_SCALEDOWN | QF_SCALEUP))
-		{
-			scalar = (m_Flags & QF_MAX) ? MAX(m_Countdown, m_CountdownStart - m_Countdown)
-				: MIN(m_Countdown, m_CountdownStart - m_Countdown);
-
-			if (m_Flags & QF_FULLINTENSITY)
-			{
-				scalar *= 2;
-			}
-		}
-		else if (m_Flags & QF_SCALEDOWN)
-		{
-			scalar = m_Countdown;
-		}
-		else			// QF_SCALEUP
-		{
-			scalar = m_CountdownStart - m_Countdown;
-		}
-		assert(m_CountdownStart > 0);
-		intensity = intensity * (scalar << FRACBITS) / m_CountdownStart;
+		intensity = intensity * (isWave ? scalar : (scalar << FRACBITS)) / m_CountdownStart;
 	}
 	return intensity;
 }
@@ -295,22 +262,22 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 			{
 				++count;
 				sineOriented = (quake->m_Flags & QF_WAVE) ? true : false;
-				fixed_t x = quake->GetModIntensity(quake->m_IntensityX);
-				fixed_t y = quake->GetModIntensity(quake->m_IntensityY);
-				fixed_t z = quake->GetModIntensity(quake->m_IntensityZ);
+				fixed_t x = quake->GetModIntensity(quake->m_IntensityX, quake->m_Countdown);
+				fixed_t y = quake->GetModIntensity(quake->m_IntensityY, quake->m_Countdown);
+				fixed_t z = quake->GetModIntensity(quake->m_IntensityZ, quake->m_Countdown);
 				if (!sineOriented)
 				{
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-						relIntensityX = (x > 0) ? MAX(x, relIntensityX) : MIN(x, relIntensityX);
-						relIntensityY = (y > 0) ? MAX(y, relIntensityY) : MIN(y, relIntensityY);
-						relIntensityZ = (z > 0) ? MAX(z, relIntensityZ) : MIN(z, relIntensityZ);
+						relIntensityX = MAX(x, relIntensityX);
+						relIntensityY = MAX(y, relIntensityY);
+						relIntensityZ = MAX(z, relIntensityZ);
 					}
 					else
 					{
-						intensityX = (x > 0) ? MAX(x, intensityX) : MIN(x, intensityX);
-						intensityY = (y > 0) ? MAX(y, intensityY) : MIN(y, intensityY);
-						intensityZ = (z > 0) ? MAX(z, intensityZ) : MIN(z, intensityZ);
+						intensityX = MAX(x, intensityX);
+						intensityY = MAX(y, intensityY);
+						intensityZ = MAX(z, intensityZ);
 					}
 				}
 				if (sineOriented)
@@ -320,22 +287,21 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim,
 					fixed_t mx = quake->GetModWave(quake->m_mulWaveX, countdown);
 					fixed_t my = quake->GetModWave(quake->m_mulWaveY, countdown);
 					fixed_t mz = quake->GetModWave(quake->m_mulWaveZ, countdown);
-					
-					
-					int mul = 16;
-					int halfmul = mul / 2;
-					int ls = 19, rs = 19;
+					mx = quake->GetModIntensity(mx, countdown, 1); //Adds scaling up/down support for the waves with the boolean (disables multiplying the result by 8192 / 4).
+					my = quake->GetModIntensity(my, countdown, 1);
+					mz = quake->GetModIntensity(mz, countdown, 1);
+
 					if (quake->m_Flags & QF_RELATIVE)
 					{
-						relmulWaveX = (relIntensityX) ? mx * (MAX(x >> ls, relIntensityX >> rs)) : mul * mx;
-						relmulWaveY = (relIntensityY) ? my * (MAX(y >> ls, relIntensityY >> rs)) : mul * my;
-						relmulWaveZ = (relIntensityZ) ? mz * (MAX(z >> ls, relIntensityZ >> rs)) : mul * mz;
+						relmulWaveX = mx << 3;
+						relmulWaveY = my << 3;
+						relmulWaveZ = mz << 3;
 					}
 					else
 					{
-						mulWaveX = (intensityX) ? mx * (MAX(x >> ls, intensityX >> rs)) : mul * mx;
-						mulWaveY = (intensityY) ? my * (MAX(y >> ls, intensityY >> rs)) : mul * my;
-						mulWaveZ = (intensityZ) ? mz * (MAX(z >> ls, intensityZ >> rs)) : mul * mz;
+						mulWaveX = mx << 3;
+						mulWaveY = my << 3;
+						mulWaveZ = mz << 3;
 					}
 				}
 			}
