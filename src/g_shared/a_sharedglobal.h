@@ -138,6 +138,7 @@ enum
 	QF_SCALEUP =		1 << 2,
 	QF_MAX =			1 << 3,
 	QF_FULLINTENSITY =	1 << 4,
+	QF_WAVE =			1 << 5,
 };
 
 class DEarthquake : public DThinker
@@ -145,7 +146,8 @@ class DEarthquake : public DThinker
 	DECLARE_CLASS (DEarthquake, DThinker)
 	HAS_OBJECT_POINTERS
 public:
-	DEarthquake(AActor *center, int intensityX, int intensityY, int intensityZ, int duration, int damrad, int tremrad, FSoundID quakesfx, int flags);
+	DEarthquake(AActor *center, int intensityX, int intensityY, int intensityZ, int duration, int damrad, int tremrad, FSoundID quakesfx, int flags, 
+		double m_mulWaveX, double m_mulWaveY, double m_mulWaveZ);
 
 	void Serialize (FArchive &arc);
 	void Tick ();
@@ -156,12 +158,18 @@ public:
 	FSoundID m_QuakeSFX;
 	int m_Flags;
 	int m_IntensityX, m_IntensityY, m_IntensityZ;
+	fixed_t m_mulWaveX, m_mulWaveY, m_mulWaveZ;
 
-	fixed_t GetModIntensity(int intensity) const;
+	fixed_t GetModIntensity(fixed_t intensity, fixed_t time, bool isWave = 0) const;
+	fixed_t GetModWave(fixed_t waveMultiplier, fixed_t time) const;
+	fixed_t GetModCountdown(fixed_t countdown, bool up) const;
 
 	static int StaticGetQuakeIntensities(AActor *viewer,
 		fixed_t &intensityX, fixed_t &intensityY, fixed_t &intensityZ,
-		fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ);
+		fixed_t &relIntensityX, fixed_t &relIntensityY, fixed_t &relIntensityZ, 
+		bool &sineOriented, 
+		fixed_t &mulWaveX, fixed_t &mulWaveY, fixed_t &mulWaveZ, 
+		fixed_t &relmulWaveX, fixed_t &relmulWaveY, fixed_t &relmulWaveZ, int &countdown);
 
 private:
 	DEarthquake ();
