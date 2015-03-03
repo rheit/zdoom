@@ -253,6 +253,10 @@ static FFlagDef ActorFlags[]=
 	DEFINE_FLAG(MF7, HITTARGET, AActor, flags7),
 	DEFINE_FLAG(MF7, HITMASTER, AActor, flags7),
 	DEFINE_FLAG(MF7, HITTRACER, AActor, flags7),
+	DEFINE_FLAG(MF7, THRUOBJECTS, AActor, flags7),
+	DEFINE_FLAG(MF7, THRUMONSTERS, AActor, flags7),
+	DEFINE_FLAG(MF7, THRUMISSILES, AActor, flags7),
+	DEFINE_FLAG(MF7, THRUSHOOTABLES, AActor, flags7),
 
 	// Effect flags
 	DEFINE_FLAG(FX, VISIBILITYPULSE, AActor, effects),

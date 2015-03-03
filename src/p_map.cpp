@@ -1005,6 +1005,25 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 	if ((thing->flags2 | tm.thing->flags2) & MF2_THRUACTORS)
 		return true;
 
+	// [MC] These must be directly one way or another.
+	// Also, both sides must be checked, because otherwise one can still be blocked
+	// while the other can move freely.
+
+	//Special cases for missiles handled further down to account for MBFs.
+	if (!((tm.thing->flags | thing->flags) & MF_MISSILE))
+	{
+		if (((tm.thing->flags7 & MF7_THRUMONSTERS) && (thing->flags3 & MF3_ISMONSTER)) ||
+			((thing->flags7 & MF7_THRUMONSTERS) && (tm.thing->flags3 & MF3_ISMONSTER)))
+			return true;
+
+		if (((tm.thing->flags7 & MF7_THRUOBJECTS) && !(thing->flags3 & MF3_ISMONSTER)) ||
+			((thing->flags7 & MF7_THRUOBJECTS) && !(tm.thing->flags3 & MF3_ISMONSTER)))
+			return true;
+
+		if (((tm.thing->flags7 & MF7_THRUSHOOTABLES) && (thing->flags & MF_SHOOTABLE)) ||
+			((thing->flags7 & MF7_THRUSHOOTABLES) && (tm.thing->flags & MF_SHOOTABLE)))
+			return true;
+	}
 	if ((tm.thing->flags6 & MF6_THRUSPECIES) && (tm.thing->GetSpecies() == thing->GetSpecies()))
 		return true;
 
@@ -1164,6 +1183,18 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 		if ((tm.thing->flags6 & MF6_MTHRUSPECIES)
 			&& tm.thing->target // NULL pointer check
 			&& (tm.thing->target->GetSpecies() == thing->GetSpecies()))
+			return true;
+
+		if (thing->flags7 & MF7_THRUMISSILES)
+			return true;
+
+		if ((tm.thing->flags7 & MF7_THRUMONSTERS) && (thing->flags3 & MF3_ISMONSTER))
+			return true;
+
+		if ((tm.thing->flags7 & MF7_THRUOBJECTS) && !(thing->flags3 & MF3_ISMONSTER))
+			return true;
+
+		if ((tm.thing->flags7 & MF7_THRUSHOOTABLES) && (thing->flags & MF_SHOOTABLE))
 			return true;
 
 		// Check for rippers passing through corpses
@@ -1654,6 +1685,29 @@ bool P_TestMobjZ(AActor *actor, bool quick, AActor **pOnmobj)
 			continue;
 		}
 		if ((actor->flags2 | thing->flags2) & MF2_THRUACTORS)
+		{
+			continue;
+		}
+		if (((actor->flags7 & MF7_THRUMONSTERS) && (thing->flags3 & MF3_ISMONSTER)) ||
+			((thing->flags7 & MF7_THRUMONSTERS) && (actor->flags3 & MF3_ISMONSTER))) 
+		{
+			continue;
+		}
+		if ((((actor->flags7 & MF7_THRUOBJECTS) && !(thing->flags3 & MF3_ISMONSTER)) ||
+			((thing->flags7 & MF7_THRUOBJECTS) && !(actor->flags3 & MF3_ISMONSTER))) &&
+			!((thing->flags | actor->flags) & MF_MISSILE))
+			// [MC] I didn't think this missile check would be necessary. I thought the same
+			// thing with PIT_CheckThing and boy was I surprised.
+		{
+			continue;
+		}
+		if (((actor->flags7 & MF7_THRUMISSILES) && (thing->flags & MF_MISSILE)) ||
+			((thing->flags7 & MF7_THRUMISSILES) && (actor->flags & MF_MISSILE)))
+		{
+			continue;
+		}
+		if (((actor->flags7 & MF7_THRUSHOOTABLES) && (thing->flags & MF_SHOOTABLE)) ||
+			((thing->flags7 & MF7_THRUSHOOTABLES) && (actor->flags & MF_SHOOTABLE)))
 		{
 			continue;
 		}
@@ -5136,6 +5190,19 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 		if (thing->flags6 & MF6_THRUSPECIES && thing->GetSpecies() == intersect->GetSpecies())
 			continue;
 		if ((thing->flags & MF_MISSILE) && (intersect->flags2 & MF2_REFLECTIVE) && (intersect->flags7 & MF7_THRUREFLECT))
+			continue;
+		if (((thing->flags7 & MF7_THRUMONSTERS) && (intersect->flags3 & MF3_ISMONSTER)) ||
+			((intersect->flags7 & MF7_THRUMONSTERS) && (thing->flags3 & MF3_ISMONSTER)))
+			continue;
+		if ((((thing->flags7 & MF7_THRUOBJECTS) && !(intersect->flags3 & MF3_ISMONSTER)) ||
+			((intersect->flags7 & MF7_THRUOBJECTS) && !(thing->flags3 & MF3_ISMONSTER))) &&
+			!((thing->flags | intersect->flags) & MF_MISSILE))
+			continue;
+		if (((thing->flags7 & MF7_THRUSHOOTABLES) && (intersect->flags & MF_SHOOTABLE)) ||
+			((intersect->flags7 & MF7_THRUSHOOTABLES) && (thing->flags & MF_SHOOTABLE)))
+			continue;
+		if (((thing->flags7 & MF7_THRUMISSILES) && (intersect->flags & MF_MISSILE)) ||
+			((intersect->flags7 & MF7_THRUMISSILES) && (thing->flags & MF_MISSILE)))
 			continue;
 		if (!(intersect->flags2 & MF2_PASSMOBJ) ||
 			(!(intersect->flags3 & MF3_ISMONSTER) && intersect->Mass > mymass) ||
