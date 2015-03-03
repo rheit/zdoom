@@ -354,6 +354,10 @@ enum
 	MF7_HITMASTER		= 0x00008000,	// Same as HITTARGET, except it's master instead of target.
 	MF7_HITTRACER		= 0x00010000,	// Same as HITTARGET, but for tracer.
 	MF7_FLYCHEAT		= 0x00020000,	// must be part of the actor so that it can be tracked properly
+	MF7_THRUOBJECTS		= 0x00040000,	// actor can pass through non-monsters like thruactors, but can still be hit and blocked by monsters.
+	MF7_THRUMONSTERS	= 0x00080000,	// actor can pass through monsters, but can still be hit and blocked by non-monsters
+	MF7_THRUMISSILES	= 0x00100000,	// missiles pass through this monster instead of exploding on contact, making it semi-nonshootable (bullets still hit)
+	MF7_THRUSHOOTABLES	= 0x00200000,	// anything shootable that isn't a monster can be passed through.
 
 
 
