@@ -1002,12 +1002,16 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 	if (thing == tm.thing)
 		return true;
 
-	if ((thing->flags2 | tm.thing->flags2) & MF2_THRUACTORS)
+	if (thing->CheckMask(MASK_All) || tm.thing->CheckMask(MASK_All) || thing->crossCheckMask(tm.thing, MASK_All, true))
 		return true;
 
-	if ((tm.thing->flags6 & MF6_THRUSPECIES) && (tm.thing->GetSpecies() == thing->GetSpecies()))
+	if ((thing->crossCheckMask(tm.thing, MASK_Ghost)) ||
+		(thing->crossCheckMask(tm.thing, MASK_Objects)) ||
+		(thing->crossCheckMask(tm.thing, MASK_Monsters)) ||
+		(thing->crossCheckMask(tm.thing, MASK_Shootables)) ||
+		(thing->crossCheckMask(tm.thing, MASK_Species)))
 		return true;
-
+	
 	tm.thing->BlockingMobj = thing;
 	topz = thing->z + thing->height;
 	if (!(i_compatflags & COMPATF_NO_PASSMOBJ) && !(tm.thing->flags & (MF_FLOAT | MF_MISSILE | MF_SKULLFLY | MF_NOGRAVITY)) &&
@@ -1155,16 +1159,16 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 		{
 			return true;
 		}
-		// Check for passing through a ghost
-		if ((thing->flags3 & MF3_GHOST) && (tm.thing->flags2 & MF2_THRUGHOST))
+		// Check for passing through the series of masks.
+		if ((thing->crossCheckMask(tm.thing, MASK_Ghost)) ||
+			(thing->crossCheckMask(tm.thing, MASK_Objects)) ||
+			(thing->crossCheckMask(tm.thing, MASK_Monsters)) ||
+			(thing->crossCheckMask(tm.thing, MASK_Shootables)) ||
+			(thing->crossCheckMask(tm.thing, MASK_Species)) ||
+			(thing->crossCheckMask(tm.thing, MASK_Missiles)))
 		{
 			return true;
 		}
-
-		if ((tm.thing->flags6 & MF6_MTHRUSPECIES)
-			&& tm.thing->target // NULL pointer check
-			&& (tm.thing->target->GetSpecies() == thing->GetSpecies()))
-			return true;
 
 		// Check for rippers passing through corpses
 		if ((thing->flags & MF_CORPSE) && (tm.thing->flags2 & MF2_RIP) && !(thing->flags & MF_SHOOTABLE))
@@ -1653,11 +1657,16 @@ bool P_TestMobjZ(AActor *actor, bool quick, AActor **pOnmobj)
 		{
 			continue;
 		}
-		if ((actor->flags2 | thing->flags2) & MF2_THRUACTORS)
+		if ((actor->CheckMask(MASK_All) || thing->CheckMask(MASK_All)))
 		{
 			continue;
 		}
-		if ((actor->flags6 & MF6_THRUSPECIES) && (thing->GetSpecies() == actor->GetSpecies()))
+		if ((thing->crossCheckMask(actor, MASK_Ghost)) ||
+			(thing->crossCheckMask(actor, MASK_Objects)) ||
+			(thing->crossCheckMask(actor, MASK_Monsters)) ||
+			(thing->crossCheckMask(actor, MASK_Shootables)) ||
+			(thing->crossCheckMask(actor, MASK_Species)) ||
+			(thing->crossCheckMask(actor, MASK_Missiles)))
 		{
 			continue;
 		}
@@ -3320,7 +3329,8 @@ void aim_t::AimTraverse(fixed_t startx, fixed_t starty, fixed_t endx, fixed_t en
 				if ((th->flags3 & MF3_GHOST) &&
 					shootthing->player &&	// [RH] Be sure shootthing is a player
 					shootthing->player->ReadyWeapon &&
-					(shootthing->player->ReadyWeapon->flags2 & MF2_THRUGHOST))
+					//(shootthing->player->ReadyWeapon->flags2 & MF2_THRUGHOST)
+					(th->crossCheckMask(shootthing->player->ReadyWeapon, MASK_Ghost) || (shootthing->player->ReadyWeapon->crossCheckMask(th, MASK_Ghost))))
 				{
 					continue;
 				}
@@ -3671,10 +3681,9 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 
 	TData.hitGhosts = (t1->player != NULL &&
 		t1->player->ReadyWeapon != NULL &&
-		(t1->player->ReadyWeapon->flags2 & MF2_THRUGHOST)) ||
-		(puffDefaults && (puffDefaults->flags2 & MF2_THRUGHOST));
+		((t1->player->ReadyWeapon->CheckMask(MASK_Ghost)) || (puffDefaults && puffDefaults->CheckMask(MASK_Ghost))));
 
-	TData.hitSameSpecies = (puffDefaults && (puffDefaults->flags6 & MF6_MTHRUSPECIES));
+	TData.hitSameSpecies = (puffDefaults && (puffDefaults->crossCheckMask(t1, MASK_Species)));
 
 	// if the puff uses a non-standard damage type, this will override default, hitscan and melee damage type.
 	// All other explicitly passed damage types (currenty only MDK) will be preserved.
@@ -5122,7 +5131,7 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 		return 1;
 	}
 	// [GZ] Skip thing intersect test for THRUACTORS things.
-	if (thing->flags2 & MF2_THRUACTORS)
+	if (thing->CheckMask(MASK_All))
 		return 0;
 	P_FindAboveIntersectors(thing);
 	lastintersect = intersectors.Size();
@@ -5133,7 +5142,11 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 		// Should there be MF2_THRUGHOST / MF3_GHOST checks there too for consistency?
 		// Or would that risk breaking established behavior? THRUGHOST, like MTHRUSPECIES,
 		// is normally for projectiles which would have exploded by now anyway...
-		if (thing->flags6 & MF6_THRUSPECIES && thing->GetSpecies() == intersect->GetSpecies())
+		if ((thing->crossCheckMask(intersect, MASK_Ghost) || (intersect->crossCheckMask(thing, MASK_Ghost))) ||
+			(thing->crossCheckMask(intersect, MASK_Objects) || (intersect->crossCheckMask(thing, MASK_Objects))) ||
+			(thing->crossCheckMask(intersect, MASK_Monsters) || (intersect->crossCheckMask(thing, MASK_Monsters))) ||
+			(thing->crossCheckMask(intersect, MASK_Shootables) || (intersect->crossCheckMask(thing, MASK_Shootables))) ||
+			(thing->crossCheckMask(intersect, MASK_Species) || (intersect->crossCheckMask(thing, MASK_Species))))
 			continue;
 		if ((thing->flags & MF_MISSILE) && (intersect->flags2 & MF2_REFLECTIVE) && (intersect->flags7 & MF7_THRUREFLECT))
 			continue;

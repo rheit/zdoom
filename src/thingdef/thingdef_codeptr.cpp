@@ -4621,7 +4621,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_WolfAttack)
 			AActor * dpuff = GetDefaultByType(pufftype->GetReplacement());
 			mod = dpuff->DamageType;
 
-			if (dpuff->flags2 & MF2_THRUGHOST && self->target->flags3 & MF3_GHOST)
+			if (self->target->crossCheckMask(dpuff, MASK_Ghost))
 				damage = 0;
 			
 			if ((0 && dpuff->flags3 & MF3_PUFFONACTORS) || !spawnblood)
@@ -5849,6 +5849,46 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ResetHealth)
 	else if (mobj && (mobj->health > 0))
 	{
 		mobj->health = mobj->SpawnHealth();
+	}
+}
+
+enum ClipBlockFlags
+{
+	//SCBF_BOTH =		0,
+	SCBF_CLIP =		1,
+	SCBF_BLOCK =	1 << 1,
+};
+
+//===========================================================================
+// A_SetMask (int mask, pointer)
+//
+// Sets the noclip and noblock masks of an actor. Takes a pointer.
+//===========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetClipBlockMask)
+{
+	ACTION_PARAM_START(3);
+	
+	ACTION_PARAM_INT(mask, 0);
+	ACTION_PARAM_INT(flags, 1);
+	ACTION_PARAM_INT(ptr, 2);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+		return;
+
+	if (flags & SCBF_CLIP)
+	{
+		mobj->NoClipMask = (mask >= 0) ? mask : 0;
+	}
+	else if (flags & SCBF_BLOCK)
+	{
+		mobj->NoBlockMask = (mask >= 0) ? mask : 0;
+	}
+	else //no flags specified means both.
+	{
+		mobj->NoClipMask = mobj->NoBlockMask = (mask >= 0) ? mask : 0;
 	}
 }
 

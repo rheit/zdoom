@@ -554,6 +554,24 @@ static int ParseThingActivation (FScanner &sc)
 	return ParseFlagExpressionString(sc, activationstyles);
 }
 
+static int ParseClipBlockMask(FScanner &sc)
+{
+	static const FParseValue masks[] = {
+		{ "MASK_Default",		MASK_None },
+		{ "MASK_None",			MASK_None },
+		{ "MASK_Monsters",		MASK_Monsters },
+		{ "MASK_Objects",		MASK_Objects },
+		{ "MASK_Shootables",	MASK_Shootables },
+		{ "MASK_Missiles",		MASK_Missiles },
+		{ "MASK_Ghost",			MASK_Ghost },
+		{ "MASK_Species",		MASK_Species },
+		{ "MASK_All",			MASK_All },
+		{ NULL, 0 }
+	};
+
+	return ParseFlagExpressionString(sc, masks);
+}
+
 //==========================================================================
 //
 // For getting a state address from the parent
@@ -714,6 +732,10 @@ static bool ParsePropertyParams(FScanner &sc, FPropertyInfo *prop, AActor *defau
 				
 			case 'N':	// special case. An expression-aware parser will not need this.
 				conv.i = ParseThingActivation(sc);
+				break;
+
+			case 'O':
+				conv.i = ParseClipBlockMask(sc);
 				break;
 
 			case 'L':	// Either a number or a list of strings
