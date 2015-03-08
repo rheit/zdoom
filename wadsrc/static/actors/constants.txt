@@ -469,5 +469,10 @@ enum
 	QF_WAVE =			1 << 5,
 };
 
+// Flags for A_SetHealth
+enum
+{
+	SHF_INVERSE =		1,
+};
 // This is only here to provide one global variable for testing.
 native int testglobalvar;
