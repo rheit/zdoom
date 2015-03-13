@@ -4973,6 +4973,7 @@ enum RadiusGiveFlags
 	RGF_CUBE		=	1 << 9,
 	RGF_NOSIGHT		=	1 << 10,
 	RGF_MISSILES	=	1 << 11,
+	RGF_RANGELESS	=	1 << 12,
 };
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
@@ -5064,23 +5065,27 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 		{
 			continue;
 		}
+		//Ignore distance checking with RGF_RANGELESS, aka unlimited range.
+		if (!(flags & RGF_RANGELESS))
+		{
 
-		if (flags & RGF_CUBE)
-		{ // check if inside a cube
-			if (abs(thing->x - self->x) > distance ||
-				abs(thing->y - self->y) > distance ||
-				abs((thing->z + thing->height/2) - (self->z + self->height/2)) > distance)
-			{
-				continue;
+			if (flags & RGF_CUBE)
+			{ // check if inside a cube
+				if (abs(thing->x - self->x) > distance ||
+					abs(thing->y - self->y) > distance ||
+					abs((thing->z + thing->height / 2) - (self->z + self->height / 2)) > distance)
+				{
+					continue;
+				}
 			}
-		}
-		else
-		{ // check if inside a sphere
-			TVector3<double> tpos(thing->x, thing->y, thing->z + thing->height/2);
-			TVector3<double> spos(self->x, self->y, self->z + self->height/2);
-			if ((tpos - spos).LengthSquared() > distsquared)
-			{
-				continue;
+			else
+			{ // check if inside a sphere
+				TVector3<double> tpos(thing->x, thing->y, thing->z + thing->height / 2);
+				TVector3<double> spos(self->x, self->y, self->z + self->height / 2);
+				if ((tpos - spos).LengthSquared() > distsquared)
+				{
+					continue;
+				}
 			}
 		}
 		fixed_t dz = abs ((thing->z + thing->height/2) - (self->z + self->height/2));
