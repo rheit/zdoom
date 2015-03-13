@@ -222,6 +222,7 @@ enum
 	RGF_CUBE		=	1 << 9,
 	RGF_NOSIGHT		=	1 << 10,
 	RGF_MISSILES	=	1 << 11,
+	RGF_RANGELESS	=	1 << 12,
 };
 
 // Activation flags
