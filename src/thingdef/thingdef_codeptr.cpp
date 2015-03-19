@@ -1318,6 +1318,7 @@ enum FP_Flags
 {
 	FPF_AIMATANGLE = 1,
 	FPF_TRANSFERTRANSLATION = 2,
+	FPF_TRANSFERPITCH = 4,
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireCustomMissile)
 {
@@ -1357,6 +1358,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireCustomMissile)
 		fixed_t SavedPlayerPitch = self->pitch;
 		self->pitch -= pitch;
 		AActor * misl=P_SpawnPlayerMissile (self, x, y, z, ti, shootangle, &linetarget);
+		if (Flags & FPF_TRANSFERPITCH)	misl->SetPitch(self->pitch, 0);
 		self->pitch = SavedPlayerPitch;
 
 		// automatic handling of seeker missiles

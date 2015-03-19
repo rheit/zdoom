@@ -181,9 +181,10 @@ const int CPF_NORANDOMPUFFZ = 8;
 const int CPF_NOTURN = 16;
 const int CPF_STEALARMOR = 32;
 
-// Flags for A_CustomMissile
+// Flags for A_FireCustomMissile
 const int FPF_AIMATANGLE = 1;
 const int FPF_TRANSFERTRANSLATION = 2;
+const int FPF_TRANSFERPITCH = 4;
 
 // Flags for A_Teleport
 enum
