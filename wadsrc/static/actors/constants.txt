@@ -489,12 +489,5 @@ enum
 	MASK_All					= 1 << 6,	// THRUACTORS in short.	
 };
 
-// Flags for A_SetHealth
-enum
-{
-	SHF_ADD =			1,
-	SHF_GETFROM =		1 << 1,
-};
-
 // This is only here to provide one global variable for testing.
 native int testglobalvar;
