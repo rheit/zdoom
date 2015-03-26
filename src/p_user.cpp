@@ -2079,18 +2079,6 @@ void P_DeathThink (player_t *player)
 		{
 			player->mo->pitch = 0;
 		}
-		if (player->mo->roll < 0)
-		{
-			player->mo->roll += ANGLE_1 * 6;
-		}
-		else if (player->mo->roll > 0)
-		{
-			player->mo->roll -= ANGLE_1 * 6;
-		}
-		if (abs(player->mo->roll) < ANGLE_1 * 6)
-		{
-			player->mo->roll = 0;
-		}
 	}
 	P_CalcHeight (player);
 		
@@ -2412,20 +2400,17 @@ void P_PlayerThink (player_t *player)
 	}
 	if (player->centering)
 	{
-		if (abs(player->mo->pitch) > 2 * ANGLE_1 || abs(player->mo->roll) > 2 * ANGLE_1)
+		if (abs(player->mo->pitch) > 2 * ANGLE_1)
 		{
 			player->mo->pitch = FixedMul(player->mo->pitch, FRACUNIT*2/3);
-			player->mo->roll = FixedMul(player->mo->roll, FRACUNIT*2/3);
 		}
 		else
 		{
 			player->mo->pitch = 0;
-			player->mo->roll = 0;
 			player->centering = false;
 			if (player - players == consoleplayer)
 			{
 				LocalViewPitch = 0;
-				LocalViewRoll = 0;
 			}
 		}
 	}
