@@ -1272,6 +1272,14 @@ OptionValue CompatModes
 	4, "ZDoom 2.0.63"
 }
 
+OptionValue GibRevive
+{
+	0, "No"
+	1, "Yes"
+	2, "Selected maps"
+	3, "As ghosts"
+}
+
 OptionMenu "CompatibilityOptions"
 {
 	Title "COMPATIBILITY OPTIONS"
@@ -1279,7 +1287,7 @@ OptionMenu "CompatibilityOptions"
 	
 	StaticText " "
 	StaticText "Actor Behavior",1
-	Option "Crushed monsters can be resurrected",		"compat_CORPSEGIBS", "YesNo"	
+	Option "Crushed monsters can be resurrected",		"compat_revive", "GibRevive"	
 	Option "Friendly monsters aren't blocked",			"compat_NOBLOCKFRIENDS", "YesNo"
 	Option "Limit Pain Elementals' Lost Souls",			"compat_LIMITPAIN", "YesNo"
 	Option "Monster movement is affected by effects",	"compat_MBFMONSTERMOVE", "YesNo"

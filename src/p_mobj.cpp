@@ -1055,13 +1055,9 @@ bool AActor::Grind(bool items)
 		}
 
 		bool isgeneric = false;
-		// ZDoom behavior differs from standard as crushed corpses cannot be raised.
-		// The reason for the change was originally because of a problem with players,
-		// see rh_log entry for February 21, 1999. Don't know if it is still relevant.
 		if (state == NULL 									// Only use the default crushed state if:
-			&& !(flags & MF_NOBLOOD)						// 1. the monster bleeeds,
-			&& (i_compatflags & COMPATF_CORPSEGIBS)			// 2. the compat setting is on,
-			&& player == NULL)								// 3. and the thing isn't a player.
+			&& !(flags & MF_NOBLOOD)						// 1. the monster bleeds,
+			&& player == NULL)								// 2. and the thing isn't a player.
 		{
 			isgeneric = true;
 			state = FindState(NAME_GenericCrush);
@@ -6302,6 +6298,11 @@ void AActor::Revive()
 	health = SpawnHealth();
 	target = NULL;
 	lastenemy = NULL;
+
+	if (GetTranslationType(Translation) == TRANSLATION_Blood)
+	{
+		Translation = info->Translation; // Clean up bloodcolor translation from crushed corpses
+	}
 
 	// [RH] If it's a monster, it gets to count as another kill
 	if (CountsAsKill())

@@ -134,7 +134,6 @@ static FCompatOption Options[] =
 	{ "anybossdeath",			COMPATF_ANYBOSSDEATH, SLOT_COMPAT },// [GZ] Added for UAC_DEAD
 	{ "mushroom",				COMPATF_MUSHROOM, SLOT_COMPAT },
 	{ "mbfmonstermove",			COMPATF_MBFMONSTERMOVE, SLOT_COMPAT },
-	{ "corpsegibs",				COMPATF_CORPSEGIBS, SLOT_COMPAT },
 	{ "noblockfriends",			COMPATF_NOBLOCKFRIENDS, SLOT_COMPAT },
 	{ "spritesort",				COMPATF_SPRITESORT, SLOT_COMPAT },
 	{ "hitscan",				COMPATF_HITSCAN, SLOT_COMPAT },

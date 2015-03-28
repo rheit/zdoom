@@ -329,7 +329,7 @@ enum
 	COMPATF_MINOTAUR		= 1 << 22,	// Minotaur's floor flame is exploded immediately when feet are clipped
 	COMPATF_MUSHROOM		= 1 << 23,	// Force original velocity calculations for A_Mushroom in Dehacked mods.
 	COMPATF_MBFMONSTERMOVE	= 1 << 24,	// Monsters are affected by friction and pushers/pullers.
-	COMPATF_CORPSEGIBS		= 1 << 25,	// Crushed monsters are turned into gibs, rather than replaced by gibs.
+	//COMPATF_CORPSEGIBS		= 1 << 25,	// Crushed monsters are turned into gibs, rather than replaced by gibs.
 	COMPATF_NOBLOCKFRIENDS	= 1 << 26,	// Friendly monsters aren't blocked by monster-blocking lines.
 	COMPATF_SPRITESORT		= 1 << 27,	// Invert sprite sorting order for sprites of equal distance
 	COMPATF_HITSCAN			= 1 << 28,	// Hitscans use original blockmap anf hit check code.
@@ -340,6 +340,9 @@ enum
 	COMPATF2_BADANGLES		= 1 << 0,	// It is impossible to face directly NSEW.
 	COMPATF2_FLOORMOVE		= 1 << 1,	// Use the same floor motion behavior as Doom.
 	COMPATF2_SOUNDCUTOFF	= 1 << 2,	// Cut off sounds when an actor vanishes instead of making it owner-less
+	COMPATF2_REVIVEGIBS		= 1 << 3,	// Let Arch Viles revive gibbed corpses
+	COMPATF2_REVIVEGHOSTS	= 1 << 4,	// Revive gibs as ghosts
+	COMPATF2_REVIVE			= COMPATF2_REVIVEGIBS|COMPATF2_REVIVEGHOSTS,
 };
 
 // Emulate old bugs for select maps. These are not exposed by a cvar

@@ -2542,6 +2542,14 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 			FState *raisestate = corpsehit->GetRaiseState();
 			if (raisestate != NULL)
 			{
+				if (corpsehit->height == 0 && corpsehit->GetDefault()->height != 0)	// has been crushed to gibs
+				{
+					int mode = (i_compatflags2 & COMPATF2_REVIVE);
+					
+					if (mode == 0) continue;	// reviving of gibs is disabled
+					else if (mode == COMPATF2_REVIVEGHOSTS && !(ib_compatflags & BCOMPATF_VILEGHOSTS)) continue; // reviving only allowed on maps which reqire ghosts.
+					// else revive and decide later, how the monster will end up.
+				}
 				// use the current actor's radius instead of the Arch Vile's default.
 				fixed_t maxdist = corpsehit->GetDefault()->radius + self->radius;
 
@@ -2616,11 +2624,7 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 				S_Sound(corpsehit, CHAN_BODY, "vile/raise", 1, ATTN_IDLE);
 				info = corpsehit->GetDefault();
 
-				if (GetTranslationType(corpsehit->Translation) == TRANSLATION_Blood)
-				{
-					corpsehit->Translation = info->Translation; // Clean up bloodcolor translation from crushed corpses
-				}
-				if (ib_compatflags & BCOMPATF_VILEGHOSTS)
+				if (i_compatflags2 & COMPATF2_REVIVEGHOSTS)
 				{
 					corpsehit->height <<= 2;
 					// [GZ] This was a commented-out feature, so let's make use of it,
