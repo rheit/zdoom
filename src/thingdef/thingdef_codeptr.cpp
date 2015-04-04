@@ -5780,33 +5780,48 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
 // Takes a pointer as well.
 //===========================================================================
 
+enum SHFlags
+{
+	SHF_INVERSE		= 1,		//Actor gets the health from the pointer and sets it on itself.
+};
+
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
 {
-	ACTION_PARAM_START(2);
+	ACTION_PARAM_START(3);
 	ACTION_PARAM_INT(health, 0);
 	ACTION_PARAM_INT(ptr, 1);
+	ACTION_PARAM_INT(flags, 2);
+
+	if (ptr == AAPTR_NULL)
+		return;
 
 	AActor *mobj = COPY_AAPTR(self, ptr);
 
 	if (!mobj)
-	{
 		return;
-	}
 
 	player_t *player = mobj->player;
 	if (player)
 	{
-		if (health <= 0)
-			player->mo->health = mobj->health = player->health = 1; //Copied from the buddha cheat.
-		else
-			player->mo->health = mobj->health = player->health = health;
+		// [MC] I tried to get SHF_INVERSE working with players, but unfortunately, it just wouldn't cooperate.
+		// So, until it can be figured out, if a player calls it wit the flag, do nothing.
+		if (flags & SHF_INVERSE)
+			return;
+		player->mo->health = mobj->health = player->health = (health < 1) ? 1 : health; //Copied from the buddha cheat.
 	}
-	else if (mobj)
+	else
 	{
-		if (health <= 0)
-			mobj->health = 1;
+		//'Inverse' will, instead of setting the health on the pointer, copy the actor's health 
+		//for itself plus the amount specified. This can let actors link their life force to others.
+		if (flags & SHF_INVERSE)
+		{
+			int hp = MAX(0, health) + MAX(0, mobj->health); //no negatives.
+			self->health = (hp < 1) ? 1 : hp; //Respect the need to keep at least 1 hit point at all times.
+		}
 		else
-			mobj->health = health;
+		{
+			mobj->health = (health < 1) ? 1 : health;
+		}
 	}
 }
 
