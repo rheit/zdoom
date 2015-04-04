@@ -170,14 +170,14 @@ enum
 										// this flag will allow the actor to
 										// pass over/under other actors.
 	MF2_CANNOTPUSH		= 0x00002000,	// cannot push other pushable mobjs
-	MF2_THRUGHOST		= 0x00004000,	// missile will pass through ghosts [RH] was 8
+
 	MF2_BOSS			= 0x00008000,	// mobj is a major boss
 
 	MF2_DONTTRANSLATE	= 0x00010000,	// Don't apply palette translations
 	MF2_NODMGTHRUST		= 0x00020000,	// does not thrust target when damaging
 	MF2_TELESTOMP		= 0x00040000,	// mobj can stomp another
 	MF2_FLOATBOB		= 0x00080000,	// use float bobbing z movement
-	MF2_THRUACTORS		= 0x00100000,	// performs no actor<->actor collision checks
+
 	MF2_IMPACT			= 0x00200000, 	// an MF_MISSILE mobj can activate SPAC_IMPACT
 	MF2_PUSHWALL		= 0x00400000, 	// mobj can push walls
 	MF2_MCROSS			= 0x00800000,	// can activate monster cross lines
@@ -302,8 +302,7 @@ enum
 // --- mobj.flags6 ---
 
 	MF6_NOBOSSRIP		= 0x00000001,	// For rippermissiles: Don't rip through bosses.
-	MF6_THRUSPECIES		= 0x00000002,	// Actors passes through other of the same species.
-	MF6_MTHRUSPECIES	= 0x00000004,	// Missile passes through actors of its shooter's species.
+
 	MF6_FORCEPAIN		= 0x00000008,	// forces target into painstate (unless it has the NOPAIN flag)
 	MF6_NOFEAR			= 0x00000010,	// Not scared of frightening players
 	MF6_BUMPSPECIAL		= 0x00000020,	// Actor executes its special when being collided (as the ST flag)
@@ -490,6 +489,18 @@ enum EThingSpecialActivationType
 	THINGSPEC_Activate			= 1<<8,		// The thing is activated when triggered
 	THINGSPEC_Deactivate		= 1<<9,		// The thing is deactivated when triggered
 	THINGSPEC_Switch			= 1<<10,	// The thing is alternatively activated and deactivated when triggered
+};
+
+enum EThingClipMask //Actors block or blocked by...
+{
+	MASK_None					= 0,		// The default. Clips and blocks everything as normal.
+	MASK_Monsters				= 1,		// Monsters
+	MASK_Objects				= 1 << 1,	// Non-monsters
+	MASK_Shootables				= 1 << 2,	// Shootables
+	MASK_Missiles				= 1 << 3,	// Can crash into missiles.
+	MASK_Species				= 1 << 4,	// Species
+	MASK_Ghost					= 1 << 5,	// Ghosts
+	MASK_All					= 1 << 6,	// THRUACTORS in short.	
 };
 
 // [RH] Like msecnode_t, but for the blockmap
@@ -766,6 +777,46 @@ public:
 		return (flags&MF_MISSILE) || (precise && GetDefault()->flags&MF_MISSILE);
 	}
 
+	// Check for the mask in both noclip and noblock properties of the calling actor.
+	inline bool CheckMask(int mask)
+	{
+		return ((NoClipMask & NoBlockMask) & mask) ? true : false;
+	}
+
+	// Check if the mask is in noclip of one actor and noblock of the other. Can check for
+	// the flag as well if noflag is left to false, but just note missile checking won't work
+	// properly without it (since it's a non-monster, it'll make it return true).
+	// NoClipMask: Determines what the actor isn't blocked by.
+	// NoBlockMask: Determines what the actor doesn't block.
+	// If the calling actor doesn't block it with the flag/property specified in the mask, and/or
+	// the target being checked doesn't block it, returns true for success.
+	inline bool crossCheckMask(AActor *other, int mask, bool noflag = false)
+	{
+		if (other)
+		{
+			if (!noflag)
+			{
+				if (mask == MASK_Ghost)
+					return (((flags3 & MF3_GHOST) && (other->NoClipMask & mask)) || (NoBlockMask & mask) && (other->flags3 & MF3_GHOST)) ? true : false;
+				
+				else if (mask == MASK_Monsters)
+					return (((flags3 & MF3_ISMONSTER) && (other->NoClipMask & mask)) || (NoBlockMask & mask) && (other->flags3 & MF3_ISMONSTER)) ? true : false;
+
+				else if (mask == MASK_Missiles)
+					return (((flags & MF_MISSILE) && (other->NoClipMask & mask)) || (NoBlockMask & mask) && (other->flags & MF_MISSILE)) ? true : false;
+
+				else if (mask == MASK_Objects) //Special case: Ensure neither actor is a missile.
+					return (((!(flags3 & MF3_ISMONSTER) && (other->NoClipMask & mask)) || (NoBlockMask & mask) && !(other->flags3 & MF3_ISMONSTER)) && 
+					!((flags | other->flags) & MF_MISSILE)) ? true : false;
+			}
+
+			if (mask == MASK_Species && (GetSpecies() != other->GetSpecies()))
+				return false; //Only the same species can pass through one another.
+			return ((NoClipMask & other->NoBlockMask) & mask) ? true : false;
+		}
+		return false;
+	}
+
 	// Check for monsters that count as kill but excludes all friendlies.
 	bool CountsAsKill() const
 	{
@@ -936,6 +987,8 @@ public:
 	int				Score;			// manipulated by score items, ACS or DECORATE. The engine doesn't use this itself for anything.
 	FString *		Tag;			// Strife's tag name.
 	int				DesignatedTeam;	// Allow for friendly fire cacluations to be done on non-players.
+	int				NoBlockMask;	// Determines what this object doesn't block.
+	int				NoClipMask;		// Determines what this object isn't blocked by.
 
 	AActor			*BlockingMobj;	// Actor that blocked the last move
 	line_t			*BlockingLine;	// Line that blocked the last move

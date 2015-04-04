@@ -469,5 +469,25 @@ enum
 	QF_WAVE =			1 << 5,
 };
 
+// Flags for A_SetMask
+enum
+{
+	SCBF_CLIP =		1,
+	SCBF_BLOCK =	1 << 1,
+};
+
+// Masks for A_SetMask, and the NoClipMask and/or NoBlockMask properties.
+enum
+{
+	MASK_None					= 0,		// The default. Clips and blocks everything as normal.
+	MASK_Monsters				= 1,		// Monsters
+	MASK_Objects				= 1 << 1,	// Non-monsters
+	MASK_Shootables				= 1 << 2,	// Shootables
+	MASK_Missiles				= 1 << 3,	// Can crash into missiles.
+	MASK_Species				= 1 << 4,	// Species
+	MASK_Ghost					= 1 << 5,	// Ghosts
+	MASK_All					= 1 << 6,	// THRUACTORS in short.	
+};
+
 // This is only here to provide one global variable for testing.
 native int testglobalvar;

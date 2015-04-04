@@ -344,7 +344,11 @@ void AActor::Serialize (FArchive &arc)
 			<< RipLevelMin
 			<< RipLevelMax;
 	}
-
+	if (SaveVersion >= 4522)
+	{
+		arc << NoClipMask
+			<< NoBlockMask;
+	}
 	{
 		FString tagstr;
 		if (arc.IsStoring() && Tag != NULL && Tag->Len() > 0) tagstr = *Tag;
