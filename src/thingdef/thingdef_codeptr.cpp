@@ -3186,6 +3186,10 @@ enum CLOF_flags
 	CLOFF_SETTARGET =			0x00800000,
 	CLOFF_SETMASTER =			0x01000000,
 	CLOFF_SETTRACER =			0x02000000,
+
+	CLOFF_JUMPWALL =			0x04000000,
+	CLOFF_JUMPFLOOR =			0x08000000,
+	CLOFF_JUMPCEILING =			0x10000000,
 };
 
 struct LOFData
@@ -3418,8 +3422,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckLOF)
 	Trace(x1, y1, z1, sec, vx, vy, vz, range, 0xFFFFFFFF, ML_BLOCKEVERYTHING, self, trace, 0,
 		CheckLOFTraceFunc, &lof_data);
 
-	if (trace.HitType == TRACE_HitActor ||
-		((flags & CLOFF_JUMP_ON_MISS) && !lof_data.BadActor && trace.HitType != TRACE_HitNone))
+	if (((trace.HitType == TRACE_HitFloor) && (flags & CLOFF_JUMPFLOOR)) ||
+		((trace.HitType == TRACE_HitWall) && (flags & CLOFF_JUMPWALL)) ||
+		((trace.HitType == TRACE_HitCeiling) && (flags & CLOFF_JUMPCEILING)) ||
+		((trace.HitType == TRACE_HitActor) || 
+		((flags & CLOFF_JUMP_ON_MISS) && !lof_data.BadActor && (trace.HitType != TRACE_HitNone))))
 	{
 		if (minrange > 0 && trace.Distance < minrange)
 		{
