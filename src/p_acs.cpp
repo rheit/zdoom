@@ -4432,6 +4432,7 @@ enum EACSFunctions
 	ACSF_ChangeActorRoll,
 	ACSF_GetActorRoll,
 	ACSF_QuakeEx,
+	ACSF_SetInventoryMax,
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
 	-101 : PlayerIsSpectator(1),
@@ -5857,6 +5858,30 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			actor = SingleActorFromTID(args[0], activator);
 			return actor != NULL? actor->roll >> 16 : 0;
 
+		case ACSF_SetInventoryMax:
+			if (activator != NULL)
+			{
+				const char *type = FBehavior::StaticLookupString(args[0]);
+				int amount = argCount >= 2? args[1] : -1;
+				const PClass *cls = PClass::FindClass(type);
+				AInventory *item;
+
+				if (cls != NULL && cls->IsDescendantOf (RUNTIME_CLASS(AInventory)))
+				{
+					item = activator->FindInventory (cls);
+					if (item != NULL)
+					{
+						item->MaxAmount = amount;
+					}
+					else
+					{
+						item = activator->GiveInventoryType (cls);
+						item->MaxAmount = amount;
+						item->Amount = 0;
+					}
+				}
+			}
+			break;
 		default:
 			break;
 	}
