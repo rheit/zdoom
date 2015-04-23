@@ -5871,11 +5871,13 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 					item = activator->FindInventory (cls);
 					if (item != NULL)
 					{
+						item->ItemFlags |= IF_KEEPDEPLETED;
 						item->MaxAmount = amount;
 					}
 					else
 					{
 						item = activator->GiveInventoryType (cls);
+						item->ItemFlags |= IF_KEEPDEPLETED;
 						item->MaxAmount = amount;
 						item->Amount = 0;
 					}
