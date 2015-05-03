@@ -373,16 +373,16 @@ struct StateCallData
 
 // Macros to handle action functions. These are here so that I don't have to
 // change every single use in case the parameters change.
-#define DECLARE_ACTION(name) void AF_##name(AActor *self, AActor *stateowner, FState *, int, StateCallData *);
-#define DECLARE_ACTION_PARAMS(name) void AFP_##name(AActor *self, AActor *stateowner, FState *, int, StateCallData *);
+#define DECLARE_ACTION(name) void AF_##name(AActor *self, AActor *stateowner, FState *CallingState, int ParameterIndex, StateCallData *);
+#define DECLARE_ACTION_PARAMS(name) void AFP_##name(AActor *self, AActor *stateowner, FState *CallingState, int ParameterIndex, StateCallData *);
 
 // This distinction is here so that CALL_ACTION produces errors when trying to
 // access a function that requires parameters.
 #define DEFINE_ACTION_FUNCTION(cls, name) \
-	void AF_##name (AActor *self, AActor *stateowner, FState *, int, StateCallData *); \
+	void AF_##name (AActor *self, AActor *stateowner, FState *CallingState, int ParameterIndex, StateCallData *); \
 	static AFuncDesc info_##cls##_##name = { #name, AF_##name }; \
 	MSVC_ASEG AFuncDesc *infoptr_##cls##_##name GCC_ASEG = &info_##cls##_##name; \
-	void AF_##name (AActor *self, AActor *stateowner, FState *, int, StateCallData *statecall)
+	void AF_##name (AActor *self, AActor *stateowner, FState *CallingState, int ParameterIndex, StateCallData *statecall)
 
 #define DEFINE_ACTION_FUNCTION_PARAMS(cls, name) \
 	void AFP_##name (AActor *self, AActor *stateowner, FState *CallingState, int ParameterIndex, StateCallData *statecall); \

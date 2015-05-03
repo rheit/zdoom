@@ -76,7 +76,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_StaffAttack)
 	ACTION_PARAM_CLASS(puff, 1);
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -114,7 +114,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireGoldWandPL1)
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -150,7 +150,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireGoldWandPL2)
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -186,7 +186,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireCrossbowPL1)
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -212,7 +212,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireCrossbowPL2)
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -251,7 +251,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GauntletAttack)
 	ACTION_PARAM_INT(power, 0);
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -367,36 +367,36 @@ int AMaceFX4::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 //
 //----------------------------------------------------------------------------
 
-void FireMacePL1B (AActor *actor)
+static void FireMacePL1B (DECLARE_PARAMINFO)
 {
 	AActor *ball;
 	angle_t angle;
 	player_t *player;
 
-	if (NULL == (player = actor->player))
+	if (NULL == (player = self->player))
 	{
 		return;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
 	}
-	ball = Spawn("MaceFX2", actor->x, actor->y, actor->z + 28*FRACUNIT 
-		- actor->floorclip, ALLOW_REPLACE);
+	ball = Spawn("MaceFX2", self->x, self->y, self->z + 28*FRACUNIT 
+		- self->floorclip, ALLOW_REPLACE);
 	ball->velz = 2*FRACUNIT+/*((player->lookdir)<<(FRACBITS-5))*/
-		finetangent[FINEANGLES/4-(actor->pitch>>ANGLETOFINESHIFT)];
-	angle = actor->angle;
-	ball->target = actor;
+		finetangent[FINEANGLES/4-(self->pitch>>ANGLETOFINESHIFT)];
+	angle = self->angle;
+	ball->target = self;
 	ball->angle = angle;
-	ball->z += 2*finetangent[FINEANGLES/4-(actor->pitch>>ANGLETOFINESHIFT)];
+	ball->z += 2*finetangent[FINEANGLES/4-(self->pitch>>ANGLETOFINESHIFT)];
 	angle >>= ANGLETOFINESHIFT;
-	ball->velx = (actor->velx>>1) + FixedMul(ball->Speed, finecosine[angle]);
-	ball->vely = (actor->vely>>1) + FixedMul(ball->Speed, finesine[angle]);
+	ball->velx = (self->velx>>1) + FixedMul(ball->Speed, finecosine[angle]);
+	ball->vely = (self->vely>>1) + FixedMul(ball->Speed, finesine[angle]);
 	S_Sound (ball, CHAN_BODY, "weapons/maceshoot", 1, ATTN_NORM);
-	P_CheckMissileSpawn (ball, actor->radius);
+	P_CheckMissileSpawn (ball, self->radius);
 }
 
 //----------------------------------------------------------------------------
@@ -417,11 +417,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMacePL1)
 
 	if (pr_maceatk() < 28)
 	{
-		FireMacePL1B (self);
+		FireMacePL1B (PUSH_PARAMINFO);
 		return;
 	}
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -579,7 +579,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMacePL2)
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -773,7 +773,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireBlasterPL1)
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -893,7 +893,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireSkullRodPL1)
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -926,7 +926,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireSkullRodPL2)
 		return;
 	}
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -1208,7 +1208,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePhoenixPL1)
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -1334,7 +1334,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ShutdownPhoenixPL2)
 	}
 	S_StopSound (self, CHAN_WEAPON);
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
