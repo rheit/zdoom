@@ -1034,7 +1034,7 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 	// Both things overlap in x or y direction
 	bool unblocking = false;
 
-	if (tm.FromPMove || tm.thing->player != NULL)
+	if ((tm.FromPMove || tm.thing->player != NULL) && thing->flags&MF_SOLID)
 	{
 		// Both actors already overlap. To prevent them from remaining stuck allow the move if it
 		// takes them further apart or the move does not change the position (when called from P_ChangeSector.)
@@ -1042,7 +1042,9 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 		{
 			unblocking = true;
 		}
-		else
+		else if (abs(thing->x - tm.thing->x) < (thing->radius+tm.thing->radius)/2 &&
+				 abs(thing->y - tm.thing->y) < (thing->radius+tm.thing->radius)/2)
+
 		{
 			fixed_t newdist = P_AproxDistance(thing->x - tm.x, thing->y - tm.y);
 			fixed_t olddist = P_AproxDistance(thing->x - tm.thing->x, thing->y - tm.thing->y);
@@ -1590,7 +1592,7 @@ bool P_CheckPosition(AActor *thing, fixed_t x, fixed_t y, bool actorsonly)
 
 bool P_TestMobjLocation(AActor *mobj)
 {
-	int flags;
+	ActorFlags flags;
 
 	flags = mobj->flags;
 	mobj->flags &= ~MF_PICKUP;
@@ -3724,13 +3726,17 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 			}
 
 			// [RH] Spawn a decal
-			if (trace.HitType == TRACE_HitWall && trace.Line->special != Line_Horizon)
+			if (trace.HitType == TRACE_HitWall && trace.Line->special != Line_Horizon && !(flags & LAF_NOIMPACTDECAL) && !(puffDefaults->flags7 & MF7_NODECAL))
 			{
 				// [TN] If the actor or weapon has a decal defined, use that one.
 				if (t1->DecalGenerator != NULL ||
 					(t1->player != NULL && t1->player->ReadyWeapon != NULL && t1->player->ReadyWeapon->DecalGenerator != NULL))
 				{
-					SpawnShootDecal(t1, trace);
+					// [ZK] If puff has FORCEDECAL set, do not use the weapon's decal
+					if (puffDefaults->flags7 & MF7_FORCEDECAL && puff != NULL && puff->DecalGenerator)
+						SpawnShootDecal(puff, trace);
+					else
+						SpawnShootDecal(t1, trace);
 				}
 
 				// Else, look if the bulletpuff has a decal defined.
@@ -4140,7 +4146,7 @@ static ETraceStatus ProcessRailHit(FTraceResults &res, void *userdata)
 //
 //
 //==========================================================================
-void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, int color1, int color2, float maxdiff, int railflags, const PClass *puffclass, angle_t angleoffset, angle_t pitchoffset, fixed_t distance, int duration, float sparsity, float drift, const PClass *spawnclass)
+void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, int color1, int color2, float maxdiff, int railflags, const PClass *puffclass, angle_t angleoffset, angle_t pitchoffset, fixed_t distance, int duration, float sparsity, float drift, const PClass *spawnclass, int SpiralOffset)
 {
 	fixed_t vx, vy, vz;
 	angle_t angle, pitch;
@@ -4292,7 +4298,7 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 	end.X = FIXED2FLOAT(trace.X);
 	end.Y = FIXED2FLOAT(trace.Y);
 	end.Z = FIXED2FLOAT(trace.Z);
-	P_DrawRailTrail(source, start, end, color1, color2, maxdiff, railflags, spawnclass, source->angle + angleoffset, duration, sparsity, drift);
+	P_DrawRailTrail(source, start, end, color1, color2, maxdiff, railflags, spawnclass, source->angle + angleoffset, duration, sparsity, drift, SpiralOffset);
 }
 
 //==========================================================================
@@ -4916,7 +4922,7 @@ EXTERN_CVAR(Int, cl_bloodtype)
 
 bool P_AdjustFloorCeil(AActor *thing, FChangePosition *cpos)
 {
-	int flags2 = thing->flags2 & MF2_PASSMOBJ;
+	ActorFlags2 flags2 = thing->flags2 & MF2_PASSMOBJ;
 	FCheckPosition tm;
 
 	if ((thing->flags2 & MF2_PASSMOBJ) && (thing->flags3 & MF3_ISMONSTER))

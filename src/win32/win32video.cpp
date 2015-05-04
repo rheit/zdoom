@@ -414,7 +414,10 @@ void Win32Video::DumpAdapters()
 		HMONITOR hm = D3D->GetAdapterMonitor(i);
 		MONITORINFOEX mi;
 		mi.cbSize = sizeof(mi);
-		if (GetMonitorInfo(hm, &mi))
+
+		TOptWin32Proc<BOOL(WINAPI*)(HMONITOR, LPMONITORINFO)> GetMonitorInfo("user32.dll", "GetMonitorInfoW");
+		assert(GetMonitorInfo != NULL); // Missing in NT4, but so is D3D
+		if (GetMonitorInfo.Call(hm, &mi))
 		{
 			mysnprintf(moreinfo, countof(moreinfo), " [%ldx%ld @ (%ld,%ld)]%s",
 				mi.rcMonitor.right - mi.rcMonitor.left,
@@ -734,6 +737,29 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 void Win32Video::SetWindowedScale (float scale)
 {
 	// FIXME
+}
+
+//==========================================================================
+//
+// BaseWinFB :: ScaleCoordsFromWindow
+//
+// Given coordinates in window space, return coordinates in what the game
+// thinks screen space is.
+//
+//==========================================================================
+
+void BaseWinFB::ScaleCoordsFromWindow(SWORD &x, SWORD &y)
+{
+	RECT rect;
+
+	int TrueHeight = GetTrueHeight();
+	if (GetClientRect(Window, &rect))
+	{
+		x = SWORD(x * Width / (rect.right - rect.left));
+		y = SWORD(y * TrueHeight / (rect.bottom - rect.top));
+	}
+	// Subtract letterboxing borders
+	y -= (TrueHeight - Height) / 2;
 }
 
 //==========================================================================

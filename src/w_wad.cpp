@@ -317,7 +317,7 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 					sprintf(cksumout + (j * 2), "%02X", cksum[j]);
 				}
 
-				fprintf(hashfile, "file: %s, hash: %s, size: %d\n", filename, cksumout, reader->GetLength());
+				fprintf(hashfile, "file: %s, hash: %s, size: %ld\n", filename, cksumout, reader->GetLength());
 			}
 
 			else
@@ -1228,6 +1228,17 @@ FWadLump *FWadCollection::ReopenLumpNum (int lump)
 	return new FWadLump(LumpInfo[lump].lump, true);
 }
 
+FWadLump *FWadCollection::ReopenLumpNumNewFile (int lump)
+{
+	if ((unsigned)lump >= (unsigned)LumpInfo.Size())
+	{
+		return NULL;
+	}
+
+	return new FWadLump(lump, LumpInfo[lump].lump);
+}
+
+
 //==========================================================================
 //
 // GetFileReader
@@ -1415,6 +1426,34 @@ FWadLump::FWadLump(FResourceLump *lump, bool alwayscache)
 		Lump = lump;
 		Lump->CacheLump();
 	}
+}
+
+FWadLump::FWadLump(int lumpnum, FResourceLump *lump)
+: FileReader()
+{
+	FileReader *f = lump->GetReader();
+
+	if (f != NULL && f->GetFile() != NULL)
+	{
+		// Uncompressed lump in a file. For this we will have to open a new FILE, since we need it for streaming
+		int fileno = Wads.GetLumpFile(lumpnum);
+		const char *filename = Wads.GetWadFullName(fileno);
+		File = fopen(filename, "rb");
+		if (File != NULL)
+		{
+			Length = lump->LumpSize;
+			StartPos = FilePos = lump->GetFileOffset();
+			Lump = NULL;
+			CloseOnDestruct = true;
+			Seek(0, SEEK_SET);
+			return;
+		}
+	}
+	File = NULL;
+	Length = lump->LumpSize;
+	StartPos = FilePos = 0;
+	Lump = lump;
+	Lump->CacheLump();
 }
 
 FWadLump::~FWadLump()

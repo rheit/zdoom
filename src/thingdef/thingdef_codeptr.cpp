@@ -70,6 +70,7 @@
 #include "m_bbox.h"
 #include "r_data/r_translate.h"
 #include "p_trace.h"
+#include "p_setup.h"
 #include "gstrings.h"
 
 
@@ -1494,7 +1495,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomPunch)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RailAttack)
 {
-	ACTION_PARAM_START(16);
+	ACTION_PARAM_START(17);
 	ACTION_PARAM_INT(Damage, 0);
 	ACTION_PARAM_INT(Spawnofs_XY, 1);
 	ACTION_PARAM_BOOL(UseAmmo, 2);
@@ -1511,6 +1512,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RailAttack)
 	ACTION_PARAM_FLOAT(DriftSpeed, 13);
 	ACTION_PARAM_CLASS(SpawnClass, 14);
 	ACTION_PARAM_FIXED(Spawnofs_Z, 15);
+	ACTION_PARAM_INT(SpiralOffset, 16);
 	
 	if(Range==0) Range=8192*FRACUNIT;
 	if(Sparsity==0) Sparsity=1.0;
@@ -1539,7 +1541,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RailAttack)
 		slope = pr_crailgun.Random2() * (Spread_Z / 255);
 	}
 
-	P_RailAttack (self, Damage, Spawnofs_XY, Spawnofs_Z, Color1, Color2, MaxDiff, Flags, PuffType, angle, slope, Range, Duration, Sparsity, DriftSpeed, SpawnClass);
+	P_RailAttack (self, Damage, Spawnofs_XY, Spawnofs_Z, Color1, Color2, MaxDiff, Flags, PuffType, angle, slope, Range, Duration, Sparsity, DriftSpeed, SpawnClass, SpiralOffset);
 }
 
 //==========================================================================
@@ -1557,7 +1559,7 @@ enum
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 {
-	ACTION_PARAM_START(16);
+	ACTION_PARAM_START(17);
 	ACTION_PARAM_INT(Damage, 0);
 	ACTION_PARAM_INT(Spawnofs_XY, 1);
 	ACTION_PARAM_COLOR(Color1, 2);
@@ -1574,6 +1576,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 	ACTION_PARAM_FLOAT(DriftSpeed, 13);
 	ACTION_PARAM_CLASS(SpawnClass, 14);
 	ACTION_PARAM_FIXED(Spawnofs_Z, 15);
+	ACTION_PARAM_INT(SpiralOffset, 16);
 
 	if(Range==0) Range=8192*FRACUNIT;
 	if(Sparsity==0) Sparsity=1.0;
@@ -1657,7 +1660,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 		slopeoffset = pr_crailgun.Random2() * (Spread_Z / 255);
 	}
 
-	P_RailAttack (self, Damage, Spawnofs_XY, Spawnofs_Z, Color1, Color2, MaxDiff, Flags, PuffType, angleoffset, slopeoffset, Range, Duration, Sparsity, DriftSpeed, SpawnClass);
+	P_RailAttack (self, Damage, Spawnofs_XY, Spawnofs_Z, Color1, Color2, MaxDiff, Flags, PuffType, angleoffset, slopeoffset, Range, Duration, Sparsity, DriftSpeed, SpawnClass, SpiralOffset);
 
 	self->x = saved_x;
 	self->y = saved_y;
@@ -1780,31 +1783,7 @@ void DoTakeInventory(AActor * receiver, bool use_aaptr, DECLARE_PARAMINFO)
 		COPY_AAPTR_NOT_NULL(receiver, receiver, setreceiver);
 	}
 
-	bool res = false;
-
-	AInventory * inv = receiver->FindInventory(item);
-
-	if (inv && !inv->IsKindOf(RUNTIME_CLASS(AHexenArmor)))
-	{
-		if (inv->Amount > 0)
-		{
-			res = true;
-		}
-		// Do not take ammo if the "no take infinite/take as ammo depletion" flag is set
-		// and infinite ammo is on
-		if (flags & TIF_NOTAKEINFINITE &&
-			((dmflags & DF_INFINITE_AMMO) || (receiver->player->cheats & CF_INFINITEAMMO)) &&
-			inv->IsKindOf(RUNTIME_CLASS(AAmmo)))
-		{
-			// Nothing to do here, except maybe res = false;? Would it make sense?
-		}
-		else if (!amount || amount>=inv->Amount) 
-		{
-			if (inv->ItemFlags&IF_KEEPDEPLETED) inv->Amount=0;
-			else inv->Destroy();
-		}
-		else inv->Amount-=amount;
-	}
+	bool res = receiver->TakeInventory(item, amount, true, (flags & TIF_NOTAKEINFINITE) != 0);
 	ACTION_SET_RESULT(res);
 }
 
@@ -3077,8 +3056,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Respawn)
 
 		if (flags & RSF_FOG)
 		{
-			P_SpawnTeleportFog(self, oldx, oldy, oldz, true);
-			P_SpawnTeleportFog(self, self->x, self->y, self->z, false);
+			P_SpawnTeleportFog(self, oldx, oldy, oldz, true, true);
+			P_SpawnTeleportFog(self, self->x, self->y, self->z, false, true);
 		}
 		if (self->CountsAsKill())
 		{
@@ -3766,7 +3745,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeFlag)
 		}
 		else
 		{
-			DWORD *flagp = (DWORD*) (((char*)self) + fd->structoffset);
+			ActorFlags *flagp = (ActorFlags*) (((char*)self) + fd->structoffset);
 
 			// If these 2 flags get changed we need to update the blockmap and sector links.
 			bool linkchange = flagp == &self->flags && (fd->flagbit == MF_NOBLOCKMAP || fd->flagbit == MF_NOSECTOR);
@@ -4249,9 +4228,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserArray)
 
 //===========================================================================
 //
-// A_Teleport(optional state teleportstate, optional class targettype,
-// optional class fogtype, optional int flags, optional fixed mindist,
-// optional fixed maxdist)
+// A_Teleport([state teleportstate, [class targettype,
+// [class fogtype, [int flags, [fixed mindist,
+// [fixed maxdist]]]]]])
 //
 // Attempts to teleport to a targettype at least mindist away and at most
 // maxdist away (0 means unlimited). If successful, spawn a fogtype at old
@@ -4270,17 +4249,33 @@ enum T_Flags
 	TF_NODESTFOG =		0x00000080, // Don't spawn any fog at the arrival position.
 	TF_USEACTORFOG =	0x00000100, // Use the actor's TeleFogSourceType and TeleFogDestType fogs.
 	TF_NOJUMP =			0x00000200, // Don't jump after teleporting.
+	TF_OVERRIDE =		0x00000400, // Ignore NOTELEPORT.
 };
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Teleport)
 {
-	ACTION_PARAM_START(6);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_STATE(TeleportState, 0);
 	ACTION_PARAM_CLASS(TargetType, 1);
 	ACTION_PARAM_CLASS(FogType, 2);
 	ACTION_PARAM_INT(Flags, 3);
 	ACTION_PARAM_FIXED(MinDist, 4);
 	ACTION_PARAM_FIXED(MaxDist, 5);
+	ACTION_PARAM_INT(ptr, 6);
+
+	AActor *ref = COPY_AAPTR(self, ptr);
+
+	if (!ref)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	if ((ref->flags2 & MF2_NOTELEPORT) && !(Flags & TF_OVERRIDE))
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
 	// Randomly choose not to teleport like A_Srcr2Decide.
 	if (Flags & TF_RANDOMDECIDE)
@@ -4290,7 +4285,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Teleport)
 			192, 120, 120, 120, 64, 64, 32, 16, 0
 		};
 
-		unsigned int chanceindex = self->health / ((self->SpawnHealth()/8 == 0) ? 1 : self->SpawnHealth()/8);
+		unsigned int chanceindex = ref->health / ((ref->SpawnHealth()/8 == 0) ? 1 : ref->SpawnHealth()/8);
 
 		if (chanceindex >= countof(chance))
 		{
@@ -4301,37 +4296,48 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Teleport)
 	}
 
 	DSpotState *state = DSpotState::GetSpotState();
-	if (state == NULL) return;
+	if (state == NULL)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
-	if (!TargetType) TargetType = PClass::FindClass("BossSpot");
+	if (!TargetType) 
+		TargetType = PClass::FindClass("BossSpot");
 
-	AActor * spot = state->GetSpotWithMinMaxDistance(TargetType, self->x, self->y, MinDist, MaxDist);
-	if (spot == NULL) return;
+	AActor * spot = state->GetSpotWithMinMaxDistance(TargetType, ref->x, ref->y, MinDist, MaxDist);
+	if (spot == NULL) 
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
-	fixed_t prevX = self->x;
-	fixed_t prevY = self->y;
-	fixed_t prevZ = self->z;
+	fixed_t prevX = ref->x;
+	fixed_t prevY = ref->y;
+	fixed_t prevZ = ref->z;
 	fixed_t aboveFloor = spot->z - spot->floorz;
 	fixed_t finalz = spot->floorz + aboveFloor;
 
-	if (spot->z + self->height > spot->ceilingz)
-		finalz = spot->ceilingz - self->height;
+	if (spot->z + ref->height > spot->ceilingz)
+		finalz = spot->ceilingz - ref->height;
 	else if (spot->z < spot->floorz)
 		finalz = spot->floorz;
 
 
 	//Take precedence and cooperate with telefragging first.
-	bool teleResult = P_TeleportMove(self, spot->x, spot->y, finalz, Flags & TF_TELEFRAG);
+	bool teleResult = P_TeleportMove(ref, spot->x, spot->y, finalz, Flags & TF_TELEFRAG);
 
-	if (Flags & TF_FORCED)
+	if (!teleResult && (Flags & TF_FORCED))
 	{
 		//If for some reason the original move didn't work, regardless of telefrag, force it to move.
-		self->SetOrigin(spot->x, spot->y, finalz);
+		ref->SetOrigin(spot->x, spot->y, finalz);
 		teleResult = true;
 	}
 
+	AActor *fog1 = NULL, *fog2 = NULL;
 	if (teleResult)
 	{
+
 		//If a fog type is defined in the parameter, or the user wants to use the actor's predefined fogs,
 		//and if there's no desire to be fogless, spawn a fog based upon settings.
 		if (FogType || (Flags & TF_USEACTORFOG))
@@ -4339,31 +4345,40 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Teleport)
 			if (!(Flags & TF_NOSRCFOG))
 			{
 				if (Flags & TF_USEACTORFOG)
-					P_SpawnTeleportFog(self, prevX, prevY, prevZ, true);
+					P_SpawnTeleportFog(ref, prevX, prevY, prevZ, true, true);
 				else
-					Spawn(FogType, prevX, prevY, prevZ, ALLOW_REPLACE);
+				{
+					fog1 = Spawn(FogType, prevX, prevY, prevZ, ALLOW_REPLACE);
+					if (fog1 != NULL)
+						fog1->target = ref;
+				}
 			}
 			if (!(Flags & TF_NODESTFOG))
 			{
 				if (Flags & TF_USEACTORFOG)
-					P_SpawnTeleportFog(self, self->x, self->y, self->z, false);
+					P_SpawnTeleportFog(ref, ref->x, ref->y, ref->z, false, true);
 				else
-					Spawn(FogType, self->x, self->y, self->z, ALLOW_REPLACE);
+				{
+					fog2 = Spawn(FogType, ref->x, ref->y, ref->z, ALLOW_REPLACE);
+					if (fog2 != NULL)
+						fog2->target = ref;
+				}
 			}
+			
 		}
 		
 		if (Flags & TF_USESPOTZ)
-			self->z = spot->z;
+			ref->z = spot->z;
 		else
-			self->z = self->floorz;
+			ref->z = ref->floorz;
 
 		if (!(Flags & TF_KEEPANGLE))
-			self->angle = spot->angle;
+			ref->angle = spot->angle;
 
 		if (!(Flags & TF_KEEPVELOCITY))
-			self->velx = self->vely = self->velz = 0;
+			ref->velx = ref->vely = ref->velz = 0;
 
-		if (!(Flags & TF_NOJUMP))
+		if (!(Flags & TF_NOJUMP)) //The state jump should only happen with the calling actor.
 		{
 			ACTION_SET_RESULT(false); // Jumps should never set the result for inventory state chains!
 			if (TeleportState == NULL)
@@ -4506,7 +4521,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Weave)
 //===========================================================================
 
 
-void P_TranslateLineDef (line_t *ld, maplinedef_t *mld);
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LineEffect)
 {
 	ACTION_PARAM_START(2);
@@ -5841,11 +5855,47 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ResetHealth)
 }
 
 //===========================================================================
+// A_JumpIfHigherOrLower
+//
+// Jumps if a target, master, or tracer is higher or lower than the calling 
+// actor. Can also specify how much higher/lower the actor needs to be than 
+// itself. Can also take into account the height of the actor in question,
+// depending on which it's checking. This means adding height of the
+// calling actor's self if the pointer is higher, or height of the pointer 
+// if its lower.
+//===========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
+{
+	ACTION_PARAM_START(6);
+	ACTION_PARAM_STATE(high, 0);
+	ACTION_PARAM_STATE(low, 1);
+	ACTION_PARAM_FIXED(offsethigh, 2);
+	ACTION_PARAM_FIXED(offsetlow, 3);
+	ACTION_PARAM_BOOL(includeHeight, 4);
+	ACTION_PARAM_INT(ptr, 5);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+
+	if (!mobj || (mobj == self)) //AAPTR_DEFAULT is completely useless in this regard.
+	{
+		return;
+	}
+	ACTION_SET_RESULT(false); //No inventory jump chains please.
+
+	if ((high) && (mobj->z > ((includeHeight ? self->height : 0) + self->z + offsethigh)))
+		ACTION_JUMP(high);
+	else if ((low) && (mobj->z + (includeHeight ? mobj->height : 0)) < (self->z + offsetlow))
+		ACTION_JUMP(low);
+}
+
+
+//===========================================================================
 //
 // A_SetRipperLevel(int level)
 //
-// Sets the ripper level/requirement of the calling actor.
-// Also sets the minimum and maximum levels to rip through.
+// Sets the ripper level of the calling actor.
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 {
@@ -5858,26 +5908,24 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 //
 // A_SetRipMin(int min)
 //
-// Sets the ripper level/requirement of the calling actor.
-// Also sets the minimum and maximum levels to rip through.
+// Sets the minimum level a ripper must be in order to rip through this actor.
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
 {
 	ACTION_PARAM_START(1);
-	ACTION_PARAM_INT(min, 1);
+	ACTION_PARAM_INT(min, 0);
 	self->RipLevelMin = min; 
 }
 
 //===========================================================================
 //
-// A_SetRipMin(int min)
+// A_SetRipMax(int max)
 //
-// Sets the ripper level/requirement of the calling actor.
-// Also sets the minimum and maximum levels to rip through.
+// Sets the minimum level a ripper must be in order to rip through this actor.
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 {
 	ACTION_PARAM_START(1);
-	ACTION_PARAM_INT(max, 1);
+	ACTION_PARAM_INT(max, 0);
 	self->RipLevelMax = max;
 }

@@ -1757,6 +1757,7 @@ IMPLEMENT_CLASS(APowerRegeneration)
 
 void APowerRegeneration::DoEffect()
 {
+	Super::DoEffect();
 	if (Owner != NULL && Owner->health > 0 && (level.time & 31) == 0)
 	{
 		if (P_GiveBody(Owner, Strength/FRACUNIT))
@@ -1922,7 +1923,7 @@ void APowerMorph::EndEffect( )
 	if (!bNoCallUndoMorph)
 	{
 		int savedMorphTics = Player->morphTics;
-		P_UndoPlayerMorph (Player, Player);
+		P_UndoPlayerMorph (Player, Player, 0, !!(Player->MorphStyle & MORPH_UNDOALWAYS));
 
 		// Abort if unmorph failed; in that case,
 		// set the usual retry timer and return.
