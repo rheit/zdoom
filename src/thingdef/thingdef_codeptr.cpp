@@ -5984,7 +5984,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipTypeStatus)
 	ACTION_PARAM_INT(ptr, 2);
 	AActor *mobj = COPY_AAPTR(self, ptr);
 
-	if (!mobj)
+	if (!mobj || type == NAME_None)
 	{
 		return;
 	}
