@@ -1230,6 +1230,27 @@ static void ParseDamageDefinition(FScanner &sc)
 
 //==========================================================================
 //
+// Reads a ripper type definition
+//
+//==========================================================================
+
+static void ParseRipTypeDeniedDefinition(FScanner &sc)
+{
+	sc.SetCMode(true); // This may be 100% irrelevant for such a simple syntax, but I don't know
+
+	// Get Ripper Types Denied
+	RipperDenyDefinition rad;
+	sc.MustGetString();
+	FName ripType = sc.String;
+	sc.MustGetToken(';');
+
+	rad.Apply(ripType);
+
+	sc.SetCMode(false); // (set to true earlier in function)
+}
+
+//==========================================================================
+//
 // ParseDecorate
 //
 // Parses a single DECORATE lump
@@ -1313,6 +1334,11 @@ void ParseDecorate (FScanner &sc)
 			else if (sc.Compare("DAMAGETYPE"))
 			{
 				ParseDamageDefinition(sc);
+				break;
+			}
+			else if (sc.Compare("DENYRIPTYPE"))
+			{
+				ParseRipTypeDeniedDefinition(sc);
 				break;
 			}
 		default:

@@ -354,7 +354,9 @@ void FMapInfoParser::ParseGameInfo()
 		GAMEINFOKEY_PATCH(mStatscreenFinishedFont, "statscreen_finishedpatch")
 		GAMEINFOKEY_PATCH(mStatscreenEnteringFont, "statscreen_enteringpatch")
 		GAMEINFOKEY_BOOL(norandomplayerclass, "norandomplayerclass")
-
+		GAMEINFOKEY_INT(RipperLevel, "ripperlevel")
+		GAMEINFOKEY_INT(RipLevelMin, "riplevelmin")
+		GAMEINFOKEY_INT(RipLevelMax, "riplevelmax")
 		else
 		{
 			// ignore unkown keys.
