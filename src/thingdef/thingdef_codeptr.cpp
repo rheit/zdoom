@@ -2540,8 +2540,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetMass)
 {
 	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(mass, 0);
+	ACTION_PARAM_INT(ptr, 1);
 
-	self->Mass = mass;
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	mobj->Mass = mass;
 }
 
 //===========================================================================
@@ -2769,15 +2777,23 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckRange)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropInventory)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_CLASS(drop, 0);
+	ACTION_PARAM_INT(ptr, 1);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		return;
+	}
 
 	if (drop)
 	{
-		AInventory * inv = self->FindInventory(drop);
+		AInventory * inv = mobj->FindInventory(drop);
 		if (inv)
 		{
-			self->DropInventory(inv);
+			mobj->DropInventory(inv);
 		}
 	}
 }
@@ -5155,10 +5171,19 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTics)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetDamageType)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_NAME(damagetype, 0);
+	ACTION_PARAM_INT(ptr, 1);
 
-	self->DamageType = damagetype;
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	mobj->DamageType = damagetype;
 }
 
 //==========================================================================
@@ -5169,12 +5194,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetDamageType)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropItem)
 {
-	ACTION_PARAM_START(3);
+	ACTION_PARAM_START(4);
 	ACTION_PARAM_CLASS(spawntype, 0);
 	ACTION_PARAM_INT(amount, 1);
 	ACTION_PARAM_INT(chance, 2);
+	ACTION_PARAM_INT(ptr, 3);
 
-	P_DropItem(self, spawntype, amount, chance);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	P_DropItem(mobj, spawntype, amount, chance);
 }
 
 //==========================================================================
@@ -5225,8 +5259,9 @@ static bool DoCheckClass(AActor *mo, const PClass *filterClass, bool exclude)
 // Species: Specified species is the only type allowed to be affected.
 //
 // Examples: 
-// A_Damage(20,"Normal",DMSS_FOILINVUL,0,"DemonicSpecies") <--Only actors 
-//	with a species "DemonicSpecies" will be affected. Use 0 to not filter by actor.
+// A_Damage(20,"Normal",DMSS_FOILINVUL,None,"DemonicSpecies") 
+//	Only actors with a species "DemonicSpecies" will be affected. 
+//	Use None to not filter by actor without quotes ("").
 //
 //===========================================================================
 
@@ -5272,6 +5307,31 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 			P_GiveBody(dmgtarget, amount);
 		}
 	}
+}
+
+//===========================================================================
+//
+//
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Damage)
+{
+	ACTION_PARAM_START(6);
+	ACTION_PARAM_INT(ptr, 0);
+	ACTION_PARAM_INT(amount, 1);
+	ACTION_PARAM_NAME(DamageType, 2);
+	ACTION_PARAM_INT(flags, 3);
+	ACTION_PARAM_CLASS(filter, 4);
+	ACTION_PARAM_NAME(species, 5);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	DoDamage(mobj, self, amount, DamageType, flags, filter, species);
 }
 
 //===========================================================================
@@ -5456,10 +5516,33 @@ static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags
 	}
 }
 
+//===========================================================================
+//
+// A_Kill(ptr, damagetype, int flags, filter, species)
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Kill)
+{
+	ACTION_PARAM_START(5);
+	ACTION_PARAM_INT(ptr, 0);
+	ACTION_PARAM_NAME(damagetype, 1);
+	ACTION_PARAM_INT(flags, 2);
+	ACTION_PARAM_CLASS(filter, 3);
+	ACTION_PARAM_NAME(species, 4);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	DoKill(mobj, self, damagetype, flags, filter, species);
+}
 
 //===========================================================================
 //
-// A_KillTarget(damagetype, int flags)
+// A_KillTarget(damagetype, int flags, filter, species)
 //
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
@@ -5478,7 +5561,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
 
 //===========================================================================
 //
-// A_KillTracer(damagetype, int flags)
+// A_KillTracer(damagetype, int flags, filter, species)
 //
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
@@ -5497,7 +5580,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
 
 //===========================================================================
 //
-// A_KillMaster(damagetype, int flags)
+// A_KillMaster(damagetype, int flags, filter, species)
 //
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
@@ -5516,7 +5599,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 
 //===========================================================================
 //
-// A_KillChildren(damagetype, int flags)
+// A_KillChildren(damagetype, int flags, filter, species)
 //
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
@@ -5541,7 +5624,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 
 //===========================================================================
 //
-// A_KillSiblings(damagetype, int flags)
+// A_KillSiblings(damagetype, int flags, filter, species)
 //
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
@@ -5745,12 +5828,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Remove)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTeleFog)
 {
-	ACTION_PARAM_START(2);
+	ACTION_PARAM_START(3);
 	ACTION_PARAM_CLASS(oldpos, 0);
 	ACTION_PARAM_CLASS(newpos, 1);
+	ACTION_PARAM_INT(ptr, 2);
 
-	self->TeleFogSourceType = oldpos;
-	self->TeleFogDestType = newpos;
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	mobj->TeleFogSourceType = oldpos;
+	mobj->TeleFogDestType = newpos;
 }
 
 //===========================================================================
@@ -5760,13 +5852,23 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTeleFog)
 // Switches the source and dest telefogs around. 
 //===========================================================================
 
-DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SwapTeleFog)
 {
-	if ((self->TeleFogSourceType != self->TeleFogDestType)) //Does nothing if they're the same.
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_INT(ptr, 0);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
 	{
-		const PClass *temp = self->TeleFogSourceType;
-		self->TeleFogSourceType = self->TeleFogDestType;
-		self->TeleFogDestType = temp;
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	if ((mobj->TeleFogSourceType != mobj->TeleFogDestType)) //Does nothing if they're the same.
+	{
+		const PClass *temp = mobj->TeleFogSourceType;
+		mobj->TeleFogSourceType = mobj->TeleFogDestType;
+		mobj->TeleFogDestType = temp;
 	}
 }
 
@@ -5779,12 +5881,21 @@ DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(bob, 0);
+	ACTION_PARAM_INT(ptr, 1);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
 	//Respect float bob phase limits.
-	if (self && (bob >= 0 && bob <= 63))
-		self->FloatBobPhase = bob;
+	if (mobj && (bob >= 0 && bob <= 63))
+		mobj->FloatBobPhase = bob;
 }
 
 //===========================================================================
@@ -5899,9 +6010,18 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(level, 0);
-	self->RipperLevel = level;
+	ACTION_PARAM_INT(ptr, 1);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	mobj->RipperLevel = level;
 }
 
 //===========================================================================
@@ -5912,9 +6032,18 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(min, 0);
-	self->RipLevelMin = min; 
+	ACTION_PARAM_INT(ptr, 1);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	mobj->RipLevelMin = min; 
 }
 
 //===========================================================================
@@ -5925,7 +6054,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(max, 0);
-	self->RipLevelMax = max;
+	ACTION_PARAM_INT(ptr, 1);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+	mobj->RipLevelMax = max;
 }
