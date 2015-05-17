@@ -593,7 +593,7 @@ bool AInventory::HandlePickup (AInventory *item)
 {
 	if (item->GetClass() == GetClass())
 	{
-		if (Amount < MaxAmount || sv_unlimited_pickup)
+		if (Amount < MaxAmount || (sv_unlimited_pickup && !item->ShouldStay()))
 		{
 			if (Amount > 0 && Amount + item->Amount < 0)
 			{
@@ -1129,6 +1129,32 @@ void AInventory::Destroy ()
 	// Although contrived it can theoretically happen that these variables still got a pointer to this item
 	if (SendItemUse == this) SendItemUse = NULL;
 	if (SendItemDrop == this) SendItemDrop = NULL;
+}
+
+//===========================================================================
+//
+// AInventory :: DepleteOrDestroy
+//
+// If the item is depleted, just change its amount to 0, otherwise it's destroyed.
+//
+//===========================================================================
+
+void AInventory::DepleteOrDestroy ()
+{
+	// If it's not ammo or an internal armor, destroy it.
+	// Ammo needs to stick around, even when it's zero for the benefit
+	// of the weapons that use it and to maintain the maximum ammo
+	// amounts a backpack might have given.
+	// Armor shouldn't be removed because they only work properly when
+	// they are the last items in the inventory.
+	if (ItemFlags & IF_KEEPDEPLETED)
+	{
+		Amount = 0;
+	}
+	else
+	{
+		Destroy();
+	}
 }
 
 //===========================================================================

@@ -561,37 +561,26 @@ void I_DetectOS(void)
 		{
 			if (info.dwMinorVersion == 0)
 			{
-				if (info.wProductType == VER_NT_WORKSTATION)
-				{
-					osname = "Vista";
-				}
-				else
-				{
-					osname = "Server 2008";
-				}
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "Vista" : "Server 2008";
 			}
 			else if (info.dwMinorVersion == 1)
 			{
-				if (info.wProductType == VER_NT_WORKSTATION)
-				{
-					osname = "7";
-				}
-				else
-				{
-					osname = "Server 2008 R2";
-				}
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "7" : "Server 2008 R2";
 			}
 			else if (info.dwMinorVersion == 2)	
 			{
-				// Microsoft broke this API for 8.1 so without jumping through hoops it won't be possible anymore to detect never versions aside from the build number, especially for older compilers.
-				if (info.wProductType == VER_NT_WORKSTATION)
-				{
-					osname = "8 (or higher)";
-				}
-				else
-				{
-					osname = "Server 2012 (or higher)";
-				}
+				// Starting with Windows 8.1, you need to specify in your manifest
+				// the highest version of Windows you support, which will also be the
+				// highest version of Windows this function returns.
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "8" : "Server 2012";
+			}
+			else if (info.dwMinorVersion == 3)
+			{
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "8.1" : "Server 2012 R2";
+			}
+			else if (info.dwMinorVersion == 4)
+			{
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "10 (or higher)" : "Server 10 (or higher)";
 			}
 		}
 		break;
@@ -1611,13 +1600,20 @@ unsigned int I_MakeRNGSeed()
 
 FString I_GetLongPathName(FString shortpath)
 {
-	DWORD buffsize = GetLongPathName(shortpath.GetChars(), NULL, 0);
+	static TOptWin32Proc<DWORD (WINAPI*)(LPCTSTR, LPTSTR, DWORD)>
+		GetLongPathNameA("kernel32.dll", "GetLongPathNameA");
+
+	// Doesn't exist on NT4
+	if (GetLongPathName == NULL)
+		return shortpath;
+
+	DWORD buffsize = GetLongPathNameA.Call(shortpath.GetChars(), NULL, 0);
 	if (buffsize == 0)
 	{ // nothing to change (it doesn't exist, maybe?)
 		return shortpath;
 	}
 	TCHAR *buff = new TCHAR[buffsize];
-	DWORD buffsize2 = GetLongPathName(shortpath.GetChars(), buff, buffsize);
+	DWORD buffsize2 = GetLongPathNameA.Call(shortpath.GetChars(), buff, buffsize);
 	if (buffsize2 >= buffsize)
 	{ // Failure! Just return the short path
 		delete[] buff;
