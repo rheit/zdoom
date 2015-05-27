@@ -74,6 +74,7 @@ const int SXF_NOPOINTERS =				1 << 22;
 const int SXF_ORIGINATOR =				1 << 23;
 const int SXF_TRANSFERSPRITEFRAME	=	1 << 24;
 const int SXF_TRANSFERROLL =			1 << 25;
+const int SXF_POINTERISCALLER =			1 << 26;
 
 // Flags for A_Chase
 const int CHF_FASTCHASE = 1;
@@ -137,6 +138,7 @@ const int MRF_FAILNOLAUGH = 32;
 const int MRF_WHENINVULNERABLE = 64;
 const int MRF_LOSEACTUALWEAPON = 128;
 const int MRF_NEWTIDBEHAVIOUR = 256;
+const int MRF_NEWTIDBEHAVIOR = 256;
 const int MRF_UNDOBYDEATH = 512;
 const int MRF_UNDOBYDEATHFORCED = 1024;
 const int MRF_UNDOBYDEATHSAVES = 2048;

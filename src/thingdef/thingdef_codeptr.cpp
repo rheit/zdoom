@@ -1856,40 +1856,46 @@ enum SIX_Flags
 	SIXF_ORIGINATOR				= 0x00800000,
 	SIXF_TRANSFERSPRITEFRAME	= 0x01000000,
 	SIXF_TRANSFERROLL			= 0x02000000,
+	SIXF_POINTERISCALLER		= 0x04000000,
 };
 
-static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
+static bool InitSpawnedItem(AActor *ptr, AActor *self, AActor *mo, int flags)
 {
-	if (mo == NULL)
+	if (!mo)
 	{
 		return false;
 	}
-	AActor *originator = self;
+	if (!ptr)
+		ptr = self;
+	// Determines if the function should use the CALLER flags on the original
+	// actor or the pointer.
+	AActor *caller = (flags & SIXF_POINTERISCALLER) ? ptr : self;
+	AActor *originator = caller; 
 
 	if (!(mo->flags2 & MF2_DONTTRANSLATE))
 	{
 		if (flags & SIXF_TRANSFERTRANSLATION)
 		{
-			mo->Translation = self->Translation;
+			mo->Translation = ptr->Translation;
 		}
 		else if (flags & SIXF_USEBLOODCOLOR)
 		{
 			// [XA] Use the spawning actor's BloodColor to translate the newly-spawned object.
-			PalEntry bloodcolor = self->GetBloodColor();
+			PalEntry bloodcolor = ptr->GetBloodColor();
 			mo->Translation = TRANSLATION(TRANSLATION_Blood, bloodcolor.a);
 		}
 	}
 	if (flags & SIXF_TRANSFERPOINTERS)
 	{
-		mo->target = self->target;
-		mo->master = self->master; // This will be overridden later if SIXF_SETMASTER is set
-		mo->tracer = self->tracer;
+		mo->target = ptr->target;
+		mo->master = ptr->master; // This will be overridden later if SIXF_SETMASTER is set
+		mo->tracer = ptr->tracer;
 	}
 
-	mo->angle = self->angle;
+	mo->angle = ptr->angle;
 	if (flags & SIXF_TRANSFERPITCH)
 	{
-		mo->pitch = self->pitch;
+		mo->pitch = ptr->pitch;
 	}
 	if (!(flags & SIXF_ORIGINATOR))
 	{
@@ -1943,7 +1949,7 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 	else if (!(flags & SIXF_TRANSFERPOINTERS))
 	{
 		// If this is a missile or something else set the target to the originator
-		mo->target = originator ? originator : self;
+		mo->target = originator ? originator : ptr;
 	}
 	if (flags & SIXF_NOPOINTERS)
 	{
@@ -1967,50 +1973,50 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 	}
 	if (flags & SIXF_TRANSFERSCALE)
 	{
-		mo->scaleX = self->scaleX;
-		mo->scaleY = self->scaleY;
+		mo->scaleX = ptr->scaleX;
+		mo->scaleY = ptr->scaleY;
 	}
 	if (flags & SIXF_TRANSFERAMBUSHFLAG)
 	{
-		mo->flags = (mo->flags & ~MF_AMBUSH) | (self->flags & MF_AMBUSH);
+		mo->flags = (mo->flags & ~MF_AMBUSH) | (ptr->flags & MF_AMBUSH);
 	}
 	if (flags & SIXF_CLEARCALLERTID)
 	{
-		self->RemoveFromHash();
-		self->tid = 0;
+		caller->RemoveFromHash();
+		caller->tid = 0;
 	}
 	if (flags & SIXF_TRANSFERSPECIAL)
 	{
-		mo->special = self->special;
-		memcpy(mo->args, self->args, sizeof(self->args));
+		mo->special = ptr->special;
+		memcpy(mo->args, ptr->args, sizeof(ptr->args));
 	}
 	if (flags & SIXF_CLEARCALLERSPECIAL)
 	{
-		self->special = 0;
-		memset(self->args, 0, sizeof(self->args));
+		caller->special = 0;
+		memset(caller->args, 0, sizeof(caller->args));
 	}
 	if (flags & SIXF_TRANSFERSTENCILCOL)
 	{
-		mo->fillcolor = self->fillcolor;
+		mo->fillcolor = ptr->fillcolor;
 	}
 	if (flags & SIXF_TRANSFERALPHA)
 	{
-		mo->alpha = self->alpha;
+		mo->alpha = ptr->alpha;
 	}
 	if (flags & SIXF_TRANSFERRENDERSTYLE)
 	{
-		mo->RenderStyle = self->RenderStyle;
+		mo->RenderStyle = ptr->RenderStyle;
 	}
 	
 	if (flags & SIXF_TRANSFERSPRITEFRAME)
 	{
-		mo->sprite = self->sprite;
-		mo->frame = self->frame;
+		mo->sprite = ptr->sprite;
+		mo->frame = ptr->frame;
 	}
 
 	if (flags & SIXF_TRANSFERROLL)
 	{
-		mo->roll = self->roll;
+		mo->roll = ptr->roll;
 	}
 
 	return true;
@@ -2063,7 +2069,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItem)
 					self->z - self->floorclip + self->GetBobOffset() + zheight, ALLOW_REPLACE);
 
 	int flags = (transfer_translation ? SIXF_TRANSFERTRANSLATION : 0) + (useammo ? SIXF_SETMASTER : 0);
-	bool res = InitSpawnedItem(self, mo, flags);
+	bool res = InitSpawnedItem(self, self, mo, flags);
 	ACTION_SET_RESULT(res);	// for an inventory item's use state
 }
 
@@ -2076,7 +2082,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItem)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 {
-	ACTION_PARAM_START(11);
+	ACTION_PARAM_START(12);
 	ACTION_PARAM_CLASS(missile, 0);
 	ACTION_PARAM_FIXED(xofs, 1);
 	ACTION_PARAM_FIXED(yofs, 2);
@@ -2088,8 +2094,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 	ACTION_PARAM_INT(flags, 8);
 	ACTION_PARAM_INT(chance, 9);
 	ACTION_PARAM_INT(tid, 10);
+	ACTION_PARAM_INT(ptr, 11);
 
-	if (!missile) 
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!missile || !mobj) 
 	{
 		ACTION_SET_RESULT(false);
 		return;
@@ -2098,28 +2107,28 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 	if (chance > 0 && pr_spawnitemex()<chance) return;
 
 	// Don't spawn monsters if this actor has been massacred
-	if (self->DamageType == NAME_Massacre && GetDefaultByType(missile)->flags3&MF3_ISMONSTER) return;
+	if (mobj->DamageType == NAME_Massacre && GetDefaultByType(missile)->flags3&MF3_ISMONSTER) return;
 
 	fixed_t x,y;
 
 	if (!(flags & SIXF_ABSOLUTEANGLE))
 	{
-		Angle += self->angle;
+		Angle += mobj->angle;
 	}
 
 	angle_t ang = Angle >> ANGLETOFINESHIFT;
 
 	if (flags & SIXF_ABSOLUTEPOSITION)
 	{
-		x = self->x + xofs;
-		y = self->y + yofs;
+		x = mobj->x + xofs;
+		y = mobj->y + yofs;
 	}
 	else
 	{
 		// in relative mode negative y values mean 'left' and positive ones mean 'right'
 		// This is the inverse orientation of the absolute mode!
-		x = self->x + FixedMul(xofs, finecosine[ang]) + FixedMul(yofs, finesine[ang]);
-		y = self->y + FixedMul(xofs, finesine[ang]) - FixedMul(yofs, finecosine[ang]);
+		x = mobj->x + FixedMul(xofs, finecosine[ang]) + FixedMul(yofs, finesine[ang]);
+		y = mobj->y + FixedMul(xofs, finesine[ang]) - FixedMul(yofs, finecosine[ang]);
 	}
 
 	if (!(flags & SIXF_ABSOLUTEVELOCITY))
@@ -2130,8 +2139,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 		xvel = newxvel;
 	}
 
-	AActor *mo = Spawn(missile, x, y, self->z - self->floorclip + self->GetBobOffset() + zofs, ALLOW_REPLACE);
-	bool res = InitSpawnedItem(self, mo, flags);
+	AActor *mo = Spawn(missile, x, y, mobj->z - mobj->floorclip + mobj->GetBobOffset() + zofs, ALLOW_REPLACE);
+	bool res = InitSpawnedItem(mobj, self, mo, flags);
 	ACTION_SET_RESULT(res);	// for an inventory item's use state
 	if (res)
 	{
@@ -2410,20 +2419,29 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeIn)
 	ACTION_PARAM_START(1);
 	ACTION_PARAM_FIXED(reduce, 0);
 	ACTION_PARAM_INT(flags, 1);
+	ACTION_PARAM_INT(ptr, 2);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
 	if (reduce == 0)
 	{
 		reduce = FRACUNIT / 10;
 	}
-	self->RenderStyle.Flags &= ~STYLEF_Alpha1;
-	self->alpha += reduce;
+	mobj->RenderStyle.Flags &= ~STYLEF_Alpha1;
+	mobj->alpha += reduce;
 
-	if (self->alpha >= (FRACUNIT * 1))
+	if (mobj->alpha >= (FRACUNIT * 1))
 	{
 		if (flags & FTF_CLAMP)
-			self->alpha = (FRACUNIT * 1);
+			mobj->alpha = (FRACUNIT * 1);
 		if (flags & FTF_REMOVE)
-			self->Destroy();
+			mobj->Destroy();
 	}
 }
 
@@ -2436,22 +2454,31 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeIn)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeOut)
 {
-	ACTION_PARAM_START(2);
+	ACTION_PARAM_START(3);
 	ACTION_PARAM_FIXED(reduce, 0);
 	ACTION_PARAM_INT(flags, 1);
+	ACTION_PARAM_INT(ptr, 2);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
 	if (reduce == 0)
 	{
 		reduce = FRACUNIT/10;
 	}
-	self->RenderStyle.Flags &= ~STYLEF_Alpha1;
-	self->alpha -= reduce;
-	if (self->alpha <= 0)
+	mobj->RenderStyle.Flags &= ~STYLEF_Alpha1;
+	mobj->alpha -= reduce;
+	if (mobj->alpha <= 0)
 	{
 		if (flags & FTF_CLAMP)
-			self->alpha = 0;
+			mobj->alpha = 0;
 		if (flags & FTF_REMOVE)
-			self->Destroy();
+			mobj->Destroy();
 	}
 }
 
@@ -2465,41 +2492,50 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeOut)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeTo)
 {
-	ACTION_PARAM_START(3);
+	ACTION_PARAM_START(4);
 	ACTION_PARAM_FIXED(target, 0);
 	ACTION_PARAM_FIXED(amount, 1);
 	ACTION_PARAM_INT(flags, 2);
+	ACTION_PARAM_INT(ptr, 3);
 
-	self->RenderStyle.Flags &= ~STYLEF_Alpha1;
+	AActor *mobj = COPY_AAPTR(self, ptr);
 
-	if (self->alpha > target)
+	if (!mobj)
 	{
-		self->alpha -= amount;
+		ACTION_SET_RESULT(false);
+		return;
+	}
 
-		if (self->alpha < target)
+	mobj->RenderStyle.Flags &= ~STYLEF_Alpha1;
+
+	if (mobj->alpha > target)
+	{
+		mobj->alpha -= amount;
+
+		if (mobj->alpha < target)
 		{
-			self->alpha = target;
+			mobj->alpha = target;
 		}
 	}
-	else if (self->alpha < target)
+	else if (mobj->alpha < target)
 	{
-		self->alpha += amount;
+		mobj->alpha += amount;
 
-		if (self->alpha > target)
+		if (mobj->alpha > target)
 		{
-			self->alpha = target;
+			mobj->alpha = target;
 		}
 	}
 	if (flags & FTF_CLAMP)
 	{
-		if (self->alpha > (FRACUNIT * 1))
-			self->alpha = (FRACUNIT * 1);
-		else if (self->alpha < 0)
-			self->alpha = 0;
+		if (mobj->alpha > (FRACUNIT * 1))
+			mobj->alpha = (FRACUNIT * 1);
+		else if (mobj->alpha < 0)
+			mobj->alpha = 0;
 	}
-	if (self->alpha == target && (flags & FTF_REMOVE))
+	if (mobj->alpha == target && (flags & FTF_REMOVE))
 	{
-		self->Destroy();
+		mobj->Destroy();
 	}
 }
 
@@ -5145,22 +5181,31 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTics)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(tics_to_set, 0);
+	ACTION_PARAM_INT(ptr, 1);
 
-	if (stateowner != self && self->player != NULL && stateowner->IsKindOf(RUNTIME_CLASS(AWeapon)))
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	if (stateowner != mobj && mobj->player != NULL && stateowner->IsKindOf(RUNTIME_CLASS(AWeapon)))
 	{ // Is this a weapon? Need to check psp states for a match, then. Blah.
 		for (int i = 0; i < NUMPSPRITES; ++i)
 		{
-			if (self->player->psprites[i].state == CallingState)
+			if (mobj->player->psprites[i].state == CallingState)
 			{
-				self->player->psprites[i].tics = tics_to_set;
+				mobj->player->psprites[i].tics = tics_to_set;
 				return;
 			}
 		}
 	}
-	// Just set tics for self.
-	self->tics = tics_to_set;
+	// Just set tics for mobj.
+	mobj->tics = tics_to_set;
 }
 
 //==========================================================================
