@@ -471,5 +471,16 @@ enum
 	QF_WAVE =			1 << 5,
 };
 
+enum
+{
+	CBF_SOLID			= 1,
+	CBF_NOCLIP			= 1 << 1,
+	CBF_NOBLOCKMAP		= 1 << 2,
+	CBF_THRUACTORS		= 1 << 3,
+	CBF_THRUSPECIES		= 1 << 4,
+	CBF_THRUGHOST		= 1 << 5,
+	CBF_NOINTERACTION	= 1 << 6,
+};
+
 // This is only here to provide one global variable for testing.
 native int testglobalvar;
