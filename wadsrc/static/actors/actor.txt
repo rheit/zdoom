@@ -20,6 +20,7 @@ ACTOR Actor native //: Thinker
 	Gravity 1
 	Friction 1
 	DamageFactor 1.0
+	ThrustFactor 1.0
 	PushFactor 0.25
 	WeaveIndexXY 0
 	WeaveIndexZ 16
@@ -331,6 +332,7 @@ ACTOR Actor native //: Thinker
 	action native A_SetHealth(int health, int ptr = AAPTR_DEFAULT);
 	action native A_ResetHealth(int ptr = AAPTR_DEFAULT);
 	action native A_JumpIfHigherOrLower(state high, state low, float offsethigh = 0, float offsetlow = 0, bool includeHeight = true, int ptr = AAPTR_TARGET);
+	action native A_SetThrustFactor(float amount, name dmgtype = "None", int ptr = AAPTR_DEFAULT);
 	action native A_SetRipperLevel(int level);
 	action native A_SetRipMin(int min);
 	action native A_SetRipMax(int max);
