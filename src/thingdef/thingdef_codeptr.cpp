@@ -4129,7 +4129,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ScaleVelocity)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeVelocity)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(5);
 	ACTION_PARAM_FIXED(x, 0);
 	ACTION_PARAM_FIXED(y, 1);
 	ACTION_PARAM_FIXED(z, 2);
@@ -4170,7 +4170,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeVelocity)
 
 	if (was_moving)
 	{
-		CheckStopped(self);
+		CheckStopped(ref);
 	}
 }
 
