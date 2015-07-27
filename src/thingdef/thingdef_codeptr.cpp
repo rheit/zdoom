@@ -4107,7 +4107,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ScaleVelocity)
 		return;
 	}
 
-	INTBOOL was_moving = self->velx | self->vely | self->velz;
+	INTBOOL was_moving = ref->velx | ref->vely | ref->velz;
 
 	ref->velx = FixedMul(ref->velx, scale);
 	ref->vely = FixedMul(ref->vely, scale);
