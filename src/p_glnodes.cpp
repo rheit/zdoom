@@ -338,7 +338,14 @@ static bool LoadGLSegs(FileReader * lump)
 					
 					ml->side=LittleShort(ml->side);
 					segs[i].sidedef = ldef->sidedef[ml->side];
-					segs[i].frontsector = ldef->sidedef[ml->side]->sector;
+					if (ldef->sidedef[ml->side] != NULL)
+					{
+						segs[i].frontsector = ldef->sidedef[ml->side]->sector;
+					}
+					else
+					{
+						segs[i].frontsector = NULL;
+					}
 					if (ldef->flags & ML_TWOSIDED && ldef->sidedef[ml->side^1] != NULL)
 					{
 						segs[i].backsector = ldef->sidedef[ml->side^1]->sector;
@@ -346,7 +353,7 @@ static bool LoadGLSegs(FileReader * lump)
 					else
 					{
 						ldef->flags &= ~ML_TWOSIDED;
-						segs[i].backsector = 0;
+						segs[i].backsector = NULL;
 					}
 	
 				}
@@ -385,7 +392,14 @@ static bool LoadGLSegs(FileReader * lump)
 					
 					ml->side=LittleShort(ml->side);
 					segs[i].sidedef = ldef->sidedef[ml->side];
-					segs[i].frontsector = ldef->sidedef[ml->side]->sector;
+					if (ldef->sidedef[ml->side] != NULL)
+					{
+						segs[i].frontsector = ldef->sidedef[ml->side]->sector;
+					}
+					else
+					{
+						segs[i].frontsector = NULL;
+					}
 					if (ldef->flags & ML_TWOSIDED && ldef->sidedef[ml->side^1] != NULL)
 					{
 						segs[i].backsector = ldef->sidedef[ml->side^1]->sector;
@@ -393,7 +407,7 @@ static bool LoadGLSegs(FileReader * lump)
 					else
 					{
 						ldef->flags &= ~ML_TWOSIDED;
-						segs[i].backsector = 0;
+						segs[i].backsector = NULL;
 					}
 	
 				}
@@ -930,13 +944,13 @@ bool P_LoadGLNodes(MapData * map)
 			result=true;
 			for(unsigned i=0; i<4;i++)
 			{
-				if (strnicmp(f_gwa->GetLump(i+1)->Name, check[i], 8))
+				if (strnicmp(f_gwa->GetLump(li+i+1)->Name, check[i], 8))
 				{
 					result=false;
 					break;
 				}
 				else
-					gwalumps[i] = f_gwa->GetLump(i+1)->NewReader();
+					gwalumps[i] = f_gwa->GetLump(li+i+1)->NewReader();
 			}
 			if (result) result = DoLoadGLNodes(gwalumps);
 		}

@@ -290,14 +290,9 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 			FResourceLump *lump = resfile->GetLump(i);
 			if (lump->Flags & LUMPF_EMBEDDED)
 			{
-				char path[256];
-
-				mysnprintf(path, countof(path), "%s:", filename);
-				char *wadstr = path + strlen(path);
-
+				FString path;
+				path.Format("%s:%s", filename, lump->FullName.GetChars());
 				FileReader *embedded = lump->NewReader();
-				strcpy(wadstr, lump->FullName);
-
 				AddFile(path, embedded);
 			}
 		}
@@ -322,7 +317,7 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 					sprintf(cksumout + (j * 2), "%02X", cksum[j]);
 				}
 
-				fprintf(hashfile, "file: %s, hash: %s, size: %d\n", filename, cksumout, reader->GetLength());
+				fprintf(hashfile, "file: %s, hash: %s, size: %ld\n", filename, cksumout, reader->GetLength());
 			}
 
 			else
@@ -345,7 +340,9 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 						sprintf(cksumout + (j * 2), "%02X", cksum[j]);
 					}
 
-					fprintf(hashfile, "file: %s, lump: %s, hash: %s, size: %d\n", filename, lump->FullName ? lump->FullName : lump->Name, cksumout, lump->LumpSize);
+					fprintf(hashfile, "file: %s, lump: %s, hash: %s, size: %d\n", filename,
+						lump->FullName.IsNotEmpty() ? lump->FullName.GetChars() : lump->Name,
+						cksumout, lump->LumpSize);
 
 					delete reader;
 				}
@@ -737,7 +734,7 @@ void FWadCollection::InitHashChains (void)
 		FirstLumpIndex[j] = i;
 
 		// Do the same for the full paths
-		if (LumpInfo[i].lump->FullName!=NULL)
+		if (LumpInfo[i].lump->FullName.IsNotEmpty())
 		{
 			j = MakeKey(LumpInfo[i].lump->FullName) % NumLumps;
 			NextLumpIndex_FullName[i] = FirstLumpIndex_FullName[j];
@@ -1099,7 +1096,7 @@ const char *FWadCollection::GetLumpFullName (int lump) const
 {
 	if ((size_t)lump >= NumLumps)
 		return NULL;
-	else if (LumpInfo[lump].lump->FullName != NULL)
+	else if (LumpInfo[lump].lump->FullName.IsNotEmpty())
 		return LumpInfo[lump].lump->FullName;
 	else
 		return LumpInfo[lump].lump->Name;
@@ -1241,6 +1238,17 @@ FWadLump *FWadCollection::ReopenLumpNum (int lump)
 
 	return new FWadLump(LumpInfo[lump].lump, true);
 }
+
+FWadLump *FWadCollection::ReopenLumpNumNewFile (int lump)
+{
+	if ((unsigned)lump >= (unsigned)LumpInfo.Size())
+	{
+		return NULL;
+	}
+
+	return new FWadLump(lump, LumpInfo[lump].lump);
+}
+
 
 //==========================================================================
 //
@@ -1431,6 +1439,34 @@ FWadLump::FWadLump(FResourceLump *lump, bool alwayscache)
 	}
 }
 
+FWadLump::FWadLump(int lumpnum, FResourceLump *lump)
+: FileReader()
+{
+	FileReader *f = lump->GetReader();
+
+	if (f != NULL && f->GetFile() != NULL)
+	{
+		// Uncompressed lump in a file. For this we will have to open a new FILE, since we need it for streaming
+		int fileno = Wads.GetLumpFile(lumpnum);
+		const char *filename = Wads.GetWadFullName(fileno);
+		File = fopen(filename, "rb");
+		if (File != NULL)
+		{
+			Length = lump->LumpSize;
+			StartPos = FilePos = lump->GetFileOffset();
+			Lump = NULL;
+			CloseOnDestruct = true;
+			Seek(0, SEEK_SET);
+			return;
+		}
+	}
+	File = NULL;
+	Length = lump->LumpSize;
+	StartPos = FilePos = 0;
+	Lump = lump;
+	Lump->CacheLump();
+}
+
 FWadLump::~FWadLump()
 {
 	if (Lump != NULL)
@@ -1583,5 +1619,35 @@ static void PrintLastError ()
 static void PrintLastError ()
 {
 	Printf (TEXTCOLOR_RED "  %s\n", strerror(errno));
+}
+#endif
+
+#ifdef _DEBUG
+//==========================================================================
+//
+// CCMD LumpNum
+//
+//==========================================================================
+
+CCMD(lumpnum)
+{
+	for (int i = 1; i < argv.argc(); ++i)
+	{
+		Printf("%s: %d\n", argv[i], Wads.CheckNumForName(argv[i]));
+	}
+}
+
+//==========================================================================
+//
+// CCMD LumpNumFull
+//
+//==========================================================================
+
+CCMD(lumpnumfull)
+{
+	for (int i = 1; i < argv.argc(); ++i)
+	{
+		Printf("%s: %d\n", argv[i], Wads.CheckNumForFullName(argv[i]));
+	}
 }
 #endif

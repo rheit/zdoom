@@ -60,7 +60,7 @@ typedef enum
 	PushMany,
 } triggertype_e;
 
-void P_TranslateLineDef (line_t *ld, maplinedef_t *mld)
+void P_TranslateLineDef (line_t *ld, maplinedef_t *mld, int lineindexforid)
 {
 	unsigned short special = (unsigned short) LittleShort(mld->special);
 	short tag = LittleShort(mld->tag);
@@ -100,11 +100,14 @@ void P_TranslateLineDef (line_t *ld, maplinedef_t *mld)
 	}
 	flags = newflags;
 
-	// For purposes of maintaining BOOM compatibility, each
-	// line also needs to have its ID set to the same as its tag.
-	// An external conversion program would need to do this more
-	// intelligently.
-	ld->id = tag;
+	if (lineindexforid >= 0)
+	{
+		// For purposes of maintaining BOOM compatibility, each
+		// line also needs to have its ID set to the same as its tag.
+		// An external conversion program would need to do this more
+		// intelligently.
+		tagManager.AddLineID(lineindexforid, tag);
+	}
 
 	// 0 specials are never translated.
 	if (special == 0)
@@ -298,7 +301,7 @@ void P_TranslateLineDef (line_t *ld, maplinedef_t *mld)
 #define KEYSPAM {};
 #endif
 
-void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld)
+void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld, int lineindexforid)
 {
 	// The main difference between the Doom linedef and Doom64 Linedef is the wider flags field.
 	// In effect, there are the "normal" flags on two bytes, then on a byte each the "render flags"
@@ -317,7 +320,7 @@ void P_TranslateLineDef (line_t *ld, maplinedefdoom64_t *mld)
 	tmp.tag = mld->tag;
 	tmp.sidenum[0] = mld->sidenum[0];
 	tmp.sidenum[1] = mld->sidenum[1];
-	P_TranslateLineDef (ld, &tmp);
+	P_TranslateLineDef (ld, &tmp, lineindexforid);
 
 	// Use flags. Specs say the order is macro, red, blue, yellow key, cross, shootable, use, repeatable
 	if (mld->special & 0xFE00)
@@ -372,7 +375,7 @@ void P_TranslateTeleportThings ()
 
 	while ( (dest = iterator.Next()) )
 	{
-		if (dest->Sector->tag == 0)
+		if (!tagManager.SectorHasTags(dest->Sector))
 		{
 			dest->tid = 1;
 			dest->AddToHash ();

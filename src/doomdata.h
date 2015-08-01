@@ -393,6 +393,7 @@ struct mapthingdoom64_t
 };
 
 class FArchive;
+struct FDoomEdEntry;
 
 // Internal representation of a mapthing
 struct FMapThing
@@ -402,9 +403,10 @@ struct FMapThing
 	fixed_t		y;
 	fixed_t		z;
 	short		angle;
-	short		type;
 	WORD		SkillFilter;
 	WORD		ClassFilter;
+	short		EdNum;
+	FDoomEdEntry *info;
 	DWORD		flags;
 	int			special;
 	int			args[5];
@@ -419,8 +421,6 @@ struct FMapThing
 	short		pitch;
 	short		roll;
 	DWORD		RenderStyle;
-
-	void Serialize (FArchive &);
 };
 
 
@@ -500,10 +500,10 @@ struct FPlayerStart
 	short angle, type;
 
 	FPlayerStart() { }
-	FPlayerStart(const FMapThing *mthing)
+	FPlayerStart(const FMapThing *mthing, int pnum)
 	: x(mthing->x), y(mthing->y), z(mthing->z),
 	  angle(mthing->angle),
-	  type(mthing->type)
+	  type(pnum)
 	{ }
 };
 // Player spawn spots for deathmatch.

@@ -106,6 +106,7 @@ LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 void CreateCrashLog (char *custominfo, DWORD customsize, HWND richedit);
 void DisplayCrashLog ();
 extern BYTE *ST_Util_BitsForBitmap (BITMAPINFO *bitmap_info);
+void I_FlushBufferedConsoleStuff();
 
 // PUBLIC FUNCTION PROTOTYPES ----------------------------------------------
 
@@ -128,6 +129,7 @@ HANDLE			MainThread;
 DWORD			MainThreadID;
 HANDLE			StdOut;
 bool			FancyStdOut, AttachedStdOut;
+bool			ConWindowHidden;
 
 // The main window
 HWND			Window;
@@ -143,7 +145,7 @@ LONG			ErrorIconChar;
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
-static const char WinClassName[] = "ZDoomMainWindow";
+static const char WinClassName[] = GAMENAME "MainWindow";
 static HMODULE hwtsapi32;		// handle to wtsapi32.dll
 static void (*TermFuncs[MAX_TERMS])(void);
 static int NumTerms;
@@ -644,6 +646,7 @@ void I_SetWndProc()
 		SetWindowLongPtr (Window, GWLP_USERDATA, 1);
 		SetWindowLongPtr (Window, GWLP_WNDPROC, (WLONG_PTR)WndProc);
 		ShowWindow (ConWindow, SW_HIDE);
+		ConWindowHidden = true;
 		ShowWindow (GameTitleWindow, SW_HIDE);
 		I_InitInput (Window);
 	}
@@ -675,8 +678,10 @@ void RestoreConView()
 
 	SetWindowLongPtr (Window, GWLP_WNDPROC, (WLONG_PTR)LConProc);
 	ShowWindow (ConWindow, SW_SHOW);
+	ConWindowHidden = false;
 	ShowWindow (GameTitleWindow, SW_SHOW);
 	I_ShutdownInput ();		// Make sure the mouse pointer is available.
+	I_FlushBufferedConsoleStuff();
 	// Make sure the progress bar isn't visible.
 	if (StartScreen != NULL)
 	{
@@ -1224,7 +1229,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE nothing, LPSTR cmdline, int n
 		// This should only happen on basic Windows 95 installations, but since we
 		// don't support Windows 95, we have no obligation to provide assistance in
 		// getting it installed.
-		MessageBoxA(NULL, "Could not load riched20.dll", "ZDoom Error", MB_OK | MB_ICONSTOP);
+		MessageBoxA(NULL, "Could not load riched20.dll", GAMENAME " Error", MB_OK | MB_ICONSTOP);
 		exit(0);
 	}
 

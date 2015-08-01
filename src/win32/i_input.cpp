@@ -110,6 +110,11 @@
 #include "rawinput.h"
 
 
+// Compensate for w32api's lack
+#ifndef GET_XBUTTON_WPARAM
+#define GET_XBUTTON_WPARAM(wParam) (HIWORD(wParam))
+#endif
+
 
 #ifdef _DEBUG
 #define INGAME_PRIORITY_CLASS	NORMAL_PRIORITY_CLASS
@@ -323,11 +328,11 @@ bool GUIWndProcHook(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESU
 			if (BlockMouseMove > 0) return true;
 		}
 
+		ev.data1 = LOWORD(lParam);
+		ev.data2 = HIWORD(lParam);
+		if (screen != NULL)
 		{
-			int shift = screen? screen->GetPixelDoubling() : 0;
-			ev.data1 = LOWORD(lParam) >> shift; 
-			ev.data2 = HIWORD(lParam) >> shift; 
-			if (screen) ev.data2 -= (screen->GetTrueHeight() - screen->GetHeight())/2;
+			screen->ScaleCoordsFromWindow(ev.data1, ev.data2);
 		}
 
 		if (wParam & MK_SHIFT)				ev.data3 |= GKM_SHIFT;

@@ -1,4 +1,7 @@
 // MAPINFO for Doom 64
+include "mapinfo/common.txt"
+include "mapinfo/doomitems.txt"
+
 gameinfo
 {
 	titlepage = "TITLEPIC"

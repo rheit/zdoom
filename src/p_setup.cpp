@@ -97,7 +97,6 @@ CVAR (Bool, gennodes, false, CVAR_SERVERINFO|CVAR_GLOBALCONFIG);
 CVAR (Bool, genglnodes, false, CVAR_SERVERINFO);
 CVAR (Bool, showloadtimes, false, 0);
 
-static void P_InitTagLists ();
 static void P_Shutdown ();
 
 bool P_IsBuildMap(MapData *map);
@@ -1618,7 +1617,7 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 		else	// [RH] Translate to new sector special
 			ss->special = P_TranslateSectorSpecial (LittleShort(ms->special));
 		ss->secretsector = !!(ss->special&SECRET_MASK);
-		ss->tag = LittleShort(ms->tag);
+		tagManager.AddSectorTag(i, LittleShort(ms->tag));
 		ss->thinglist = NULL;
 		ss->touching_thinglist = NULL;		// phares 3/14/98
 		ss->seqType = defSeqType;
@@ -1741,7 +1740,7 @@ void P_LoadSectorsDoom64 (MapData * map)
 			ms->ceilingheight, TexMan[ss->GetTexture(sector_t::floor)]->Name, ms->floorheight);*/
 		ss->lightlevel = 255;//(BYTE)clamp (LittleShort(ms->lightlevel), (short)0, (short)255);
 		ss->special = P_TranslateSectorSpecial (LittleShort(ms->special)); // Do translate those, what
-		ss->tag = LittleShort(ms->tag);
+		tagManager.AddSectorTag (i, LittleShort(ms->tag));
 		// Handle sector flags here since xlat doesn't know about sector flags
 		if (ms->flags)
 		{
@@ -1943,7 +1942,7 @@ AActor *SpawnMapThing(int index, FMapThing *mt, int position)
 	if (dumpspawnedthings)
 	{
 		Printf("%5d: (%5d, %5d, %5d), doomednum = %5d, flags = %04x, type = %s\n",
-			index, mt->x>>FRACBITS, mt->y>>FRACBITS, mt->z>>FRACBITS, mt->type, mt->flags, 
+			index, mt->x>>FRACBITS, mt->y>>FRACBITS, mt->z>>FRACBITS, mt->EdNum, mt->flags, 
 			spawned? spawned->GetClass()->TypeName.GetChars() : "(none)");
 	}
 	T_AddSpawnedThing(spawned);
@@ -2063,7 +2062,8 @@ void P_LoadThings (MapData * map)
 		mti[i].x = LittleShort(mt->x) << FRACBITS;
 		mti[i].y = LittleShort(mt->y) << FRACBITS;
 		mti[i].angle = LittleShort(mt->angle);
-		mti[i].type = LittleShort(mt->type);
+		mti[i].EdNum = LittleShort(mt->type);
+		mti[i].info = DoomEdMap.CheckKey(mti[i].EdNum);
 	}
 	delete [] mtp;
 }
@@ -2103,13 +2103,19 @@ void P_LoadThingsHexen (MapData * map)
 		mti[i].y = LittleShort(mth[i].y)<<FRACBITS;
 		mti[i].z = LittleShort(mth[i].z)<<FRACBITS;
 		mti[i].angle = LittleShort(mth[i].angle);
-		mti[i].type = LittleShort(mth[i].type);
+		mti[i].EdNum = LittleShort(mth[i].type);
+		mti[i].info = DoomEdMap.CheckKey(mti[i].EdNum);
 		mti[i].flags = LittleShort(mth[i].flags);
 		mti[i].special = mth[i].special;
 		for(int j=0;j<5;j++) mti[i].args[j] = mth[i].args[j];
 		mti[i].SkillFilter = MakeSkill(mti[i].flags);
 		mti[i].ClassFilter = (mti[i].flags & MTF_CLASS_MASK) >> MTF_CLASS_SHIFT;
 		mti[i].flags &= ~(MTF_SKILLMASK|MTF_CLASS_MASK);
+		if (level.flags2 & LEVEL2_HEXENHACK)
+		{
+			mti[i].flags &= 0x7ff;	// mask out Strife flags if playing an original Hexen map.
+		}
+
 		mti[i].gravity = FRACUNIT;
 		mti[i].RenderStyle = STYLE_Count;
 		mti[i].alpha = -1;
@@ -2145,7 +2151,8 @@ void P_LoadThingsDoom64 (MapData * map)
 		mti[i].y = LittleShort(mth[i].y)<<FRACBITS;
 		mti[i].z = LittleShort(mth[i].z)<<FRACBITS;
 		mti[i].angle = LittleShort(mth[i].angle);
-		mti[i].type = LittleShort(mth[i].type);
+		mti[i].EdNum = LittleShort(mth[i].type);
+		mti[i].info = DoomEdMap.CheckKey(mti[i].EdNum);
 		mti[i].flags = (short)((flags & 0xf) | 0x7e0);
 		mti[i].thingid = LittleShort(mth[i].thingid);
 		mti[i].ClassFilter = 0xffff; // No classes in Doom 64 either.
@@ -2163,12 +2170,12 @@ void P_LoadThingsDoom64 (MapData * map)
 		if (flags & D64TF_ONDEATH)			mti[i].flags |= MTF_ONDEATH;
 
 		// Camera hack
-		if (mth[i].type == 0 && mth[i].thingid > 0)
-			mti[i].type = 9025; // Basic security camera
+		if (mti[i].EdNum == 0 && mth[i].thingid > 0)
+			mti[i].EdNum = 9025; // Basic security camera
 		if (mti[i].thingid)
 			Printf("Thing type %i (%s) has tid %i and flags %x\n",
-			mti[i].type, DoomEdMap.FindType(mti[i].type)
-				?DoomEdMap.FindType(mti[i].type)->TypeName.GetChars()
+			mti[i].EdNum, mti[i].info && mti[i].info->Type
+				?mti[i].info->Type->TypeName.GetChars()
 				:"Unknown thingamajig", mti[i].thingid, flags);
 	}
 	delete[] mtp;
@@ -2239,53 +2246,58 @@ void P_AdjustLine (line_t *ld)
 	}
 }
 
-void P_SetLineID (line_t *ld)
+void P_SetLineID (int i, line_t *ld)
 {
 	// [RH] Set line id (as appropriate) here
 	// for Doom format maps this must be done in P_TranslateLineDef because
 	// the tag doesn't always go into the first arg.
 	if (level.maptype == MAPTYPE_HEXEN)	
 	{
+		int setid = -1;
 		switch (ld->special)
 		{
 		case Line_SetIdentification:
 			if (!(level.flags2 & LEVEL2_HEXENHACK))
 			{
-				ld->id = ld->args[0] + 256 * ld->args[4];
+				setid = ld->args[0] + 256 * ld->args[4];
 				ld->flags |= ld->args[1]<<16;
 			}
 			else
 			{
-				ld->id = ld->args[0];
+				setid = ld->args[0];
 			}
 			ld->special = 0;
 			break;
 
 		case TranslucentLine:
-			ld->id = ld->args[0];
+			setid = ld->args[0];
 			ld->flags |= ld->args[3]<<16;
 			break;
 
 		case Teleport_Line:
 		case Scroll_Texture_Model:
-			ld->id = ld->args[0];
+			setid = ld->args[0];
 			break;
 
 		case Polyobj_StartLine:
-			ld->id = ld->args[3];
+			setid = ld->args[3];
 			break;
 
 		case Polyobj_ExplicitLine:
-			ld->id = ld->args[4];
+			setid = ld->args[4];
 			break;
 			
 		case Plane_Align:
-			ld->id = ld->args[2];
+			setid = ld->args[2];
 			break;
 			
 		case Static_Init:
-			if (ld->args[1] == Init_SectorLink) ld->id = ld->args[0];
+			if (ld->args[1] == Init_SectorLink) setid = ld->args[0];
 			break;
+		}
+		if (setid != -1)
+		{
+			tagManager.AddLineID(i, setid);
 		}
 	}
 }
@@ -2369,7 +2381,7 @@ void P_FinishLoadingLineDef(line_t *ld, int alpha)
 		{
 			for (j = 0; j < numlines; j++)
 			{
-				if (lines[j].id == ld->args[0])
+				if (tagManager.LineHasID(j, ld->args[0]))
 				{
 					lines[j].Alpha = alpha;
 					if (additive)
@@ -2471,17 +2483,16 @@ void P_LoadLineDefs (MapData * map)
 
 	mld = (maplinedef_t *)mldf;
 	ld = lines;
-	for (i = numlines; i > 0; i--, mld++, ld++)
+	for (i = 0; i < numlines; i++, mld++, ld++)
 	{
 		ld->Alpha = FRACUNIT;	// [RH] Opaque by default
 
 		// [RH] Translate old linedef special and flags to be
 		//		compatible with the new format.
-		P_TranslateLineDef (ld, mld);
+		P_TranslateLineDef (ld, mld, i);
 
 		ld->v1 = &vertexes[LittleShort(mld->v1)];
 		ld->v2 = &vertexes[LittleShort(mld->v2)];
-		//ld->id = -1;		ID has been assigned in P_TranslateLineDef
 
 		P_SetSideNum (&ld->sidedef[0], LittleShort(mld->sidenum[0]));
 		P_SetSideNum (&ld->sidedef[1], LittleShort(mld->sidenum[1]));
@@ -2551,7 +2562,7 @@ void P_LoadLineDefsHexen (MapData * map)
 
 	mld = (maplinedef2_t *)mldf;
 	ld = lines;
-	for (i = numlines; i > 0; i--, mld++, ld++)
+	for (i = 0; i < numlines; i++, mld++, ld++)
 	{
 		int j;
 
@@ -2564,13 +2575,12 @@ void P_LoadLineDefsHexen (MapData * map)
 		ld->v1 = &vertexes[LittleShort(mld->v1)];
 		ld->v2 = &vertexes[LittleShort(mld->v2)];
 		ld->Alpha = FRACUNIT;	// [RH] Opaque by default
-		ld->id = -1;
 
 		P_SetSideNum (&ld->sidedef[0], LittleShort(mld->sidenum[0]));
 		P_SetSideNum (&ld->sidedef[1], LittleShort(mld->sidenum[1]));
 
 		P_AdjustLine (ld);
-		P_SetLineID(ld);
+		P_SetLineID(i, ld);
 		P_SaveLineSpecial (ld);
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
@@ -2659,13 +2669,13 @@ void P_LoadLineDefsDoom64 (MapData * map)
 
 	mld = (maplinedefdoom64_t *)mldf;
 	ld = lines;
-	for (i = numlines; i > 0; i--, mld++, ld++)
+	for (i = 0; i < numlines; i++, mld++, ld++)
 	{
 		ld->Alpha = FRACUNIT;	// [RH] Opaque by default
 
 		// [RH] Translate old linedef special and flags to be
 		//		compatible with the new format.
-		P_TranslateLineDef (ld, mld);
+		P_TranslateLineDef (ld, mld, i);
 
 		ld->v1 = &vertexes[LittleShort(mld->v1)];
 		ld->v2 = &vertexes[LittleShort(mld->v2)];
@@ -2920,7 +2930,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 
 				for (s = 0; s < numsectors; s++)
 				{
-					if (sectors[s].tag == tag)
+					if (tagManager.SectorHasTag(s, tag))
 					{
 						if (!colorgood) color = sectors[s].ColorMaps[LIGHT_GLOBAL]->Color;
 						if (!foggood) fog = sectors[s].ColorMaps[LIGHT_GLOBAL]->Fade;
@@ -2937,7 +2947,6 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 		}
 		break;
 
-#ifdef _3DFLOORS
 	case Sector_Set3DFloor:
 		if (msd->toptexture[0]=='#')
 		{
@@ -2952,7 +2961,6 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 		SetTexture(sd, side_t::mid, msd->midtexture, missingtex);
 		SetTexture(sd, side_t::bottom, msd->bottomtexture, missingtex);
 		break;
-#endif
 
 	case TranslucentLine:	// killough 4/11/98: apply translucency to 2s normal texture
 		if (checktranmap)
@@ -3598,9 +3606,9 @@ static void P_GroupLines (bool buildmap)
 	{
 		if (sector->linecount == 0)
 		{
-			Printf ("Sector %i (tag %i) has no lines\n", i, sector->tag);
+			Printf ("Sector %i (tag %i) has no lines\n", i, tagManager.GetFirstSectorTag(sector));
 			// 0 the sector's tag so that no specials can use it
-			sector->tag = 0;
+			tagManager.RemoveSectorTags(i);
 		}
 		else
 		{
@@ -3676,7 +3684,8 @@ static void P_GroupLines (bool buildmap)
 
 	// [RH] Moved this here
 	times[4].Clock();
-	P_InitTagLists();   // killough 1/30/98: Create xref tables for tags
+	// killough 1/30/98: Create xref tables for tags
+	tagManager.HashTags();
 	times[4].Unclock();
 
 	times[5].Clock();
@@ -3889,62 +3898,20 @@ void P_LoadLights (MapData * map)
 	delete[] mlp;
 }
 
-// Hash the sector tags across the sectors and linedefs.
-static void P_InitTagLists ()
-{
-	int i;
-
-	for (i=numsectors; --i>=0; )		// Initially make all slots empty.
-		sectors[i].firsttag = -1;
-	for (i=numsectors; --i>=0; )		// Proceed from last to first sector
-	{									// so that lower sectors appear first
-		int j = (unsigned) sectors[i].tag % (unsigned) numsectors;	// Hash func
-		sectors[i].nexttag = sectors[j].firsttag;	// Prepend sector to chain
-		sectors[j].firsttag = i;
-	}
-
-	// killough 4/17/98: same thing, only for linedefs
-
-	for (i=numlines; --i>=0; )			// Initially make all slots empty.
-		lines[i].firstid = -1;
-	for (i=numlines; --i>=0; )        // Proceed from last to first linedef
-	{									// so that lower linedefs appear first
-		int j = (unsigned) lines[i].id % (unsigned) numlines;	// Hash func
-		lines[i].nextid = lines[j].firstid;	// Prepend linedef to chain
-		lines[j].firstid = i;
-	}
-}
-
 void P_GetPolySpots (MapData * map, TArray<FNodeBuilder::FPolyStart> &spots, TArray<FNodeBuilder::FPolyStart> &anchors)
 {
 	if (map->HasBehavior)
 	{
-		int spot1, spot2, spot3, anchor;
-
-		if (gameinfo.gametype == GAME_Hexen)
-		{
-			spot1 = PO_HEX_SPAWN_TYPE;
-			spot2 = PO_HEX_SPAWNCRUSH_TYPE;
-			anchor = PO_HEX_ANCHOR_TYPE;
-		}
-		else
-		{
-			spot1 = PO_SPAWN_TYPE;
-			spot2 = PO_SPAWNCRUSH_TYPE;
-			anchor = PO_ANCHOR_TYPE;
-		}
-		spot3 = PO_SPAWNHURT_TYPE;
-
 		for (unsigned int i = 0; i < MapThingsConverted.Size(); ++i)
 		{
-			if (MapThingsConverted[i].type == spot1 || MapThingsConverted[i].type == spot2 || 
-				MapThingsConverted[i].type == spot3 || MapThingsConverted[i].type == anchor)
+			FDoomEdEntry *mentry = MapThingsConverted[i].info;
+			if (mentry != NULL && mentry->Type == NULL && mentry->Special >= SMT_PolyAnchor && mentry->Special <= SMT_PolySpawnHurt)
 			{
 				FNodeBuilder::FPolyStart newvert;
 				newvert.x = MapThingsConverted[i].x;
 				newvert.y = MapThingsConverted[i].y;
 				newvert.polynum = MapThingsConverted[i].angle;
-				if (MapThingsConverted[i].type == anchor)
+				if (mentry->Special == SMT_PolyAnchor)
 				{
 					anchors.Push (newvert);
 				}
@@ -3965,6 +3932,7 @@ void P_FreeLevelData ()
 	FPolyObj::ClearAllSubsectorLinks(); // can't be done as part of the polyobj deletion process.
 	SN_StopAllSequences ();
 	DThinker::DestroyAllThinkers ();
+	tagManager.Clear();
 	level.total_monsters = level.total_items = level.total_secrets =
 		level.killed_monsters = level.found_items = level.found_secrets =
 		level.customvalue = wminfo.maxfrags = 0;

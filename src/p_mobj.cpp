@@ -384,11 +384,6 @@ void AActor::Serialize (FArchive &arc)
 	}
 }
 
-void FMapThing::Serialize (FArchive &arc)
-{
-	arc << thingid << x << y << z << angle << type << flags << special
-		<< args[0] << args[1] << args[2] << args[3] << args[4];
-}
 
 AActor::AActor () throw()
 {
@@ -486,7 +481,7 @@ bool AActor::SetState (FState *newstate, bool nofunction)
 		}
 		state = newstate;
 		tics = GetTics(newstate);
-		renderflags = (renderflags & ~RF_FULLBRIGHT) | newstate->GetFullbright();
+		renderflags = (renderflags & ~RF_FULLBRIGHT) | ActorRenderFlags::FromInt (newstate->GetFullbright());
 		newsprite = newstate->sprite;
 		if (newsprite != SPR_FIXED)
 		{ // okay to change sprite and/or frame
@@ -598,6 +593,57 @@ void AActor::RemoveInventory(AInventory *item)
 
 //============================================================================
 //
+// AActor :: TakeInventory
+//
+//============================================================================
+
+bool AActor::TakeInventory(const PClass *itemclass, int amount, bool fromdecorate, bool notakeinfinite)
+{
+	AInventory *item = FindInventory(itemclass);
+
+	if (item == NULL)
+		return false;
+
+	if (!fromdecorate)
+	{
+		item->Amount -= amount;
+		if (item->Amount <= 0)
+		{
+			item->DepleteOrDestroy();
+		}
+		// It won't be used in non-decorate context, so return false here
+		return false;
+	}
+
+	bool result = false;
+	if (item->Amount > 0)
+	{
+		result = true;
+	}
+
+	if (item->IsKindOf(RUNTIME_CLASS(AHexenArmor)))
+		return false;
+
+	// Do not take ammo if the "no take infinite/take as ammo depletion" flag is set
+	// and infinite ammo is on
+	if (notakeinfinite &&
+	((dmflags & DF_INFINITE_AMMO) || (player && player->cheats & CF_INFINITEAMMO)) &&
+		item->IsKindOf(RUNTIME_CLASS(AAmmo)))
+	{
+		// Nothing to do here, except maybe res = false;? Would it make sense?
+	}
+	else if (!amount || amount>=item->Amount)
+	{
+		item->DepleteOrDestroy();
+	}
+	else item->Amount-=amount;
+
+	return result;
+}
+
+
+//============================================================================
+//
 // AActor :: DestroyAllInventory
 //
 //============================================================================
@@ -663,9 +709,9 @@ bool AActor::UseInventory (AInventory *item)
 	if (dmflags2 & DF2_INFINITE_INVENTORY)
 		return true;
 
-	if (--item->Amount <= 0 && !(item->ItemFlags & IF_KEEPDEPLETED))
+	if (--item->Amount <= 0)
 	{
-		item->Destroy ();
+		item->DepleteOrDestroy ();
 	}
 	return true;
 }
@@ -1270,7 +1316,6 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 					z = mo->z;
 
 					F3DFloor * ffloor=NULL;
-#ifdef _3DFLOORS
 					if (line->sidedef[side^1] != NULL)
 					{
 						sector_t * backsector = line->sidedef[side^1]->sector;
@@ -1290,7 +1335,6 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 							}
 						}
 					}
-#endif
 
 					DImpactDecal::StaticCreate (base->GetDecal (),
 						x, y, z, line->sidedef[side], ffloor);
@@ -2118,7 +2162,6 @@ explode:
 			{
 				if (mo->dropoffz != mo->floorz) // 3DMidtex or other special cases that must be excluded
 				{
-#ifdef _3DFLOORS
 					unsigned i;
 					for(i=0;i<mo->Sector->e->XFloor.ffloors.Size();i++)
 					{
@@ -2129,7 +2172,6 @@ explode:
 						if (rover->flags&FF_SOLID && rover->top.plane->ZatPoint(mo->x,mo->y)==mo->floorz) break;
 					}
 					if (i==mo->Sector->e->XFloor.ffloors.Size()) 
-#endif
 						return oldfloorz;
 				}
 			}
@@ -2704,10 +2746,10 @@ void P_NightmareRespawn (AActor *mobj)
 	mo->PrevZ = z;		// Do not interpolate Z position if we changed it since spawning.
 
 	// spawn a teleport fog at old spot because of removal of the body?
-	P_SpawnTeleportFog(mobj, mobj->x, mobj->y, mobj->z + TELEFOGHEIGHT, true);
+	P_SpawnTeleportFog(mobj, mobj->x, mobj->y, mobj->z + TELEFOGHEIGHT, true, true);
 
 	// spawn a teleport fog at the new spot
-	P_SpawnTeleportFog(mobj, x, y, z + TELEFOGHEIGHT, false);
+	P_SpawnTeleportFog(mobj, x, y, z + TELEFOGHEIGHT, false, true);
 
 	// remove the old monster
 	mobj->Destroy ();
@@ -3069,8 +3111,24 @@ void AActor::SetShade (int r, int g, int b)
 	fillcolor = MAKEARGB(ColorMatcher.Pick (r, g, b), r, g, b);
 }
 
-void AActor::SetPitch(int p, bool interpolate)
+void AActor::SetPitch(int p, bool interpolate, bool forceclamp)
 {
+	if (player != NULL || forceclamp)
+	{ // clamp the pitch we set
+		int min, max;
+
+		if (player != NULL)
+		{
+			min = player->MinPitch;
+			max = player->MaxPitch;
+		}
+		else
+		{
+			min = -ANGLE_90 + (1 << ANGLETOFINESHIFT);
+			max = ANGLE_90 - (1 << ANGLETOFINESHIFT);
+		}
+		p = clamp<int>(p, min, max);
+	}
 	if (p != pitch)
 	{
 		pitch = p;
@@ -3442,7 +3500,7 @@ void AActor::Tick ()
 					}
 					else if (scrolltype == Scroll_StrifeCurrent)
 					{ // Strife scroll special
-						int anglespeed = sec->tag - 100;
+						int anglespeed = tagManager.GetFirstSectorTag(sec) - 100;
 						fixed_t carryspeed = DivScale32 (anglespeed % 10, 16*CARRYFACTOR);
 						angle_t fineangle = (anglespeed / 10) << (32-3);
 						fineangle >>= ANGLETOFINESHIFT;
@@ -3505,12 +3563,8 @@ void AActor::Tick ()
 		{
 			secplane_t floorplane;
 
-#ifdef _3DFLOORS
 			// Check 3D floors as well
 			floorplane = P_FindFloorPlane(floorsector, x, y, floorz);
-#else
-			floorplane = floorsector->floorplane;
-#endif
 
 			if (floorplane.c < STEEPSLOPE &&
 				floorplane.ZatPoint (x, y) <= floorz)
@@ -3827,7 +3881,6 @@ bool AActor::UpdateWaterLevel (fixed_t oldz, bool dosplash)
 				reset = true;
 			}
 		}
-#ifdef _3DFLOORS
 		else
 		{
 			// Check 3D floors as well!
@@ -3861,7 +3914,6 @@ bool AActor::UpdateWaterLevel (fixed_t oldz, bool dosplash)
 				break;
 			}
 		}
-#endif
 	}
 		
 	// some additional checks to make deep sectors like Boom's splash without setting
@@ -3945,7 +3997,7 @@ AActor *AActor::StaticSpawn (const PClass *type, fixed_t ix, fixed_t iy, fixed_t
 	
 	actor->sprite = st->sprite;
 	actor->frame = st->GetFrame();
-	actor->renderflags = (actor->renderflags & ~RF_FULLBRIGHT) | st->GetFullbright();
+	actor->renderflags = (actor->renderflags & ~RF_FULLBRIGHT) | ActorRenderFlags::FromInt (st->GetFullbright());
 	actor->touching_sectorlist = NULL;	// NULL head of sector list // phares 3/13/98
 	if (G_SkillProperty(SKILLP_FastMonsters))
 		actor->Speed = actor->GetClass()->Meta.GetMetaFixed(AMETA_FastSpeed, actor->Speed);
@@ -4627,70 +4679,83 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 	AActor *mobj;
 	fixed_t x, y, z;
 
-	if (mthing->type == 0 || mthing->type == -1)
+	if (mthing->EdNum == 0 || mthing->EdNum == -1)
 		return NULL;
 
-	// count deathmatch start positions
-	if (mthing->type == 11)
-	{
-		FPlayerStart start(mthing);
-		deathmatchstarts.Push(start);
-		return NULL;
-	}
+	// find which type to spawn
+	FDoomEdEntry *mentry = mthing->info;
 
-	// Convert Strife starts to Hexen-style starts
-	if (gameinfo.gametype == GAME_Strife && mthing->type >= 118 && mthing->type <= 127)
+	if (mentry == NULL)
 	{
-		mthing->args[0] = mthing->type - 117;
-		mthing->type = 1;
-	}
-
-	// [RH] Record polyobject-related things
-	if (gameinfo.gametype == GAME_Hexen)
-	{
-		switch (mthing->type)
+		// [RH] Don't die if the map tries to spawn an unknown thing
+		Printf ("Unknown type %i at (%i, %i)\n",
+				 mthing->EdNum,
+				 mthing->x>>FRACBITS, mthing->y>>FRACBITS);
+		mentry = DoomEdMap.CheckKey(0);
+		if (mentry == NULL)	// we need a valid entry for the rest of this function so if we can't find a default, let's exit right away.
 		{
-		case PO_HEX_ANCHOR_TYPE:
-			mthing->type = PO_ANCHOR_TYPE;
-			break;
-		case PO_HEX_SPAWN_TYPE:
-			mthing->type = PO_SPAWN_TYPE;
-			break;
-		case PO_HEX_SPAWNCRUSH_TYPE:
-			mthing->type = PO_SPAWNCRUSH_TYPE;
-			break;
+			return NULL;
 		}
 	}
-
-	if (mthing->type == PO_ANCHOR_TYPE ||
-		mthing->type == PO_SPAWN_TYPE ||
-		mthing->type == PO_SPAWNCRUSH_TYPE ||
-		mthing->type == PO_SPAWNHURT_TYPE)
+	if (mentry->Type == NULL && mentry->Special <= 0)
 	{
-		polyspawns_t *polyspawn = new polyspawns_t;
-		polyspawn->next = polyspawns;
-		polyspawn->x = mthing->x;
-		polyspawn->y = mthing->y;
-		polyspawn->angle = mthing->angle;
-		polyspawn->type = mthing->type;
-		polyspawns = polyspawn;
-		if (mthing->type != PO_ANCHOR_TYPE)
-			po_NumPolyobjs++;
+		// has been explicitly set to not spawning anything.
 		return NULL;
 	}
 
-	// check for players specially
-	int pnum = -1;
-
-	if (mthing->type <= 4 && mthing->type > 0)
+	// copy args to mapthing so that we have them in one place for the rest of this function	
+	if (mentry->ArgsDefined)
 	{
-		pnum = mthing->type - 1;
+		if (mentry->Type!= NULL) mthing->special = mentry->Special;
+		memcpy(mthing->args, mentry->Args, sizeof(mthing->args));
 	}
-	else
+
+	int pnum = -1;
+	if (mentry->Type == NULL)
 	{
-		if (mthing->type >= gameinfo.player5start && mthing->type < gameinfo.player5start + MAXPLAYERS - 4)
+
+		switch (mentry->Special)
 		{
-			pnum = mthing->type - gameinfo.player5start + 4;
+		case SMT_DeathmatchStart:
+		{
+			// count deathmatch start positions
+			FPlayerStart start(mthing, 0);
+			deathmatchstarts.Push(start);
+			return NULL;
+		}
+
+		case SMT_PolyAnchor:
+		case SMT_PolySpawn:
+		case SMT_PolySpawnCrush:
+		case SMT_PolySpawnHurt:
+		{
+			polyspawns_t *polyspawn = new polyspawns_t;
+			polyspawn->next = polyspawns;
+			polyspawn->x = mthing->x;
+			polyspawn->y = mthing->y;
+			polyspawn->angle = mthing->angle;
+			polyspawn->type = mentry->Special;
+			polyspawns = polyspawn;
+			if (mentry->Special != SMT_PolyAnchor)
+				po_NumPolyobjs++;
+			return NULL;
+		}
+
+		case SMT_Player1Start:
+		case SMT_Player2Start:
+		case SMT_Player3Start:
+		case SMT_Player4Start:
+		case SMT_Player5Start:
+		case SMT_Player6Start:
+		case SMT_Player7Start:
+		case SMT_Player8Start:
+			pnum = mentry->Special - SMT_Player1Start;
+			break;
+
+		// Sound sequence override will be handled later
+		default:
+			break;
+
 		}
 	}
 
@@ -4758,7 +4823,7 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 			return NULL;
 
 		// save spots for respawning in network games
-		FPlayerStart start(mthing);
+		FPlayerStart start(mthing, pnum+1);
 		playerstarts[pnum] = start;
 		AllPlayerStarts.Push(start);
 		if (!deathmatch && !(level.flags2 & LEVEL2_RANDOMPLAYERSTARTS))
@@ -4769,20 +4834,10 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 	}
 
 	// [RH] sound sequence overriders
-	if (mthing->type >= 1400 && mthing->type < 1410)
+	if (mentry->Type == NULL && mentry->Special == SMT_SSeqOverride)
 	{
-		P_PointInSector (mthing->x, mthing->y)->seqType = mthing->type - 1400;
-		return NULL;
-	}
-	else if (mthing->type == 1411)
-	{
-		int type;
-
-		if (mthing->args[0] == 255)
-			type = -1;
-		else
-			type = mthing->args[0];
-
+		int type = mthing->args[0];
+		if (type == 255) type = -1;
 		if (type > 63)
 		{
 			Printf ("Sound sequence %d out of range\n", type);
@@ -4794,51 +4849,25 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 		return NULL;
 	}
 
-	// [RH] Determine if it is an old ambient thing, and if so,
-	//		map it to MT_AMBIENT with the proper parameter.
-	if (mthing->type >= 14001 && mthing->type <= 14064)
-	{
-		mthing->args[0] = mthing->type - 14000;
-		mthing->type = 14065;
-	}
-	else if (mthing->type >= 14101 && mthing->type <= 14164)
-	{
-		mthing->args[0] = mthing->type - 14100;
-		mthing->type = 14165;
-	}
-	// find which type to spawn
-	i = DoomEdMap.FindType (mthing->type);
-
-	if (i == NULL)
-	{
-		// [RH] Don't die if the map tries to spawn an unknown thing
-		Printf ("Unknown type %i at (%i, %i)\n",
-				 mthing->type,
-				 mthing->x>>FRACBITS, mthing->y>>FRACBITS);
-		i = PClass::FindClass("Unknown");
-	}
 	// [RH] If the thing's corresponding sprite has no frames, also map
 	//		it to the unknown thing.
-	else
+	// Handle decorate replacements explicitly here
+	// to check for missing frames in the replacement object.
+	i = mentry->Type->GetReplacement();
+
+	const AActor *defaults = GetDefaultByType (i);
+	if (defaults->SpawnState == NULL ||
+		sprites[defaults->SpawnState->sprite].numframes == 0)
 	{
-		// Handle decorate replacements explicitly here
-		// to check for missing frames in the replacement object.
-		i = i->GetReplacement();
+		// We don't load mods for shareware games so we'll just ignore
+		// missing actors. Heretic needs this since the shareware includes
+		// the retail weapons in Deathmatch.
+		if (gameinfo.flags & GI_SHAREWARE)
+			return NULL;
 
-		const AActor *defaults = GetDefaultByType (i);
-		if (defaults->SpawnState == NULL ||
-			sprites[defaults->SpawnState->sprite].numframes == 0)
-		{
-			// We don't load mods for shareware games so we'll just ignore
-			// missing actors. Heretic needs this since the shareware includes
-			// the retail weapons in Deathmatch.
-			if (gameinfo.flags & GI_SHAREWARE)
-				return NULL;
-
-			Printf ("%s at (%i, %i) has no frames\n",
-					i->TypeName.GetChars(), mthing->x>>FRACBITS, mthing->y>>FRACBITS);
-			i = PClass::FindClass("Unknown");
-		}
+		Printf ("%s at (%i, %i) has no frames\n",
+				i->TypeName.GetChars(), mthing->x>>FRACBITS, mthing->y>>FRACBITS);
+		i = PClass::FindClass("Unknown");
 	}
 
 	const AActor *info = GetDefaultByType (i);
@@ -4928,6 +4957,7 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 		P_FindFloorCeiling(mobj, FFCF_SAMESECTOR | FFCF_ONLY3DFLOORS | FFCF_3DRESTRICT);
 	}
 
+	// if the actor got args defined either in DECORATE or MAPINFO we must ignore the map's properties.
 	if (!(mobj->flags2 & MF2_ARGSDEFINED))
 	{
 		// [RH] Set the thing's special
@@ -5361,7 +5391,6 @@ bool P_HitWater (AActor * thing, sector_t * sec, fixed_t x, fixed_t y, fixed_t z
 	}
 #endif
 
-#ifdef _3DFLOORS
 	for(unsigned int i=0;i<sec->e->XFloor.ffloors.Size();i++)
 	{		
 		F3DFloor * rover = sec->e->XFloor.ffloors[i];
@@ -5378,7 +5407,6 @@ bool P_HitWater (AActor * thing, sector_t * sec, fixed_t x, fixed_t y, fixed_t z
 		planez = rover->bottom.plane->ZatPoint(x, y);
 		if (planez < z && !(planez < thing->floorz)) return false;
 	}
-#endif
 	hsec = sec->GetHeightSec();
 	if (hsec == NULL || !(hsec->MoreFlags & SECF_CLIPFAKEPLANES))
 	{
@@ -5388,9 +5416,7 @@ bool P_HitWater (AActor * thing, sector_t * sec, fixed_t x, fixed_t y, fixed_t z
 	{
 		terrainnum = TerrainTypes[hsec->GetTexture(sector_t::floor)];
 	}
-#ifdef _3DFLOORS
 foundone:
-#endif
 
 	int splashnum = Terrains[terrainnum].Splash;
 	bool smallsplash = false;
@@ -5493,7 +5519,6 @@ bool P_HitFloor (AActor *thing)
 			break;
 		}
 
-#ifdef _3DFLOORS
 		// Check 3D floors
 		for(unsigned int i=0;i<m->m_sector->e->XFloor.ffloors.Size();i++)
 		{		
@@ -5507,7 +5532,6 @@ bool P_HitFloor (AActor *thing)
 				}
 			}
 		}
-#endif
 	}
 	if (m == NULL || m->m_sector->GetHeightSec() != NULL)
 	{ 
@@ -6472,35 +6496,35 @@ void PrintMiscActorInfo(AActor *query)
 			"OptFuzzy", "Stencil", "Translucent", "Add", "Shaded", "TranslucentStencil",
 			"Shadow", "Subtract", "AddStencil", "AddShaded"};
 
-		Printf("%s @ %p has the following flags:\n   flags: %x", query->GetTag(), query, query->flags);
+		Printf("%s @ %p has the following flags:\n   flags: %x", query->GetTag(), query, query->flags.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags));
-		Printf("\n   flags2: %x", query->flags2);
+		Printf("\n   flags2: %x", query->flags2.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags2 & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags2));
-		Printf("\n   flags3: %x", query->flags3);
+		Printf("\n   flags3: %x", query->flags3.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags3 & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags3));
-		Printf("\n   flags4: %x", query->flags4);
+		Printf("\n   flags4: %x", query->flags4.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags4 & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags4));
-		Printf("\n   flags5: %x", query->flags5);
+		Printf("\n   flags5: %x", query->flags5.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags5 & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags5));
-		Printf("\n   flags6: %x", query->flags6);
+		Printf("\n   flags6: %x", query->flags6.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags6 & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags6));
-		Printf("\n   flags7: %x", query->flags7);
+		Printf("\n   flags7: %x", query->flags7.GetValue());
 		for (flagi = 0; flagi <= 31; flagi++)
 			if (query->flags7 & 1<<flagi) Printf(" %s", FLAG_NAME(1<<flagi, flags7));
 		Printf("\nBounce flags: %x\nBounce factors: f:%f, w:%f", 
-			query->BounceFlags, FIXED2FLOAT(query->bouncefactor), 
+			query->BounceFlags.GetValue(), FIXED2FLOAT(query->bouncefactor),
 			FIXED2FLOAT(query->wallbouncefactor));
 		/*for (flagi = 0; flagi < 31; flagi++)
 			if (query->BounceFlags & 1<<flagi) Printf(" %s", flagnamesb[flagi]);*/
 		Printf("\nRender style = %i:%s, alpha %f\nRender flags: %x", 
 			querystyle, (querystyle < STYLE_Count ? renderstyles[querystyle] : "Unknown"),
-			FIXED2FLOAT(query->alpha), query->renderflags);
+			FIXED2FLOAT(query->alpha), query->renderflags.GetValue());
 		/*for (flagi = 0; flagi < 31; flagi++)
 			if (query->renderflags & 1<<flagi) Printf(" %s", flagnamesr[flagi]);*/
 		Printf("\nSpecial+args: %s(%i, %i, %i, %i, %i)\nspecial1: %i, special2: %i.",

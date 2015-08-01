@@ -167,7 +167,8 @@ void DMacroThinker::Tick()
 				{
 					int secnum = -1;
 
-					while ((secnum = P_FindSectorFromTag (specials[i]->tag, secnum)) >= 0)
+					FSectorTagIterator it (specials[i]->tag);
+					while ((secnum = it.Next ()) >= 0)
 					{
 						if (sectors[secnum].floordata   || // Are all these different
 							sectors[secnum].ceilingdata || // categories really needed?
@@ -343,7 +344,7 @@ void DMacroManager::AddMacroSequence(size_t index, macro_t * special)
 bool EV_Line_CopyFlag(int tag1, int tag2)
 {
 	// Let's use the first line we find as the model
-	int im = P_FindLineFromID(tag2, -1);
+	int im = P_FindFirstLineFromID(tag2);
 	if (im > numlines || im < 0)
 		return false;
 
@@ -352,7 +353,8 @@ bool EV_Line_CopyFlag(int tag1, int tag2)
 
 	// Now look for lines to change
 	int linenum = -1;
-	while ((linenum = P_FindLineFromID (tag1, linenum)) >= 0)
+	FLineIdIterator it (tag1);
+	while ((linenum = it.Next ()) >= 0)
 	{
 		lines[linenum].flags = newflags;
 	}
@@ -362,7 +364,7 @@ bool EV_Line_CopyFlag(int tag1, int tag2)
 bool EV_Line_CopyTexture(int tag1, int tag2)
 {
 	// Let's use the first line we find as the model
-	int im = P_FindLineFromID(tag2, -1);
+	int im = P_FindFirstLineFromID(tag2);
 	if (im > numlines || im < 0)
 		return false;
 
@@ -374,7 +376,8 @@ bool EV_Line_CopyTexture(int tag1, int tag2)
 
 	// Now look for lines to change
 	int linenum = -1;
-	while ((linenum = P_FindLineFromID (tag1, linenum)) >= 0)
+	FLineIdIterator it (tag1);
+	while ((linenum = it.Next ()) >= 0)
 	{
 		side_t *sidedef;
 		for (int i = 0; i < 2; ++i)
@@ -394,13 +397,14 @@ bool EV_Line_CopyTexture(int tag1, int tag2)
 bool EV_Sector_CopyFlag(int tag1, int tag2)
 {
 	// Let's use the first sector we find as the model
-	int im = P_FindSectorFromTag(tag2, -1);
+	int im = P_FindFirstSectorFromTag(tag2);
 	if (im > numsectors || im < 0)
 		return false;
 
 	// Now look for sectors to change
 	int secnum = -1;
-	while ((secnum = P_FindSectorFromTag (tag1, secnum)) >= 0)
+	FSectorTagIterator it (tag1);
+	while ((secnum = it.Next ()) >= 0)
 	{
 		DPrintf("Changing flags for sector number %i\n", secnum);
 		sectors[secnum].Flags = sectors[im].Flags;
@@ -411,13 +415,14 @@ bool EV_Sector_CopyFlag(int tag1, int tag2)
 bool EV_Sector_CopySpecial(int tag1, int tag2)
 {
 	// Let's use the first sector we find as the model
-	int im = P_FindSectorFromTag(tag2, -1);
+	int im = P_FindFirstSectorFromTag(tag2);
 	if (im > numsectors || im < 0)
 		return false;
 
 	// Now look for sectors to change
 	int secnum = -1;
-	while ((secnum = P_FindSectorFromTag (tag1, secnum)) >= 0)
+	FSectorTagIterator it (tag1);
+	while ((secnum = it.Next ()) >= 0)
 	{
 		DPrintf("Changing special for sector number %i\n", secnum);
 		if (!sectors[im].special)
@@ -433,13 +438,14 @@ bool EV_Sector_CopySpecial(int tag1, int tag2)
 bool EV_Sector_CopyLight(int tag1, int tag2)
 {
 	// Let's use the first sector we find as the model
-	int im = P_FindSectorFromTag(tag2, -1);
+	int im = P_FindFirstSectorFromTag(tag2);
 	if (im > numsectors || im < 0)
 		return false;
 
 	// Now look for sectors to change
 	int secnum = -1;
-	while ((secnum = P_FindSectorFromTag (tag1, secnum)) >= 0)
+	FSectorTagIterator it (tag1);
+	while ((secnum = it.Next ()) >= 0)
 	{
 		DPrintf("Changing light for sector number %i\n", secnum);
 		sectors[secnum].lightlevel = sectors[im].lightlevel;
@@ -452,13 +458,14 @@ bool EV_Sector_CopyLight(int tag1, int tag2)
 bool EV_Sector_CopyTexture(int tag1, int tag2)
 {
 	// Let's use the first sector we find as the model
-	int im = P_FindSectorFromTag(tag2, -1);
+	int im = P_FindFirstSectorFromTag(tag2);
 	if (im > numsectors || im < 0)
 		return false;
 
 	// Now look for sectors to change
 	int secnum = -1;
-	while ((secnum = P_FindSectorFromTag (tag1, secnum)) >= 0)
+	FSectorTagIterator it (tag1);
+	while ((secnum = it.Next ()) >= 0)
 	{
 		DPrintf("Changing textures for sector number %i\n", secnum);
 		sectors[secnum].SetTexture(sector_t::floor, sectors[im].GetTexture(sector_t::floor));
@@ -470,14 +477,15 @@ bool EV_Sector_CopyTexture(int tag1, int tag2)
 bool EV_Sector_TransformLight(int tag1, int tag2)
 {
 	// Let's use the first sector we find as the model
-	int im = P_FindSectorFromTag(tag2, -1);
+	int im = P_FindFirstSectorFromTag(tag2);
 	Printf("Using sector %i as the model for gradual light changes\n", im);
 	if (im > numsectors || im < 0)
 		return false;
 
 	// Now look for sectors to change
 	int secnum = -1;
-	while ((secnum = P_FindSectorFromTag (tag1, secnum)) >= 0)
+	FSectorTagIterator it (tag1);
+	while ((secnum = it.Next ()) >= 0)
 	{
 		Printf("Gradual transforms for sector %i\n", secnum);
 		new DLightGradualTransform(&sectors[secnum], &sectors[im]);

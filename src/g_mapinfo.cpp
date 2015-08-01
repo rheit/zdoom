@@ -312,6 +312,11 @@ FString level_info_t::LookupLevelName()
 			{
 				mysnprintf (checkstring, countof(checkstring), "%d: ", atoi(&MapName[5]));
 			}
+			else
+			{
+				// make sure nothing is stripped.
+				checkstring[0] = '\0';
+			}
 			thename = strstr (lookedup, checkstring);
 			if (thename == NULL)
 			{
@@ -1874,6 +1879,42 @@ void FMapInfoParser::ParseMapInfo (int lump, level_info_t &gamedefaults, level_i
 			else
 			{
 				sc.ScriptError("intermission definitions not supported with old MAPINFO syntax");
+			}
+		}
+		else if (sc.Compare("doomednums"))
+		{
+			if (format_type != FMT_Old)
+			{
+				format_type = FMT_New;
+				ParseDoomEdNums();
+			}
+			else
+			{
+				sc.ScriptError("doomednums definitions not supported with old MAPINFO syntax");
+			}
+		}
+		else if (sc.Compare("spawnnums"))
+		{
+			if (format_type != FMT_Old)
+			{
+				format_type = FMT_New;
+				ParseSpawnNums();
+			}
+			else
+			{
+				sc.ScriptError("spawnnums definitions not supported with old MAPINFO syntax");
+			}
+		}
+		else if (sc.Compare("conversationids"))
+		{
+			if (format_type != FMT_Old)
+			{
+				format_type = FMT_New;
+				ParseConversationIDs();
+			}
+			else
+			{
+				sc.ScriptError("conversationids definitions not supported with old MAPINFO syntax");
 			}
 		}
 		else if (sc.Compare("automap") || sc.Compare("automap_overlay"))
