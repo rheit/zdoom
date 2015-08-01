@@ -135,7 +135,6 @@ class USDFParser : public UDMFParserBase
 		while (!sc.CheckToken('}'))
 		{
 			bool block = false;
-			int costs = 0;
 			FName key = ParseKey(true, &block);
 			if (!block)
 			{
@@ -224,7 +223,6 @@ class USDFParser : public UDMFParserBase
 		if (reply->ItemCheck.Size() > 0)
 		{
 			if (reply->ItemCheck[0].Amount <= 0) reply->NeedsGold = false;
-			if (reply->NeedsGold) ReplyString.AppendFormat(" for %u", reply->ItemCheck[0].Amount);
 		}
 
 		reply->Reply = ncopystring(ReplyString);
@@ -288,6 +286,7 @@ class USDFParser : public UDMFParserBase
 		//node->ItemCheckCount[0] = node->ItemCheckCount[1] = node->ItemCheckCount[2] = -1;
 
 		node->ThisNodeNum = StrifeDialogues.Push(node);
+		node->ItemCheckNode = -1;
 
 		FString SpeakerName;
 		FString Dialogue;
@@ -310,12 +309,16 @@ class USDFParser : public UDMFParserBase
 
 				case NAME_Voice:
 					{
-						FString soundname = (namespace_bits == St? "svox/" : "");
 						const char * name = CheckString(key);
 						if (name[0] != 0)
 						{
+							FString soundname = "svox/";
 							soundname += name;
 							node->SpeakerVoice = FSoundID(S_FindSound(soundname));
+							if (node->SpeakerVoice == 0 && namespace_bits == Zd)
+							{
+								node->SpeakerVoice = FSoundID(S_FindSound(name));
+							}
 						}
 					}
 					break;

@@ -76,6 +76,8 @@ struct FState
 	BYTE		SameFrame:1;	// Ignore Frame (except when spawning actor)
 	BYTE		Fast:1;
 	BYTE		NoDelay:1;		// Spawn states executes its action normally
+	BYTE		CanRaise:1;		// Allows a monster to be resurrected without waiting for an infinate frame
+	BYTE		Slow:1;			// Inverse of fast
 	int			ParameterIndex;
 
 	inline int GetFrame() const
@@ -113,6 +115,10 @@ struct FState
 	inline bool GetNoDelay() const
 	{
 		return NoDelay;
+	}
+	inline bool GetCanRaise() const
+	{
+		return CanRaise;
 	}
 	inline void SetFrame(BYTE frame)
 	{
@@ -211,7 +217,7 @@ public:
 	bool ReplaceFactor;
 	bool NoArmor;
 
-	void Apply(FName const type);
+	void Apply(FName type);
 	void Clear()
 	{
 		DefaultFactor = FRACUNIT;
@@ -219,9 +225,9 @@ public:
 		NoArmor = false;
 	}
 
-	static DamageTypeDefinition *Get(FName const type);
-	static bool IgnoreArmor(FName const type);
-	static int ApplyMobjDamageFactor(int damage, FName const type, DmgFactors const * const factors);
+	static DamageTypeDefinition *Get(FName type);
+	static bool IgnoreArmor(FName type);
+	static int ApplyMobjDamageFactor(int damage, FName type, DmgFactors const * const factors);
 };
 
 

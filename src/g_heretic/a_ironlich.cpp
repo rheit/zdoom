@@ -28,10 +28,14 @@ int AWhirlwind::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 {
 	int randVal;
 
-	target->angle += pr_foo.Random2() << 20;
-	target->velx += pr_foo.Random2() << 10;
-	target->vely += pr_foo.Random2() << 10;
-	if ((level.time & 16) && !(target->flags2 & MF2_BOSS))
+	if (!(target->flags7 & MF7_DONTTHRUST))
+	{
+		target->angle += pr_foo.Random2() << 20;
+		target->velx += pr_foo.Random2() << 10;
+		target->vely += pr_foo.Random2() << 10;
+	}
+
+	if ((level.time & 16) && !(target->flags2 & MF2_BOSS) && !(target->flags7 & MF7_DONTTHRUST))
 	{
 		randVal = pr_foo();
 		if (randVal > 160)
@@ -171,7 +175,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_WhirlwindSeek)
 
 DEFINE_ACTION_FUNCTION(AActor, A_LichIceImpact)
 {
-	int i;
+	unsigned int i;
 	angle_t angle;
 	AActor *shard;
 

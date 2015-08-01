@@ -372,6 +372,7 @@ OptionMenu "OptionsMenu"
 	Submenu "Automap Options",			"AutomapOptions"
 	Submenu "HUD Options",				"HUDOptions"
 	Submenu "Miscellaneous Options",	"MiscOptions"
+	Submenu "Network Options",			"NetworkOptions"
 	Submenu "Sound Options",			"SoundOptions"
 	Submenu "Display Options",			"VideoOptions"
 	Submenu "Set video mode",			"VideoModeMenu"
@@ -488,6 +489,7 @@ OptionMenu "CustomizeControls"
 	Control 	"Run",					"+speed"
 	Control 	"Strafe",				"+strafe"
 	Control 	"Show Scoreboard",		"+showscores"
+	Control 	"Toggle Scoreboard",	"togglescoreboard"
 	StaticText 	""
 	StaticText 	"Chat", 1
 	Control 	"Say",					"messagemode"
@@ -694,6 +696,7 @@ OptionMenu "VideoOptions"
 	Slider "Screen size",				"screenblocks", 3.0, 12.0, 1.0, 0
 	Slider "Brightness",				"Gamma", 0.75, 3.0, 0.05, 2
 	Option "Vertical Sync",				"vid_vsync", "OnOff"
+	Option "Rendering Interpolation",	"cl_capfps", "OffOn"
 	Option "Column render mode",		"r_columnmethod", "ColumnMethods"
 
 	StaticText " "
@@ -714,9 +717,11 @@ OptionMenu "VideoOptions"
 	Option "Blood Type",				"cl_bloodtype", "BloodTypes"
 	Option "Bullet Puff Type",			"cl_pufftype", "PuffTypes"
 	Slider "Number of particles",		"r_maxparticles", 100, 10000, 100, 0
+	Slider "Number of decals",			"cl_maxdecals", 0, 10000, 100, 0
 	Option "Show player sprites",		"r_drawplayersprites", "OnOff"
 	Option "Death camera",				"r_deathcamera", "OnOff"
 	Option "Teleporter zoom",			"telezoom", "OnOff"
+	Slider "Earthquake shake intensity",	"r_quakeintensity", 0.0, 1.0, 0.05, 2
 	Option "Interpolate monster movement",	"nomonsterinterpolation", "NoYes"
 }
 
@@ -821,6 +826,13 @@ OptionValue "AltHUDScale"
 	2, "Pixel double"
 }
 
+OptionValue "AltHUDAmmo"
+{
+	0, "Current weapon"
+	1, "Available weapons"
+	2, "All weapons"
+}
+
 OptionValue "AltHUDTime"
 {
 	0, "Off"
@@ -835,6 +847,13 @@ OptionValue "AltHUDTime"
 	9, "System"
 }
 
+OptionValue "AltHUDLag"
+{
+	0, "Off"
+	1, "Netgames only"
+	2, "Always"
+}
+
 OptionMenu "AltHUDOptions"
 {
 	Title "Alternative HUD"
@@ -846,8 +865,11 @@ OptionMenu "AltHUDOptions"
 	Option "Show item count",						"hud_showitems", "OnOff"
 	Option "Show stamina and accuracy",				"hud_showstats", "OnOff"
 	Option "Show berserk",							"hud_berserk_health", "OnOff"
+	Option "Show weapons",							"hud_showweapons", "OnOff"
+	Option "Show ammo for",							"hud_showammo", "AltHUDAmmo"
 	Option "Show time",								"hud_showtime", "AltHUDTime"
 	Option "Time color",							"hud_timecolor", "TextColors"
+	Option "Show network latency",					"hud_showlag", "AltHUDLag"
 	Slider "Red ammo display below %",				"hud_ammo_red", 0, 100, 1, 0
 	Slider "Yellow ammo display below %",			"hud_ammo_yellow", 0, 100, 1, 0
 	Slider "Red health display below",				"hud_health_red", 0, 100, 1, 0
@@ -881,6 +903,13 @@ OptionValue Autosave
 	2,	"Never"
 }
 
+OptionValue dehopt
+{
+	0,	"Never"
+	1,	"All"
+	2,	"Only last one"
+}
+
 OptionMenu "MiscOptions"
 {
 	Title "Miscellaneous Options"
@@ -895,6 +924,7 @@ OptionMenu "MiscOptions"
 	Option "Enable cheats from all games",			"allcheats", "OnOff"
 	Option "Enable autosaves",						"disableautosave", "Autosave"
 	Slider "Number of autosaves",					"autosavecount", 1, 20, 1, 0
+	Option "Load *.deh/*.bex lumps",				"dehload", "dehopt"
 	StaticText " "
 	Option "Cache nodes",							"gl_cachenodes", "OnOff"
 	Slider "Time threshold for node caching",		"gl_cachetime", 0.0, 2.0, 0.1
@@ -943,10 +973,26 @@ OptionValue MaplabelTypes
 	2, "Not for hubs"
 }
 
+OptionValue STSTypes
+{
+	0, "Off"
+	1, "Front"
+	2, "Animated"
+	3, "Rotated"
+}
+
+OptionValue MapBackTypes
+{
+	0, "Off"
+	1, "On"
+	2, "Map defined colors only"
+}
+
 OptionMenu AutomapOptions
 {
 	Title "AUTOMAP OPTIONS"
 	Option "Map color set",				"am_colorset", "MapColorTypes"
+	Option "Allow map defined colors",	"am_customcolors", "YesNo"
 	Submenu "Set custom colors",		"MapColorMenu"
 	Submenu "Customize map controls",	"MapControlsMenu"
 	StaticText " "
@@ -962,9 +1008,10 @@ OptionMenu AutomapOptions
 	Option "Show total time elapsed",	"am_showtotaltime", "OnOff"
 	Option "Show secrets on map",		"am_map_secrets", "SecretTypes"
 	Option "Show map label",			"am_showmaplabel", "MaplabelTypes"
-	Option "Draw map background",		"am_drawmapback", "OnOff"
+	Option "Draw map background",		"am_drawmapback", "MapBackTypes"
 	Option "Show keys (cheat)",			"am_showkeys", "OnOff"
 	Option "Show trigger lines",		"am_showtriggerlines", "OnOff"
+	Option "Show things as sprites",	"am_showthingsprites", "STSTypes"
 }
 
 //-------------------------------------------------------------------------------------------
@@ -1025,6 +1072,7 @@ OptionMenu MapColorMenu
 	ColorPicker "Secret walls",					"am_secretwallcolor"	
 	ColorPicker "Actors",						"am_thingcolor"		
 	ColorPicker "Monsters",						"am_thingcolor_monster"		
+	ColorPicker "non-counting Monsters",		"am_thingcolor_ncmonster"		
 	ColorPicker "Friends",						"am_thingcolor_friend"		
 	ColorPicker "Items",						"am_thingcolor_item"			
 	ColorPicker "Count Items",					"am_thingcolor_citem"			
@@ -1032,15 +1080,22 @@ OptionMenu MapColorMenu
 	StaticText "Overlay Mode", 1
 	ColorPicker "You",							"am_ovyourcolor"		
 	ColorPicker "1-sided walls",				"am_ovwallcolor"		
-	ColorPicker "2-sided walls",				"am_ovotherwallscolor"
+	ColorPicker "2-sided walls with different floors",		"am_ovfdwallcolor"		
+	ColorPicker "2-sided walls with different ceilings",	"am_ovcdwallcolor"		
+	ColorPicker "2-sided walls with 3D floors",				"am_ovefwallcolor"		
 	ColorPicker "Not-yet-seen walls",			"am_ovunseencolor"	
-	ColorPicker "Teleporter",					"am_ovtelecolor"		
+	ColorPicker "Locked doors",				"am_ovlockedcolor"
+	ColorPicker "Teleporter to the same map",					"am_ovtelecolor"		
+	ColorPicker "Teleporter to a different map",			"am_ovinterlevelcolor"	
 	ColorPicker "Secret sector",				"am_ovsecretsectorcolor"	
 	ColorPicker "Special trigger lines",		"am_ovspecialwallcolor"
 	StaticText " "
 	StaticText "Overlay Cheat Mode", 1
+	ColorPicker "Invisible 2-sided walls",		"am_ovotherwallscolor"		
+	ColorPicker "Secret walls",					"am_ovsecretwallcolor"	
 	ColorPicker "Actors",						"am_ovthingcolor"		
 	ColorPicker "Monsters",						"am_ovthingcolor_monster"		
+	ColorPicker "non-counting Monsters",		"am_ovthingcolor_ncmonster"		
 	ColorPicker "Friends",						"am_ovthingcolor_friend"		
 	ColorPicker "Items",						"am_ovthingcolor_item"		
 	ColorPicker "Count Items",					"am_ovthingcolor_citem"		
@@ -1084,6 +1139,7 @@ OptionMenu MessageOptions
 	Title 	"MESSAGES"
 	Option "Show messages",				"show_messages", "OnOff"
 	Option "Show obituaries",			"show_obituaries", "OnOff"
+	Option "Show secret notifications",	"cl_showsecretmessage", "OnOff"
 	Option "Scale text in high res", 	"con_scaletext", "ScaleValues"
 	Option "Minimum message level", 	"msg", "MessageLevels"
 	Option "Center messages",			"con_centernotify", "OnOff"
@@ -1154,7 +1210,7 @@ OptionValue  FallingDM
 	3, "Strife"
 }
 
-OptionValue  JumpCrouch
+OptionValue  JumpCrouchFreeLook
 {
 	0, "Default"
 	1, "Off"
@@ -1186,9 +1242,9 @@ OptionMenu GameplayOptions
 	Option "Degeneration",			"sv_degeneration", "YesNo"
 	Option "Allow Autoaim",			"sv_noautoaim", "NoYes"
 	Option "Allow Suicide",			"sv_disallowsuicide", "NoYes"
-	Option "Allow jump",			"sv_jump", "JumpCrouch"
-	Option "Allow crouch",			"sv_crouch", "JumpCrouch"
-	Option "Allow freelook",		"sv_nofreelook", "NoYes"
+	Option "Allow jump",			"sv_jump", "JumpCrouchFreeLook"
+	Option "Allow crouch",			"sv_crouch", "JumpCrouchFreeLook"
+	Option "Allow freelook",		"sv_freelook", "JumpCrouchFreeLook"
 	Option "Allow FOV",				"sv_nofov", "NoYes"
 	Option "Allow BFG aiming",		"sv_nobfgaim", "NoYes"
 	Option "Allow automap",			"sv_noautomap", "NoYes"
@@ -1251,41 +1307,60 @@ OptionMenu "CompatibilityOptions"
 {
 	Title "COMPATIBILITY OPTIONS"
 	Option "Compatibility mode",						"compatmode", "CompatModes", "", 1
+	
 	StaticText " "
+	StaticText "Actor Behavior",1
+	Option "Crushed monsters can be resurrected",		"compat_CORPSEGIBS", "YesNo"	
+	Option "Friendly monsters aren't blocked",			"compat_NOBLOCKFRIENDS", "YesNo"
+	Option "Limit Pain Elementals' Lost Souls",			"compat_LIMITPAIN", "YesNo"
+	Option "Monster movement is affected by effects",	"compat_MBFMONSTERMOVE", "YesNo"
+	Option "Monsters cannot cross dropoffs",			"compat_CROSSDROPOFF", "YesNo"
+	Option "Monsters get stuck over dropoffs",			"compat_DROPOFF", "YesNo"
+	Option "Monsters see invisible players",			"compat_INVISIBILITY", "YesNo"
+	Option "No Minotaur floor flames in water",			"compat_MINOTAUR", "YesNo"
+	Option "Spawn item drops on the floor",				"compat_NOTOSSDROPS", "YesNo"
+	
+	StaticText " "
+	StaticText "DehackEd Behavior",1
+	Option "DEH health settings like Doom2.exe",		"compat_DEHHEALTH", "YesNo"
+	Option "Original A_Mushroom speed in DEH mods",		"compat_MUSHROOM", "YesNo"
+	
+	StaticText " "
+	StaticText "Map/Action Behavior",1
+	Option "All special lines can block <use>",			"compat_USEBLOCKING", "YesNo"
+	Option "Allow any bossdeath for level special",		"compat_ANYBOSSDEATH", "YesNo"
+	Option "Disable BOOM door light effect",			"compat_NODOORLIGHT", "YesNo"
+	Option "Find neighboring light like Doom",			"compat_LIGHT", "YesNo"
 	Option "Find shortest textures like Doom",			"compat_SHORTTEX", "YesNo"
 	Option "Use buggier stair building",				"compat_stairs", "YesNo"
-	Option "Find neighboring light like Doom",			"compat_LIGHT", "YesNo"
-	Option "Limit Pain Elementals' Lost Souls",			"compat_LIMITPAIN", "YesNo"
-	Option "Don't let others hear your pickups",		"compat_SILENTPICKUP", "YesNo"
+	Option "Use Doom's floor motion behavior",			"compat_floormove", "YesNo"
+	
+	StaticText " "
+	StaticText "Physics Behavior",1
 	Option "Actors are infinitely tall",				"compat_nopassover", "YesNo"
-	Option "Enable wall running",						"compat_WALLRUN", "YesNo"
-	Option "Spawn item drops on the floor",				"compat_NOTOSSDROPS", "YesNo"
-	Option "All special lines can block <use>",			"compat_USEBLOCKING", "YesNo"
-	Option "Disable BOOM door light effect",			"compat_NODOORLIGHT", "YesNo"
-	Option "Raven scrollers use original speed",		"compat_RAVENSCROLL", "YesNo"
-	Option "Use original sound target handling",		"compat_SOUNDTARGET", "YesNo"
-	Option "DEH health settings like Doom2.exe",		"compat_DEHHEALTH", "YesNo"
-	Option "Self ref. sectors don't block shots",		"compat_TRACE", "YesNo"
-	Option "Monsters get stuck over dropoffs",			"compat_DROPOFF", "YesNo"
-	Option "Monsters cannot cross dropoffs",			"compat_CROSSDROPOFF", "YesNo"
-	Option "Monsters see invisible players",			"compat_INVISIBILITY", "YesNo"
 	Option "Boom scrollers are additive",				"compat_BOOMSCROLL", "YesNo"
-	Option "Inst. moving floors are not silent",		"compat_silentinstantfloors", "YesNo"
-	Option "Sector sounds use center as source",		"compat_SECTORSOUNDS", "YesNo"
-	Option "Use Doom heights for missile clipping",		"compat_MISSILECLIP", "YesNo"
-	Option "Allow any bossdeath for level special",		"compat_ANYBOSSDEATH", "YesNo"
-	Option "No Minotaur floor flames in water",			"compat_MINOTAUR", "YesNo"
-	Option "Original A_Mushroom speed in DEH mods",		"compat_MUSHROOM", "YesNo"
-	Option "Monster movement is affected by effects",	"compat_MBFMONSTERMOVE", "YesNo"
-	Option "Crushed monsters can be resurrected",		"compat_CORPSEGIBS", "YesNo"
-	Option "Friendly monsters aren't blocked",			"compat_NOBLOCKFRIENDS", "YesNo"
-	Option "Invert sprite sorting",						"compat_SPRITESORT", "YesNo"
+	Option "Cannot travel straight NSEW",				"compat_badangles", "YesNo"
+	Option "Enable wall running",						"compat_WALLRUN", "YesNo"
+	Option "Raven scrollers use original speed",		"compat_RAVENSCROLL", "YesNo"
+	Option "Self ref. sectors don't block shots",		"compat_TRACE", "YesNo"
 	Option "Use Doom code for hitscan checks",			"compat_HITSCAN", "YesNo"
-	Option "Cripple sound for silent BFG trick",		"compat_soundslots", "YesNo"
+	Option "Use Doom heights for missile clipping",		"compat_MISSILECLIP", "YesNo"
+
+	
+	StaticText " "
+	StaticText "Rendering Behavior",1
 	Option "Draw polyobjects like Hexen",				"compat_POLYOBJ", "YesNo"
 	Option "Ignore Y offsets on masked midtextures",	"compat_MASKEDMIDTEX", "YesNo"
-	Option "Cannot travel straight NSEW",				"compat_badangles", "YesNo"
-	Option "Use Doom's floor motion behavior",			"compat_floormove", "YesNo"
+	Option "Invert sprite sorting",						"compat_SPRITESORT", "YesNo"
+	
+	StaticText " "
+	StaticText "Sound Behavior",1
+	Option "Cripple sound for silent BFG trick",		"compat_soundslots", "YesNo"
+	Option "Don't let others hear your pickups",		"compat_SILENTPICKUP", "YesNo"
+	Option "Inst. moving floors are not silent",		"compat_silentinstantfloors", "YesNo"
+	Option "Sector sounds use center as source",		"compat_SECTORSOUNDS", "YesNo"
+	Option "Sounds stop when actor vanishes",			"compat_soundcutoff", "YesNo"
+	Option "Use original sound target handling",		"compat_SOUNDTARGET", "YesNo"
 	
 	Class "CompatibilityMenu"
 }
@@ -1462,6 +1537,7 @@ OptionValue OplCores
 	0, "MAME OPL2"
 	1, "DOSBox OPL3"
 	2, "Java OPL3"
+	3, "Nuked OPL3"
 }
 
 OptionMenu AdvSoundOptions
@@ -1496,21 +1572,24 @@ OptionValue ModReplayers
 }
 
 
-OptionValue ModInterpolations
+OptionValue ModQuality
 {
-	0.0, "None"
+	0.0, "Aliasing"
 	1.0, "Linear"
 	2.0, "Cubic"
+	3.0, "Band-limited step"		// BLEP
+	4.0, "Linear (Slower)"
+	5.0, "Band-limited linear"		// BLAM
+	6.0, "Cubic (Slower)"
+	7.0, "Sinc"
 }
 
 
 OptionValue ModVolumeRamps
 {
 	0.0, "None"
-	1.0, "Logarithmic"
-	2.0, "Linear"
-	3.0, "XM=lin, else none"
-	4.0, "XM=lin, else log"
+	1.0, "Note on/off only"
+	2.0, "Full ramping"
 }
 
 
@@ -1520,7 +1599,7 @@ OptionMenu ModReplayerOptions
 	Option "Replayer engine",		"mod_dumb", "ModReplayers"
 	StaticText " "
 	Option "Sample rate",			"mod_samplerate", "SampleRates", "mod_dumb"
-	Option "Interpolation",			"mod_interp", "ModInterpolations", "mod_dumb"
+	Option "Quality",				"mod_interp", "ModQuality", "mod_dumb"
 	Option "Volume ramping",		"mod_volramp", "ModVolumeRamps", "mod_dumb"
 	StaticText " "
 	Option "Chip-o-matic",			"mod_autochip", "OnOff", "mod_dumb"
@@ -1567,6 +1646,10 @@ OptionMenu VideoModeMenu
 	Title "VIDEO MODE"
 	
 	Option "Fullscreen",			"fullscreen", "YesNo"
+	IfOption(Mac)
+	{
+		Option "Retina/HiDPI support", "vid_hidpi", "YesNo"
+	}
 	Option "Aspect ratio",			"menu_screenratios", "Ratios"
 	Option "Force aspect ratio",	"vid_aspect", "ForceRatios"
 	Option "Enable 5:4 aspect ratio","vid_tft", "YesNo"
@@ -1587,3 +1670,30 @@ OptionMenu VideoModeMenu
 	class VideoModeMenu
 }
 
+/*=======================================
+ *
+ * Network options menu
+ *
+ *=======================================*/
+
+OptionMenu NetworkOptions
+{
+	Title "NETWORK OPTIONS"
+	StaticText "Local options", 1
+	Option "Movement prediction",		"cl_noprediction", "OffOn"
+	Option "Predict line actions",		"cl_predict_specials", "OnOff"
+	Slider "Prediction Lerp Scale",		"cl_predict_lerpscale", 0.0, 0.5, 0.05
+	Slider "Lerp Threshold",			"cl_predict_lerpthreshold", 0.1, 16.0, 0.1
+	StaticText " "
+	StaticText "Host options", 1
+	Option "Extra Tics",				"net_extratic", "ExtraTicMode"
+	Option "Latency balancing",			"net_ticbalance", "OnOff"
+	
+}
+
+OptionValue ExtraTicMode
+{
+	0, "None"
+	1, "1"
+	2, "All unacknowledged"
+}

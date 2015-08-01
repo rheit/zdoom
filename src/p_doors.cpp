@@ -345,7 +345,7 @@ bool EV_DoSplitDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
 						//		run into them (otherwise opening them would be
 						//		a real pain).
 					{
-						if (!thing->player || thing->player->isbot)
+						if (!thing->player || thing->player->Bot != NULL)
 							return false;	// JDC: bad guys never close doors
 											//Added by MC: Neither do bots.
 
@@ -620,7 +620,7 @@ void DDoor::DoorSound(bool raise, DSeqNode *curseq) const
 					continue;
 
 				FTexture *tex = TexMan[line->sidedef[0]->GetTexture(side_t::top)];
-				texname = tex? tex->Name : NULL;
+				texname = tex ? tex->Name.GetChars() : NULL;
 				if (texname != NULL && texname[0] == 'D' && texname[1] == 'O' && texname[2] == 'R')
 				{
 					switch (texname[3])
@@ -783,7 +783,7 @@ bool EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
 						//		run into them (otherwise opening them would be
 						//		a real pain).
 					{
-						if (!thing->player || thing->player->isbot)
+						if (!thing->player || thing->player->Bot != NULL)
 							return false;	// JDC: bad guys never close doors
 											//Added by MC: Neither do bots.
 

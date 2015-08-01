@@ -513,8 +513,6 @@ int S_AddSoundLump (const char *logicalname, int lump)
 	newsfx.LimitRange = 256*256;
 	newsfx.bRandomHeader = false;
 	newsfx.bPlayerReserve = false;
-	newsfx.bForce11025 = false;
-	newsfx.bForce22050 = false;
 	newsfx.bLoadRAW = false;
 	newsfx.bPlayerCompat = false;
 	newsfx.b16bit = false;
@@ -522,6 +520,7 @@ int S_AddSoundLump (const char *logicalname, int lump)
 	newsfx.bSingular = false;
 	newsfx.bTentative = false;
 	newsfx.bPlayerSilent = false;
+	newsfx.RawRate = 0;
 	newsfx.link = sfxinfo_t::NO_LINK;
 	newsfx.Rolloff.RolloffType = ROLLOFF_Doom;
 	newsfx.Rolloff.MinDistance = 0;
@@ -1423,13 +1422,17 @@ static void S_AddBloodSFX (int lumpnum)
 	{
 		const char *name = Wads.GetLumpFullName(lumpnum);
 		sfxnum = S_AddSound(name, rawlump);
-		if (sfx->Format == 5)
-		{
-			S_sfx[sfxnum].bForce22050 = true;
+		if (sfx->Format < 5 || sfx->Format > 12)
+		{	// [0..4] + invalid formats
+			S_sfx[sfxnum].RawRate = 11025;
 		}
-		else // I don't know any other formats for this
-		{
-			S_sfx[sfxnum].bForce11025 = true;
+		else if (sfx->Format < 9)
+		{	// [5..8]
+			S_sfx[sfxnum].RawRate = 22050;
+		}
+		else
+		{	// [9..12]
+			S_sfx[sfxnum].RawRate = 44100;
 		}
 		S_sfx[sfxnum].bLoadRAW = true;
 		S_sfx[sfxnum].LoopStart = LittleLong(sfx->LoopStart);
@@ -1442,7 +1445,7 @@ static void S_AddBloodSFX (int lumpnum)
 		ambient->periodmax = 0;
 		ambient->volume = 1;
 		ambient->attenuation = 1;
-		ambient->sound = name;
+		ambient->sound = FSoundID(sfxnum);
 	}
 }
 
@@ -2240,7 +2243,7 @@ void AAmbientSound::BeginPlay ()
 //
 // AmbientSound :: Activate
 //
-// Starts playing a sound (or does nothing of the sound is already playing).
+// Starts playing a sound (or does nothing if the sound is already playing).
 //
 //==========================================================================
 
@@ -2353,58 +2356,35 @@ class AMusicChanger : public ASectorAction
 {
 	DECLARE_CLASS (AMusicChanger, ASectorAction)
 public:
-	virtual bool TriggerAction (AActor *triggerer, int activationType);
-	virtual void Tick();
+	virtual bool DoTriggerAction (AActor *triggerer, int activationType);
 	virtual void PostBeginPlay();
 };
 
 IMPLEMENT_CLASS(AMusicChanger)
 
-bool AMusicChanger::TriggerAction (AActor *triggerer, int activationType)
+bool AMusicChanger::DoTriggerAction (AActor *triggerer, int activationType)
 {
-	if (activationType & SECSPAC_Enter)
+	if (activationType & SECSPAC_Enter && triggerer->player != NULL)
 	{
-		if (args[0] == 0 || level.info->MusicMap.CheckKey(args[0]))
- 		{
-			level.nextmusic = args[0];
-			reactiontime = 30;
+		if (triggerer->player->MUSINFOactor != this)
+		{
+			triggerer->player->MUSINFOactor = this;
+			triggerer->player->MUSINFOtics = 30;
 		}
 	}
-	return Super::TriggerAction (triggerer, activationType);
+	return Super::DoTriggerAction (triggerer, activationType);
 }
  
-void AMusicChanger::Tick()
-{
-	Super::Tick();
-	if (reactiontime > -1 && --reactiontime == 0)
-	{
-		// Is it our music that's queued for being played?
-		if (level.nextmusic == args[0])
-		{
-			if (args[0] != 0)
- 			{
-				FName *music = level.info->MusicMap.CheckKey(args[0]);
-
-				if (music != NULL)
-				{
-					S_ChangeMusic(music->GetChars(), args[1]);
-				}
- 			}
-			else
-			{
-				S_ChangeMusic("*");
-			}
- 		}
- 	}
- }
-
 void AMusicChanger::PostBeginPlay()
 {
 	// The music changer should consider itself activated if the player
 	// spawns in its sector as well as if it enters the sector during a P_TryMove.
 	Super::PostBeginPlay();
-	if (players[consoleplayer].mo && players[consoleplayer].mo->Sector == this->Sector)
+	for (int i = 0; i < MAXPLAYERS; ++i)
 	{
-		TriggerAction(players[consoleplayer].mo, SECSPAC_Enter);
+		if (playeringame[i] && players[i].mo && players[i].mo->Sector == this->Sector)
+		{
+			TriggerAction(players[i].mo, SECSPAC_Enter);
+		}
 	}
 }

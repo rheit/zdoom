@@ -157,8 +157,7 @@ public:
 	virtual bool IsValid ();
 
 	// Access control
-	virtual bool Lock () = 0;		// Returns true if the surface was lost since last time
-	virtual bool Lock (bool usesimplecanvas) { return Lock(); }	
+	virtual bool Lock (bool buffered=true) = 0;		// Returns true if the surface was lost since last time
 	virtual void Unlock () = 0;
 	virtual bool IsLocked () { return Buffer != NULL; }	// Returns true if the surface is locked
 
@@ -287,7 +286,7 @@ public:
 	~DSimpleCanvas ();
 
 	bool IsValid ();
-	bool Lock ();
+	bool Lock (bool buffered=true);
 	void Unlock ();
 
 protected:
@@ -433,7 +432,18 @@ EXTERN_CVAR (Float, Gamma)
 // Translucency tables
 
 // RGB32k is a normal R5G5B5 -> palette lookup table.
-extern "C" BYTE RGB32k[32][32][32];
+
+// Use a union so we can "overflow" without warnings.
+// Otherwise, we get stuff like this from Clang (when compiled
+// with -fsanitize=bounds) while running:
+//   src/v_video.cpp:390:12: runtime error: index 1068 out of bounds for type 'BYTE [32]'
+//   src/r_draw.cpp:273:11: runtime error: index 1057 out of bounds for type 'BYTE [32]'
+union ColorTable32k
+{
+	BYTE RGB[32][32][32];
+	BYTE All[32 *32 *32];
+};
+extern "C" ColorTable32k RGB32k;
 
 // Col2RGB8 is a pre-multiplied palette for color lookup. It is stored in a
 // special R10B10G10 format for efficient blending computation.

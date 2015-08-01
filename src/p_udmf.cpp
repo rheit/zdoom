@@ -118,8 +118,8 @@ enum
 	// namespace for each game
 };
 
-void SetTexture (sector_t *sector, int index, int position, const char *name8, FMissingTextureTracker &);
-void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapsidedef_t *msd, int special, int tag, short *alpha, FMissingTextureTracker &);
+void SetTexture (sector_t *sector, int index, int position, const char *name, FMissingTextureTracker &, bool truncate);
+void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmapsidedef_t *msd, int special, int tag, short *alpha, FMissingTextureTracker &);
 void P_AdjustLine (line_t *ld);
 void P_FinishLoadingLineDef(line_t *ld, int alpha);
 void SpawnMapThing(int index, FMapThing *mt, int position);
@@ -343,17 +343,14 @@ int GetUDMFInt(int type, int index, const char *key)
 {
 	assert(type >=0 && type <=3);
 
-	if (index > 0)
-	{
-		FUDMFKeys *pKeys = UDMFKeys[type].CheckKey(index);
+	FUDMFKeys *pKeys = UDMFKeys[type].CheckKey(index);
 
-		if (pKeys != NULL)
+	if (pKeys != NULL)
+	{
+		FUDMFKey *pKey = pKeys->Find(key);
+		if (pKey != NULL)
 		{
-			FUDMFKey *pKey = pKeys->Find(key);
-			if (pKey != NULL)
-			{
-				return pKey->IntVal;
-			}
+			return pKey->IntVal;
 		}
 	}
 	return 0;
@@ -363,17 +360,14 @@ fixed_t GetUDMFFixed(int type, int index, const char *key)
 {
 	assert(type >=0 && type <=3);
 
-	if (index > 0)
-	{
-		FUDMFKeys *pKeys = UDMFKeys[type].CheckKey(index);
+	FUDMFKeys *pKeys = UDMFKeys[type].CheckKey(index);
 
-		if (pKeys != NULL)
+	if (pKeys != NULL)
+	{
+		FUDMFKey *pKey = pKeys->Find(key);
+		if (pKey != NULL)
 		{
-			FUDMFKey *pKey = pKeys->Find(key);
-			if (pKey != NULL)
-			{
-				return FLOAT2FIXED(pKey->FloatVal);
-			}
+			return FLOAT2FIXED(pKey->FloatVal);
 		}
 	}
 	return 0;
@@ -394,7 +388,7 @@ class UDMFParser : public UDMFParserBase
 
 	TArray<line_t> ParsedLines;
 	TArray<side_t> ParsedSides;
-	TArray<mapsidedef_t> ParsedSideTextures;
+	TArray<intmapsidedef_t> ParsedSideTextures;
 	TArray<sector_t> ParsedSectors;
 	TArray<vertex_t> ParsedVertices;
 	TArray<vertexdata_t> ParsedVertexDatas;
@@ -475,6 +469,10 @@ public:
 		FString arg0str, arg1str;
 
 		memset(th, 0, sizeof(*th));
+		th->gravity = FRACUNIT;
+		th->RenderStyle = STYLE_Count;
+		th->alpha = -1;
+		th->health = 1;
 		sc.MustGetToken('{');
 		while (!sc.CheckToken('}'))
 		{
@@ -513,6 +511,11 @@ public:
 			case NAME_Special:
 				CHECK_N(Hx | Zd | Zdt | Va)
 				th->special = CheckInt(key);
+				break;
+
+			case NAME_Gravity:
+				CHECK_N(Zd | Zdt)
+				th->gravity = CheckFixed(key);
 				break;
 
 			case NAME_Arg0:
@@ -626,6 +629,97 @@ public:
 				Flag(th->flags, MTF_SECRET, key); 
 				break;
 
+			case NAME_Renderstyle:
+				{
+				FName style = CheckString(key);
+				switch (style)
+				{
+				case NAME_None:
+					th->RenderStyle = STYLE_None;
+					break;
+				case NAME_Normal:
+					th->RenderStyle = STYLE_Normal;
+					break;
+				case NAME_Fuzzy:
+					th->RenderStyle = STYLE_Fuzzy;
+					break;
+				case NAME_SoulTrans:
+					th->RenderStyle = STYLE_SoulTrans;
+					break;
+				case NAME_OptFuzzy:
+					th->RenderStyle = STYLE_OptFuzzy;
+					break;
+				case NAME_Stencil:
+					th->RenderStyle = STYLE_Stencil;
+					break;
+				case NAME_AddStencil:
+					th->RenderStyle = STYLE_AddStencil;
+					break;
+				case NAME_Translucent:
+					th->RenderStyle = STYLE_Translucent;
+					break;
+				case NAME_Add:
+				case NAME_Additive:
+					th->RenderStyle = STYLE_Add;
+					break;
+				case NAME_Shaded:
+					th->RenderStyle = STYLE_Shaded;
+					break;
+				case NAME_AddShaded:
+					th->RenderStyle = STYLE_AddShaded;
+					break;
+				case NAME_TranslucentStencil:
+					th->RenderStyle = STYLE_TranslucentStencil;
+					break;
+				case NAME_Shadow:
+					th->RenderStyle = STYLE_Shadow;
+					break;
+				case NAME_Subtract:
+				case NAME_Subtractive:
+					th->RenderStyle = STYLE_Subtract;
+					break;
+				default:
+					break;
+				}
+				}
+				break;
+
+			case NAME_Alpha:
+				th->alpha = CheckFixed(key);
+				break;
+
+			case NAME_FillColor:
+				th->fillcolor = CheckInt(key);
+				break;
+
+			case NAME_Health:
+				th->health = CheckInt(key);
+				break;
+
+			case NAME_Score:
+				th->score = CheckInt(key);
+				break;
+
+			case NAME_Pitch:
+				th->pitch = (short)CheckInt(key);
+				break;
+
+			case NAME_Roll:
+				th->roll = (short)CheckInt(key);
+				break;
+
+			case NAME_ScaleX:
+				th->scaleX = CheckFixed(key);
+				break;
+
+			case NAME_ScaleY:
+				th->scaleY = CheckFixed(key);
+				break;
+
+			case NAME_Scale:
+				th->scaleX = th->scaleY = CheckFixed(key);
+				break;
+
 			default:
 				if (0 == strnicmp("user_", key.GetChars(), 5))
 				{ // Custom user key - Sets an actor's user variable directly
@@ -680,6 +774,7 @@ public:
 	{
 		bool passuse = false;
 		bool strifetrans = false;
+		bool strifetrans2 = false;
 		FString arg0str, arg1str;
 
 		memset(ld, 0, sizeof(*ld));
@@ -795,6 +890,11 @@ public:
 			case NAME_Translucent:
 				CHECK_N(St | Zd | Zdt | Va)
 				strifetrans = CheckBool(key); 
+				continue;
+
+			case NAME_Transparent:
+				CHECK_N(St | Zd | Zdt | Va)
+				strifetrans2 = CheckBool(key); 
 				continue;
 
 			case NAME_Passuse:
@@ -921,9 +1021,18 @@ public:
 				Flag(ld->flags, ML_BLOCKSIGHT, key); 
 				continue;
 			
-			// [Dusk] lock number
+			case NAME_blockhitscan:
+				Flag(ld->flags, ML_BLOCKHITSCAN, key); 
+				continue;
+			
+			// [TP] Locks the special with a key
 			case NAME_Locknumber:
 				ld->locknumber = CheckInt(key);
+				continue;
+
+			// [TP] Causes a 3d midtex to behave like an impassible line
+			case NAME_Midtex3dimpassible:
+				Flag(ld->flags, ML_3DMIDTEX_IMPASS, key);
 				continue;
 
 			default:
@@ -955,6 +1064,10 @@ public:
 		{
 			ld->Alpha = FRACUNIT * 3/4;
 		}
+		if (strifetrans2 && ld->Alpha == FRACUNIT)
+		{
+			ld->Alpha = FRACUNIT * 1/4;
+		}
 		if (ld->sidedef[0] == NULL)
 		{
 			ld->sidedef[0] = (side_t*)(intptr_t)(1);
@@ -968,6 +1081,10 @@ public:
 		{
 			ld->args[1] = -FName(arg1str);
 		}
+		if ((ld->flags & ML_3DMIDTEX_IMPASS) && !(ld->flags & ML_3DMIDTEX)) // [TP]
+		{
+			Printf ("Line %d has midtex3dimpassible without midtex3d.\n", index);
+		}
 	}
 
 	//===========================================================================
@@ -976,16 +1093,17 @@ public:
 	//
 	//===========================================================================
 
-	void ParseSidedef(side_t *sd, mapsidedef_t *sdt, int index)
+	void ParseSidedef(side_t *sd, intmapsidedef_t *sdt, int index)
 	{
 		fixed_t texofs[2]={0,0};
 
 		memset(sd, 0, sizeof(*sd));
-		strncpy(sdt->bottomtexture, "-", 8);
-		strncpy(sdt->toptexture, "-", 8);
-		strncpy(sdt->midtexture, "-", 8);
+		sdt->bottomtexture = "-";
+		sdt->toptexture = "-";
+		sdt->midtexture = "-";
 		sd->SetTextureXScale(FRACUNIT);
 		sd->SetTextureYScale(FRACUNIT);
+		sd->Index = index;
 
 		sc.MustGetToken('{');
 		while (!sc.CheckToken('}'))
@@ -1002,15 +1120,15 @@ public:
 				continue;
 
 			case NAME_Texturetop:
-				strncpy(sdt->toptexture, CheckString(key), 8);
+				sdt->toptexture = CheckString(key);
 				continue;
 
 			case NAME_Texturebottom:
-				strncpy(sdt->bottomtexture, CheckString(key), 8);
+				sdt->bottomtexture = CheckString(key);
 				continue;
 
 			case NAME_Texturemiddle:
-				strncpy(sdt->midtexture, CheckString(key), 8);
+				sdt->midtexture = CheckString(key);
 				continue;
 
 			case NAME_Sector:
@@ -1132,6 +1250,8 @@ public:
 		int lightcolor = -1;
 		int fadecolor = -1;
 		int desaturation = -1;
+		int fplaneflags = 0, cplaneflags = 0;
+		double fp[4] = { 0 }, cp[4] = { 0 };
 
 		memset(sec, 0, sizeof(*sec));
 		sec->lightlevel = 160;
@@ -1173,11 +1293,11 @@ public:
 				continue;
 
 			case NAME_Texturefloor:
-				SetTexture(sec, index, sector_t::floor, CheckString(key), missingTex);
+				SetTexture(sec, index, sector_t::floor, CheckString(key), missingTex, false);
 				continue;
 
 			case NAME_Textureceiling:
-				SetTexture(sec, index, sector_t::ceiling, CheckString(key), missingTex);
+				SetTexture(sec, index, sector_t::ceiling, CheckString(key), missingTex, false);
 				continue;
 
 			case NAME_Lightlevel:
@@ -1326,7 +1446,51 @@ public:
 					continue;
 
 				case NAME_hidden:
-					sec->MoreFlags |= SECF_HIDDEN;
+					Flag(sec->MoreFlags, SECF_HIDDEN, key);
+					break;
+
+				case NAME_Waterzone:
+					Flag(sec->MoreFlags, SECF_UNDERWATER, key);
+					break;
+
+				case NAME_floorplane_a:
+					fplaneflags |= 1;
+					fp[0] = CheckFloat(key);
+					break;
+
+				case NAME_floorplane_b:
+					fplaneflags |= 2;
+					fp[1] = CheckFloat(key);
+					break;
+
+				case NAME_floorplane_c:
+					fplaneflags |= 4;
+					fp[2] = CheckFloat(key);
+					break;
+
+				case NAME_floorplane_d:
+					fplaneflags |= 8;
+					fp[3] = CheckFloat(key);
+					break;
+
+				case NAME_ceilingplane_a:
+					cplaneflags |= 1;
+					cp[0] = CheckFloat(key);
+					break;
+
+				case NAME_ceilingplane_b:
+					cplaneflags |= 2;
+					cp[1] = CheckFloat(key);
+					break;
+
+				case NAME_ceilingplane_c:
+					cplaneflags |= 4;
+					cp[2] = CheckFloat(key);
+					break;
+
+				case NAME_ceilingplane_d:
+					cplaneflags |= 8;
+					cp[3] = CheckFloat(key);
 					break;
 
 				default:
@@ -1340,12 +1504,44 @@ public:
 		}
 
 		sec->secretsector = !!(sec->special&SECRET_MASK);
-		sec->floorplane.d = -sec->GetPlaneTexZ(sector_t::floor);
-		sec->floorplane.c = FRACUNIT;
-		sec->floorplane.ic = FRACUNIT;
-		sec->ceilingplane.d = sec->GetPlaneTexZ(sector_t::ceiling);
-		sec->ceilingplane.c = -FRACUNIT;
-		sec->ceilingplane.ic = -FRACUNIT;
+		
+		// Reset the planes to their defaults if not all of the plane equation's parameters were found.
+		if (fplaneflags != 15)
+		{
+			sec->floorplane.a = sec->floorplane.b = 0;
+			sec->floorplane.d = -sec->GetPlaneTexZ(sector_t::floor);
+			sec->floorplane.c = FRACUNIT;
+			sec->floorplane.ic = FRACUNIT;
+		}
+		else
+		{
+			double ulen = TVector3<double>(fp[0], fp[1], fp[2]).Length();
+
+			// normalize the vector, it must have a length of 1
+			sec->floorplane.a = FLOAT2FIXED(fp[0] / ulen);
+			sec->floorplane.b = FLOAT2FIXED(fp[1] / ulen);
+			sec->floorplane.c = FLOAT2FIXED(fp[2] / ulen);
+			sec->floorplane.d = FLOAT2FIXED(fp[3] / ulen);
+			sec->floorplane.ic = FLOAT2FIXED(ulen / fp[2]);
+		}
+		if (cplaneflags != 15)
+		{
+			sec->ceilingplane.a = sec->ceilingplane.b = 0;
+			sec->ceilingplane.d = sec->GetPlaneTexZ(sector_t::ceiling);
+			sec->ceilingplane.c = -FRACUNIT;
+			sec->ceilingplane.ic = -FRACUNIT;
+		}
+		else
+		{
+			double ulen = TVector3<double>(cp[0], cp[1], cp[2]).Length();
+
+			// normalize the vector, it must have a length of 1
+			sec->ceilingplane.a = FLOAT2FIXED(cp[0] / ulen);
+			sec->ceilingplane.b = FLOAT2FIXED(cp[1] / ulen);
+			sec->ceilingplane.c = FLOAT2FIXED(cp[2] / ulen);
+			sec->ceilingplane.d = FLOAT2FIXED(cp[3] / ulen);
+			sec->ceilingplane.ic = FLOAT2FIXED(ulen / cp[2]);
+		}
 
 		if (lightcolor == -1 && fadecolor == -1 && desaturation == -1)
 		{
@@ -1631,7 +1827,7 @@ public:
 			else if (sc.Compare("sidedef"))
 			{
 				side_t si;
-				mapsidedef_t st;
+				intmapsidedef_t st;
 				ParseSidedef(&si, &st, ParsedSides.Size());
 				ParsedSides.Push(si);
 				ParsedSideTextures.Push(st);

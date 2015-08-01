@@ -80,7 +80,7 @@ void DIntermissionScreen::Init(FIntermissionAction *desc, bool first)
 		if (desc->mMusic.IsEmpty())
 		{
 			// only start the default music if this is the first action in an intermission
-			if (first) S_ChangeMusic (gameinfo.finaleMusic, 0, desc->mMusicLooping);
+			if (first) S_ChangeMusic (gameinfo.finaleMusic, gameinfo.finaleOrder, desc->mMusicLooping);
 		}
 		else
 		{
@@ -104,7 +104,7 @@ void DIntermissionScreen::Init(FIntermissionAction *desc, bool first)
 		}
 		else
 		{
-			texname = gameinfo.titlePage;
+			texname = gameinfo.TitlePage.GetChars();
 		}
 	}
 	else if (*texname == '$')

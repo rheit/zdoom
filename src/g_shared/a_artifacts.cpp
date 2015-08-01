@@ -60,7 +60,8 @@ bool APowerupGiver::Use (bool pickup)
 	}
 	if (BlendColor != 0)
 	{
-		power->BlendColor = BlendColor;
+		if (BlendColor != MakeSpecialColormap(65535)) power->BlendColor = BlendColor;
+		else power->BlendColor = 0;
 	}
 	if (Mode != NAME_None)
 	{
@@ -589,7 +590,7 @@ void APowerInvisibility::DoEffect ()
 	Super::DoEffect();
 	// Due to potential interference with other PowerInvisibility items
 	// the effect has to be refreshed each tic.
-	fixed_t ts = Strength * (special1 + 1); if (ts > FRACUNIT) ts = FRACUNIT;
+	fixed_t ts = (Strength/100) * (special1 + 1); if (ts > FRACUNIT) ts = FRACUNIT;
 	Owner->alpha = clamp<fixed_t>((OPAQUE - ts), 0, OPAQUE);
 	switch (Mode)
 	{
@@ -605,7 +606,13 @@ void APowerInvisibility::DoEffect ()
 	case (NAME_Stencil):
 		Owner->RenderStyle = STYLE_Stencil;
 		break;
-	case (NAME_None):
+	case (NAME_AddStencil) :
+		Owner->RenderStyle = STYLE_AddStencil;
+		break;
+	case (NAME_TranslucentStencil) :
+		Owner->RenderStyle = STYLE_TranslucentStencil;
+		break;
+	case (NAME_None) :
 	case (NAME_Cumulative):
 	case (NAME_Translucent):
 		Owner->RenderStyle = STYLE_Translucent;
@@ -669,7 +676,7 @@ int APowerInvisibility::AlterWeaponSprite (visstyle_t *vis)
 	else if (changed == 1)
 	{
 		// something else set the weapon sprite back to opaque but this item is still active.
-		fixed_t ts = Strength * (special1 + 1); if (ts > FRACUNIT) ts = FRACUNIT;
+		fixed_t ts = (Strength/100) * (special1 + 1); if (ts > FRACUNIT) ts = FRACUNIT;
 		vis->alpha = clamp<fixed_t>((OPAQUE - ts), 0, OPAQUE);
 		switch (Mode)
 		{
@@ -685,7 +692,13 @@ int APowerInvisibility::AlterWeaponSprite (visstyle_t *vis)
 		case (NAME_Stencil):
 			vis->RenderStyle = STYLE_Stencil;
 			break;
-		case (NAME_None):
+		case (NAME_TranslucentStencil) :
+			vis->RenderStyle = STYLE_TranslucentStencil;
+			break;
+		case (NAME_AddStencil) :
+			vis->RenderStyle = STYLE_AddStencil;
+			break;
+		case (NAME_None) :
 		case (NAME_Cumulative):
 		case (NAME_Translucent):
 		default:
@@ -696,7 +709,7 @@ int APowerInvisibility::AlterWeaponSprite (visstyle_t *vis)
 	// Handling of Strife-like cumulative invisibility powerups, the weapon itself shouldn't become invisible
 	if ((vis->alpha < TRANSLUC25 && special1 > 0) || (vis->alpha == 0))
 	{
-		vis->alpha = clamp<fixed_t>((OPAQUE - Strength), 0, OPAQUE);
+		vis->alpha = clamp<fixed_t>((OPAQUE - (Strength/100)), 0, OPAQUE);
 		vis->colormap = SpecialColormaps[INVERSECOLORMAP].Colormap;
 	}
 	return -1;	// This item is valid so another one shouldn't reset the translucency
@@ -984,7 +997,8 @@ void APowerFlight::EndEffect ()
 	{
 		return;
 	}
-	if (!(Owner->player->cheats & CF_FLY))
+
+	if (!(Owner->flags7 & MF7_FLYCHEAT))
 	{
 		if (Owner->z != Owner->floorz)
 		{
@@ -1284,6 +1298,18 @@ void APowerTargeter::InitEffect ()
 	PositionAccuracy ();
 }
 
+bool APowerTargeter::HandlePickup(AInventory *item)
+{
+	if (Super::HandlePickup(item))
+	{
+		InitEffect();	// reset the HUD sprites
+		return true;
+	}
+	return false;
+}
+
+
+
 void APowerTargeter::DoEffect ()
 {
 	Super::DoEffect ();
@@ -1370,6 +1396,42 @@ void APowerFrightener::EndEffect ()
 		return;
 
 	Owner->player->cheats &= ~CF_FRIGHTENING;
+}
+
+// Buddha Powerup --------------------------------
+
+IMPLEMENT_CLASS (APowerBuddha)
+
+//===========================================================================
+//
+// APowerBuddha :: InitEffect
+//
+//===========================================================================
+
+void APowerBuddha::InitEffect ()
+{
+	Super::InitEffect();
+
+	if (Owner== NULL || Owner->player == NULL)
+		return;
+
+	Owner->player->cheats |= CF_BUDDHA;
+}
+
+//===========================================================================
+//
+// APowerBuddha :: EndEffect
+//
+//===========================================================================
+
+void APowerBuddha::EndEffect ()
+{
+	Super::EndEffect();
+
+	if (Owner== NULL || Owner->player == NULL)
+		return;
+
+	Owner->player->cheats &= ~CF_BUDDHA;
 }
 
 // Scanner powerup ----------------------------------------------------------
@@ -1697,7 +1759,7 @@ void APowerRegeneration::DoEffect()
 {
 	if (Owner != NULL && Owner->health > 0 && (level.time & 31) == 0)
 	{
-		if (P_GiveBody(Owner, 5))
+		if (P_GiveBody(Owner, Strength/FRACUNIT))
 		{
 			S_Sound(Owner, CHAN_ITEM, "*regenerate", 1, ATTN_NORM );
 		}

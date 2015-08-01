@@ -62,9 +62,35 @@ static FRandom pr_skullpop ("SkullPop");
 
 // Variables for prediction
 CVAR (Bool, cl_noprediction, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR(Bool, cl_predict_specials, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+CUSTOM_CVAR(Float, cl_predict_lerpscale, 0.05f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+{
+	P_PredictionLerpReset();
+}
+CUSTOM_CVAR(Float, cl_predict_lerpthreshold, 2.00f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+{
+	if (self < 0.1f)
+		self = 0.1f;
+	P_PredictionLerpReset();
+}
+
+struct PredictPos
+{
+	int gametic;
+	fixed_t x;
+	fixed_t y;
+	fixed_t z;
+	fixed_t pitch;
+	fixed_t yaw;
+} static PredictionLerpFrom, PredictionLerpResult, PredictionLast;
+static int PredictionLerptics;
+
 static player_t PredictionPlayerBackup;
-static BYTE PredictionActorBackup[sizeof(AActor)];
+static BYTE PredictionActorBackup[sizeof(APlayerPawn)];
 static TArray<sector_t *> PredictionTouchingSectorsBackup;
+static TArray<AActor *> PredictionSectorListBackup;
+static TArray<msecnode_t *> PredictionSector_sprev_Backup;
 
 // [GRB] Custom player classes
 TArray<FPlayerClass> PlayerClasses;
@@ -210,8 +236,6 @@ CCMD (playerclasses)
 // 16 pixels of bob
 #define MAXBOB			0x100000
 
-bool onground;
-
 FArchive &operator<< (FArchive &arc, player_t *&p)
 {
 	return arc.SerializePointer (players, (BYTE **)&p, sizeof(*players));
@@ -239,7 +263,6 @@ player_t::player_t()
   health(0),
   inventorytics(0),
   CurrentPlayerClass(0),
-  backpack(0),
   fragcount(0),
   lastkilltime(0),
   multicount(0),
@@ -268,31 +291,11 @@ player_t::player_t()
   PremorphWeapon(0),
   chickenPeck(0),
   jumpTics(0),
+  onground(0),
   respawn_time(0),
   camera(0),
   air_finished(0),
-  savedyaw(0),
-  savedpitch(0),
-  angle(0),
-  dest(0),
-  prev(0),
-  enemy(0),
-  missile(0),
-  mate(0),
-  last_mate(0),
-  t_active(0),
-  t_respawn(0),
-  t_strafe(0),
-  t_react(0),
-  t_fight(0),
-  t_roam(0),
-  t_rocket(0),
-  isbot(0),
-  first_shot(0),
-  sleft(0),
-  allround(0),
-  oldx(0),
-  oldy(0),
+  Bot(0),
   BlendR(0),
   BlendG(0),
   BlendB(0),
@@ -306,13 +309,102 @@ player_t::player_t()
   ConversationNPC(0),
   ConversationPC(0),
   ConversationNPCAngle(0),
-  ConversationFaceTalker(0)
+  ConversationFaceTalker(0),
+  MUSINFOactor(0),
+  MUSINFOtics(-1)
 {
 	memset (&cmd, 0, sizeof(cmd));
-	memset (&userinfo, 0, sizeof(userinfo));
 	memset (frags, 0, sizeof(frags));
 	memset (psprites, 0, sizeof(psprites));
-	memset (&skill, 0, sizeof(skill));
+}
+
+player_t &player_t::operator=(const player_t &p)
+{
+	mo = p.mo;
+	playerstate = p.playerstate;
+	cmd = p.cmd;
+	original_cmd = p.original_cmd;
+	original_oldbuttons = p.original_oldbuttons;
+	// Intentionally not copying userinfo!
+	cls = p.cls;
+	DesiredFOV = p.DesiredFOV;
+	FOV = p.FOV;
+	viewz = p.viewz;
+	viewheight = p.viewheight;
+	deltaviewheight = p.deltaviewheight;
+	bob = p.bob;
+	velx = p.velx;
+	vely = p.vely;
+	centering = p.centering;
+	turnticks = p.turnticks;
+	attackdown = p.attackdown;
+	usedown = p.usedown;
+	oldbuttons = p.oldbuttons;
+	health = p.health;
+	inventorytics = p.inventorytics;
+	CurrentPlayerClass = p.CurrentPlayerClass;
+	memcpy(frags, &p.frags, sizeof(frags));
+	fragcount = p.fragcount;
+	lastkilltime = p.lastkilltime;
+	multicount = p.multicount;
+	spreecount = p.spreecount;
+	WeaponState = p.WeaponState;
+	ReadyWeapon = p.ReadyWeapon;
+	PendingWeapon = p.PendingWeapon;
+	cheats = p.cheats;
+	timefreezer = p.timefreezer;
+	refire = p.refire;
+	inconsistant = p.inconsistant;
+	waiting = p.waiting;
+	killcount = p.killcount;
+	itemcount = p.itemcount;
+	secretcount = p.secretcount;
+	damagecount = p.damagecount;
+	bonuscount = p.bonuscount;
+	hazardcount = p.hazardcount;
+	poisoncount = p.poisoncount;
+	poisontype = p.poisontype;
+	poisonpaintype = p.poisonpaintype;
+	poisoner = p.poisoner;
+	attacker = p.attacker;
+	extralight = p.extralight;
+	fixedcolormap = p.fixedcolormap;
+	fixedlightlevel = p.fixedlightlevel;
+	memcpy(psprites, &p.psprites, sizeof(psprites));
+	morphTics = p.morphTics;
+	MorphedPlayerClass = p.MorphedPlayerClass;
+	MorphStyle = p.MorphStyle;
+	MorphExitFlash = p.MorphExitFlash;
+	PremorphWeapon = p.PremorphWeapon;
+	chickenPeck = p.chickenPeck;
+	jumpTics = p.jumpTics;
+	onground = p.onground;
+	respawn_time = p.respawn_time;
+	camera = p.camera;
+	air_finished = p.air_finished;
+	LastDamageType = p.LastDamageType;
+	Bot = p.Bot;
+	settings_controller = p.settings_controller;
+	BlendR = p.BlendR;
+	BlendG = p.BlendG;
+	BlendB = p.BlendB;
+	BlendA = p.BlendA;
+	LogText = p.LogText;
+	MinPitch = p.MinPitch;
+	MaxPitch = p.MaxPitch;
+	crouching = p.crouching;
+	crouchdir = p.crouchdir;
+	crouchfactor = p.crouchfactor;
+	crouchoffset = p.crouchoffset;
+	crouchviewdelta = p.crouchviewdelta;
+	weapons = p.weapons;
+	ConversationNPC = p.ConversationNPC;
+	ConversationPC = p.ConversationPC;
+	ConversationNPCAngle = p.ConversationNPCAngle;
+	ConversationFaceTalker = p.ConversationFaceTalker;
+	MUSINFOactor = p.MUSINFOactor;
+	MUSINFOtics = p.MUSINFOtics;
+	return *this;
 }
 
 // This function supplements the pointer cleanup in dobject.cpp, because
@@ -336,17 +428,13 @@ size_t player_t::FixPointers (const DObject *old, DObject *rep)
 	if (*&poisoner == old)			poisoner = replacement, changed++;
 	if (*&attacker == old)			attacker = replacement, changed++;
 	if (*&camera == old)			camera = replacement, changed++;
-	if (*&dest == old)				dest = replacement, changed++;
-	if (*&prev == old)				prev = replacement, changed++;
-	if (*&enemy == old)				enemy = replacement, changed++;
-	if (*&missile == old)			missile = replacement, changed++;
-	if (*&mate == old)				mate = replacement, changed++;
-	if (*&last_mate == old)			last_mate = replacement, changed++;
+	if (*&Bot == old)				Bot = static_cast<DBot *>(rep), changed++;
 	if (ReadyWeapon == old)			ReadyWeapon = static_cast<AWeapon *>(rep), changed++;
 	if (PendingWeapon == old)		PendingWeapon = static_cast<AWeapon *>(rep), changed++;
 	if (*&PremorphWeapon == old)	PremorphWeapon = static_cast<AWeapon *>(rep), changed++;
 	if (*&ConversationNPC == old)	ConversationNPC = replacement, changed++;
 	if (*&ConversationPC == old)	ConversationPC = replacement, changed++;
+	if (*&MUSINFOactor == old)		MUSINFOactor = replacement, changed++;
 	return changed;
 }
 
@@ -356,15 +444,11 @@ size_t player_t::PropagateMark()
 	GC::Mark(poisoner);
 	GC::Mark(attacker);
 	GC::Mark(camera);
-	GC::Mark(dest);
-	GC::Mark(prev);
-	GC::Mark(enemy);
-	GC::Mark(missile);
-	GC::Mark(mate);
-	GC::Mark(last_mate);
+	GC::Mark(Bot);
 	GC::Mark(ReadyWeapon);
 	GC::Mark(ConversationNPC);
 	GC::Mark(ConversationPC);
+	GC::Mark(MUSINFOactor);
 	GC::Mark(PremorphWeapon);
 	if (PendingWeapon != WP_NOCHANGE)
 	{
@@ -474,6 +558,14 @@ void APlayerPawn::Serialize (FArchive &arc)
 	{
 		arc << GruntSpeed << FallingScreamMinSpeed << FallingScreamMaxSpeed;
 	}
+	if (SaveVersion >= 4502)
+	{
+		arc << UseRange;
+	}
+	if (SaveVersion >= 4503)
+	{
+		arc << AirCapacity;
+	}
 }
 
 //===========================================================================
@@ -511,7 +603,16 @@ void APlayerPawn::BeginPlay ()
 		FString crouchspritename = sprites[crouchsprite].name;
 
 		int spritenorm = Wads.CheckNumForName(normspritename + "A1", ns_sprites);
+		if (spritenorm==-1) 
+		{
+			spritenorm = Wads.CheckNumForName(normspritename + "A0", ns_sprites);
+		}
+
 		int spritecrouch = Wads.CheckNumForName(crouchspritename + "A1", ns_sprites);
+		if (spritecrouch==-1) 
+		{
+			spritecrouch = Wads.CheckNumForName(crouchspritename + "A0", ns_sprites);
+		}
 		
 		if (spritenorm==-1 || spritecrouch ==-1) 
 		{
@@ -593,10 +694,10 @@ void APlayerPawn::SetupWeaponSlots()
 		// If we're the local player, then there's a bit more work to do.
 		// This also applies if we're a bot and this is the net arbitrator.
 		if (player - players == consoleplayer ||
-			(player->isbot && consoleplayer == Net_Arbitrator))
+			(player->Bot != NULL && consoleplayer == Net_Arbitrator))
 		{
 			FWeaponSlots local_slots(player->weapons);
-			if (player->isbot)
+			if (player->Bot != NULL)
 			{ // Bots only need weapons from KEYCONF, not INI modifications.
 				P_PlaybackKeyConfWeapons(&local_slots);
 			}
@@ -917,7 +1018,7 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 			else if ((dmflags & DF_COOP_LOSE_ARMOR) &&
 				item->IsKindOf(RUNTIME_CLASS(AArmor)))
 			{
-				if (defitem != NULL)
+				if (defitem == NULL)
 				{
 					item->Destroy();
 				}
@@ -1063,7 +1164,7 @@ bool APlayerPawn::ResetAirSupply (bool playgasp)
 	{
 		S_Sound (this, CHAN_VOICE, "*gasp", 1, ATTN_NORM);
 	}
-	if (level.airsupply> 0) player->air_finished = level.time + level.airsupply;
+	if (level.airsupply> 0 && player->mo->AirCapacity > 0) player->air_finished = level.time + FixedMul(level.airsupply, player->mo->AirCapacity);
 	else player->air_finished = INT_MAX;
 	return wasdrowning;
 }
@@ -1109,9 +1210,6 @@ void APlayerPawn::ThrowPoisonBag ()
 void APlayerPawn::GiveDefaultInventory ()
 {
 	if (player == NULL) return;
-
-	// [GRB] Give inventory specified in DECORATE
-	player->health = GetDefault ()->health;
 
 	// HexenArmor must always be the first item in the inventory because
 	// it provides player class based protection that should not affect
@@ -1273,7 +1371,7 @@ void APlayerPawn::Die (AActor *source, AActor *inflictor, int dmgflags)
 					weap->SpawnState != ::GetDefault<AActor>()->SpawnState)
 				{
 					item = P_DropItem (this, weap->GetClass(), -1, 256);
-					if (item != NULL)
+					if (item != NULL && item->IsKindOf(RUNTIME_CLASS(AWeapon)))
 					{
 						if (weap->AmmoGive1 && weap->Ammo1)
 						{
@@ -1631,7 +1729,7 @@ void P_CalcHeight (player_t *player)
 	{
 		player->bob = 0;
 	}
-	else if ((player->mo->flags & MF_NOGRAVITY) && !onground)
+	else if ((player->mo->flags & MF_NOGRAVITY) && !player->onground)
 	{
 		player->bob = FRACUNIT / 2;
 	}
@@ -1756,7 +1854,7 @@ void P_MovePlayer (player_t *player)
 		mo->angle += cmd->ucmd.yaw << 16;
 	}
 
-	onground = (mo->z <= mo->floorz) || (mo->flags2 & MF2_ONMOBJ) || (mo->BounceFlags & BOUNCE_MBF) || (player->cheats & CF_NOCLIP2);
+	player->onground = (mo->z <= mo->floorz) || (mo->flags2 & MF2_ONMOBJ) || (mo->BounceFlags & BOUNCE_MBF) || (player->cheats & CF_NOCLIP2);
 
 	// killough 10/98:
 	//
@@ -1774,7 +1872,7 @@ void P_MovePlayer (player_t *player)
 
 		movefactor = P_GetMoveFactor (mo, &friction);
 		bobfactor = friction < ORIG_FRICTION ? movefactor : ORIG_FRICTION_FACTOR;
-		if (!onground && !(player->mo->flags & MF_NOGRAVITY) && !player->mo->waterlevel)
+		if (!player->onground && !(player->mo->flags & MF_NOGRAVITY) && !player->mo->waterlevel)
 		{
 			// [RH] allow very limited movement if not on ground.
 			movefactor = FixedMul (movefactor, level.aircontrol);
@@ -1945,12 +2043,12 @@ void P_DeathThink (player_t *player)
 
 	P_MovePsprites (player);
 
-	onground = (player->mo->z <= player->mo->floorz);
+	player->onground = (player->mo->z <= player->mo->floorz);
 	if (player->mo->IsKindOf (RUNTIME_CLASS(APlayerChunk)))
 	{ // Flying bloody skull or flying ice chunk
 		player->viewheight = 6 * FRACUNIT;
 		player->deltaviewheight = 0;
-		if (onground)
+		if (player->onground)
 		{
 			if (player->mo->pitch > -(int)ANGLE_1*19)
 			{
@@ -2028,7 +2126,7 @@ void P_DeathThink (player_t *player)
 	if ((player->cmd.ucmd.buttons & BT_USE ||
 		((multiplayer || alwaysapplydmflags) && (dmflags & DF_FORCE_RESPAWN))) && !(dmflags2 & DF2_NO_RESPAWN))
 	{
-		if (level.time >= player->respawn_time || ((player->cmd.ucmd.buttons & BT_USE) && !player->isbot))
+		if (level.time >= player->respawn_time || ((player->cmd.ucmd.buttons & BT_USE) && player->Bot == NULL))
 		{
 			player->cls = NULL;		// Force a new class if the player is using a random class
 			player->playerstate = (multiplayer || (level.flags2 & LEVEL2_ALLOWRESPAWN)) ? PST_REBORN : PST_ENTER;
@@ -2136,6 +2234,9 @@ void P_PlayerThink (player_t *player)
 	{
 		player->inventorytics--;
 	}
+	// Don't interpolate the view for more than one tic
+	player->cheats &= ~CF_INTERPVIEW;
+
 	// No-clip cheat
 	if ((player->cheats & (CF_NOCLIP | CF_NOCLIP2)) == CF_NOCLIP2)
 	{ // No noclip2 without noclip
@@ -2236,6 +2337,30 @@ void P_PlayerThink (player_t *player)
 
 	player->crouchoffset = -FixedMul(player->mo->ViewHeight, (FRACUNIT - player->crouchfactor));
 
+	// MUSINFO stuff
+	if (player->MUSINFOtics >= 0 && player->MUSINFOactor != NULL)
+	{
+		if (--player->MUSINFOtics < 0)
+		{
+			if (player - players == consoleplayer)
+			{
+				if (player->MUSINFOactor->args[0] != 0)
+				{
+					FName *music = level.info->MusicMap.CheckKey(player->MUSINFOactor->args[0]);
+
+					if (music != NULL)
+					{
+						S_ChangeMusic(music->GetChars(), player->MUSINFOactor->args[1]);
+					}
+				}
+				else
+				{
+					S_ChangeMusic("*");
+				}
+			}
+			DPrintf("MUSINFO change for player %d to %d\n", (int)(player - players), player->MUSINFOactor->args[0]);
+		}
+	}
 
 	if (player->playerstate == PST_DEAD)
 	{
@@ -2246,7 +2371,7 @@ void P_PlayerThink (player_t *player)
 	if (player->jumpTics != 0)
 	{
 		player->jumpTics--;
-		if (onground && player->jumpTics < -18)
+		if (player->onground && player->jumpTics < -18)
 		{
 			player->jumpTics = 0;
 		}
@@ -2346,7 +2471,7 @@ void P_PlayerThink (player_t *player)
 			{
 				player->mo->velz = 3*FRACUNIT;
 			}
-			else if (level.IsJumpingAllowed() && onground && player->jumpTics == 0)
+			else if (level.IsJumpingAllowed() && player->onground && player->jumpTics == 0)
 			{
 				fixed_t jumpvelz = player->mo->JumpZ * 35 / TICRATE;
 
@@ -2354,9 +2479,10 @@ void P_PlayerThink (player_t *player)
 				if ( player->cheats & CF_HIGHJUMP )	jumpvelz *= 2;
 
 				player->mo->velz += jumpvelz;
-				S_Sound (player->mo, CHAN_BODY, "*jump", 1, ATTN_NORM);
 				player->mo->flags2 &= ~MF2_ONMOBJ;
 				player->jumpTics = -1;
+				if (!(player->cheats & CF_PREDICTING))
+					S_Sound(player->mo, CHAN_BODY, "*jump", 1, ATTN_NORM);
 			}
 		}
 
@@ -2383,7 +2509,7 @@ void P_PlayerThink (player_t *player)
 				{
 					player->mo->flags2 |= MF2_FLY;
 					player->mo->flags |= MF_NOGRAVITY;
-					if (player->mo->velz <= -39*FRACUNIT)
+					if ((player->mo->velz <= -39 * FRACUNIT) && !(player->cheats & CF_PREDICTING))
 					{ // Stop falling scream
 						S_StopSound (player->mo, CHAN_VOICE);
 					}
@@ -2494,7 +2620,8 @@ void P_PlayerThink (player_t *player)
 		{
 			if (player->mo->waterlevel < 3 ||
 				(player->mo->flags2 & MF2_INVULNERABLE) ||
-				(player->cheats & (CF_GODMODE | CF_NOCLIP2)))
+				(player->cheats & (CF_GODMODE | CF_NOCLIP2)) ||
+				(player->cheats & CF_GODMODE2))
 			{
 				player->mo->ResetAirSupply ();
 			}
@@ -2504,6 +2631,29 @@ void P_PlayerThink (player_t *player)
 			}
 		}
 	}
+}
+
+void P_PredictionLerpReset()
+{
+	PredictionLerptics = PredictionLast.gametic = PredictionLerpFrom.gametic = PredictionLerpResult.gametic = 0;
+}
+
+bool P_LerpCalculate(PredictPos from, PredictPos to, PredictPos &result, float scale)
+{
+	FVector3 vecFrom(FIXED2DBL(from.x), FIXED2DBL(from.y), FIXED2DBL(from.z));
+	FVector3 vecTo(FIXED2DBL(to.x), FIXED2DBL(to.y), FIXED2DBL(to.z));
+	FVector3 vecResult;
+	vecResult = vecTo - vecFrom;
+	vecResult *= scale;
+	vecResult = vecResult + vecFrom;
+	FVector3 delta = vecResult - vecTo;
+
+	result.x = FLOAT2FIXED(vecResult.X);
+	result.y = FLOAT2FIXED(vecResult.Y);
+	result.z = FLOAT2FIXED(vecResult.Z);
+
+	// As a fail safe, assume extrapolation is the threshold.
+	return (delta.LengthSquared() > cl_predict_lerpthreshold && scale <= 1.00f);
 }
 
 void P_PredictPlayer (player_t *player)
@@ -2533,21 +2683,47 @@ void P_PredictPlayer (player_t *player)
 	// Save original values for restoration later
 	PredictionPlayerBackup = *player;
 
-	AActor *act = player->mo;
-	memcpy (PredictionActorBackup, &act->x, sizeof(AActor)-((BYTE *)&act->x-(BYTE *)act));
+	APlayerPawn *act = player->mo;
+	memcpy(PredictionActorBackup, &act->x, sizeof(APlayerPawn) - ((BYTE *)&act->x - (BYTE *)act));
 
 	act->flags &= ~MF_PICKUP;
 	act->flags2 &= ~MF2_PUSHWALL;
 	player->cheats |= CF_PREDICTING;
 
 	// The ordering of the touching_sectorlist needs to remain unchanged
+	// Also store a copy of all previous sector_thinglist nodes
 	msecnode_t *mnode = act->touching_sectorlist;
+	msecnode_t *snode;
+	PredictionSector_sprev_Backup.Clear();
 	PredictionTouchingSectorsBackup.Clear ();
 
 	while (mnode != NULL)
 	{
 		PredictionTouchingSectorsBackup.Push (mnode->m_sector);
+
+		for (snode = mnode->m_sector->touching_thinglist; snode; snode = snode->m_snext)
+		{
+			if (snode->m_thing == act)
+			{
+				PredictionSector_sprev_Backup.Push(snode->m_sprev);
+				break;
+			}
+		}
+
 		mnode = mnode->m_tnext;
+	}
+
+	// Keep an ordered list off all actors in the linked sector.
+	PredictionSectorListBackup.Clear();
+	if (!(act->flags & MF_NOSECTOR))
+	{
+		AActor *link = act->Sector->thinglist;
+		
+		while (link != NULL)
+		{
+			PredictionSectorListBackup.Push(link);
+			link = link->snext;
+		}
 	}
 
 	// Blockmap ordering also needs to stay the same, so unlink the block nodes
@@ -2565,11 +2741,67 @@ void P_PredictPlayer (player_t *player)
 	}
 	act->BlockNode = NULL;
 
+	// Values too small to be usable for lerping can be considered "off".
+	bool CanLerp = (!(cl_predict_lerpscale < 0.01f) && (ticdup == 1)), DoLerp = false, NoInterpolateOld = R_GetViewInterpolationStatus();
 	for (int i = gametic; i < maxtic; ++i)
 	{
+		if (!NoInterpolateOld)
+			R_RebuildViewInterpolation(player);
+
 		player->cmd = localcmds[i % LOCALCMDTICS];
 		P_PlayerThink (player);
 		player->mo->Tick ();
+
+		if (CanLerp && PredictionLast.gametic > 0 && i == PredictionLast.gametic && !NoInterpolateOld)
+		{
+			// Z is not compared as lifts will alter this with no apparent change
+			// Make lerping less picky by only testing whole units
+			DoLerp = ((PredictionLast.x >> 16) != (player->mo->x >> 16) ||
+				(PredictionLast.y >> 16) != (player->mo->y >> 16));
+
+			// Aditional Debug information
+			if (developer && DoLerp)
+			{
+				DPrintf("Lerp! Ltic (%d) && Ptic (%d) | Lx (%d) && Px (%d) | Ly (%d) && Py (%d)\n",
+					PredictionLast.gametic, i,
+					(PredictionLast.x >> 16), (player->mo->x >> 16),
+					(PredictionLast.y >> 16), (player->mo->y >> 16));
+			}
+		}
+	}
+
+	if (CanLerp)
+	{
+		if (NoInterpolateOld)
+			P_PredictionLerpReset();
+
+		else if (DoLerp)
+		{
+			// If lerping is already in effect, use the previous camera postion so the view doesn't suddenly snap
+			PredictionLerpFrom = (PredictionLerptics == 0) ? PredictionLast : PredictionLerpResult;
+			PredictionLerptics = 1;
+		}
+
+		PredictionLast.gametic = maxtic - 1;
+		PredictionLast.x = player->mo->x;
+		PredictionLast.y = player->mo->y;
+		PredictionLast.z = player->mo->z;
+
+		if (PredictionLerptics > 0)
+		{
+			if (PredictionLerpFrom.gametic > 0 &&
+				P_LerpCalculate(PredictionLerpFrom, PredictionLast, PredictionLerpResult, (float)PredictionLerptics * cl_predict_lerpscale))
+			{
+				PredictionLerptics++;
+				player->mo->x = PredictionLerpResult.x;
+				player->mo->y = PredictionLerpResult.y;
+				player->mo->z = PredictionLerpResult.z;
+			}
+			else
+			{
+				PredictionLerptics = 0;
+			}
+		}
 	}
 }
 
@@ -2581,8 +2813,12 @@ void P_UnPredictPlayer ()
 
 	if (player->cheats & CF_PREDICTING)
 	{
-		AActor *act = player->mo;
+		unsigned int i;
+		APlayerPawn *act = player->mo;
 		AActor *savedcamera = player->camera;
+
+		TObjPtr<AInventory> InvSel = act->InvSel;
+		int inventorytics = player->inventorytics;
 
 		*player = PredictionPlayerBackup;
 
@@ -2590,23 +2826,99 @@ void P_UnPredictPlayer ()
 		// could cause it to change during prediction.
 		player->camera = savedcamera;
 
-		act->UnlinkFromWorld ();
-		memcpy (&act->x, PredictionActorBackup, sizeof(AActor)-((BYTE *)&act->x-(BYTE *)act));
+		act->UnlinkFromWorld();
+		memcpy(&act->x, PredictionActorBackup, sizeof(APlayerPawn) - ((BYTE *)&act->x - (BYTE *)act));
 
-		// Make the sector_list match the player's touching_sectorlist before it got predicted.
-		P_DelSeclist (sector_list);
-		sector_list = NULL;
-		for (unsigned int i = PredictionTouchingSectorsBackup.Size (); i-- > 0; )
+		// The blockmap ordering needs to remain unchanged, too.
+		// Restore sector links and refrences.
+		// [ED850] This is somewhat of a duplicate of LinkToWorld(), but we need to keep every thing the same,
+		// otherwise we end up fixing bugs in blockmap logic (i.e undefined behaviour with polyobject collisions),
+		// which we really don't want to do here.
+		if (!(act->flags & MF_NOSECTOR))
 		{
-			sector_list = P_AddSecnode (PredictionTouchingSectorsBackup[i], act, sector_list);
-		}
+			sector_t *sec = act->Sector;
+			AActor *me, *next;
+			AActor **link;// , **prev;
 
-		// The blockmap ordering needs to remain unchanged, too. Right now, act has the right
-		// pointers, so temporarily set its MF_NOBLOCKMAP flag so that LinkToWorld() does not
-		// mess with them.
-		act->flags |= MF_NOBLOCKMAP;
-		act->LinkToWorld ();
-		act->flags &= ~MF_NOBLOCKMAP;
+			// The thinglist is just a pointer chain. We are restoring the exact same things, so we can NULL the head safely
+			sec->thinglist = NULL;
+
+			for (i = PredictionSectorListBackup.Size(); i-- > 0;)
+			{
+				me = PredictionSectorListBackup[i];
+				link = &sec->thinglist;
+				next = *link;
+				if ((me->snext = next))
+					next->sprev = &me->snext;
+				me->sprev = link;
+				*link = me;
+			}
+
+			// Destroy old refrences
+			msecnode_t *node = sector_list;
+			while (node)
+			{
+				node->m_thing = NULL;
+				node = node->m_tnext;
+			}
+
+			// Make the sector_list match the player's touching_sectorlist before it got predicted.
+			P_DelSeclist(sector_list);
+			sector_list = NULL;
+			for (i = PredictionTouchingSectorsBackup.Size(); i-- > 0;)
+			{
+				sector_list = P_AddSecnode(PredictionTouchingSectorsBackup[i], act, sector_list);
+			}
+			act->touching_sectorlist = sector_list;	// Attach to thing
+			sector_list = NULL;		// clear for next time
+
+			node = sector_list;
+			while (node)
+			{
+				if (node->m_thing == NULL)
+				{
+					if (node == sector_list)
+						sector_list = node->m_tnext;
+					node = P_DelSecnode(node);
+				}
+				else
+				{
+					node = node->m_tnext;
+				}
+			}
+
+			msecnode_t *snode;
+
+			// Restore sector thinglist order
+			for (i = PredictionTouchingSectorsBackup.Size(); i-- > 0;)
+			{
+				// If we were already the head node, then nothing needs to change
+				if (PredictionSector_sprev_Backup[i] == NULL)
+					continue;
+
+				for (snode = PredictionTouchingSectorsBackup[i]->touching_thinglist; snode; snode = snode->m_snext)
+				{
+					if (snode->m_thing == act)
+					{
+						if (snode->m_sprev)
+							snode->m_sprev->m_snext = snode->m_snext;
+						else
+							snode->m_sector->touching_thinglist = snode->m_snext;
+						if (snode->m_snext)
+							snode->m_snext->m_sprev = snode->m_sprev;
+
+						snode->m_sprev = PredictionSector_sprev_Backup[i];
+
+						// At the moment, we don't exist in the list anymore, but we do know what our previous node is, so we set its current m_snext->m_sprev to us.
+						if (snode->m_sprev->m_snext)
+							snode->m_sprev->m_snext->m_sprev = snode;
+						snode->m_snext = snode->m_sprev->m_snext;
+						snode->m_sprev->m_snext = snode;
+						break;
+					}
+				}
+			}
+		}
 
 		// Now fix the pointers in the blocknode chain
 		FBlockNode *block = act->BlockNode;
@@ -2620,20 +2932,31 @@ void P_UnPredictPlayer ()
 			}
 			block = block->NextBlock;
 		}
+
+		act->InvSel = InvSel;
+		player->inventorytics = inventorytics;
 	}
 }
 
 void player_t::Serialize (FArchive &arc)
 {
 	int i;
+	FString skinname;
 
 	arc << cls
 		<< mo
 		<< camera
 		<< playerstate
-		<< cmd
-		<< userinfo
-		<< DesiredFOV << FOV
+		<< cmd;
+	if (arc.IsLoading())
+	{
+		ReadUserInfo(arc, userinfo, skinname);
+	}
+	else
+	{
+		WriteUserInfo(arc, userinfo);
+	}
+	arc << DesiredFOV << FOV
 		<< viewz
 		<< viewheight
 		<< deltaviewheight
@@ -2642,9 +2965,13 @@ void player_t::Serialize (FArchive &arc)
 		<< vely
 		<< centering
 		<< health
-		<< inventorytics
-		<< backpack
-		<< fragcount
+		<< inventorytics;
+	if (SaveVersion < 4513)
+	{
+		bool backpack;
+		arc << backpack;
+	}
+	arc << fragcount
 		<< spreecount
 		<< multicount
 		<< lastkilltime
@@ -2673,9 +3000,17 @@ void player_t::Serialize (FArchive &arc)
 		<< respawn_time
 		<< air_finished
 		<< turnticks
-		<< oldbuttons
-		<< isbot
-		<< BlendR
+		<< oldbuttons;
+	bool IsBot;
+	if (SaveVersion >= 4514)
+	{
+		arc << Bot;
+	}
+	else
+	{
+		arc << IsBot;
+	}
+	arc << BlendR
 		<< BlendG
 		<< BlendB
 		<< BlendA;
@@ -2749,40 +3084,60 @@ void player_t::Serialize (FArchive &arc)
 	{
 		settings_controller = (this - players == Net_Arbitrator);
 	}
-
-	if (isbot)
+	if (SaveVersion >= 4505)
 	{
-		arc	<< angle
-			<< dest
-			<< prev
-			<< enemy
-			<< missile
-			<< mate
-			<< last_mate
-			<< skill
-			<< t_active
-			<< t_respawn
-			<< t_strafe
-			<< t_react
-			<< t_fight
-			<< t_roam
-			<< t_rocket
-			<< first_shot
-			<< sleft
-			<< allround
-			<< oldx
-			<< oldy;
+		arc << onground;
 	}
 	else
 	{
-		dest = prev = enemy = missile = mate = last_mate = NULL;
+		onground = (mo->z <= mo->floorz) || (mo->flags2 & MF2_ONMOBJ) || (mo->BounceFlags & BOUNCE_MBF) || (cheats & CF_NOCLIP2);
 	}
+
+	if (SaveVersion < 4514 && IsBot)
+	{
+		Bot = new DBot;
+
+		arc	<< Bot->angle
+			<< Bot->dest
+			<< Bot->prev
+			<< Bot->enemy
+			<< Bot->missile
+			<< Bot->mate
+			<< Bot->last_mate
+			<< Bot->skill
+			<< Bot->t_active
+			<< Bot->t_respawn
+			<< Bot->t_strafe
+			<< Bot->t_react
+			<< Bot->t_fight
+			<< Bot->t_roam
+			<< Bot->t_rocket
+			<< Bot->first_shot
+			<< Bot->sleft
+			<< Bot->allround
+			<< Bot->oldx
+			<< Bot->oldy;
+	}
+
+	if (SaveVersion < 4516 && Bot != NULL)
+	{
+		Bot->player = this;
+	}
+
 	if (arc.IsLoading ())
 	{
 		// If the player reloaded because they pressed +use after dying, we
 		// don't want +use to still be down after the game is loaded.
 		oldbuttons = ~0;
 		original_oldbuttons = ~0;
+	}
+	if (skinname.IsNotEmpty())
+	{
+		userinfo.SkinChanged(skinname, CurrentPlayerClass);
+	}
+	if (SaveVersion >= 4522)
+	{
+		arc << MUSINFOactor << MUSINFOtics;
 	}
 }
 

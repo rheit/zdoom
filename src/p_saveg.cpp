@@ -256,14 +256,22 @@ static void CopyPlayer (player_t *dst, player_t *src, const char *name)
 {
 	// The userinfo needs to be saved for real players, but it
 	// needs to come from the save for bots.
-	userinfo_t uibackup = dst->userinfo;
+	userinfo_t uibackup;
+	userinfo_t uibackup2;
+
+	uibackup.TransferFrom(dst->userinfo);
+	uibackup2.TransferFrom(src->userinfo);
+
 	int chasecam = dst->cheats & CF_CHASECAM;	// Remember the chasecam setting
 	bool attackdown = dst->attackdown;
 	bool usedown = dst->usedown;
-	*dst = *src;
+
+	
+	*dst = *src;		// To avoid memory leaks at this point the userinfo in src must be empty which is taken care of by the TransferFrom call above.
+
 	dst->cheats |= chasecam;
 
-	if (dst->isbot)
+	if (dst->Bot != NULL)
 	{
 		botinfo_t *thebot = bglobal.botinfo;
 		while (thebot && stricmp (name, thebot->name))
@@ -272,14 +280,14 @@ static void CopyPlayer (player_t *dst, player_t *src, const char *name)
 		}
 		if (thebot)
 		{
-			thebot->inuse = true;
+			thebot->inuse = BOTINUSE_Yes;
 		}
 		bglobal.botnum++;
-		bglobal.botingame[dst - players] = true;
+		dst->userinfo.TransferFrom(uibackup2);
 	}
 	else
 	{
-		dst->userinfo = uibackup;
+		dst->userinfo.TransferFrom(uibackup);
 	}
 	// Validate the skin
 	dst->userinfo.SkinNumChanged(R_FindSkin(skins[dst->userinfo.GetSkin()].name, dst->CurrentPlayerClass));
@@ -558,7 +566,7 @@ void P_SerializePolyobjs (FArchive &arc)
 				I_Error ("UnarchivePolyobjs: Invalid polyobj tag");
 			}
 			arc << angle;
-			po->RotatePolyobj (angle);
+			po->RotatePolyobj (angle, true);
 			arc << deltaX << deltaY << po->interpolation;
 			deltaX -= po->StartSpot.x;
 			deltaY -= po->StartSpot.y;

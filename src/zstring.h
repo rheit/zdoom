@@ -47,6 +47,24 @@
 #define PRINTFISH(x)
 #endif
 
+#ifdef __clang__
+#define IGNORE_FORMAT_PRE \
+	_Pragma("GCC diagnostic push") \
+	_Pragma("GCC diagnostic ignored \"-Wformat-invalid-specifier\"") \
+	_Pragma("GCC diagnostic ignored \"-Wformat-extra-args\"")
+#define IGNORE_FORMAT_POST _Pragma("GCC diagnostic pop")
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && (__GNUC_MINOR__ >= 6)))
+#define IGNORE_FORMAT_PRE \
+	_Pragma("GCC diagnostic push") \
+	_Pragma("GCC diagnostic ignored \"-Wformat=\"") \
+	_Pragma("GCC diagnostic ignored \"-Wformat-extra-args\"")
+#define IGNORE_FORMAT_POST _Pragma("GCC diagnostic pop")
+#else
+#define IGNORE_FORMAT_PRE
+#define IGNORE_FORMAT_POST
+#endif
+
+
 struct FStringData
 {
 	unsigned int Len;		// Length of string, excluding terminating null
@@ -167,6 +185,7 @@ public:
 	FString &operator += (char tail);
 	FString &operator += (const FName &name) { return *this += name.GetChars(); }
 	FString &AppendCStrPart (const char *tail, size_t tailLen);
+	FString &CopyCStrPart(const char *tail, size_t tailLen);
 
 	FString &operator << (const FString &tail) { return *this += tail; }
 	FString &operator << (const char *tail) { return *this += tail; }
@@ -252,9 +271,13 @@ public:
 
 	int Compare (const FString &other) const { return strcmp (Chars, other.Chars); }
 	int Compare (const char *other) const { return strcmp (Chars, other); }
+	int Compare(const FString &other, int len) const { return strncmp(Chars, other.Chars, len); }
+	int Compare(const char *other, int len) const { return strncmp(Chars, other, len); }
 
 	int CompareNoCase (const FString &other) const { return stricmp (Chars, other.Chars); }
 	int CompareNoCase (const char *other) const { return stricmp (Chars, other); }
+	int CompareNoCase(const FString &other, int len) const { return strnicmp(Chars, other.Chars, len); }
+	int CompareNoCase(const char *other, int len) const { return strnicmp(Chars, other, len); }
 
 protected:
 	const FStringData *Data() const { return (FStringData *)Chars - 1; }
@@ -273,6 +296,16 @@ protected:
 	static FNullStringData NullString;
 
 	friend struct FStringData;
+
+private:
+	// Prevent these from being called as current practices are to use Compare.
+	// Without this FStrings will be accidentally compared against char* ptrs.
+	bool operator == (const FString &illegal) const;
+	bool operator != (const FString &illegal) const;
+	bool operator < (const FString &illegal) const;
+	bool operator > (const FString &illegal) const;
+	bool operator <= (const FString &illegal) const;
+	bool operator >= (const FString &illegal) const;
 };
 
 namespace StringFormat

@@ -76,8 +76,6 @@ FPlayerColorSet *P_GetPlayerColorSet(FName classname, int setnum);
 void P_EnumPlayerColorSets(FName classname, TArray<int> *out);
 const char *GetPrintableDisplayName(const PClass *cls);
 
-class player_t;
-
 class APlayerPawn : public AActor
 {
 	DECLARE_CLASS (APlayerPawn, AActor)
@@ -140,6 +138,8 @@ public:
 	int			SpawnMask;
 	FNameNoInit	MorphWeapon;
 	fixed_t		AttackZOffset;			// attack height, relative to player center
+	fixed_t		UseRange;				// [NS] Distance at which player can +use
+	fixed_t		AirCapacity;			// Multiplier for air supply underwater.
 	const PClass *FlechetteType;
 
 	// [CW] Fades for when you are being damaged.
@@ -174,7 +174,8 @@ typedef enum
 	PST_LIVE,	// Playing or camping.
 	PST_DEAD,	// Dead on the ground, view follows killer.
 	PST_REBORN,	// Ready to restart/respawn???
-	PST_ENTER	// [BC] Entered the game
+	PST_ENTER,	// [BC] Entered the game
+	PST_GONE	// Player has left the game
 } playerstate_t;
 
 
@@ -196,6 +197,7 @@ typedef enum
 	CF_INSTANTWEAPSWITCH= 1 << 11,		// [RH] Switch weapons instantly
 	CF_TOTALLYFROZEN	= 1 << 12,		// [RH] All players can do is press +use
 	CF_PREDICTING		= 1 << 13,		// [RH] Player movement is being predicted
+	CF_INTERPVIEW		= 1 << 14,		// [RH] view was changed outside of input, so interpolate one frame
 	CF_DRAIN			= 1 << 16,		// Player owns a drain powerup
 	CF_HIGHJUMP			= 1 << 18,		// more Skulltag flags. Implementation not guaranteed though. ;)
 	CF_REFLECTION		= 1 << 19,
@@ -203,6 +205,8 @@ typedef enum
 	CF_DOUBLEFIRINGSPEED= 1 << 21,		// Player owns a double firing speed artifact
 	CF_EXTREMELYDEAD	= 1 << 22,		// [RH] Reliably let the status bar know about extreme deaths.
 	CF_INFINITEAMMO		= 1 << 23,		// Player owns an infinite ammo artifact
+	CF_BUDDHA2			= 1 << 24,		// [MC] Absolute buddha. No voodoo can kill it either.
+	CF_GODMODE2			= 1 << 25,		// [MC] Absolute godmode. No voodoo can kill it either.
 	CF_BUDDHA			= 1 << 27,		// [SP] Buddha mode - take damage, but don't die
 	CF_NOCLIP2			= 1 << 30,		// [RH] More Quake-like noclip
 } cheat_t;
@@ -260,6 +264,8 @@ enum
 
 struct userinfo_t : TMap<FName,FBaseCVar *>
 {
+	~userinfo_t();
+
 	int GetAimDist() const
 	{
 		if (dmflags2 & DF2_NOAUTOAIM)
@@ -321,10 +327,14 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	{
 		return *static_cast<FIntCVar *>(*CheckKey(NAME_Gender));
 	}
+	bool GetNoAutostartMap() const
+	{
+		return *static_cast<FBoolCVar *>(*CheckKey(NAME_Wi_NoAutostartMap));
+	}
 
 	void Reset();
 	int TeamChanged(int team);
-	int SkinChanged(const char *skinname);
+	int SkinChanged(const char *skinname, int playerclass);
 	int SkinNumChanged(int skinnum);
 	int GenderChanged(const char *gendername);
 	int PlayerClassChanged(const char *classname);
@@ -334,8 +344,8 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	int ColorSetChanged(int setnum);
 };
 
-FArchive &operator<< (FArchive &arc, userinfo_t &info);
-
+void ReadUserInfo(FArchive &arc, userinfo_t &info, FString &skin);
+void WriteUserInfo(FArchive &arc, userinfo_t &info);
 
 //
 // Extended player object info: player_t
@@ -344,6 +354,7 @@ class player_t
 {
 public:
 	player_t();
+	player_t &operator= (const player_t &p);
 
 	void Serialize (FArchive &arc);
 	size_t FixPointers (const DObject *obj, DObject *replacement);
@@ -388,8 +399,7 @@ public:
 
 	int			inventorytics;
 	BYTE		CurrentPlayerClass;		// class # for this player instance
-	bool		backpack;
-	
+
 	int			frags[MAXPLAYERS];		// kills of other players
 	int			fragcount;				// [RH] Cumulative frags for this player
 	int			lastkilltime;			// [RH] For multikills
@@ -424,6 +434,7 @@ public:
 	TObjPtr<AWeapon>	PremorphWeapon;		// ready weapon before morphing
 	int			chickenPeck;			// chicken peck countdown
 	int			jumpTics;				// delay the next jump for a moment
+	bool		onground;				// Identifies if this player is on the ground or other object
 
 	int			respawn_time;			// [RH] delay respawning until this tic
 	TObjPtr<AActor>		camera;			// [RH] Whose eyes this player sees through
@@ -432,47 +443,15 @@ public:
 
 	FName		LastDamageType;			// [RH] For damage-specific pain and death sounds
 
-	//Added by MC:
-	angle_t		savedyaw;
-	int			savedpitch;
-
-	angle_t		angle;		// The wanted angle that the bot try to get every tic.
-							//  (used to get a smoth view movement)
-	TObjPtr<AActor>		dest;		// Move Destination.
-	TObjPtr<AActor>		prev;		// Previous move destination.
-
-
-	TObjPtr<AActor>		enemy;		// The dead meat.
-	TObjPtr<AActor>		missile;	// A threatening missile that needs to be avoided.
-	TObjPtr<AActor>		mate;		// Friend (used for grouping in teamplay or coop).
-	TObjPtr<AActor>		last_mate;	// If bots mate disappeared (not if died) that mate is
-							// pointed to by this. Allows bot to roam to it if
-							// necessary.
+	TObjPtr<AActor> MUSINFOactor;		// For MUSINFO purposes
+	SBYTE		MUSINFOtics;
 
 	bool		settings_controller;	// Player can control game settings.
+	SBYTE		crouching;
+	SBYTE		crouchdir;
 
-	//Skills
-	struct botskill_t	skill;
-
-	//Tickers
-	int			t_active;	// Open door, lower lift stuff, door must open and
-							// lift must go down before bot does anything
-							// radical like try a stuckmove
-	int			t_respawn;
-	int			t_strafe;
-	int			t_react;
-	int			t_fight;
-	int			t_roam;
-	int			t_rocket;
-
-	//Misc booleans
-	bool		isbot;
-	bool		first_shot;	// Used for reaction skill.
-	bool		sleft;		// If false, strafe is right.
-	bool		allround;
-
-	fixed_t		oldx;
-	fixed_t		oldy;
+	//Added by MC:
+	TObjPtr<DBot> Bot;
 
 	float		BlendR;		// [RH] Final blending values
 	float		BlendG;
@@ -484,8 +463,6 @@ public:
 	int			MinPitch;	// Viewpitch limits (negative is up, positive is down)
 	int			MaxPitch;
 
-	SBYTE	crouching;
-	SBYTE	crouchdir;
 	fixed_t crouchfactor;
 	fixed_t crouchoffset;
 	fixed_t crouchviewdelta;

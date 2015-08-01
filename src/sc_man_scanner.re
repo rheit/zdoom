@@ -158,6 +158,8 @@ std2:
 		'random'					{ RET(TK_Random); }
 		'random2'					{ RET(TK_Random2); }
 		'frandom'					{ RET(TK_FRandom); }
+		'randompick'				{ RET(TK_RandomPick); }
+		'frandompick'				{ RET(TK_FRandomPick); }
 
 		L (L|D)*					{ RET(TK_Identifier); }
 

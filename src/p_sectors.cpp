@@ -230,8 +230,6 @@ fixed_t sector_t::FindNextLowestFloor (vertex_t **v) const
 		check = lines[i];
 		if (NULL != (other = getNextSector (check, this)))
 		{
-			if (other - sectors == 6)
-				other = other;
 			ofloor = other->floorplane.ZatPoint (check->v1);
 			floor = floorplane.ZatPoint (check->v1);
 			if (ofloor < floor && floor - ofloor < heightdiff && !IsLinked(other, false))
@@ -967,7 +965,7 @@ int side_t::GetLightLevel (bool foggy, int baselight, bool noabsolute, int *pfak
 		*pfakecontrast = 0;
 	}
 
-	if (!foggy) // Don't do relative lighting in foggy sectors
+	if (!foggy || level.flags3 & LEVEL3_FORCEFAKECONTRAST) // Don't do relative lighting in foggy sectors
 	{
 		if (!(Flags & WALLF_NOFAKECONTRAST) && r_fakecontrast != 0)
 		{

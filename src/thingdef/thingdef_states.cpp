@@ -275,6 +275,11 @@ do_stop:
 					state.Fast = true;
 					continue;
 				}
+				if (sc.Compare("SLOW")) 
+				{
+					state.Slow = true;
+					continue;
+				}
 				if (sc.Compare("NODELAY"))
 				{
 					if (bag.statedef.GetStateLabelIndex(NAME_Spawn) == bag.statedef.GetStateCount())
@@ -313,6 +318,11 @@ do_stop:
 					sc.MustGetStringName(")");
 					continue;
 				}
+				if (sc.Compare("CANRAISE"))
+				{
+					state.CanRaise = true;
+					continue;
+				}
 
 				// Make the action name lowercase
 				strlwr (sc.String);
@@ -322,7 +332,8 @@ do_stop:
 					goto endofstate;
 				}
 
-				PSymbol *sym = bag.Info->Class->Symbols.FindSymbol (FName(sc.String, true), true);
+				FName funcname = FName(sc.String, true);
+				PSymbol *sym = bag.Info->Class->Symbols.FindSymbol (funcname, true);
 				if (sym != NULL && sym->SymbolType == SYM_ActionFunction)
 				{
 					PSymbolActionFunction *afd = static_cast<PSymbolActionFunction *>(sym);
@@ -424,7 +435,7 @@ do_stop:
 						sc.MustGetString();
 						if (sc.Compare("("))
 						{
-							sc.ScriptError("You cannot pass parameters to '%s'\n",sc.String);
+							sc.ScriptError("You cannot pass parameters to '%s'\n", funcname.GetChars());
 						}
 						sc.UnGet();
 					}

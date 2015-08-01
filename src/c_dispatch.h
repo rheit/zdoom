@@ -42,6 +42,7 @@ class APlayerPawn;
 extern bool CheckCheatmode (bool printmsg = true);
 
 void C_ExecCmdLineParams ();
+void C_ExecStoredSets();
 
 // Add commands to the console as if they were typed in. Can handle wait
 // and semicolon-separated commands. This function may modify the source
@@ -93,6 +94,7 @@ public:
 	void PrintCommand () { Printf ("%s\n", m_Name); }
 
 	virtual void Run (FCommandLine &args, APlayerPawn *instigator, int key);
+	static FConsoleCommand* FindByName (const char* name);
 
 	FConsoleCommand *m_Next, **m_Prev;
 	char *m_Name;
@@ -166,5 +168,7 @@ void ResetButtonStates ();		// Same as above, but also clear bDown
 extern unsigned int MakeKey (const char *s);
 extern unsigned int MakeKey (const char *s, size_t len);
 extern unsigned int SuperFastHash (const char *data, size_t len);
+
+void execLogfile(const char *fn);
 
 #endif //__C_DISPATCH_H__

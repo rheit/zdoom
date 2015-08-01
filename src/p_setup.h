@@ -98,7 +98,7 @@ struct MapData
 	void GetChecksum(BYTE cksum[16]);
 };
 
-MapData * P_OpenMapData(const char * mapname);
+MapData * P_OpenMapData(const char * mapname, bool justcheck);
 bool P_CheckMapData(const char * mapname);
 
 
@@ -107,7 +107,7 @@ bool P_CheckMapData(const char * mapname);
 // [RH] The only parameter used is mapname, so I removed playermask and skill.
 //		On September 1, 1998, I added the position to indicate which set
 //		of single-player start spots should be spawned in the level.
-void P_SetupLevel (char *mapname, int position);
+void P_SetupLevel (const char *mapname, int position);
 
 void P_FreeLevelData();
 void P_FreeExtraLevelData();

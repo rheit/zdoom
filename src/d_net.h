@@ -70,7 +70,6 @@ struct doomcom_t
 // info common to all nodes
 	SWORD	numnodes;		// console is always node 0.
 	SWORD	ticdup;			// 1 = no duplication, 2-5 = dup for slow nets
-	SWORD	extratics;		// 1 = send a backup tic in every packet
 #ifdef DJGPP
 	SWORD	pad[5];			// keep things aligned for DOS drivers
 #endif
@@ -115,6 +114,9 @@ void D_QuitNetGame (void);
 //? how many ticks to run?
 void TryRunTics (void);
 
+//Use for checking to see if the netgame has stalled
+void Net_CheckLastReceived(int);
+
 // [RH] Functions for making and using special "ticcmds"
 void Net_NewMakeTic ();
 void Net_WriteByte (BYTE);
@@ -140,6 +142,8 @@ extern	struct ticcmd_t	localcmds[LOCALCMDTICS];
 
 extern	int 			maketic;
 extern	int 			nettics[MAXNETNODES];
+extern	int				netdelay[MAXNETNODES][BACKUPTICS];
+extern	int 			nodeforplayer[MAXPLAYERS];
 
 extern	ticcmd_t		netcmds[MAXPLAYERS][BACKUPTICS];
 extern	int 			ticdup;

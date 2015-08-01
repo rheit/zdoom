@@ -76,6 +76,7 @@
 #include "d_net.h"
 #include "d_event.h"
 #include "p_acs.h"
+#include "p_effect.h"
 #include "m_joy.h"
 #include "farchive.h"
 #include "r_renderer.h"
@@ -115,6 +116,7 @@ CVAR (Bool, chasedemo, false, 0);
 CVAR (Bool, storesavepic, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CVAR (Bool, longsavemessages, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CVAR (String, save_dir, "", CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
+CVAR (Bool, cl_waitforsave, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG);
 EXTERN_CVAR (Float, con_midtime);
 
 //==========================================================================
@@ -140,6 +142,7 @@ gameaction_t	gameaction;
 gamestate_t 	gamestate = GS_STARTUP;
 
 int 			paused;
+bool			pauseext;
 bool 			sendpause;				// send a pause event next tic 
 bool			sendsave;				// send a save event next tic 
 bool			sendturn180;			// [RH] send a 180 degree turn next tic
@@ -161,6 +164,8 @@ int 			consoleplayer;			// player taking events
 int 			gametic;
 
 CVAR(Bool, demo_compress, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
+FString			newdemoname;
+FString			newdemomap;
 FString			demoname;
 bool 			demorecording;
 bool 			demoplayback;
@@ -565,7 +570,7 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 		int tspeed = speed;
 
 		if (turnheld < SLOWTURNTICS)
-			tspeed *= 2;		// slow turn
+			tspeed += 2;		// slow turn
 		
 		if (Button_Right.bDown)
 		{
@@ -775,7 +780,7 @@ void G_AddViewPitch (int look)
 	else if (look > 0)
 	{
 		// Avoid overflowing
-		if (LocalViewPitch + look <= LocalViewPitch)
+		if (LocalViewPitch > INT_MAX - look)
 		{
 			LocalViewPitch = 0x78000000;
 		}
@@ -787,7 +792,7 @@ void G_AddViewPitch (int look)
 	else if (look < 0)
 	{
 		// Avoid overflowing
-		if (LocalViewPitch + look >= LocalViewPitch)
+		if (LocalViewPitch < INT_MIN - look)
 		{
 			LocalViewPitch = -0x78000000;
 		}
@@ -824,9 +829,16 @@ void G_AddViewAngle (int yaw)
 
 CVAR (Bool, bot_allowspy, false, 0)
 
+
+enum {
+	SPY_CANCEL = 0,
+	SPY_NEXT,
+	SPY_PREV,
+};
+
 // [RH] Spy mode has been separated into two console commands.
 //		One goes forward; the other goes backward.
-static void ChangeSpy (bool forward)
+static void ChangeSpy (int changespy)
 {
 	// If you're not in a level, then you can't spy.
 	if (gamestate != GS_LEVEL)
@@ -852,20 +864,27 @@ static void ChangeSpy (bool forward)
 
 	// Otherwise, cycle to the next player.
 	bool checkTeam = !demoplayback && deathmatch;
-	int pnum = int(players[consoleplayer].camera->player - players);
-	int step = forward ? 1 : -1;
-
-	do
+	int pnum = consoleplayer;
+	if (changespy != SPY_CANCEL) 
 	{
-		pnum += step;
-		pnum &= MAXPLAYERS-1;
-		if (playeringame[pnum] &&
-			(!checkTeam || players[pnum].mo->IsTeammate (players[consoleplayer].mo) ||
-			(bot_allowspy && players[pnum].isbot)))
+		player_t *player = players[consoleplayer].camera->player;
+		// only use the camera as starting index if it's a valid player.
+		if (player != NULL) pnum = int(players[consoleplayer].camera->player - players);
+
+		int step = (changespy == SPY_NEXT) ? 1 : -1;
+
+		do
 		{
-			break;
-		}
-	} while (pnum != consoleplayer);
+			pnum += step;
+			pnum &= MAXPLAYERS-1;
+			if (playeringame[pnum] &&
+				(!checkTeam || players[pnum].mo->IsTeammate (players[consoleplayer].mo) ||
+				(bot_allowspy && players[pnum].Bot != NULL)))
+			{
+				break;
+			}
+		} while (pnum != consoleplayer);
+	}
 
 	players[consoleplayer].camera = players[pnum].mo;
 	S_UpdateSounds(players[consoleplayer].camera);
@@ -879,15 +898,20 @@ static void ChangeSpy (bool forward)
 CCMD (spynext)
 {
 	// allow spy mode changes even during the demo
-	ChangeSpy (true);
+	ChangeSpy (SPY_NEXT);
 }
 
 CCMD (spyprev)
 {
 	// allow spy mode changes even during the demo
-	ChangeSpy (false);
+	ChangeSpy (SPY_PREV);
 }
 
+CCMD (spycancel)
+{
+	// allow spy mode changes even during the demo
+	ChangeSpy (SPY_CANCEL);
+}
 
 //
 // G_Responder
@@ -994,10 +1018,16 @@ void G_Ticker ()
 	// do player reborns if needed
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
-		if (playeringame[i] &&
-			(players[i].playerstate == PST_REBORN || players[i].playerstate == PST_ENTER))
+		if (playeringame[i])
 		{
-			G_DoReborn (i, false);
+			if (players[i].playerstate == PST_GONE)
+			{
+				G_DoPlayerPop(i);
+			}
+			if (players[i].playerstate == PST_REBORN || players[i].playerstate == PST_ENTER)
+			{
+				G_DoReborn(i, false);
+			}
 		}
 	}
 
@@ -1022,6 +1052,10 @@ void G_Ticker ()
 		case ga_loadlevel:
 			G_DoLoadLevel (-1, false);
 			break;
+		case ga_recordgame:
+			G_CheckDemoStatus();
+			G_RecordDemo(newdemoname);
+			G_BeginRecording(newdemomap);
 		case ga_newgame2:	// Silence GCC (see above)
 		case ga_newgame:
 			G_DoNewGame ();
@@ -1095,6 +1129,9 @@ void G_Ticker ()
 	// check, not just the player's x position like BOOM.
 	DWORD rngsum = FRandom::StaticSumSeeds ();
 
+	//Added by MC: For some of that bot stuff. The main bot function.
+	bglobal.Main ();
+
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
 		if (playeringame[i])
@@ -1114,13 +1151,13 @@ void G_Ticker ()
 			// If the user alt-tabbed away, paused gets set to -1. In this case,
 			// we do not want to read more demo commands until paused is no
 			// longer negative.
-			if (demoplayback && paused >= 0)
+			if (demoplayback)
 			{
 				G_ReadDemoTiccmd (cmd, i);
 			}
 			else
 			{
-				memcpy (cmd, newcmd, sizeof(ticcmd_t));
+				memcpy(cmd, newcmd, sizeof(ticcmd_t));
 			}
 
 			// check for turbo cheats
@@ -1130,7 +1167,7 @@ void G_Ticker ()
 				Printf ("%s is turbo!\n", players[i].userinfo.GetName());
 			}
 
-			if (netgame && !players[i].isbot && !demoplayback && (gametic%ticdup) == 0)
+			if (netgame && players[i].Bot == NULL && !demoplayback && (gametic%ticdup) == 0)
 			{
 				//players[i].inconsistant = 0;
 				if (gametic > BACKUPTICS*ticdup && consistancy[i][buf] != cmd->consistancy)
@@ -1288,7 +1325,7 @@ void G_PlayerFinishLevel (int player, EFinishLevelType mode, int flags)
 	}
 
 	// Clears the entire inventory and gives back the defaults for starting a game
-	if (flags & CHANGELEVEL_RESETINVENTORY)
+	if ((flags & CHANGELEVEL_RESETINVENTORY) && p->playerstate != PST_DEAD)
 	{
 		p->mo->ClearInventory();
 		p->mo->GiveDefaultInventory();
@@ -1312,10 +1349,10 @@ void G_PlayerReborn (int player)
 	int			chasecam;
 	BYTE		currclass;
 	userinfo_t  userinfo;	// [RH] Save userinfo
-	botskill_t  b_skill;	//Added by MC:
 	APlayerPawn *actor;
 	const PClass *cls;
 	FString		log;
+	DBot		*Bot;		//Added by MC:
 
 	p = &players[player];
 
@@ -1325,18 +1362,19 @@ void G_PlayerReborn (int player)
 	itemcount = p->itemcount;
 	secretcount = p->secretcount;
 	currclass = p->CurrentPlayerClass;
-    b_skill = p->skill;    //Added by MC:
 	userinfo.TransferFrom(p->userinfo);
 	actor = p->mo;
 	cls = p->cls;
 	log = p->LogText;
 	chasecam = p->cheats & CF_CHASECAM;
+	Bot = p->Bot;			//Added by MC:
 
 	// Reset player structure to its defaults
 	p->~player_t();
 	::new(p) player_t;
 
 	memcpy (p->frags, frags, sizeof(p->frags));
+	p->health = actor->health;
 	p->fragcount = fragcount;
 	p->killcount = killcount;
 	p->itemcount = itemcount;
@@ -1347,8 +1385,7 @@ void G_PlayerReborn (int player)
 	p->cls = cls;
 	p->LogText = log;
 	p->cheats |= chasecam;
-
-    p->skill = b_skill;	//Added by MC:
+	p->Bot = Bot;			//Added by MC:
 
 	p->oldbuttons = ~0, p->attackdown = true; p->usedown = true;	// don't do anything immediately
 	p->original_oldbuttons = ~0;
@@ -1356,15 +1393,19 @@ void G_PlayerReborn (int player)
 
 	if (gamestate != GS_TITLELEVEL)
 	{
+		// [GRB] Give inventory specified in DECORATE
 		actor->GiveDefaultInventory ();
 		p->ReadyWeapon = p->PendingWeapon;
 	}
 
-    //Added by MC: Init bot structure.
-    if (bglobal.botingame[player])
-        bglobal.CleanBotstuff (p);
-    else
-		p->isbot = false;
+	//Added by MC: Init bot structure.
+	if (p->Bot != NULL)
+	{
+		botskill_t skill = p->Bot->skill;
+		p->Bot->Clear ();
+		p->Bot->player = p;
+		p->Bot->skill = skill;
+	}
 }
 
 //
@@ -1602,7 +1643,7 @@ void G_DoReborn (int playernum, bool freshbot)
 		{ // Reload the level from scratch
 			bool indemo = demoplayback;
 			BackupSaveName = "";
-			G_InitNew (level.mapname, false);
+			G_InitNew (level.MapName, false);
 			demoplayback = indemo;
 //			gameaction = ga_loadlevel;
 		}
@@ -1637,6 +1678,56 @@ void G_DoReborn (int playernum, bool freshbot)
 			if (mo != NULL) P_PlayerStartStomp(mo);
 		}
 	}
+}
+
+//
+// G_DoReborn
+//
+void G_DoPlayerPop(int playernum)
+{
+	playeringame[playernum] = false;
+
+	if (deathmatch)
+	{
+		Printf("%s left the game with %d frags\n",
+			players[playernum].userinfo.GetName(),
+			players[playernum].fragcount);
+	}
+	else
+	{
+		Printf("%s left the game\n", players[playernum].userinfo.GetName());
+	}
+
+	// [RH] Revert each player to their own view if spying through the player who left
+	for (int ii = 0; ii < MAXPLAYERS; ++ii)
+	{
+		if (playeringame[ii] && players[ii].camera == players[playernum].mo)
+		{
+			players[ii].camera = players[ii].mo;
+			if (ii == consoleplayer && StatusBar != NULL)
+			{
+				StatusBar->AttachToPlayer(&players[ii]);
+			}
+		}
+	}
+
+	// [RH] Make the player disappear
+	FBehavior::StaticStopMyScripts(players[playernum].mo);
+	if (players[playernum].mo != NULL)
+	{
+		P_DisconnectEffect(players[playernum].mo);
+		players[playernum].mo->player = NULL;
+		players[playernum].mo->Destroy();
+		if (!(players[playernum].mo->ObjectFlags & OF_EuthanizeMe))
+		{ // We just destroyed a morphed player, so now the original player
+			// has taken their place. Destroy that one too.
+			players[playernum].mo->Destroy();
+		}
+		players[playernum].mo = NULL;
+		players[playernum].camera = NULL;
+	}
+	// [RH] Let the scripts know the player left
+	FBehavior::StaticStartTypedScripts(SCRIPT_Disconnect, NULL, true, playernum);
 }
 
 void G_ScreenShot (char *filename)
@@ -1816,6 +1907,13 @@ void G_DoLoadGame ()
 		BYTE *vars_p = (BYTE *)text;
 		C_ReadCVars (&vars_p);
 		delete[] text;
+		if (SaveVersion <= 4509)
+		{
+			// account for the flag shuffling for making freelook a 3-state option
+			INTBOOL flag = dmflags & DF_YES_FREELOOK;
+			dmflags = dmflags & ~DF_YES_FREELOOK;
+			if (flag) dmflags2 = dmflags2 | DF2_RESPAWN_SUPER;
+		}
 	}
 
 	// dearchive all the modifications
@@ -1885,10 +1983,25 @@ void G_SaveGame (const char *filename, const char *description)
 		Printf ("A game save is still pending.\n");
 		return;
 	}
-	savegamefile = filename;
-	strncpy (savedescription, description, sizeof(savedescription)-1);
-	savedescription[sizeof(savedescription)-1] = '\0';
-	sendsave = true;
+    else if (!usergame)
+	{
+        Printf ("not in a saveable game\n");
+    }
+    else if (gamestate != GS_LEVEL)
+	{
+        Printf ("not in a level\n");
+    }
+    else if (players[consoleplayer].health <= 0 && !multiplayer)
+    {
+        Printf ("player is dead in a single-player game\n");
+    }
+	else
+	{
+		savegamefile = filename;
+		strncpy (savedescription, description, sizeof(savedescription)-1);
+		savedescription[sizeof(savedescription)-1] = '\0';
+		sendsave = true;
+	}
 }
 
 FString G_BuildSaveName (const char *prefix, int slot)
@@ -1900,32 +2013,10 @@ FString G_BuildSaveName (const char *prefix, int slot)
 	leader = Args->CheckValue ("-savedir");
 	if (leader.IsEmpty())
 	{
-#if !defined(unix) && !defined(__APPLE__)
-		if (Args->CheckParm ("-cdrom"))
-		{
-			leader = CDROM_DIR "/";
-		}
-		else
-#endif
-		{
-			leader = save_dir;
-		}
+		leader = save_dir;
 		if (leader.IsEmpty())
 		{
-#ifdef unix
-			leader = "~/" GAME_DIR;
-#elif defined(__APPLE__)
-			char cpath[PATH_MAX];
-			FSRef folder;
-
-			if (noErr == FSFindFolder(kUserDomain, kDocumentsFolderType, kCreateFolder, &folder) &&
-				noErr == FSRefMakePath(&folder, (UInt8*)cpath, PATH_MAX))
-			{
-				leader << cpath << "/" GAME_DIR "/Savegames/";
-			}
-#else
-			leader = progdir;
-#endif
+			leader = M_GetSavegamesPath();
 		}
 	}
 	size_t len = leader.Len();
@@ -2030,7 +2121,7 @@ static void PutSaveComment (FILE *file)
 
 	// Get level name
 	//strcpy (comment, level.level_name);
-	mysnprintf(comment, countof(comment), "%s - %s", level.mapname, level.LevelName.GetChars());
+	mysnprintf(comment, countof(comment), "%s - %s", level.MapName.GetChars(), level.LevelName.GetChars());
 	len = (WORD)strlen (comment);
 	comment[len] = '\n';
 
@@ -2062,7 +2153,7 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 
 	// Do not even try, if we're not in a level. (Can happen after
 	// a demo finishes playback.)
-	if (lines == NULL || sectors == NULL)
+	if (lines == NULL || sectors == NULL || gamestate != GS_LEVEL)
 	{
 		return;
 	}
@@ -2071,6 +2162,9 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 	{
 		filename = G_BuildSaveName ("demosave.zds", -1);
 	}
+
+	if (cl_waitforsave)
+		I_FreezeTime(true);
 
 	insave = true;
 	G_SnapshotLevel ();
@@ -2081,6 +2175,7 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 	{
 		Printf ("Could not create savegame '%s'\n", filename.GetChars());
 		insave = false;
+		I_FreezeTime(false);
 		return;
 	}
 
@@ -2091,7 +2186,7 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 	M_AppendPNGText (stdfile, "Engine", GAMESIG);
 	M_AppendPNGText (stdfile, "ZDoom Save Version", SAVESIG);
 	M_AppendPNGText (stdfile, "Title", description);
-	M_AppendPNGText (stdfile, "Current Map", level.mapname);
+	M_AppendPNGText (stdfile, "Current Map", level.MapName);
 	PutSaveWads (stdfile);
 	PutSaveComment (stdfile);
 
@@ -2157,6 +2252,7 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 	}
 		
 	insave = false;
+	I_FreezeTime(false);
 }
 
 
@@ -2292,7 +2388,7 @@ void G_BeginRecording (const char *startmap)
 
 	if (startmap == NULL)
 	{
-		startmap = level.mapname;
+		startmap = level.MapName;
 	}
 	demo_p = demobuffer;
 
@@ -2305,11 +2401,10 @@ void G_BeginRecording (const char *startmap)
 	WriteWord (DEMOGAMEVERSION, &demo_p);	// Write ZDoom version
 	*demo_p++ = 2;							// Write minimum version needed to use this demo.
 	*demo_p++ = 3;							// (Useful?)
-	for (i = 0; i < 8; i++)					// Write name of map demo was recorded on.
-	{
-		*demo_p++ = startmap[i];
-	}
-	WriteLong (rngseed, &demo_p);			// Write RNG seed
+
+	strcpy((char*)demo_p, startmap);		// Write name of map demo was recorded on.
+	demo_p += strlen(startmap) + 1;
+	WriteLong(rngseed, &demo_p);			// Write RNG seed
 	*demo_p++ = consoleplayer;
 	FinishChunk (&demo_p);
 
@@ -2370,6 +2465,16 @@ void G_DeferedPlayDemo (const char *name)
 
 CCMD (playdemo)
 {
+	if (netgame)
+	{
+		Printf("End your current netgame first!");
+		return;
+	}
+	if (demorecording)
+	{
+		Printf("End your current demo first!");
+		return;
+	}
 	if (argv.argc() > 1)
 	{
 		G_DeferedPlayDemo (argv[1]);
@@ -2388,7 +2493,7 @@ CCMD (timedemo)
 
 // [RH] Process all the information in a FORM ZDEM
 //		until a BODY chunk is entered.
-bool G_ProcessIFFDemo (char *mapname)
+bool G_ProcessIFFDemo (FString &mapname)
 {
 	bool headerHit = false;
 	bool bodyHit = false;
@@ -2444,9 +2549,16 @@ bool G_ProcessIFFDemo (char *mapname)
 				Printf ("Demo requires a newer version of ZDoom!\n");
 				return true;
 			}
-			memcpy (mapname, demo_p, 8);	// Read map name
-			mapname[8] = 0;
-			demo_p += 8;
+			if (demover >= 0x21a)
+			{
+				mapname = (char*)demo_p;
+				demo_p += mapname.Len() + 1;
+			}
+			else
+			{
+				mapname = FString((char*)demo_p, 8);
+				demo_p += 8;
+			}
 			rngseed = ReadLong (&demo_p);
 			// Only reset the RNG if this demo is not in conjunction with a savegame.
 			if (mapname[0] != 0)
@@ -2492,6 +2604,12 @@ bool G_ProcessIFFDemo (char *mapname)
 			demo_p = nextchunk;
 	}
 
+	if (!headerHit)
+	{
+		Printf ("Demo has no header!\n");
+		return true;
+	}
+
 	if (!numPlayers)
 	{
 		Printf ("Demo has no players!\n");
@@ -2528,7 +2646,7 @@ bool G_ProcessIFFDemo (char *mapname)
 
 void G_DoPlayDemo (void)
 {
-	char mapname[9];
+	FString mapname;
 	int demolump;
 
 	gameaction = ga_nothing;
@@ -2545,7 +2663,7 @@ void G_DoPlayDemo (void)
 	{
 		FixPathSeperator (defdemoname);
 		DefaultExtension (defdemoname, ".lmp");
-		M_ReadFile (defdemoname, &demobuffer);
+		M_ReadFileMalloc (defdemoname, &demobuffer);
 	}
 	demo_p = demobuffer;
 
@@ -2581,7 +2699,7 @@ void G_DoPlayDemo (void)
 		// don't spend a lot of time in loadlevel 
 		precache = false;
 		demonew = true;
-		if (mapname[0] != 0)
+		if (mapname.Len() != 0)
 		{
 			G_InitNew (mapname, false);
 		}

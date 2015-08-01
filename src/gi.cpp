@@ -52,7 +52,7 @@ const char *GameNames[33] =
 };
 
 
-static gameborder_t DoomBorder =
+static staticgameborder_t DoomBorder =
 {
 	8, 8,
 	"brdr_tl", "brdr_t", "brdr_tr",
@@ -60,7 +60,7 @@ static gameborder_t DoomBorder =
 	"brdr_bl", "brdr_b", "brdr_br"
 };
 
-static gameborder_t Doom64Border =
+static staticgameborder_t Doom64Border =
 {
 	27, 26,
 	"br64drtl", "br64drt", "br64drtr",
@@ -68,7 +68,7 @@ static gameborder_t Doom64Border =
 	"br64drbl", "br64drb", "br64drbr"
 };
 
-static gameborder_t HereticBorder =
+static staticgameborder_t HereticBorder =
 {
 	4, 16,
 	"bordtl", "bordt", "bordtr",
@@ -76,7 +76,7 @@ static gameborder_t HereticBorder =
 	"bordbl", "bordb", "bordbr"
 };
 
-static gameborder_t StrifeBorder =
+static staticgameborder_t StrifeBorder =
 {
 	8, 8,
 	"brdr_tl", "brdr_t", "brdr_tr",
@@ -106,10 +106,10 @@ const char* GameInfoBorders[] =
 		strcpy(gameinfo.key, sc.String); \
 	}
 
-#define GAMEINFOKEY_STRINGARRAY(key, variable, length) \
+#define GAMEINFOKEY_STRINGARRAY(key, variable, length, clear) \
 	else if(nextKey.CompareNoCase(variable) == 0) \
 	{ \
-		gameinfo.key.Clear(); \
+		if (clear) gameinfo.key.Clear(); \
 		do \
 		{ \
 			sc.MustGetToken(TK_StringConst); \
@@ -194,6 +194,20 @@ const char* GameInfoBorders[] =
 		gameinfo.key.color = NAME_Null; \
 	}
 
+#define GAMEINFOKEY_MUSIC(key, order, variable) \
+	else if(nextKey.CompareNoCase(variable) == 0) \
+	{ \
+		sc.MustGetToken(TK_StringConst); \
+		gameinfo.order = 0; \
+		char *colon = strchr (sc.String, ':'); \
+		if (colon) \
+		{ \
+			gameinfo.order = atoi(colon+1); \
+			*colon = 0; \
+		} \
+		gameinfo.key = sc.String; \
+	}
+
 
 void FMapInfoParser::ParseGameInfo()
 {
@@ -227,59 +241,54 @@ void FMapInfoParser::ParseGameInfo()
 		}
 		else if(nextKey.CompareNoCase("border") == 0)
 		{
-			if(sc.CheckToken(TK_Identifier))
+			staticgameborder_t *b;
+			if (sc.CheckToken(TK_Identifier))
 			{
 				switch(sc.MustMatchString(GameInfoBorders))
 				{
 					default:
-						gameinfo.border = &DoomBorder;
+						b = &DoomBorder;
 						break;
 					case 1:
-						gameinfo.border = &HereticBorder;
+						b = &HereticBorder;
 						break;
 					case 2:
-						gameinfo.border = &StrifeBorder;
+						b = &StrifeBorder;
 						break;
 					case 3:
-						gameinfo.border = &Doom64Border;
+						b = &Doom64Border;
 						break;
 				}
+				gameinfo.Border = *b;
 			}
 			else
 			{
 				// border = {size, offset, tr, t, tl, r, l ,br, b, bl};
-				char *graphics[8] = {DoomBorder.tr, DoomBorder.t, DoomBorder.tl, DoomBorder.r, DoomBorder.l, DoomBorder.br, DoomBorder.b, DoomBorder.bl};
+				FString *graphics[8] = { &gameinfo.Border.tr, &gameinfo.Border.t, &gameinfo.Border.tl, &gameinfo.Border.r, &gameinfo.Border.l, &gameinfo.Border.br, &gameinfo.Border.b, &gameinfo.Border.bl };
 				sc.MustGetToken(TK_IntConst);
-				DoomBorder.offset = sc.Number;
+				gameinfo.Border.offset = sc.Number;
 				sc.MustGetToken(',');
 				sc.MustGetToken(TK_IntConst);
-				DoomBorder.size = sc.Number;
+				gameinfo.Border.size = sc.Number;
 				for(int i = 0;i < 8;i++)
 				{
 					sc.MustGetToken(',');
 					sc.MustGetToken(TK_StringConst);
-					int len = int(strlen(sc.String));
-					if(len > 8)
-						sc.ScriptError("Border graphic can not be more than 8 characters long.\n");
-					memcpy(graphics[i], sc.String, len);
-					if(len < 8) // end with a null byte if the string is less than 8 chars.
-						graphics[i][len] = 0;
+					(*graphics[i]) = sc.String;
 				}
 			}
 		}
 		else if(nextKey.CompareNoCase("armoricons") == 0)
 		{
 			sc.MustGetToken(TK_StringConst);
-			strncpy(gameinfo.ArmorIcon1, sc.String, 8);
-			gameinfo.ArmorIcon1[8] = 0;
+			gameinfo.ArmorIcon1 = sc.String;
 			if (sc.CheckToken(','))
 			{
 				sc.MustGetToken(TK_FloatConst);
 				gameinfo.Armor2Percent = FLOAT2FIXED(sc.Float);
 				sc.MustGetToken(',');
 				sc.MustGetToken(TK_StringConst);
-				strncpy(gameinfo.ArmorIcon2, sc.String, 8);
-				gameinfo.ArmorIcon2[8] = 0;
+				gameinfo.ArmorIcon2 = sc.String;
 			}
 		}
 		else if(nextKey.CompareNoCase("maparrow") == 0)
@@ -294,36 +303,42 @@ void FMapInfoParser::ParseGameInfo()
 			else gameinfo.mCheatMapArrow = "";
 		}
 		// Insert valid keys here.
-		GAMEINFOKEY_CSTRING(titlePage, "titlePage", 8)
-		GAMEINFOKEY_STRINGARRAY(creditPages, "creditPage", 8)
-		GAMEINFOKEY_STRINGARRAY(PlayerClasses, "playerclasses", 0)
-		GAMEINFOKEY_STRING(titleMusic, "titleMusic")
+		GAMEINFOKEY_STRING(mCheatKey, "cheatKey")
+		GAMEINFOKEY_STRING(mEasyKey, "easyKey")
+		GAMEINFOKEY_STRING(TitlePage, "titlePage")
+		GAMEINFOKEY_STRINGARRAY(creditPages, "addcreditPage", 8, false)
+		GAMEINFOKEY_STRINGARRAY(creditPages, "CreditPage", 8, true)
+		GAMEINFOKEY_STRINGARRAY(PlayerClasses, "addplayerclasses", 0, false)
+		GAMEINFOKEY_STRINGARRAY(PlayerClasses, "playerclasses", 0, true)
+		GAMEINFOKEY_MUSIC(titleMusic, titleOrder, "titleMusic")
 		GAMEINFOKEY_FLOAT(titleTime, "titleTime")
 		GAMEINFOKEY_FLOAT(advisoryTime, "advisoryTime")
 		GAMEINFOKEY_FLOAT(pageTime, "pageTime")
 		GAMEINFOKEY_STRING(chatSound, "chatSound")
-		GAMEINFOKEY_STRING(finaleMusic, "finaleMusic")
-		GAMEINFOKEY_CSTRING(finaleFlat, "finaleFlat", 8)
-		GAMEINFOKEY_STRINGARRAY(finalePages, "finalePage", 8)
-		GAMEINFOKEY_STRINGARRAY(infoPages, "infoPage", 8)
-		GAMEINFOKEY_CSTRING(PauseSign, "pausesign", 8)
+		GAMEINFOKEY_MUSIC(finaleMusic, finaleOrder, "finaleMusic")
+		GAMEINFOKEY_STRING(FinaleFlat, "finaleFlat")
+		GAMEINFOKEY_STRINGARRAY(finalePages, "finalePage", 8, true)
+		GAMEINFOKEY_STRINGARRAY(infoPages, "addinfoPage", 8, false)
+		GAMEINFOKEY_STRINGARRAY(infoPages, "infoPage", 8, true)
+		GAMEINFOKEY_STRING(PauseSign, "pausesign")
 		GAMEINFOKEY_STRING(quitSound, "quitSound")
-		GAMEINFOKEY_CSTRING(borderFlat, "borderFlat", 8)
+		GAMEINFOKEY_STRING(BorderFlat, "borderFlat")
 		GAMEINFOKEY_FIXED(telefogheight, "telefogheight")
 		GAMEINFOKEY_FIXED(gibfactor, "gibfactor")
 		GAMEINFOKEY_INT(defKickback, "defKickback")
-		GAMEINFOKEY_CSTRING(SkyFlatName, "SkyFlatName", 8)
+		GAMEINFOKEY_STRING(SkyFlatName, "SkyFlatName")
 		GAMEINFOKEY_STRING(translator, "translator")
 		GAMEINFOKEY_COLOR(pickupcolor, "pickupcolor")
 		GAMEINFOKEY_COLOR(defaultbloodcolor, "defaultbloodcolor")
 		GAMEINFOKEY_COLOR(defaultbloodparticlecolor, "defaultbloodparticlecolor")
 		GAMEINFOKEY_STRING(backpacktype, "backpacktype")
 		GAMEINFOKEY_STRING(statusbar, "statusbar")
-		GAMEINFOKEY_STRING(intermissionMusic, "intermissionMusic")
+		GAMEINFOKEY_MUSIC(intermissionMusic, intermissionOrder, "intermissionMusic")
 		GAMEINFOKEY_STRING(CursorPic, "CursorPic")
 		GAMEINFOKEY_BOOL(noloopfinalemusic, "noloopfinalemusic")
 		GAMEINFOKEY_BOOL(drawreadthis, "drawreadthis")
 		GAMEINFOKEY_BOOL(swapmenu, "swapmenu")
+		GAMEINFOKEY_BOOL(dontcrunchcorpses, "dontcrunchcorpses")
 		GAMEINFOKEY_BOOL(intermissioncounter, "intermissioncounter")
 		GAMEINFOKEY_BOOL(nightmarefast, "nightmarefast")
 		GAMEINFOKEY_COLOR(dimcolor, "dimcolor")
@@ -332,9 +347,10 @@ void FMapInfoParser::ParseGameInfo()
 		GAMEINFOKEY_INT(defaultrespawntime, "defaultrespawntime")
 		GAMEINFOKEY_INT(defaultrespawntime, "defaultrespawntime")
 		GAMEINFOKEY_INT(defaultdropstyle, "defaultdropstyle")
-		GAMEINFOKEY_CSTRING(Endoom, "endoom", 8)
+		GAMEINFOKEY_STRING(Endoom, "endoom")
 		GAMEINFOKEY_INT(player5start, "player5start")
-		GAMEINFOKEY_STRINGARRAY(quitmessages, "quitmessages", 0)
+		GAMEINFOKEY_STRINGARRAY(quitmessages, "addquitmessages", 0, false)
+		GAMEINFOKEY_STRINGARRAY(quitmessages, "quitmessages", 0, true)
 		GAMEINFOKEY_STRING(mTitleColor, "menufontcolor_title")
 		GAMEINFOKEY_STRING(mFontColor, "menufontcolor_label")
 		GAMEINFOKEY_STRING(mFontColorValue, "menufontcolor_value")
@@ -342,7 +358,7 @@ void FMapInfoParser::ParseGameInfo()
 		GAMEINFOKEY_STRING(mFontColorHeader, "menufontcolor_header")
 		GAMEINFOKEY_STRING(mFontColorHighlight, "menufontcolor_highlight")
 		GAMEINFOKEY_STRING(mFontColorSelection, "menufontcolor_selection")
-		GAMEINFOKEY_CSTRING(mBackButton, "menubackbutton", 8)
+		GAMEINFOKEY_STRING(mBackButton, "menubackbutton")
 		GAMEINFOKEY_INT(TextScreenX, "textscreenx")
 		GAMEINFOKEY_INT(TextScreenY, "textscreeny")
 		GAMEINFOKEY_STRING(DefaultEndSequence, "defaultendsequence")

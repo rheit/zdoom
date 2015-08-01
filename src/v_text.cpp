@@ -128,7 +128,6 @@ void DCanvas::DrawTextV(FFont *font, int normalcolor, int x, int y, const char *
 	{
 		va_list *more_p;
 		DWORD data;
-		void *ptrval;
 
 		switch (tag)
 		{
@@ -150,15 +149,9 @@ void DCanvas::DrawTextV(FFont *font, int normalcolor, int x, int y, const char *
 		// We don't handle these. :(
 		case DTA_DestWidth:
 		case DTA_DestHeight:
-			*(DWORD *)tags = TAG_IGNORE;
-			data = va_arg (tags, DWORD);
-			break;
-
-		// Translation is specified explicitly by the text.
 		case DTA_Translation:
-			*(DWORD *)tags = TAG_IGNORE;
-			ptrval = va_arg (tags, void*);
-			break;
+			assert("Bad parameter for DrawText" && false);
+			return;
 
 		case DTA_CleanNoMove_1:
 			boolval = va_arg (tags, INTBOOL);
@@ -336,7 +329,7 @@ static void breakit (FBrokenLines *line, FFont *font, const BYTE *start, const B
 	line->Width = font->StringWidth (line->Text);
 }
 
-FBrokenLines *V_BreakLines (FFont *font, int maxwidth, const BYTE *string)
+FBrokenLines *V_BreakLines (FFont *font, int maxwidth, const BYTE *string, bool preservecolor)
 {
 	FBrokenLines lines[128];	// Support up to 128 lines (should be plenty)
 
@@ -397,7 +390,7 @@ FBrokenLines *V_BreakLines (FFont *font, int maxwidth, const BYTE *string)
 				space = string - 1;
 
 			breakit (&lines[i], font, start, space, linecolor);
-			if (c == '\n')
+			if (c == '\n' && !preservecolor)
 			{
 				lastcolor = "";		// Why, oh why, did I do it like this?
 			}

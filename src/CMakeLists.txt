@@ -7,19 +7,29 @@ endif( COMMAND cmake_policy )
 include( CheckCXXSourceCompiles )
 include( CheckFunctionExists )
 include( CheckCXXCompilerFlag )
+include( CheckLibraryExists )
 include( FindPkgConfig )
 
-option( NO_ASM "Disable assembly code" )
-if( CMAKE_COMPILER_IS_GNUCXX )
+if( NOT APPLE )
+	option( NO_ASM "Disable assembly code" OFF )
+else( NOT APPLE )
+	# At the moment asm code doesn't work with OS X, so disable by default
+	option( NO_ASM "Disable assembly code" ON )
+endif( NOT APPLE )
+if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 	option( NO_STRIP "Do not strip Release or MinSizeRel builds" )
 	# At least some versions of Xcode fail if you strip with the linker
 	# instead of the separate strip utility.
 	if( APPLE )
 		set( NO_STRIP ON )
 	endif( APPLE )
-endif( CMAKE_COMPILER_IS_GNUCXX )
+endif( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 
-option( DYN_FLUIDSYNTH "Dynamically load fluidsynth" )
+option( DYN_FLUIDSYNTH "Dynamically load fluidsynth" ON )
+
+if( APPLE )
+    option( OSX_COCOA_BACKEND "Use native Cocoa backend instead of SDL" ON )
+endif( APPLE )
 
 if( CMAKE_SIZEOF_VOID_P MATCHES "8" )
 	set( X64 64 )
@@ -44,7 +54,21 @@ set( MINOR_VERSIONS "50" "49" "48" "47" "46" "45" "44" "43" "42" "41"
 	"27" "26" "25" "24" "23" "22" "21" "20" "21" "19" "18" "17" "16"
 	"15" "14" "13" "12" "11" "10" "09" "08" "07" "06" "05" "04" "03"
 	"02" "01" "00" )
-set( MAJOR_VERSIONS "34" "28" "26" "24" "22" "20" )
+set( MAJOR_VERSIONS "44" "34" "28" "26" "24" "22" "20" )
+
+if( NOT FMOD_DIR_VERSIONS )
+	set( FMOD_DIR_VERSIONS "" )
+endif( NOT FMOD_DIR_VERSIONS )
+if( NOT FMOD_VERSIONS )
+	set( FMOD_VERSIONS "" )
+endif( NOT FMOD_VERSIONS )
+if( NOT FMOD_LOCAL_INC_DIRS )
+	set( FMOD_LOCAL_INC_DIRS "" )
+endif( NOT FMOD_LOCAL_INC_DIRS )
+if( NOT FMOD_LOCAL_LIB_DIRS )
+	set( FMOD_LOCAL_LIB_DIRS "" )
+endif( NOT FMOD_LOCAL_LIB_DIRS )
+
 set( FMOD_DIR_VERSIONS ${FMOD_DIR_VERSIONS} "../fmod" )
 foreach( majver ${MAJOR_VERSIONS} )
 	foreach( minver ${MINOR_VERSIONS} )
@@ -56,6 +80,10 @@ foreach( majver ${MAJOR_VERSIONS} )
 		set( FMOD_LOCAL_LIB_DIRS ${FMOD_LOCAL_LIB_DIRS} "${dir}/api/lib" )
 	endforeach( dir ${FMOD_DIR_VERSIONS} )
 endforeach( majver ${MAJOR_VERSIONS} )
+
+if( NOT ZDOOM_LIBS )
+	set( ZDOOM_LIBS "" )
+endif( NOT ZDOOM_LIBS )
 
 if( WIN32 )
 	if( X64 )
@@ -71,8 +99,11 @@ if( WIN32 )
 	set( FMOD_SEARCH_PATHS
 		"C:/Program Files/FMOD SoundSystem/FMOD Programmers API ${WIN_TYPE}/api"
 		"C:/Program Files (x86)/FMOD SoundSystem/FMOD Programmers API ${WIN_TYPE}/api"
-		# This next one is for me.
-		"E:/Software/Dev/FMOD/${WIN_TYPE}/api" )
+		# This next one is for Randy.
+		"E:/Software/Dev/FMOD/${WIN_TYPE}/api" 
+		# .. and this one for Graf Zahl
+		"D:/portable/FMOD SoundSystem 4.26/FMOD Programmers API WIN32/api"
+		)
 	set( FMOD_INC_PATH_SUFFIXES PATH_SUFFIXES inc )
 	set( FMOD_LIB_PATH_SUFFIXES PATH_SUFFIXES lib )
 	set( NASM_NAMES nasmw nasm )
@@ -90,15 +121,12 @@ if( WIN32 )
 		PATHS ENV DXSDK_DIR
 		PATH_SUFFIXES Include )
 	if( NOT XINPUT_INCLUDE_DIR )
-		message( SEND_ERROR "Could not find xinput.h. XInput will be disabled." )
+		message( WARNING "Could not find xinput.h. XInput will be disabled." )
 		add_definitions( -DNO_XINPUT )
 	else( NOT XINPUT_INCLUDE_DIR )
 		include_directories( ${XINPUT_INCLUDE_DIR} )
 	endif( NOT XINPUT_INCLUDE_DIR )
 
-	find_library( DX_ddraw_LIBRARY ddraw
-		PATHS ENV DXSDK_DIR
-		PATH_SUFFIXES Lib Lib/${XBITS} )
 	find_library( DX_dxguid_LIBRARY dxguid
 		PATHS ENV DXSDK_DIR
 		PATH_SUFFIXES Lib Lib/${XBITS} )
@@ -107,9 +135,6 @@ if( WIN32 )
 		PATH_SUFFIXES Lib Lib/${XBITS} )
 
 	set( DX_LIBS_FOUND YES )
-	if( NOT DX_ddraw_LIBRARY )
-		set( DX_LIBS_FOUND NO )
-	endif( NOT DX_ddraw_LIBRARY )
 	if( NOT DX_dxguid_LIBRARY )
 		set( DX_LIBS_FOUND NO )
 	endif( NOT DX_dxguid_LIBRARY )
@@ -124,7 +149,6 @@ if( WIN32 )
 	set( ZDOOM_LIBS
 		wsock32
 		winmm
-		"${DX_ddraw_LIBRARY}"
 		"${DX_dxguid_LIBRARY}"
 		"${DX_dinput8_LIBRARY}"
 		ole32
@@ -134,7 +158,8 @@ if( WIN32 )
 		comdlg32
 		ws2_32
 		setupapi
-		oleaut32 )
+		oleaut32 
+		DelayImp )
 else( WIN32 )
 	if( APPLE )
 		set( FMOD_SEARCH_PATHS "/Developer/FMOD Programmers API Mac/api" )
@@ -166,19 +191,6 @@ else( WIN32 )
 				set( NO_GTK ON )
 			endif( GTK2_FOUND )
 		endif( NOT NO_GTK )
-
-		# Check for Xcursor library and header files
-		find_library( XCURSOR_LIB Xcursor )
-		if( XCURSOR_LIB )
-			find_file( XCURSOR_HEADER "X11/Xcursor/Xcursor.h" )
-			if( XCURSOR_HEADER )
-				add_definitions( -DUSE_XCURSOR=1 )
-				message( STATUS "Found Xcursor at ${XCURSOR_LIB}" )
-				set( ZDOOM_LIBS ${ZDOOM_LIBS} ${XCURSOR_LIB} )
-			else( XCURSOR_HEADER )
-				unset( XCURSOR_LIB )
-			endif( XCURSOR_HEADER )
-		endif( XCURSOR_LIB )
 	endif( APPLE )
 	set( NASM_NAMES nasm )
 	
@@ -186,13 +198,12 @@ else( WIN32 )
 		add_definitions( -DNO_GTK=1 )
 	endif( NO_GTK )
 	
-	# Non-Windows version also needs SDL
-	find_package( SDL )
-	if( NOT SDL_FOUND )
-		message( SEND_ERROR "SDL is required for building." )
-	endif( NOT SDL_FOUND )
-	set( ZDOOM_LIBS ${ZDOOM_LIBS} "${SDL_LIBRARY}" )
-	include_directories( "${SDL_INCLUDE_DIR}" )
+	# Non-Windows version also needs SDL except native OS X backend
+	if( NOT APPLE OR NOT OSX_COCOA_BACKEND )
+		find_package( SDL2 REQUIRED )
+		include_directories( "${SDL2_INCLUDE_DIR}" )
+		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${SDL2_LIBRARY}" )
+	endif( NOT APPLE OR NOT OSX_COCOA_BACKEND )
 
 	find_path( FPU_CONTROL_DIR fpu_control.h )
 	if( FPU_CONTROL_DIR )
@@ -336,15 +347,19 @@ if( NOT NO_ASM )
 			set( ASM_FLAGS -f win32 -DWIN32 -i${CMAKE_CURRENT_SOURCE_DIR}/ )
 		endif( X64 )
 	endif( UNIX )
-	if( WIN32 )
+	if( WIN32 AND NOT X64 )
 		set( FIXRTEXT fixrtext )
-	endif( WIN32 )
+	else( WIN32 AND NOT X64 )
+		set( FIXRTEXT "" )
+	endif( WIN32 AND NOT X64 )
 	message( STATUS "Selected assembler: ${ASSEMBLER}" )
 	MACRO( ADD_ASM_FILE indir infile )
 		set( ASM_OUTPUT_${infile} "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/zdoom.dir/${indir}/${infile}${ASM_OUTPUT_EXTENSION}" )
-		if( WIN32 )
+		if( WIN32 AND NOT X64 )
 			set( FIXRTEXT_${infile} COMMAND ${FIXRTEXT} "${ASM_OUTPUT_${infile}}" )
-		endif( WIN32 )
+		else( WIN32 AND NOT X64 )
+			set( FIXRTEXT_${infile} COMMAND "" )
+		endif( WIN32 AND NOT X64 )
 		add_custom_command( OUTPUT ${ASM_OUTPUT_${infile}}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/zdoom.dir/${indir}
 			COMMAND ${ASSEMBLER} ${ASM_FLAGS} -o"${ASM_OUTPUT_${infile}}" "${CMAKE_CURRENT_SOURCE_DIR}/${indir}/${infile}${ASM_SOURCE_EXTENSION}"
@@ -358,20 +373,23 @@ endif( NOT NO_ASM )
 
 set( SSE_MATTERS NO )
 
-# SSE only matters on 32-bit targets. We check compiler flags to know if we can do it.
-if( CMAKE_SIZEOF_VOID_P MATCHES "4" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES ppc )
-	CHECK_CXX_COMPILER_FLAG( "-msse2 -mfpmath=sse" CAN_DO_MFPMATH )
-	CHECK_CXX_COMPILER_FLAG( -arch:SSE2 CAN_DO_ARCHSSE2 )
-	if( CAN_DO_MFPMATH )
-		set( SSE1_ENABLE "-msse -mfpmath=sse" )
-		set( SSE2_ENABLE "-msse2 -mfpmath=sse" )
-		set( SSE_MATTERS YES )
-	elseif( CAN_DO_ARCHSSE2 )
-		set( SSE1_ENABLE -arch:SSE )
-		set( SSE2_ENABLE -arch:SSE2 )
-		set( SSE_MATTERS YES )
-	endif( CAN_DO_MFPMATH )
-endif( CMAKE_SIZEOF_VOID_P MATCHES "4" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES ppc )
+# with global use of SSE 2 we do not need special handling for selected files
+if (NOT ZDOOM_USE_SSE2)
+	# SSE only matters on 32-bit targets. We check compiler flags to know if we can do it.
+	if( CMAKE_SIZEOF_VOID_P MATCHES "4" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES ppc )
+		CHECK_CXX_COMPILER_FLAG( "-msse2 -mfpmath=sse" CAN_DO_MFPMATH )
+		CHECK_CXX_COMPILER_FLAG( -arch:SSE2 CAN_DO_ARCHSSE2 )
+		if( CAN_DO_MFPMATH )
+			set( SSE1_ENABLE "-msse -mfpmath=sse" )
+			set( SSE2_ENABLE "-msse2 -mfpmath=sse" )
+			set( SSE_MATTERS YES )
+		elseif( CAN_DO_ARCHSSE2 )
+			set( SSE1_ENABLE -arch:SSE )
+			set( SSE2_ENABLE -arch:SSE2 )
+			set( SSE_MATTERS YES )
+		endif( CAN_DO_MFPMATH )
+	endif( CMAKE_SIZEOF_VOID_P MATCHES "4" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES ppc )
+endif (NOT ZDOOM_USE_SSE2)
 
 if( SSE_MATTERS )
 	if( WIN32 )
@@ -391,7 +409,7 @@ endif( SSE_MATTERS )
 
 # Set up flags for GCC
 
-if( CMAKE_COMPILER_IS_GNUCXX )
+if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 	if( PROFILE )
 		set( CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pg" )
 		set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pg" )
@@ -400,14 +418,15 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	endif( PROFILE )
 	
 	set( REL_CXX_FLAGS "-fno-rtti" )
-	if( NOT PROFILE )
+	if( NOT PROFILE AND NOT APPLE )
+		# On OS X frame pointers are required for exception handling, at least with Clang
 		set( REL_CXX_FLAGS "${REL_CXX_FLAGS} -fomit-frame-pointer" )
-	endif( NOT PROFILE )
+	endif( NOT PROFILE AND NOT APPLE )
 	set( CMAKE_CXX_FLAGS_RELEASE "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}" )
 	set( CMAKE_CXX_FLAGS_MINSIZEREL "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_MINSIZEREL}" )
 	set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" )
 
-	set( CMAKE_CXX_FLAGS "-Wall -Wno-unused -Wextra -Wno-missing-field-initializers ${CMAKE_CXX_FLAGS}" )
+	set( CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers ${CMAKE_CXX_FLAGS}" )
 
 	# Remove extra warnings when using the official DirectX headers.
 	# Also, TDM-GCC 4.4.0 no longer accepts glibc-style printf formats as valid,
@@ -420,7 +439,7 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 		set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -s" )
 		set (CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} -s" )
 	endif( NOT NO_STRIP )
-endif( CMAKE_COMPILER_IS_GNUCXX )
+endif( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 
 # Check for functions that may or may not exist.
 
@@ -485,76 +504,112 @@ endif( BACKPATCH )
 
 # Update gitinfo.h
 
-get_target_property( UPDATEREVISION_EXE updaterevision LOCATION )
-
 add_custom_target( revision_check ALL
-	COMMAND ${UPDATEREVISION_EXE} . src/gitinfo.h
+	COMMAND updaterevision src/gitinfo.h
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	DEPENDS updaterevision )
 
 # Libraries ZDoom needs
 
 message( STATUS "Fluid synth libs: ${FLUIDSYNTH_LIBRARIES}" )
-set( ZDOOM_LIBS ${ZDOOM_LIBS} "${ZLIB_LIBRARIES}" "${JPEG_LIBRARIES}" "${BZIP2_LIBRARIES}" "${FMOD_LIBRARY}" )
-include_directories( "${ZLIB_INCLUDE_DIR}" "${FMOD_INCLUDE_DIR}" "${BZIP2_INCLUDE_DIR}" "${LZMA_INCLUDE_DIR}" "${JPEG_INCLUDE_DIR}" )
+set( ZDOOM_LIBS ${ZDOOM_LIBS} "${ZLIB_LIBRARIES}" "${JPEG_LIBRARIES}" "${BZIP2_LIBRARIES}" "${GME_LIBRARIES}" "${FMOD_LIBRARY}" )
+include_directories( "${ZLIB_INCLUDE_DIR}" "${FMOD_INCLUDE_DIR}" "${BZIP2_INCLUDE_DIR}" "${LZMA_INCLUDE_DIR}" "${JPEG_INCLUDE_DIR}" "${GME_INCLUDE_DIR}" )
 
-if( FLUIDSYNTH_FOUND )
-  if( NOT DYN_FLUIDSYNTH)
-	set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FLUIDSYNTH_LIBRARIES}" )
-	include_directories( "${FLUIDSYNTH_INCLUDE_DIR}" )
-  endif( NOT DYN_FLUIDSYNTH )
-endif( FLUIDSYNTH_FOUND )
+if( NOT DYN_FLUIDSYNTH)
+	if( FLUIDSYNTH_FOUND )
+		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FLUIDSYNTH_LIBRARIES}" )
+		include_directories( "${FLUIDSYNTH_INCLUDE_DIR}" )
+	endif( FLUIDSYNTH_FOUND )
+else( NOT DYN_FLUIDSYNTH )
+	set( ZDOOM_LIBS ${ZDOOM_LIBS} ${CMAKE_DL_LIBS} )
+endif( NOT DYN_FLUIDSYNTH )
 
 # Start defining source files for ZDoom
+set( PLAT_WIN32_SOURCES
+	win32/eaxedit.cpp
+	win32/fb_d3d9.cpp
+	win32/fb_d3d9_wipe.cpp
+	win32/fb_ddraw.cpp
+	win32/hardware.cpp
+	win32/helperthread.cpp
+	win32/i_cd.cpp
+	win32/i_crash.cpp
+	win32/i_input.cpp
+	win32/i_keyboard.cpp
+	win32/i_mouse.cpp
+	win32/i_dijoy.cpp
+	win32/i_rawps2.cpp
+	win32/i_xinput.cpp
+	win32/i_main.cpp
+	win32/i_movie.cpp
+	win32/i_system.cpp
+	win32/st_start.cpp
+	win32/win32video.cpp )
+set( PLAT_POSIX_SOURCES
+	posix/i_cd.cpp
+	posix/i_movie.cpp
+	posix/i_steam.cpp
+	posix/i_system.cpp
+	posix/st_start.cpp )
+set( PLAT_SDL_SOURCES
+	posix/sdl/crashcatcher.c
+	posix/sdl/hardware.cpp
+	posix/sdl/i_gui.cpp
+	posix/sdl/i_input.cpp
+	posix/sdl/i_joystick.cpp
+	posix/sdl/i_main.cpp
+	posix/sdl/i_timer.cpp
+	posix/sdl/sdlvideo.cpp )
+set( PLAT_OSX_SOURCES
+	posix/osx/iwadpicker_cocoa.mm
+	posix/osx/zdoom.icns )
+set( PLAT_COCOA_SOURCES
+	posix/cocoa/critsec.cpp
+	posix/cocoa/i_input.mm
+	posix/cocoa/i_joystick.cpp
+	posix/cocoa/i_main.mm
+	posix/cocoa/i_timer.cpp
+	posix/cocoa/i_video.mm )
 
 if( WIN32 )
 	set( SYSTEM_SOURCES_DIR win32 )
-	set( SYSTEM_SOURCES
-		win32/eaxedit.cpp
-		win32/fb_d3d9.cpp
-		win32/fb_d3d9_wipe.cpp
-		win32/fb_ddraw.cpp
-		win32/hardware.cpp
-		win32/helperthread.cpp
-		win32/i_cd.cpp
-		win32/i_crash.cpp
-		win32/i_input.cpp
-		win32/i_keyboard.cpp
-		win32/i_mouse.cpp
-		win32/i_dijoy.cpp
-		win32/i_rawps2.cpp
-		win32/i_xinput.cpp
-		win32/i_main.cpp
-		win32/i_movie.cpp
-		win32/i_system.cpp
-		win32/st_start.cpp
-		win32/win32video.cpp )
-	if( CMAKE_COMPILER_IS_GNUCXX )
+	set( SYSTEM_SOURCES ${PLAT_WIN32_SOURCES} )
+	set( OTHER_SYSTEM_SOURCES ${PLAT_POSIX_SOURCES} ${PLAT_SDL_SOURCES} ${PLAT_OSX_SOURCES} ${PLAT_COCOA_SOURCES} )
+	
+	if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 		# CMake is not set up to compile and link rc files with GCC. :(
 		add_custom_command( OUTPUT zdoom-rc.o
 			COMMAND windres -o zdoom-rc.o -i ${CMAKE_CURRENT_SOURCE_DIR}/win32/zdoom.rc
 			DEPENDS win32/zdoom.rc )
 		set( SYSTEM_SOURCES ${SYSTEM_SOURCES} zdoom-rc.o )
-	else( CMAKE_COMPILER_IS_GNUCXX )
+	else( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 		set( SYSTEM_SOURCES ${SYSTEM_SOURCES} win32/zdoom.rc )
-	endif( CMAKE_COMPILER_IS_GNUCXX )
+	endif( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
+elseif( APPLE )
+	if( OSX_COCOA_BACKEND )
+		set( SYSTEM_SOURCES_DIR posix posix/cocoa )
+		set( SYSTEM_SOURCES ${PLAT_COCOA_SOURCES} )
+		set( OTHER_SYSTEM_SOURCES ${PLAT_WIN32_SOURCES} ${PLAT_SDL_SOURCES} )
+	else( OSX_COCOA_BACKEND )
+		set( SYSTEM_SOURCES_DIR posix posix/sdl )
+		set( SYSTEM_SOURCES ${PLAT_SDL_SOURCES} )
+		set( PLAT_OSX_SOURCES ${PLAT_OSX_SOURCES} posix/sdl/i_system.mm )
+		set( OTHER_SYSTEM_SOURCES ${PLAT_WIN32_SOURCES} ${PLAT_COCOA_SOURCES} )
+	endif( OSX_COCOA_BACKEND )
+
+	set( SYSTEM_SOURCES ${SYSTEM_SOURCES} ${PLAT_POSIX_SOURCES} ${PLAT_OSX_SOURCES} "${FMOD_LIBRARY}" )
+
+	set_source_files_properties( posix/osx/zdoom.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources )
+	set_source_files_properties( "${FMOD_LIBRARY}" PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks )
 else( WIN32 )
-	set( SYSTEM_SOURCES_DIR sdl )
-	set( SYSTEM_SOURCES
-		sdl/crashcatcher.c
-		sdl/hardware.cpp
-		sdl/i_cd.cpp
-		sdl/i_input.cpp
-		sdl/i_joystick.cpp
-		sdl/i_main.cpp
-		sdl/i_movie.cpp
-		sdl/i_system.cpp
-		sdl/sdlvideo.cpp
-		sdl/st_start.cpp )
-	if( APPLE )
-		set( SYSTEM_SOURCES ${SYSTEM_SOURCES} sdl/SDLMain.m sdl/iwadpicker_cocoa.mm sdl/i_system_cocoa.mm )
-	endif( APPLE )
+	set( SYSTEM_SOURCES_DIR posix posix/sdl )
+	set( SYSTEM_SOURCES ${PLAT_POSIX_SOURCES} ${PLAT_SDL_SOURCES} )
+	set( OTHER_SYSTEM_SOURCES ${PLAT_WIN32_SOURCES} ${PLAT_OSX_SOURCES} ${PLAT_COCOA_SOURCES} )
 endif( WIN32 )
+
+if( NOT ASM_SOURCES )
+	set( ASM_SOURCES "" )
+endif( NOT ASM_SOURCES )
 
 if( NO_ASM )
 	add_definitions( -DNOASM )
@@ -570,17 +625,14 @@ else( NO_ASM )
 	endif( X64 )
 endif( NO_ASM )
 
-get_target_property( LEMON_EXE lemon LOCATION )
-get_target_property( RE2C_EXE re2c LOCATION )
-
 add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.h
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/xlat/xlat_parser.y .
-	COMMAND ${LEMON_EXE} xlat_parser.y
+	COMMAND lemon xlat_parser.y
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS lemon ${CMAKE_CURRENT_SOURCE_DIR}/xlat/xlat_parser.y )
 
 add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h
-	COMMAND ${RE2C_EXE} --no-generation-date -s -o ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h ${CMAKE_CURRENT_SOURCE_DIR}/sc_man_scanner.re
+	COMMAND re2c --no-generation-date -s -o ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h ${CMAKE_CURRENT_SOURCE_DIR}/sc_man_scanner.re
 	DEPENDS re2c ${CMAKE_CURRENT_SOURCE_DIR}/sc_man_scanner.re )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
@@ -607,8 +659,14 @@ endif( DYN_FLUIDSYNTH )
 # there's generally a new cpp for every header so this file will get changed
 if( WIN32 )
 	set( EXTRA_HEADER_DIRS win32/*.h )
+elseif( APPLE )
+	if( OSX_COCOA_BACKEND )
+		set( EXTRA_HEADER_DIRS posix/*.h posix/cocoa/*.h )
+	else( OSX_COCOA_BACKEND )
+		set( EXTRA_HEADER_DIRS posix/*.h posix/sdl/*.h )
+	endif( OSX_COCOA_BACKEND )
 else( WIN32 )
-	set( EXTRA_HEADER_DIRS sdl/*.h )
+	set( EXTRA_HEADER_DIRS posix/*.h posix/sdl/*.h )
 endif( WIN32 )
 file( GLOB HEADER_FILES
 	${EXTRA_HEADER_DIRS}
@@ -622,6 +680,10 @@ file( GLOB HEADER_FILES
 	intermission/*.h
 	menu/*.h
 	oplsynth/*.h
+	oplsynth/dosbox/*.h
+	posix/*.h
+	posix/cocoa/*.h
+	posix/sdl/*.h
 	r_data/*.h
 	resourcefiles/*.h
 	sfmt/*.h
@@ -632,9 +694,105 @@ file( GLOB HEADER_FILES
 	*.h
 )
 
-add_executable( zdoom WIN32
+# These files will be flagged as "headers" so that they appear in project files
+# without being compiled.
+set( NOT_COMPILED_SOURCE_FILES
+	${OTHER_SYSTEM_SOURCES}
+	sc_man_scanner.h
+	sc_man_scanner.re
+	g_doom/a_arachnotron.cpp
+	g_doom/a_archvile.cpp
+	g_doom/a_bossbrain.cpp
+	g_doom/a_bruiser.cpp
+	g_doom/a_cacodemon.cpp
+	g_doom/a_cyberdemon.cpp
+	g_doom/a_demon.cpp
+	g_doom/a_doomimp.cpp
+	g_doom/a_doomweaps.cpp
+	g_doom/a_fatso.cpp
+	g_doom/a_keen.cpp
+	g_doom/a_lostsoul.cpp
+	g_doom/a_painelemental.cpp
+	g_doom/a_possessed.cpp
+	g_doom/a_revenant.cpp
+	g_doom/a_scriptedmarine.cpp
+	g_doom/a_spidermaster.cpp
+	g_heretic/a_chicken.cpp
+	g_heretic/a_dsparil.cpp
+	g_heretic/a_hereticartifacts.cpp
+	g_heretic/a_hereticimp.cpp
+	g_heretic/a_hereticweaps.cpp
+	g_heretic/a_ironlich.cpp
+	g_heretic/a_knight.cpp
+	g_heretic/a_wizard.cpp
+	g_hexen/a_bats.cpp
+	g_hexen/a_bishop.cpp
+	g_hexen/a_blastradius.cpp
+	g_hexen/a_boostarmor.cpp
+	g_hexen/a_centaur.cpp
+	g_hexen/a_clericflame.cpp
+	g_hexen/a_clericholy.cpp
+	g_hexen/a_clericmace.cpp
+	g_hexen/a_clericstaff.cpp
+	g_hexen/a_dragon.cpp
+	g_hexen/a_fighteraxe.cpp
+	g_hexen/a_fighterhammer.cpp
+	g_hexen/a_fighterplayer.cpp
+	g_hexen/a_fighterquietus.cpp
+	g_hexen/a_firedemon.cpp
+	g_hexen/a_flechette.cpp
+	g_hexen/a_flies.cpp
+	g_hexen/a_fog.cpp
+	g_hexen/a_healingradius.cpp
+	g_hexen/a_heresiarch.cpp
+	g_hexen/a_hexenspecialdecs.cpp
+	g_hexen/a_iceguy.cpp
+	g_hexen/a_korax.cpp
+	g_hexen/a_magecone.cpp
+	g_hexen/a_magelightning.cpp
+	g_hexen/a_magestaff.cpp
+	g_hexen/a_pig.cpp
+	g_hexen/a_serpent.cpp
+	g_hexen/a_spike.cpp
+	g_hexen/a_summon.cpp
+	g_hexen/a_teleportother.cpp
+	g_hexen/a_wraith.cpp
+	g_strife/a_acolyte.cpp
+	g_strife/a_alienspectres.cpp
+	g_strife/a_coin.cpp
+	g_strife/a_crusader.cpp
+	g_strife/a_entityboss.cpp
+	g_strife/a_inquisitor.cpp
+	g_strife/a_oracle.cpp
+	g_strife/a_programmer.cpp
+	g_strife/a_reaver.cpp
+	g_strife/a_rebels.cpp
+	g_strife/a_sentinel.cpp
+	g_strife/a_stalker.cpp
+	g_strife/a_strifeitems.cpp
+	g_strife/a_strifeweapons.cpp
+	g_strife/a_templar.cpp
+	g_strife/a_thingstoblowup.cpp
+	g_shared/sbarinfo_commands.cpp
+	xlat/xlat_parser.y
+	xlat_parser.c
+	xlat_parser.h
+
+	# We could have the ASM macro add these files, but it wouldn't add all
+	# platforms.
+	asm_ia32/a.asm
+	asm_ia32/misc.asm
+	asm_ia32/tmap.asm
+	asm_ia32/tmap2.asm
+	asm_ia32/tmap3.asm
+	asm_x86_64/tmap3.asm
+	asm_x86_64/tmap3.s
+)
+
+add_executable( zdoom WIN32 MACOSX_BUNDLE
 	${HEADER_FILES}
-	autostart.cpp
+	${NOT_COMPILED_SOURCE_FILES}
+	__autostart.cpp
 	${ASM_SOURCES}
 	${SYSTEM_SOURCES}
 	${X86_SOURCES}
@@ -650,6 +808,7 @@ add_executable( zdoom WIN32
 	c_bind.cpp
 	c_cmds.cpp
 	c_console.cpp
+	c_consolebuffer.cpp
 	c_cvars.cpp
 	c_dispatch.cpp
 	c_expr.cpp
@@ -696,6 +855,7 @@ add_executable( zdoom WIN32
 	m_misc.cpp
 	m_png.cpp
 	m_random.cpp
+	m_specialpaths.cpp
 	memarena.cpp
 	md5.cpp
 	name.cpp
@@ -755,7 +915,6 @@ add_executable( zdoom WIN32
 	r_drawt.cpp
 	r_main.cpp
 	r_plane.cpp
-	r_polymost.cpp
 	r_segs.cpp
 	r_sky.cpp
 	r_things.cpp
@@ -851,6 +1010,7 @@ add_executable( zdoom WIN32
 	oplsynth/opl_mus_player.cpp
 	oplsynth/dosbox/opl.cpp
 	oplsynth/OPL3.cpp
+	oplsynth/nukedopl3.cpp
 	resourcefiles/ancientzip.cpp
 	resourcefiles/file_7z.cpp
 	resourcefiles/file_grp.cpp
@@ -938,18 +1098,19 @@ add_executable( zdoom WIN32
 	r_data/renderstyle.cpp
 	r_data/r_interpolate.cpp
 	r_data/r_translate.cpp
-	autozend.cpp
+	zzautozend.cpp
 )
 
 set_source_files_properties( xlat/parse_xlat.cpp PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c" )
 set_source_files_properties( sc_man.cpp PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h" )
+set_source_files_properties( ${NOT_COMPILED_SOURCE_FILES} PROPERTIES HEADER_FILE_ONLY TRUE )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
 	# [BL] Solaris requires these to be explicitly linked.
 	set( ZDOOM_LIBS ${ZDOOM_LIBS} nsl socket)
 endif(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
 
-target_link_libraries( zdoom ${ZDOOM_LIBS} gme gdtoa dumb lzma )
+target_link_libraries( zdoom ${ZDOOM_LIBS} gdtoa dumb lzma )
 include_directories( .
 	g_doom
 	g_heretic
@@ -963,7 +1124,6 @@ include_directories( .
 	thingdef
 	timidity
 	xlat
-	../game-music-emu/gme
 	../gdtoa
 	../dumb/include
 	${CMAKE_BINARY_DIR}/gdtoa
@@ -971,10 +1131,40 @@ include_directories( .
 
 add_dependencies( zdoom revision_check )
 
-# RUNTIME_OUTPUT_DIRECTORY does not exist in CMake 2.4.
-# Linux distributions are slow to adopt 2.6. :(
-set_target_properties( zdoom PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${ZDOOM_OUTPUT_DIR} )
-set_target_properties( zdoom PROPERTIES OUTPUT_NAME ${ZDOOM_EXE_NAME} )
+# Due to some quirks, we need to do this in this order
+if( NOT ZDOOM_OUTPUT_OLDSTYLE OR NO_GENERATOR_EXPRESSIONS )
+	# RUNTIME_OUTPUT_DIRECTORY does not exist in CMake 2.4.
+	# Linux distributions are slow to adopt 2.6. :(
+	set_target_properties( zdoom PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${ZDOOM_OUTPUT_DIR} )
+	set_target_properties( zdoom PROPERTIES OUTPUT_NAME ${ZDOOM_EXE_NAME} )
+else( NOT ZDOOM_OUTPUT_OLDSTYLE OR NO_GENERATOR_EXPRESSIONS )
+	set_target_properties( zdoom PROPERTIES
+		RUNTIME_OUTPUT_NAME ${ZDOOM_EXE_NAME}
+		RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ZDOOM_OUTPUT_DIR}
+		RUNTIME_OUTPUT_NAME_DEBUG ${ZDOOM_EXE_NAME}d
+		RUNTIME_OUTPUT_DIRECTORY_DEBUG ${ZDOOM_OUTPUT_DIR}
+		RUNTIME_OUTPUT_NAME_MINSIZEREL ${ZDOOM_EXE_NAME}msr
+		RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${ZDOOM_OUTPUT_DIR}
+		RUNTIME_OUTPUT_NAME_RELWITHDEBINFO ${ZDOOM_EXE_NAME}rd
+		RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${ZDOOM_OUTPUT_DIR}
+	)
+endif( NOT ZDOOM_OUTPUT_OLDSTYLE OR NO_GENERATOR_EXPRESSIONS )
+
+if( MSVC )
+	option( ZDOOM_GENERATE_MAPFILE "Generate .map file for debugging." OFF )
+	if( ZDOOM_GENERATE_MAPFILE )
+		set_target_properties(zdoom PROPERTIES LINK_FLAGS "/MANIFEST:NO /DELAYLOAD:\"fmodex${X64}.dll\" /MAP")
+	else( ZDOOM_GENERATE_MAPFILE )
+		set_target_properties(zdoom PROPERTIES LINK_FLAGS "/MANIFEST:NO /DELAYLOAD:\"fmodex${X64}.dll\"")
+	endif( ZDOOM_GENERATE_MAPFILE )
+
+	add_custom_command(TARGET zdoom POST_BUILD
+		COMMAND "mt.exe" -manifest \"${CMAKE_CURRENT_SOURCE_DIR}\\win32\\zdoom.exe.manifest\" -outputresource:\"$(TargetDir)$(TargetFileName)\"\;\#1
+		COMMENT "Adding manifest..."
+	)
+
+	create_default_target_launcher( zdoom WORKING_DIRECTORY ${ZDOOM_OUTPUT_DIR} )
+endif( MSVC )
 
 if( NOT WIN32 )
 	FILE( WRITE ${CMAKE_CURRENT_BINARY_DIR}/link-make "if [ ! -e ${ZDOOM_OUTPUT_DIR}/${ZDOOM_EXE_NAME} ]; then ln -sf ${CMAKE_CURRENT_BINARY_DIR}/${ZDOOM_EXE_NAME} ${ZDOOM_OUTPUT_DIR}/${ZDOOM_EXE_NAME}; fi" )
@@ -985,13 +1175,63 @@ endif( NOT WIN32 )
 if( CMAKE_COMPILER_IS_GNUCXX )
 	# GCC misoptimizes this file
 	set_source_files_properties( oplsynth/fmopl.cpp PROPERTIES COMPILE_FLAGS "-fno-tree-dominator-opts -fno-tree-fre" )
-
+endif( CMAKE_COMPILER_IS_GNUCXX )
+if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 	# Need to enable intrinsics for this file.
 	if( SSE_MATTERS )
 		set_source_files_properties( x86.cpp PROPERTIES COMPILE_FLAGS "-msse2 -mmmx" )
 	endif( SSE_MATTERS )
-endif( CMAKE_COMPILER_IS_GNUCXX )
+endif( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 
-if( MSVC )
-	set_target_properties(zdoom PROPERTIES LINK_FLAGS "/MANIFEST:NO")
-endif( MSVC )
+if( APPLE )
+	set_target_properties(zdoom PROPERTIES
+		LINK_FLAGS "-framework Carbon -framework Cocoa -framework IOKit -framework OpenGL"
+		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/posix/osx/zdoom-info.plist" )
+
+	# Fix fmod link so that it can be found in the app bundle.
+	find_program( OTOOL otool HINTS "/usr/bin" "${OSX_DEVELOPER_ROOT}/usr/bin" )
+	find_program( INSTALL_NAME_TOOL install_name_tool HINTS "/usr/bin" "${OSX_DEVELOPER_ROOT}/usr/bin" )
+	execute_process( COMMAND "${OTOOL}" -L "${FMOD_LIBRARY}"
+		COMMAND grep "libfmodex.dylib (compat"
+		COMMAND head -n1
+		COMMAND awk "{print $1}"
+		OUTPUT_VARIABLE FMOD_LINK
+		OUTPUT_STRIP_TRAILING_WHITESPACE )
+	add_custom_command( TARGET zdoom POST_BUILD
+		COMMAND "${INSTALL_NAME_TOOL}" -change "${FMOD_LINK}" @executable_path/../Frameworks/libfmodex.dylib "$<TARGET_FILE:zdoom>"
+		COMMENT "Relinking FMOD Ex" )
+endif( APPLE )
+
+source_group("Assembly Files\\ia32" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_ia32/.+")
+source_group("Assembly Files\\x86_64" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_x86_64/.+")
+source_group("Audio Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/sound/.+")
+source_group("Audio Files\\OPL Synth" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/oplsynth/.+")
+source_group("Audio Files\\OPL Synth\\DOSBox" FILES oplsynth/dosbox/opl.cpp oplsynth/dosbox/opl.h)
+source_group("Audio Files\\Timidity\\Headers" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/timidity/.+\\.h$")
+source_group("Audio Files\\Timidity\\Source" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/timidity/.+\\.cpp$")
+source_group("Decorate++" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/thingdef/.+")
+source_group("FraggleScript" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/fragglescript/.+")
+source_group("Games\\Doom Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_doom/.+")
+source_group("Games\\Heretic Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_heretic/.+")
+source_group("Games\\Hexen Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_hexen/.+")
+source_group("Games\\Raven Shared" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_raven/.+")
+source_group("Games\\Strife Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_strife/.+")
+source_group("Intermission" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/intermission/.+")
+source_group("Menu" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/menu/.+")
+source_group("Render Core\\Render Headers" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/r_.+\\.h$")
+source_group("Render Core\\Render Sources" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/r_.+\\.cpp$")
+source_group("Render Data\\Resource Headers" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/r_data/.+\\.h$")
+source_group("Render Data\\Resource Sources" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/r_data/.+\\.cpp$")
+source_group("Render Data\\Textures" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/textures/.+")
+source_group("Render Interface" FILES r_defs.h r_renderer.h r_sky.cpp r_sky.h r_state.h r_utility.cpp r_utility.h)
+source_group("Resource Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/resourcefiles/.+")
+source_group("POSIX Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/posix/.+")
+source_group("Cocoa Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/posix/cocoa/.+")
+source_group("OS X Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/posix/osx/.+")
+source_group("SDL Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/posix/sdl/.+")
+source_group("SFMT" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/sfmt/.+")
+source_group("Shared Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_shared/.+")
+source_group("Versioning" FILES version.h win32/zdoom.rc)
+source_group("Win32 Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/win32/.+")
+source_group("Xlat" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/xlat/.+" FILES ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.h)
+source_group("Source Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h sc_man_scanner.re)

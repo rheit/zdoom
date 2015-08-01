@@ -62,6 +62,9 @@
 extern bool DrawFSHUD;		// [RH] Defined in d_main.cpp
 EXTERN_CVAR (Bool, cl_capfps)
 
+extern lighttable_t*	fixedcolormap;
+extern FSpecialColormap*realfixedcolormap;
+
 // TYPES -------------------------------------------------------------------
 
 struct InterpolationViewer
@@ -86,6 +89,11 @@ CVAR (Bool, r_deathcamera, false, CVAR_ARCHIVE)
 CVAR (Int, r_clearbuffer, 0, 0)
 CVAR (Bool, r_drawvoxels, true, 0)
 CVAR (Bool, r_drawplayersprites, true, 0)	// [RH] Draw player sprites?
+CUSTOM_CVAR(Float, r_quakeintensity, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+{
+	if (self < 0.f) self = 0.f;
+	else if (self > 1.f) self = 1.f;
+}
 
 DCanvas			*RenderTarget;		// [RH] canvas to render to
 
@@ -578,6 +586,7 @@ void R_InterpolateView (player_t *player, fixed_t frac, InterpolationViewer *ivi
 	viewy = iview->oviewy + FixedMul (frac, iview->nviewy - iview->oviewy);
 	viewz = iview->oviewz + FixedMul (frac, iview->nviewz - iview->oviewz);
 	if (player != NULL &&
+		!(player->cheats & CF_INTERPVIEW) &&
 		player - players == consoleplayer &&
 		camera == player->mo &&
 		!demoplayback &&
@@ -599,7 +608,7 @@ void R_InterpolateView (player_t *player, fixed_t frac, InterpolationViewer *ivi
 		if (delta > 0)
 		{
 			// Avoid overflowing viewpitch (can happen when a netgame is stalled)
-			if (viewpitch + delta <= viewpitch)
+			if (viewpitch > INT_MAX - delta)
 			{
 				viewpitch = player->MaxPitch;
 			}
@@ -611,7 +620,7 @@ void R_InterpolateView (player_t *player, fixed_t frac, InterpolationViewer *ivi
 		else if (delta < 0)
 		{
 			// Avoid overflowing viewpitch (can happen when a netgame is stalled)
-			if (viewpitch + delta >= viewpitch)
+			if (viewpitch < INT_MIN - delta)
 			{
 				viewpitch = player->MinPitch;
 			}
@@ -718,6 +727,62 @@ void R_ClearPastViewer (AActor *actor)
 			}
 		}
 	}
+}
+
+//==========================================================================
+//
+// R_RebuildViewInterpolation
+//
+//==========================================================================
+
+void R_RebuildViewInterpolation(player_t *player)
+{
+	if (player == NULL || player->camera == NULL)
+		return;
+
+	if (!NoInterpolateView)
+		return;
+	NoInterpolateView = false;
+
+	InterpolationViewer *iview = FindPastViewer(player->camera);
+
+	iview->oviewx = iview->nviewx;
+	iview->oviewy = iview->nviewy;
+	iview->oviewz = iview->nviewz;
+	iview->oviewpitch = iview->nviewpitch;
+	iview->oviewangle = iview->nviewangle;
+}
+
+//==========================================================================
+//
+// R_GetViewInterpolationStatus
+//
+//==========================================================================
+
+bool R_GetViewInterpolationStatus()
+{
+	return NoInterpolateView;
+}
+
+//==========================================================================
+//
+// QuakePower
+//
+//==========================================================================
+
+static fixed_t QuakePower(fixed_t factor, fixed_t intensity, fixed_t offset)
+{ 
+	fixed_t randumb;
+
+	if (intensity == 0)
+	{
+		randumb = 0;
+	}
+	else
+	{
+		randumb = pr_torchflicker(intensity * 2) - intensity;
+	}
+	return FixedMul(factor, randumb + offset);
 }
 
 //==========================================================================
@@ -830,13 +895,44 @@ void R_SetupFrame (AActor *actor)
 
 	if (!paused)
 	{
-		int intensity = DEarthquake::StaticGetQuakeIntensity (camera);
-		if (intensity != 0)
+		FQuakeJiggers jiggers = { 0, };
+
+		if (DEarthquake::StaticGetQuakeIntensities(camera, jiggers) > 0)
 		{
-			viewx += ((pr_torchflicker() % (intensity<<2))
-						-(intensity<<1))<<FRACBITS;
-			viewy += ((pr_torchflicker() % (intensity<<2))
-						-(intensity<<1))<<FRACBITS;
+			fixed_t quakefactor = FLOAT2FIXED(r_quakeintensity);
+
+			if ((jiggers.RelIntensityX | jiggers.RelOffsetX) != 0)
+			{
+				int ang = (camera->angle) >> ANGLETOFINESHIFT;
+				fixed_t power = QuakePower(quakefactor, jiggers.RelIntensityX, jiggers.RelOffsetX);
+				viewx += FixedMul(finecosine[ang], power);
+				viewy += FixedMul(finesine[ang], power);
+			}
+			if ((jiggers.RelIntensityY | jiggers.RelOffsetY) != 0)
+			{
+				int ang = (camera->angle + ANG90) >> ANGLETOFINESHIFT;
+				fixed_t power = QuakePower(quakefactor, jiggers.RelIntensityY, jiggers.RelOffsetY);
+				viewx += FixedMul(finecosine[ang], power);
+				viewy += FixedMul(finesine[ang], power);
+			}
+			// FIXME: Relative Z is not relative
+			// [MC]On it! Will be introducing pitch after QF_WAVE.
+			if ((jiggers.RelIntensityZ | jiggers.RelOffsetZ) != 0)
+			{
+				viewz += QuakePower(quakefactor, jiggers.RelIntensityZ, jiggers.RelOffsetZ);
+			}
+			if ((jiggers.IntensityX | jiggers.OffsetX) != 0)
+			{
+				viewx += QuakePower(quakefactor, jiggers.IntensityX, jiggers.OffsetX);
+			}
+			if ((jiggers.IntensityY | jiggers.OffsetY) != 0)
+			{
+				viewy += QuakePower(quakefactor, jiggers.IntensityY, jiggers.OffsetY);
+			}
+			if ((jiggers.IntensityZ | jiggers.OffsetZ) != 0)
+			{
+				viewz += QuakePower(quakefactor, jiggers.IntensityZ, jiggers.OffsetZ);
+			}
 		}
 	}
 
@@ -963,7 +1059,7 @@ void FCanvasTextureInfo::Add (AActor *viewpoint, FTextureID picnum, int fov)
 	texture = static_cast<FCanvasTexture *>(TexMan[picnum]);
 	if (!texture->bHasCanvas)
 	{
-		Printf ("%s is not a valid target for a camera\n", texture->Name);
+		Printf ("%s is not a valid target for a camera\n", texture->Name.GetChars());
 		return;
 	}
 
@@ -1005,6 +1101,11 @@ void FCanvasTextureInfo::UpdateAll ()
 {
 	FCanvasTextureInfo *probe;
 
+	// curse Doom's overuse of global variables in the renderer.
+	// These get clobbered by rendering to a camera texture but they need to be preserved so the final rendering can be done with the correct palette.
+	unsigned char *savecolormap = fixedcolormap;
+	FSpecialColormap *savecm = realfixedcolormap;
+
 	for (probe = List; probe != NULL; probe = probe->Next)
 	{
 		if (probe->Viewpoint != NULL && probe->Texture->bNeedsUpdate)
@@ -1012,6 +1113,9 @@ void FCanvasTextureInfo::UpdateAll ()
 			Renderer->RenderTextureView(probe->Texture, probe->Viewpoint, probe->FOV);
 		}
 	}
+
+	fixedcolormap = savecolormap;
+	realfixedcolormap = savecm;
 }
 
 //==========================================================================

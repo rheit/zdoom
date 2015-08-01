@@ -56,6 +56,7 @@
 #include "doomerrors.h"
 #include "resourcefiles/resourcefile.h"
 #include "md5.h"
+#include "doomstat.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -300,6 +301,56 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 				AddFile(path, embedded);
 			}
 		}
+
+		if (hashfile)
+		{
+			BYTE cksum[16];
+			char cksumout[33];
+			memset(cksumout, 0, sizeof(cksumout));
+
+			FileReader *reader = wadinfo;
+
+			if (reader != NULL)
+			{
+				MD5Context md5;
+				reader->Seek(0, SEEK_SET);
+				md5.Update(reader, reader->GetLength());
+				md5.Final(cksum);
+
+				for (size_t j = 0; j < sizeof(cksum); ++j)
+				{
+					sprintf(cksumout + (j * 2), "%02X", cksum[j]);
+				}
+
+				fprintf(hashfile, "file: %s, hash: %s, size: %d\n", filename, cksumout, reader->GetLength());
+			}
+
+			else
+				fprintf(hashfile, "file: %s, Directory structure\n", filename);
+
+			for (DWORD i = 0; i < resfile->LumpCount(); i++)
+			{
+				FResourceLump *lump = resfile->GetLump(i);
+
+				if (!(lump->Flags & LUMPF_EMBEDDED))
+				{
+					reader = lump->NewReader();
+
+					MD5Context md5;
+					md5.Update(reader, lump->LumpSize);
+					md5.Final(cksum);
+
+					for (size_t j = 0; j < sizeof(cksum); ++j)
+					{
+						sprintf(cksumout + (j * 2), "%02X", cksum[j]);
+					}
+
+					fprintf(hashfile, "file: %s, lump: %s, hash: %s, size: %d\n", filename, lump->FullName ? lump->FullName : lump->Name, cksumout, lump->LumpSize);
+
+					delete reader;
+				}
+			}
+		}
 		return;
 	}
 }
@@ -492,7 +543,7 @@ int FWadCollection::CheckNumForFullName (const char *name, bool trynormal, int n
 		return -1;
 	}
 
-	i = FirstLumpIndex_FullName[MakeKey (name) % NumLumps];
+	i = FirstLumpIndex_FullName[MakeKey(name) % NumLumps];
 
 	while (i != NULL_INDEX && stricmp(name, LumpInfo[i].lump->FullName))
 	{
@@ -546,6 +597,37 @@ int FWadCollection::GetNumForFullName (const char *name)
 		I_Error ("GetNumForFullName: %s not found!", name);
 
 	return i;
+}
+
+//==========================================================================
+//
+// link a texture with a given lump
+//
+//==========================================================================
+
+void FWadCollection::SetLinkedTexture(int lump, FTexture *tex)
+{
+	if ((size_t)lump < NumLumps)
+	{
+		FResourceLump *reslump = LumpInfo[lump].lump;
+		reslump->LinkedTexture = tex;
+	}
+}
+
+//==========================================================================
+//
+// retrieve linked texture
+//
+//==========================================================================
+
+FTexture *FWadCollection::GetLinkedTexture(int lump)
+{
+	if ((size_t)lump < NumLumps)
+	{
+		FResourceLump *reslump = LumpInfo[lump].lump;
+		return reslump->LinkedTexture;
+	}
+	return NULL;
 }
 
 //==========================================================================
@@ -993,6 +1075,16 @@ void FWadCollection::GetLumpName (char *to, int lump) const
 		*to = 0;
 	else
 		uppercopy (to, LumpInfo[lump].lump->Name);
+}
+
+void FWadCollection::GetLumpName(FString &to, int lump) const
+{
+	if ((size_t)lump >= NumLumps)
+		to = FString();
+	else {
+		to = LumpInfo[lump].lump->Name;
+		to.ToUpper();
+	}
 }
 
 //==========================================================================

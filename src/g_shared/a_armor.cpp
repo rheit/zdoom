@@ -25,6 +25,11 @@ void ABasicArmor::Serialize (FArchive &arc)
 {
 	Super::Serialize (arc);
 	arc << SavePercent << BonusCount << MaxAbsorb << MaxFullAbsorb << AbsorbCount << ArmorType;
+
+	if (SaveVersion >= 4511)
+	{
+		 arc << ActualSaveAmount;
+	}
 }
 
 //===========================================================================
@@ -42,9 +47,9 @@ void ABasicArmor::Tick ()
 	AbsorbCount = 0;
 	if (!Icon.isValid())
 	{
-		const char *icon = gameinfo.ArmorIcon1;
+		FString icon = gameinfo.ArmorIcon1;
 
-		if (SavePercent >= gameinfo.Armor2Percent && gameinfo.ArmorIcon2[0] != 0)
+		if (SavePercent >= gameinfo.Armor2Percent && gameinfo.ArmorIcon2.Len() != 0)
 			icon = gameinfo.ArmorIcon2;
 
 		if (icon[0] != 0)
@@ -69,6 +74,7 @@ AInventory *ABasicArmor::CreateCopy (AActor *other)
 	copy->Icon = Icon;
 	copy->BonusCount = BonusCount;
 	copy->ArmorType = ArmorType;
+	copy->ActualSaveAmount = ActualSaveAmount;
 	GoAwayAndDie ();
 	return copy;
 }
@@ -268,6 +274,7 @@ bool ABasicArmorPickup::Use (bool pickup)
 	armor->MaxAbsorb = MaxAbsorb;
 	armor->MaxFullAbsorb = MaxFullAbsorb;
 	armor->ArmorType = this->GetClass()->TypeName;
+	armor->ActualSaveAmount = SaveAmount;
 	return true;
 }
 
@@ -360,6 +367,7 @@ bool ABasicArmorBonus::Use (bool pickup)
 		armor->MaxAbsorb = MaxAbsorb;
 		armor->ArmorType = this->GetClass()->TypeName;
 		armor->MaxFullAbsorb = MaxFullAbsorb;
+		armor->ActualSaveAmount = MaxSaveAmount;
 	}
 
 	armor->Amount = MIN(armor->Amount + saveAmount, MaxSaveAmount + armor->BonusCount);
@@ -508,7 +516,14 @@ void AHexenArmor::AbsorbDamage (int damage, FName damageType, int &newdamage)
 					// with the dragon skin bracers.
 					if (damage < 10000)
 					{
+#if __APPLE__ && __GNUC__ == 4 && __GNUC_MINOR__ == 2 && __GNUC_PATCHLEVEL__  == 1
+						// -O1 optimizer bug work around. Only needed for
+						// GCC 4.2.1 on OS X for 10.4/10.5 tools compatibility.
+						volatile fixed_t tmp = 300;
+						Slots[i] -= Scale (damage, SlotsIncrement[i], tmp);
+#else
 						Slots[i] -= Scale (damage, SlotsIncrement[i], 300);
+#endif
 						if (Slots[i] < 2*FRACUNIT)
 						{
 							Slots[i] = 0;

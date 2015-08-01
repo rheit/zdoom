@@ -29,7 +29,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Checking gitinfo.h..."
-				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -56,7 +56,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;&quot;game-music-emu\gme&quot;;gdtoa;bzip2;lzma\C"
+				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;&quot;game-music-emu&quot;;gdtoa;bzip2;lzma\C"
 				PreprocessorDefinitions="NDEBUG,WIN32,_WIN32,_WINDOWS,HAVE_STRUPR,HAVE_FILELENGTH;NO_VA_COPY,BACKPATCH,HAVE_FLUIDSYNTH,DYN_FLUIDSYNTH"
 				StringPooling="true"
 				ExceptionHandling="1"
@@ -117,6 +117,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="src\win32\zdoom.exe.manifest"
 				SuppressStartupBanner="true"
 				AssemblyIdentity=""
 			/>
@@ -152,7 +153,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Checking gitinfo.h..."
-				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -178,7 +179,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;game-music-emu\gme;gdtoa;bzip2;lzma\C"
+				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;game-music-emu;gdtoa;bzip2;lzma\C"
 				PreprocessorDefinitions="NDEBUG,WIN32,_WIN32,_WINDOWS,HAVE_STRUPR,HAVE_FILELENGTH;NO_VA_COPY"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -233,6 +234,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="src\win32\zdoom.exe.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -265,7 +267,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Checking gitinfo.h..."
-				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -287,7 +289,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;&quot;game-music-emu\gme&quot;;gdtoa;bzip2;lzma\C"
+				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;&quot;game-music-emu&quot;;gdtoa;bzip2;lzma\C"
 				PreprocessorDefinitions="WIN32,_DEBUG,_WIN32,_WINDOWS,_CRTDBG_MAP_ALLOC,HAVE_STRUPR,HAVE_FILELENGTH;NO_VA_COPY,BACKPATCH,HAVE_FLUIDSYNTH,DYN_FLUIDSYNTH"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -339,6 +341,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="src\win32\zdoom.exe.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -372,7 +375,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Checking gitinfo.h..."
-				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -394,7 +397,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;game-music-emu\gme;gdtoa;bzip2;lzma\C"
+				AdditionalIncludeDirectories="src\win32;src\sound;src;zlib;src\g_shared;src\g_doom;src\g_raven;src\g_heretic;src\g_hexen;src\g_strife;&quot;jpeg-6b&quot;;game-music-emu;gdtoa;bzip2;lzma\C"
 				PreprocessorDefinitions="WIN32,_DEBUG,_WIN32,_WINDOWS,_CRTDBG_MAP_ALLOC,HAVE_STRUPR,HAVE_FILELENGTH;NO_VA_COPY"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
@@ -446,6 +449,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="src\win32\zdoom.exe.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -475,19 +479,15 @@
 			Filter="c;cpp"
 			>
 			<File
+				RelativePath=".\src\__autostart.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\actorptrselect.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\src\am_map.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\autostart.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\autozend.cpp"
 				>
 			</File>
 			<File
@@ -524,6 +524,10 @@
 			</File>
 			<File
 				RelativePath=".\src\c_console.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\c_consolebuffer.cpp"
 				>
 			</File>
 			<File
@@ -708,6 +712,10 @@
 			</File>
 			<File
 				RelativePath=".\src\m_random.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\m_specialpaths.cpp"
 				>
 			</File>
 			<File
@@ -1094,6 +1102,10 @@
 				RelativePath=".\src\zstring.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\src\zzautozend.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="!Header Files"
@@ -1169,10 +1181,6 @@
 			</File>
 			<File
 				RelativePath=".\src\d_dehacked.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\d_dehackedactions.h"
 				>
 			</File>
 			<File
@@ -2314,10 +2322,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\src\r_polymost.cpp"
-					>
-				</File>
-				<File
 					RelativePath=".\src\r_segs.cpp"
 					>
 				</File>
@@ -2355,10 +2359,6 @@
 				</File>
 				<File
 					RelativePath=".\src\r_plane.h"
-					>
-				</File>
-				<File
-					RelativePath=".\src\r_polymost.h"
 					>
 				</File>
 				<File
@@ -2626,6 +2626,14 @@
 				</File>
 				<File
 					RelativePath=".\src\oplsynth\muslib.h"
+					>
+				</File>
+				<File
+					RelativePath=".\src\oplsynth\nukedopl3.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\oplsynth\nukedopl3.h"
 					>
 				</File>
 				<File
@@ -5194,6 +5202,42 @@
 				</File>
 				<File
 					RelativePath=".\src\g_hexen\a_flechette.cpp"
+					>
+					<FileConfiguration
+						Name="Release|Win32"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|x64"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|x64"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\src\g_hexen\a_flies.cpp"
 					>
 					<FileConfiguration
 						Name="Release|Win32"

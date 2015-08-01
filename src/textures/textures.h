@@ -64,6 +64,7 @@ struct FAnimDef
 	WORD	NumFrames;
 	WORD	CurFrame;
 	BYTE	AnimType;
+	bool	bDiscrete;			// taken out of AnimType to have better control
 	DWORD	SwitchTime;			// Time to advance to next frame
 	struct FAnimFrame
 	{
@@ -77,7 +78,7 @@ struct FAnimDef
 		ANIM_Backward,
 		ANIM_OscillateUp,
 		ANIM_OscillateDown,
-		ANIM_DiscreteFrames
+		ANIM_Random
 	};
 
 	void SetSwitchTime (DWORD mstime);
@@ -107,8 +108,6 @@ struct FDoorAnimation
 	FName CloseSound;
 };
 
-
-
 // Patches.
 // A patch holds one or more columns.
 // Patches are used for sprites and all masked pictures, and we compose
@@ -119,7 +118,7 @@ struct patch_t
 	SWORD			height; 
 	SWORD			leftoffset; 	// pixels to the left of origin 
 	SWORD			topoffset;		// pixels below the origin 
-	DWORD 			columnofs[8];	// only [width] used
+	DWORD 			columnofs[];	// only [width] used
 	// the [0] is &columnofs[width] 
 };
 
@@ -159,11 +158,7 @@ public:
 	int SourceLump;
 	FTextureID id;
 
-	union
-	{
-		char Name[9];
-		DWORD dwName;		// Used with sprites
-	};
+	FString Name;
 	BYTE UseType;	// This texture's primary purpose
 
 	BYTE bNoDecals:1;		// Decals should not stick to texture
@@ -177,6 +172,7 @@ public:
 							// fully composited before subjected to any kind of postprocessing instead of
 							// doing it per patch.
 	BYTE bMultiPatch:1;		// This is a multipatch texture (we really could use real type info for textures...)
+	BYTE bKeepAround:1;		// This texture was used as part of a multi-patch texture. Do not free it.
 
 	WORD Rotations;
 	SWORD SkyOffset;
@@ -218,7 +214,6 @@ public:
 	virtual int GetSourceLump() { return SourceLump; }
 	virtual FTexture *GetRedirect(bool wantwarped);
 	virtual FTexture *GetRawTexture();		// for FMultiPatchTexture to override
-	FTextureID GetID() const { return id; }
 
 	virtual void Unload () = 0;
 
@@ -239,6 +234,7 @@ public:
 
 	int GetScaledWidth () { int foo = (Width << 17) / xScale; return (foo >> 1) + (foo & 1); }
 	int GetScaledHeight () { int foo = (Height << 17) / yScale; return (foo >> 1) + (foo & 1); }
+	int GetScaledHeight(fixed_t scale) { int foo = (Height << 17) / scale; return (foo >> 1) + (foo & 1); }
 	double GetScaledWidthDouble () { return (Width * 65536.) / xScale; }
 	double GetScaledHeightDouble () { return (Height * 65536.) / yScale; }
 
@@ -364,12 +360,23 @@ public:
 		TEXMAN_TryAny = 1,
 		TEXMAN_Overridable = 2,
 		TEXMAN_ReturnFirst = 4,
-		TEXMAN_AllowSkins = 8
+		TEXMAN_AllowSkins = 8,
+		TEXMAN_ShortNameOnly = 16,
+		TEXMAN_DontCreate = 32
+	};
+
+	enum
+	{
+		HIT_Wall = 1,
+		HIT_Flat = 2,
+		HIT_Sky = 4,
+		HIT_Sprite = 8,
+
+		HIT_Columnmode = HIT_Wall|HIT_Sky|HIT_Sprite
 	};
 
 	FTextureID CheckForTexture (const char *name, int usetype, BITFIELD flags=TEXMAN_TryAny);
 	FTextureID GetTexture (const char *name, int usetype, BITFIELD flags=0);
-	FTextureID FindTextureByLumpNum (int lumpnum);
 	FTextureID FromD64Hash(WORD hash) { return Doom64HashTable[hash]; }
 	int ListTextures (const char *name, TArray<FTextureID> &list);
 
@@ -428,14 +435,14 @@ private:
 	void InitBuildTiles ();
 
 	// Animation stuff
-	void AddAnim (FAnimDef *anim);
+	FAnimDef *AddAnim (FAnimDef *anim);
 	void FixAnimations ();
 	void InitAnimated ();
 	void InitAnimDefs ();
-	void AddSimpleAnim (FTextureID picnum, int animcount, int animtype, DWORD speedmin, DWORD speedrange=0);
-	void AddComplexAnim (FTextureID picnum, const TArray<FAnimDef::FAnimFrame> &frames);
+	FAnimDef *AddSimpleAnim (FTextureID picnum, int animcount, DWORD speedmin, DWORD speedrange=0);
+	FAnimDef *AddComplexAnim (FTextureID picnum, const TArray<FAnimDef::FAnimFrame> &frames);
 	void ParseAnim (FScanner &sc, int usetype);
-	void ParseRangeAnim (FScanner &sc, FTextureID picnum, int usetype, bool missing);
+	FAnimDef *ParseRangeAnim (FScanner &sc, FTextureID picnum, int usetype, bool missing);
 	void ParsePicAnim (FScanner &sc, FTextureID picnum, int usetype, bool missing, TArray<FAnimDef::FAnimFrame> &frames);
 	void ParseWarp(FScanner &sc);
 	void ParseCameraTexture(FScanner &sc);

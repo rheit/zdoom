@@ -178,6 +178,12 @@ void P_SetSlope (secplane_t *plane, bool setCeil, int xyangi, int zangi,
 	}
 	zang >>= ANGLETOFINESHIFT;
 
+	// Sanitize xyangi to [0,360) range
+	xyangi = xyangi % 360;
+	if (xyangi < 0)
+	{
+		xyangi = 360 + xyangi;
+	}
 	xyang = (angle_t)Scale (xyangi, ANGLE_90, 90 << ANGLETOFINESHIFT);
 
 	FVector3 norm;
@@ -446,11 +452,11 @@ void P_SpawnSlopeMakers (FMapThing *firstmt, FMapThing *lastmt, const int *oldve
 				P_VavoomSlope(sec, mt->thingid, x, y, mt->z, mt->type & 1); 
 			}
 			else if (mt->type <= THING_SlopeCeilingPointLine)
-			{
+			{ // THING_SlopeFloorPointLine and THING_SlopCeilingPointLine
 				P_SlopeLineToPoint (mt->args[0], x, y, z, mt->type & 1);
 			}
 			else
-			{
+			{ // THING_SetFloorSlope and THING_SetCeilingSlope
 				P_SetSlope (refplane, mt->type & 1, mt->angle, mt->args[0], x, y, z);
 			}
 			mt->type = 0;
@@ -523,11 +529,9 @@ static void P_AlignPlane (sector_t *sec, line_t *line, int which)
 
 	FVector3 p, v1, v2, cross;
 
-	const secplane_t *refplane;
 	secplane_t *srcplane;
 	fixed_t srcheight, destheight;
 
-	refplane = (which == 0) ? &refsec->floorplane : &refsec->ceilingplane;
 	srcplane = (which == 0) ? &sec->floorplane : &sec->ceilingplane;
 	srcheight = (which == 0) ? sec->GetPlaneTexZ(sector_t::floor) : sec->GetPlaneTexZ(sector_t::ceiling);
 	destheight = (which == 0) ? refsec->GetPlaneTexZ(sector_t::floor) : refsec->GetPlaneTexZ(sector_t::ceiling);

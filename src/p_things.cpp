@@ -92,7 +92,7 @@ bool P_Thing_Spawn (int tid, AActor *source, int type, angle_t angle, bool fog, 
 				mobj->angle = (angle != ANGLE_MAX ? angle : spot->angle);
 				if (fog)
 				{
-					Spawn<ATeleportFog> (spot->x, spot->y, spot->z + TELEFOGHEIGHT, ALLOW_REPLACE);
+					P_SpawnTeleportFog(mobj, spot->x, spot->y, spot->z + TELEFOGHEIGHT, false);
 				}
 				if (mobj->flags & MF_SPECIAL)
 					mobj->flags |= MF_DROPPED;	// Don't respawn
@@ -135,8 +135,8 @@ bool P_MoveThing(AActor *source, fixed_t x, fixed_t y, fixed_t z, bool fog)
 	{
 		if (fog)
 		{
-			Spawn<ATeleportFog> (x, y, z + TELEFOGHEIGHT, ALLOW_REPLACE);
-			Spawn<ATeleportFog> (oldx, oldy, oldz + TELEFOGHEIGHT, ALLOW_REPLACE);
+			P_SpawnTeleportFog(source, x, y, z);
+			P_SpawnTeleportFog(source, oldx, oldy, oldz, false);
 		}
 		source->PrevX = x;
 		source->PrevY = y;
@@ -412,27 +412,24 @@ void P_RemoveThing(AActor * actor)
 	// Don't remove live players.
 	if (actor->player == NULL || actor != actor->player->mo)
 	{
+		// Don't also remove owned inventory items
+		if (actor->IsKindOf(RUNTIME_CLASS(AInventory)) && static_cast<AInventory*>(actor)->Owner != NULL) return;
+
 		// be friendly to the level statistics. ;)
 		actor->ClearCounters();
 		if (actor->flags5&MF5_COUNTSECRET) level.total_secrets--;
 		actor->Destroy ();
 	}
+
 }
 
-bool P_Thing_Raise(AActor *thing)
+bool P_Thing_Raise(AActor *thing, AActor *raiser)
 {
-	if (thing == NULL)
-		return false;	// not valid
-
-	if (!(thing->flags & MF_CORPSE) )
-		return true;	// not a corpse
-	
-	if (thing->tics != -1)
-		return true;	// not lying still yet
-	
-	FState * RaiseState = thing->FindState(NAME_Raise);
+	FState * RaiseState = thing->GetRaiseState();
 	if (RaiseState == NULL)
+	{
 		return true;	// monster doesn't have a raise state
+	}
 	
 	AActor *info = thing->GetDefault ();
 
@@ -454,24 +451,52 @@ bool P_Thing_Raise(AActor *thing)
 		return false;
 	}
 
-	S_Sound (thing, CHAN_BODY, "vile/raise", 1, ATTN_IDLE);
-	
-	thing->SetState (RaiseState);
-	thing->flags = info->flags;
-	thing->flags2 = info->flags2;
-	thing->flags3 = info->flags3;
-	thing->flags4 = info->flags4;
-	thing->flags5 = info->flags5;
-	thing->flags6 = info->flags6;
-	thing->health = info->health;
-	thing->target = NULL;
-	thing->lastenemy = NULL;
 
-	// [RH] If it's a monster, it gets to count as another kill
-	if (thing->CountsAsKill())
+	S_Sound (thing, CHAN_BODY, "vile/raise", 1, ATTN_IDLE);
+
+	thing->Revive();
+
+	if (raiser != NULL)
 	{
-		level.total_monsters++;
+		// Let's copy the friendliness of the one who raised it.
+		thing->CopyFriendliness(raiser, false);
 	}
+
+	thing->SetState (RaiseState);
+	return true;
+}
+
+bool P_Thing_CanRaise(AActor *thing)
+{
+	FState * RaiseState = thing->GetRaiseState();
+	if (RaiseState == NULL)
+	{
+		return false;
+	}
+	
+	AActor *info = thing->GetDefault();
+
+	// Check against real height and radius
+	int oldflags = thing->flags;
+	fixed_t oldheight = thing->height;
+	fixed_t oldradius = thing->radius;
+
+	thing->flags |= MF_SOLID;
+	thing->height = info->height;
+	thing->radius = info->radius;
+
+	bool check = P_CheckPosition (thing, thing->x, thing->y);
+
+	// Restore checked properties
+	thing->flags = oldflags;
+	thing->radius = oldradius;
+	thing->height = oldheight;
+
+	if (!check)
+	{
+		return false;
+	}
+
 	return true;
 }
 

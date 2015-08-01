@@ -37,7 +37,7 @@ In addition to the base specification ZDoom recognizes the following lumps
 between the TEXTMAP and ENDMAP lumps:
 
     BEHAVIOR = contains compiled ACS code
-    DIALOGUE = contains compiled Strife conversation scripts.
+    DIALOGUE = contains compiled Strife or USDF conversation scripts.
     ZNODES = Nodes (must be stored as extended GL nodes. Compression is allowed
                     but deprecated for portability reasons.)
     BLOCKMAP = blockmap. It is recommended not to include this lump in UDMF maps.
@@ -92,29 +92,35 @@ Note: All <bool> fields default to false unless mentioned otherwise.
 
    linedef
    {
-      alpha = <float>;          // Translucency of this line, default is 1.0
-      renderstyle = <string>;   // Render style, can be "translucent" or "add",
-                                // default is "translucent".
-      playeruseback = <bool>;   // New SPAC flag, true = player can use from back side.
-      anycross = <bool>;        // New SPAC flag, true = any non-projectile 
-                                // crossing will trigger this line
-      monsteractivate = <bool>; // Monsters can trigger this line.
-                                // For compatibility only because this flag's 
-                                // semantics can not be fully reproduced with
-                                // explicit trigger flags.
-      blockplayers = <bool>;    // Line blocks players' movement.
-      blockeverything = <bool>; // Line blocks everything.
-      firstsideonly = <bool>;   // Line can only be triggered from the front side.
-      zoneboundary = <bool>;    // Line is a boundary for sound reverb zones.
-      clipmidtex = <bool>;      // Line's mid textures are clipped to floor and ceiling.
-      wrapmidtex = <bool>;      // Line's mid textures are wrapped.
-      midtex3d = <bool>;        // Actors can walk on mid texture.
-      checkswitchrange = <bool>;// Switches can only be activated when vertically reachable.
-      blockprojectiles = <bool>;// Line blocks all projectiles
-      blockuse = <bool>;        // Line blocks all use actions
-      blocksight = <bool>;      // Line blocks monster line of sight
-      locknumber = <int>;       // Line special is locked
-      arg0str = <string>;       // Alternate string-based version of arg0
+      alpha = <float>;            // Translucency of this line, default is 1.0
+      renderstyle = <string>;     // Render style, can be "translucent" or "add",
+                                  // default is "translucent".
+      playeruseback = <bool> ;    // New SPAC flag, true = player can use from back side.
+      anycross = <bool>;          // New SPAC flag, true = any non-projectile 
+                                  // crossing will trigger this line
+      monsteractivate = <bool>;   // Monsters can trigger this line.
+                                  // For compatibility only because this flag's 
+                                  // semantics can not be fully reproduced with
+                                  // explicit trigger flags.
+      blockplayers = <bool>;      // Line blocks players' movement.
+      blockeverything = <bool>;   // Line blocks everything.
+      firstsideonly = <bool>;     // Line can only be triggered from the front side.
+      zoneboundary = <bool>;      // Line is a boundary for sound reverb zones.
+      clipmidtex = <bool>;        // Line's mid textures are clipped to floor and ceiling.
+      wrapmidtex = <bool>;        // Line's mid textures are wrapped.
+      midtex3d = <bool>;          // Actors can walk on mid texture.
+      midtex3dimpassible = <bool>;// Used in conjuction with midtex3d - causes the mid
+                                  // texture to behave like an impassible line (projectiles
+                                  // pass through it).
+      checkswitchrange = <bool>;  // Switches can only be activated when vertically reachable.
+      blockprojectiles = <bool>;  // Line blocks all projectiles
+      blockuse = <bool>;          // Line blocks all use actions
+      blocksight = <bool>;        // Line blocks monster line of sight
+      blockhitscan = <bool>;      // Line blocks hitscan attacks
+      locknumber = <int>;         // Line special is locked
+      arg0str = <string>;         // Alternate string-based version of arg0
+
+      transparent   = <bool>; // true = line is a Strife transparent line (alpha 0.25)
 
       * Note about arg0str
 
@@ -163,6 +169,14 @@ Note: All <bool> fields default to false unless mentioned otherwise.
       yscaleceiling = <float>;        // Y texture scale of ceiling texture, Default = 1.0.
       rotationfloor = <float>;        // Rotation of floor texture in degrees, Default = 0.0.
       rotationceiling = <float>;      // Rotation of ceiling texture in degrees, Default = 0.0.
+	  ceilingplane_a = <float>;       // Define the plane equation for the sector's ceiling. Default is a horizontal plane at 'heightceiling'.
+	  ceilingplane_b = <float>;       // 'heightceiling' will still be used to calculate texture alignment.
+	  ceilingplane_c = <float>;       // The plane equation will only be used if all 4 values are given.
+	  ceilingplane_d = <float>;
+	  floorplane_a = <float>;         // Define the plane equation for the sector's floor. Default is a horizontal plane at 'heightfloor'.
+	  floorplane_b = <float>;         // 'heightfloor' will still be used to calculate texture alignment.
+	  floorplane_c = <float>;         // The plane equation will only be used if all 4 values are given.
+	  floorplane_d = <float>;
       lightfloor = <integer>;         // The floor's light level. Default is 0.
       lightceiling = <integer>;       // The ceiling's light level. Default is 0.
       lightfloorabsolute = <bool>;    // true = 'lightfloor' is an absolute value. Default is 
@@ -186,6 +200,7 @@ Note: All <bool> fields default to false unless mentioned otherwise.
       soundsequence = <string>;       // The sound sequence to play when this sector moves. Placing a
                                       // sound sequence thing in the sector will override this property.
       hidden = <bool>;                // if true this sector will not be drawn on the textured automap.
+      waterzone = <bool>;             // Sector is under water and swimmable
       
       * Note about dropactors
 
@@ -203,6 +218,23 @@ Note: All <bool> fields default to false unless mentioned otherwise.
                                 // Parameter is the conversation ID, 0 meaning none.
       countsecret = <bool>;     // Picking up this actor counts as a secret.
       arg0str = <string>;       // Alternate string-based version of arg0
+	  gravity = <float>;		// Set per-actor gravity. Positive values are multiplied with the class's property, 
+	                            // negative values are used as their absolute. Default = 1.0.
+								
+	  health = <int>;			// Set per-actor health. Positive values are multiplied with the class's property,
+								// negative values are used as their absolute. Default = 1.
+								
+	  renderstyle = <string>;	// Set per-actor render style, overriding the class default. Possible values can be "normal",
+								// "none", "add" or "additive", "subtract" or "subtractive", "stencil", "translucentstencil",
+								// "translucent", "fuzzy", "optfuzzy", "soultrans". Default is an empty string for no change.
+	  fillcolor = <integer>;    // Fill color used by the "stencil" and "translucentstencil" rendestyles, as RRGGBB value, default = 0x000000.
+	  alpha = <float>;          // Translucency of this actor (if applicable to renderstyle), default is 1.0.
+	  score = <int>;			// Score value of this actor, overriding the class default if not null. Default = 0.
+      pitch = <integer>; 		// Pitch of thing in degrees. Default = 0 (horizontal).
+      roll = <integer>; 		// Pitch of thing in degrees. Default = 0 (horizontal).
+	  scalex = <float>;         // Vertical scaling on thing. Default = 0 (ignored).
+	  scaley = <float>;         // Horizontal scaling on thing. Default = 0 (ignored).
+	  scale = <float>;        	// Vertical and horizontal scaling on thing. Default = 0 (ignored).
 
       * Note about arg0str
 
@@ -327,6 +359,16 @@ Added back locknumber property.
 
 1.20 25.02.2012
 Added arg0str thing property.
+
+1.21 09.08.2013
+Added waterzone sector property.
+
+1.22 12.04.2014
+Added transparent line property (to be folded back to core UDMF standard), and health, score, renderstyle, fillcolor, alpha, scale, scalex, scaley, pitch and roll thing properties.
+
+1.24 14.05.2014
+Added plane equations for sector slopes. (Please read carefully to ensure proper use!)
+Changed language describing the DIALOGUE lump to mention USDF as an option.
 
 ===============================================================================
 EOF

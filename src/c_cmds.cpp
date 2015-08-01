@@ -51,6 +51,7 @@
 
 #include "i_system.h"
 
+#include "doomerrors.h"
 #include "doomstat.h"
 #include "gstrings.h"
 #include "s_sound.h"
@@ -123,6 +124,15 @@ CCMD (god)
 	Net_WriteByte (CHT_GOD);
 }
 
+CCMD(god2)
+{
+	if (CheckCheatmode())
+		return;
+
+	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_WriteByte(CHT_GOD2);
+}
+
 CCMD (iddqd)
 {
 	if (CheckCheatmode ())
@@ -139,6 +149,15 @@ CCMD (buddha)
 
 	Net_WriteByte(DEM_GENERICCHEAT);
 	Net_WriteByte(CHT_BUDDHA);
+}
+
+CCMD(buddha2)
+{
+	if (CheckCheatmode())
+		return;
+
+	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_WriteByte(CHT_BUDDHA2);
 }
 
 CCMD (notarget)
@@ -343,22 +362,30 @@ CCMD (changemap)
 
 	if (argv.argc() > 1)
 	{
-		if (!P_CheckMapData(argv[1]))
+		try
 		{
-			Printf ("No map %s\n", argv[1]);
-		}
-		else
-		{
-			if (argv.argc() > 2)
+			if (!P_CheckMapData(argv[1]))
 			{
-				Net_WriteByte (DEM_CHANGEMAP2);
-				Net_WriteByte (atoi(argv[2]));
+				Printf ("No map %s\n", argv[1]);
 			}
 			else
 			{
-				Net_WriteByte (DEM_CHANGEMAP);
+				if (argv.argc() > 2)
+				{
+					Net_WriteByte (DEM_CHANGEMAP2);
+					Net_WriteByte (atoi(argv[2]));
+				}
+				else
+				{
+					Net_WriteByte (DEM_CHANGEMAP);
+				}
+				Net_WriteString (argv[1]);
 			}
-			Net_WriteString (argv[1]);
+		}
+		catch(CRecoverableError &error)
+		{
+			if (error.GetMessage())
+				Printf("%s", error.GetMessage());
 		}
 	}
 	else
@@ -432,27 +459,33 @@ CCMD (exec)
 	}
 }
 
+void execLogfile(const char *fn)
+{
+	if ((Logfile = fopen(fn, "w")))
+	{
+		const char *timestr = myasctime();
+		Printf("Log started: %s\n", timestr);
+	}
+	else
+	{
+		Printf("Could not start log\n");
+	}
+}
+
 CCMD (logfile)
 {
-	const char *timestr = myasctime ();
 
 	if (Logfile)
 	{
-		Printf ("Log stopped: %s\n", timestr);
+		const char *timestr = myasctime();
+		Printf("Log stopped: %s\n", timestr);
 		fclose (Logfile);
 		Logfile = NULL;
 	}
 
 	if (argv.argc() >= 2)
 	{
-		if ( (Logfile = fopen (argv[1], "w")) )
-		{
-			Printf ("Log started: %s\n", timestr);
-		}
-		else
-		{
-			Printf ("Could not start log\n");
-		}
+		execLogfile(argv[1]);
 	}
 }
 
@@ -607,6 +640,23 @@ CCMD (error_fatal)
 		Printf ("Usage: error_fatal <error text>\n");
 	}
 }
+
+//==========================================================================
+//
+// CCMD crashout
+//
+// Debugging routine for testing the crash logger.
+// Useless in a win32 debug build, because that doesn't enable the crash logger.
+//
+//==========================================================================
+
+#if !defined(_WIN32) || !defined(_DEBUG)
+CCMD (crashout)
+{
+	*(volatile int *)0 = 0;
+}
+#endif
+
 
 CCMD (dir)
 {
@@ -780,21 +830,6 @@ CCMD (save)
         Printf ("usage: save <filename> [description]\n");
         return;
     }
-    if (!usergame)
-	{
-        Printf ("not in a saveable game\n");
-        return;
-    }
-    if (gamestate != GS_LEVEL)
-	{
-        Printf ("not in a level\n");
-        return;
-    }
-    if(players[consoleplayer].health <= 0 && !multiplayer)
-    {
-        Printf ("player is dead in a single-player game\n");
-        return;
-    }
     FString fname = argv[1];
 	DefaultExtension (fname, ".zds");
 	G_SaveGame (fname, argv.argc() > 2 ? argv[2] : argv[1]);
@@ -867,8 +902,52 @@ CCMD(info)
 			linetarget->SpawnHealth());
 		PrintMiscActorInfo(linetarget);
 	}
-	else Printf("No target found. Info cannot find actors that have\
-				the NOBLOCKMAP flag or have height/radius of 0.\n");
+	else Printf("No target found. Info cannot find actors that have "
+				"the NOBLOCKMAP flag or have height/radius of 0.\n");
+}
+
+typedef bool (*ActorTypeChecker) (AActor *);
+
+static bool IsActorAMonster(AActor *mo)
+{
+	return mo->flags3&MF3_ISMONSTER && !(mo->flags&MF_CORPSE) && !(mo->flags&MF_FRIENDLY);
+}
+
+static bool IsActorAnItem(AActor *mo)
+{
+	return mo->IsKindOf(RUNTIME_CLASS(AInventory)) && mo->flags&MF_SPECIAL;
+}
+
+static bool IsActorACountItem(AActor *mo)
+{
+	return mo->IsKindOf(RUNTIME_CLASS(AInventory)) && mo->flags&MF_SPECIAL && mo->flags&MF_COUNTITEM;
+}
+
+static void PrintFilteredActorList(const ActorTypeChecker IsActorType, const char *FilterName)
+{
+	AActor *mo;
+	const PClass *FilterClass = NULL;
+
+	if (FilterName != NULL)
+	{
+		FilterClass = PClass::FindClass(FilterName);
+		if (FilterClass == NULL || FilterClass->ActorInfo == NULL)
+		{
+			Printf("%s is not an actor class.\n", FilterName);
+			return;
+		}
+	}
+	TThinkerIterator<AActor> it;
+
+	while ( (mo = it.Next()) )
+	{
+		if ((FilterClass == NULL || mo->IsA(FilterClass)) && IsActorType(mo))
+		{
+			Printf ("%s at (%d,%d,%d)\n",
+				mo->GetClass()->TypeName.GetChars(),
+				mo->x >> FRACBITS, mo->y >> FRACBITS, mo->z >> FRACBITS);
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -878,20 +957,9 @@ CCMD(info)
 //-----------------------------------------------------------------------------
 CCMD(monster)
 {
-	AActor * mo;
-
 	if (CheckCheatmode ()) return;
-	TThinkerIterator<AActor> it;
 
-	while ( (mo = it.Next()) )
-	{
-		if (mo->flags3&MF3_ISMONSTER && !(mo->flags&MF_CORPSE) && !(mo->flags&MF_FRIENDLY))
-		{
-			Printf ("%s at (%d,%d,%d)\n",
-				mo->GetClass()->TypeName.GetChars(),
-				mo->x >> FRACBITS, mo->y >> FRACBITS, mo->z >> FRACBITS);
-		}
-	}
+	PrintFilteredActorList(IsActorAMonster, argv.argc() > 1 ? argv[1] : NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -901,20 +969,21 @@ CCMD(monster)
 //-----------------------------------------------------------------------------
 CCMD(items)
 {
-	AActor * mo;
-
 	if (CheckCheatmode ()) return;
-	TThinkerIterator<AActor> it;
 
-	while ( (mo = it.Next()) )
-	{
-		if (mo->IsKindOf(RUNTIME_CLASS(AInventory)) && mo->flags&MF_SPECIAL)
-		{
-			Printf ("%s at (%d,%d,%d)\n",
-				mo->GetClass()->TypeName.GetChars(),
-				mo->x >> FRACBITS, mo->y >> FRACBITS, mo->z >> FRACBITS);
-		}
-	}
+	PrintFilteredActorList(IsActorAnItem, argv.argc() > 1 ? argv[1] : NULL);
+}
+
+//-----------------------------------------------------------------------------
+//
+//
+//
+//-----------------------------------------------------------------------------
+CCMD(countitems)
+{
+	if (CheckCheatmode ()) return;
+
+	PrintFilteredActorList(IsActorACountItem, argv.argc() > 1 ? argv[1] : NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -931,8 +1000,15 @@ CCMD(changesky)
 	sky1name = argv[1];
 	if (sky1name[0] != 0)
 	{
-		strncpy (level.skypic1, sky1name, 8);
-		sky1texture = TexMan.GetTexture (sky1name, FTexture::TEX_Wall, FTextureManager::TEXMAN_Overridable);
+		FTextureID newsky = TexMan.GetTexture(sky1name, FTexture::TEX_Wall, FTextureManager::TEXMAN_Overridable | FTextureManager::TEXMAN_ReturnFirst);
+		if (newsky.Exists())
+		{
+			sky1texture = level.skytexture1 = newsky;
+		}
+		else
+		{
+			Printf("changesky: Texture '%s' not found\n", sky1name);
+		}
 	}
 	R_InitSkyMap ();
 }
@@ -960,18 +1036,14 @@ CCMD(nextmap)
 {
 	if (netgame)
 	{
-		Printf ("Use "TEXTCOLOR_BOLD"changemap"TEXTCOLOR_NORMAL" instead. "TEXTCOLOR_BOLD"Nextmap"
-				TEXTCOLOR_NORMAL" is for single-player only.\n");
+		Printf ("Use " TEXTCOLOR_BOLD "changemap" TEXTCOLOR_NORMAL " instead. " TEXTCOLOR_BOLD "Nextmap"
+				TEXTCOLOR_NORMAL " is for single-player only.\n");
 		return;
 	}
-	char *next = NULL;
 	
-	if (*level.nextmap)
-		next = level.nextmap;
-
-	if (next != NULL && strncmp(next, "enDSeQ", 6))
+	if (level.NextMap.Len() > 0 && level.NextMap.Compare("enDSeQ", 6))
 	{
-		G_DeferedInitNew(next);
+		G_DeferedInitNew(level.NextMap);
 	}
 	else
 	{
@@ -988,18 +1060,14 @@ CCMD(nextsecret)
 {
 	if (netgame)
 	{
-		Printf ("Use "TEXTCOLOR_BOLD"changemap"TEXTCOLOR_NORMAL" instead. "TEXTCOLOR_BOLD"Nextsecret"
-				TEXTCOLOR_NORMAL" is for single-player only.\n");
+		Printf ("Use " TEXTCOLOR_BOLD "changemap" TEXTCOLOR_NORMAL " instead. " TEXTCOLOR_BOLD "Nextsecret"
+				TEXTCOLOR_NORMAL " is for single-player only.\n");
 		return;
 	}
-	char *next = NULL;
-	
-	if (*level.secretmap)
-		next = level.secretmap;
 
-	if (next != NULL && strncmp(next, "enDSeQ", 6))
+	if (level.NextSecretMap.Len() > 0 && level.NextSecretMap.Compare("enDSeQ", 6))
 	{
-		G_DeferedInitNew(next);
+		G_DeferedInitNew(level.NextSecretMap);
 	}
 	else
 	{
@@ -1085,8 +1153,8 @@ static void PrintSecretString(const char *string, bool thislevel)
 
 CCMD(secret)
 {
-	const char *mapname = argv.argc() < 2? level.mapname : argv[1];
-	bool thislevel = !stricmp(mapname, level.mapname);
+	const char *mapname = argv.argc() < 2? level.MapName.GetChars() : argv[1];
+	bool thislevel = !stricmp(mapname, level.MapName);
 	bool foundsome = false;
 
 	int lumpno=Wads.CheckNumForName("SECRETS");

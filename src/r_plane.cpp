@@ -174,7 +174,15 @@ void R_InitPlanes ()
 void R_DeinitPlanes ()
 {
 	fakeActive = 0;
-	R_ClearPlanes(false);
+
+	// do not use R_ClearPlanes because at this point the screen pointer is no longer valid.
+	for (int i = 0; i <= MAXVISPLANES; i++)	// new code -- killough
+	{
+		for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )
+		{
+			freehead = &(*freehead)->next;
+		}
+	}
 	for (visplane_t *pl = freetail; pl != NULL; )
 	{
 		visplane_t *next = pl->next;
@@ -430,7 +438,6 @@ void R_MapTiltedPlane (int y, int x1)
 		}
 		startu = endu;
 		startv = endv;
-		startz = endz;
 		width -= SPANSIZE;
 	}
 	if (width > 0)
@@ -490,7 +497,7 @@ void R_MapColoredPlane (int y, int x1)
 
 void R_ClearPlanes (bool fullclear)
 {
-	int i, max;
+	int i;
 
 	// Don't clear fake planes if not doing a full clear.
 	if (!fullclear)
@@ -516,7 +523,6 @@ void R_ClearPlanes (bool fullclear)
 	}
 	else
 	{
-		max = fullclear ? MAXVISPLANES : MAXVISPLANES-1;
 		for (i = 0; i <= MAXVISPLANES; i++)	// new code -- killough
 		{
 			for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )
@@ -524,10 +530,7 @@ void R_ClearPlanes (bool fullclear)
 				freehead = &(*freehead)->next;
 			}
 		}
-	}
 
-	if (fullclear)
-	{
 		// opening / clipping determination
 		clearbufshort (floorclip, viewwidth, viewheight);
 		// [RH] clip ceiling to console bottom
@@ -554,9 +557,9 @@ static visplane_t *new_visplane (unsigned hash)
 
 	if (check == NULL)
 	{
-		check = (visplane_t *)M_Malloc (sizeof(*check) + sizeof(*check->top)*(MAXWIDTH*2));
-		memset(check, 0, sizeof(*check) + sizeof(*check->top)*(MAXWIDTH*2));
-		check->bottom = &check->top[MAXWIDTH+2];
+		check = (visplane_t *)M_Malloc (sizeof(*check) + 3 + sizeof(*check->top)*(MAXWIDTH*2));
+		memset(check, 0, sizeof(*check) + 3 + sizeof(*check->top)*(MAXWIDTH*2));
+		check->bottom = check->top + MAXWIDTH+2;
 	}
 	else if (NULL == (freetail = freetail->next))
 	{
@@ -603,8 +606,7 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 		// same visplane, then only the floor sky will be drawn.
 		plane.c = height.c;
 		plane.ic = height.ic;
-		isskybox = skybox != NULL && !skybox->bInSkybox &&
-			(skybox->bAlways || picnum == skyflatnum);
+		isskybox = skybox != NULL && !skybox->bInSkybox;
 	}
 	else if (skybox != NULL && skybox->bAlways && !skybox->bInSkybox)
 	{
@@ -1510,11 +1512,11 @@ void R_DrawNormalPlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 	yscale = pl->yscale << (16 - ds_ybits);
 	if (planeang != 0)
 	{
-		fixed_t cosine = finecosine[planeang >> ANGLETOFINESHIFT];
-		fixed_t sine = finesine[planeang >> ANGLETOFINESHIFT];
+		double rad = bam2rad(planeang);
+		double cosine = cos(rad), sine = sin(rad);
 
-		pviewx = pl->xoffs + FixedMul (viewx, cosine) - FixedMul (viewy, sine);
-		pviewy = pl->yoffs - FixedMul (viewx, sine) - FixedMul (viewy, cosine);
+		pviewx = xs_RoundToInt(pl->xoffs + viewx * cosine - viewy * sine);
+		pviewy = xs_RoundToInt(pl->yoffs - viewx * sine - viewy * cosine);
 	}
 	else
 	{

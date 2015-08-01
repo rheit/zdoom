@@ -44,6 +44,7 @@
 #include "thingdef/thingdef.h"
 #include "d_dehacked.h"
 #include "g_level.h"
+#include "r_data/r_translate.h"
 #include "teaminfo.h"
 
 #include "gi.h"
@@ -670,33 +671,39 @@ bool P_TryWalk (AActor *actor)
 
 void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 {
-	dirtype_t	d[3];
+	dirtype_t	d[2];
 	int			tdir;
 	dirtype_t	olddir, turnaround;
+	bool		attempts[NUMDIRS-1]; // We don't need to attempt DI_NODIR.
 
+	memset(&attempts, false, sizeof(attempts));
 	olddir = (dirtype_t)actor->movedir;
 	turnaround = opposite[olddir];
 
 	if (deltax>10*FRACUNIT)
-		d[1]= DI_EAST;
+		d[0]= DI_EAST;
 	else if (deltax<-10*FRACUNIT)
-		d[1]= DI_WEST;
+		d[0]= DI_WEST;
+	else
+		d[0]=DI_NODIR;
+
+	if (deltay<-10*FRACUNIT)
+		d[1]= DI_SOUTH;
+	else if (deltay>10*FRACUNIT)
+		d[1]= DI_NORTH;
 	else
 		d[1]=DI_NODIR;
 
-	if (deltay<-10*FRACUNIT)
-		d[2]= DI_SOUTH;
-	else if (deltay>10*FRACUNIT)
-		d[2]= DI_NORTH;
-	else
-		d[2]=DI_NODIR;
-
 	// try direct route
-	if (d[1] != DI_NODIR && d[2] != DI_NODIR)
+	if (d[0] != DI_NODIR && d[1] != DI_NODIR)
 	{
 		actor->movedir = diags[((deltay<0)<<1) + (deltax>0)];
-		if (actor->movedir != turnaround && P_TryWalk(actor))
-			return;
+		if (actor->movedir != turnaround)
+		{
+			attempts[actor->movedir] = true;
+			if (P_TryWalk(actor))
+				return;
+		}
 	}
 
 	// try other directions
@@ -704,18 +711,19 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 	{
 		if ((pr_newchasedir() > 200 || abs(deltay) > abs(deltax)))
 		{
-			swapvalues (d[1], d[2]);
+			swapvalues (d[0], d[1]);
 		}
 
+		if (d[0] == turnaround)
+			d[0] = DI_NODIR;
 		if (d[1] == turnaround)
 			d[1] = DI_NODIR;
-		if (d[2] == turnaround)
-			d[2] = DI_NODIR;
 	}
 		
-	if (d[1] != DI_NODIR)
+	if (d[0] != DI_NODIR && attempts[d[0]] == false)
 	{
-		actor->movedir = d[1];
+		actor->movedir = d[0];
+		attempts[d[0]] = true;
 		if (P_TryWalk (actor))
 		{
 			// either moved forward or attacked
@@ -723,9 +731,10 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 		}
 	}
 
-	if (d[2] != DI_NODIR)
+	if (d[1] != DI_NODIR && attempts[d[1]] == false)
 	{
-		actor->movedir = d[2];
+		actor->movedir = d[1];
+		attempts[d[1]] = true;
 		if (P_TryWalk (actor))
 			return;
 	}
@@ -733,9 +742,10 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 	if (!(actor->flags5 & MF5_AVOIDINGDROPOFF))
 	{
 		// there is no direct path to the player, so pick another direction.
-		if (olddir != DI_NODIR)
+		if (olddir != DI_NODIR && attempts[olddir] == false)
 		{
 			actor->movedir = olddir;
+			attempts[olddir] = true;
 			if (P_TryWalk (actor))
 				return;
 		}
@@ -746,9 +756,10 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 	{
 		for (tdir = DI_EAST; tdir <= DI_SOUTHEAST; tdir++)
 		{
-			if (tdir != turnaround)
+			if (tdir != turnaround && attempts[tdir] == false)
 			{
 				actor->movedir = tdir;
+				attempts[tdir] = true;
 				if ( P_TryWalk(actor) )
 					return;
 			}
@@ -758,16 +769,17 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 	{
 		for (tdir = DI_SOUTHEAST; tdir != (DI_EAST-1); tdir--)
 		{
-			if (tdir != turnaround)
+			if (tdir != turnaround && attempts[tdir] == false)
 			{
 				actor->movedir = tdir;
+				attempts[tdir] = true;
 				if ( P_TryWalk(actor) )
 					return;
 			}
 		}
 	}
 
-	if (turnaround != DI_NODIR)
+	if (turnaround != DI_NODIR && attempts[turnaround] == false)
 	{
 		actor->movedir =turnaround;
 		if ( P_TryWalk(actor) )
@@ -915,7 +927,7 @@ void P_NewChaseDir(AActor * actor)
 	// MBF's monster_backing option. Made an actor flag instead. Also cleaned the code up to make it readable.
 	// Todo: implement the movement logic
 	AActor *target = actor->target;
-	if (target->health > 0 && !actor->IsFriend(target))
+	if (target->health > 0 && !actor->IsFriend(target) && target != actor->goal)
     {   // Live enemy target
 
 		if (actor->flags3 & MF3_AVOIDMELEE)
@@ -1425,6 +1437,9 @@ AActor *LookForEnemiesInBlock (AActor *lookee, int index, void *extparam)
 		if (!(link->flags3 & MF3_ISMONSTER))
 			continue;			// don't target it if it isn't a monster (could be a barrel)
 
+		if (link->flags7 & MF7_NEVERTARGET)
+			continue;
+
 		other = NULL;
 		if (link->flags & MF_FRIENDLY)
 		{
@@ -1539,7 +1554,6 @@ bool P_LookForEnemies (AActor *actor, INTBOOL allaround, FLookExParams *params)
 bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 {
 	int 		c;
-	int 		stop;
 	int			pnum;
 	player_t*	player;
 	bool chasegoal = params? (!(params->flags & LOF_DONTCHASEGOAL)) : true;
@@ -1590,7 +1604,7 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 		}
 #endif
 		// [SP] If you don't see any enemies in deathmatch, look for players (but only when friend to a specific player.)
-		if (actor->FriendPlayer == 0 && (!teamplay || actor->DesignatedTeam == TEAM_NONE)) return result;
+		if (actor->FriendPlayer == 0 && (!teamplay || actor->GetTeam() == TEAM_NONE)) return result;
 		if (result || !deathmatch) return true;
 
 
@@ -1598,7 +1612,10 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 
 	if (!(gameinfo.gametype & (GAME_DoomStrifeChex)) &&
 		!multiplayer &&
-		players[0].health <= 0)
+		players[0].health <= 0 && 
+		actor->goal == NULL &&
+		gamestate != GS_TITLELEVEL
+		)
 	{ // Single player game and player is dead; look for monsters
 		return P_LookForMonsters (actor);
 	}
@@ -1612,20 +1629,22 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 	{
 		pnum = actor->LastLookPlayerNumber;
 	}
-	stop = (pnum - 1) & (MAXPLAYERS-1);
 		
 	for (;;)
 	{
-		pnum = (pnum + 1) & (MAXPLAYERS-1);
-		if (!playeringame[pnum])
-			continue;
-
-		if (actor->TIDtoHate == 0)
+		// [ED850] Each and every player should only ever be checked once.
+		if (c++ < MAXPLAYERS)
 		{
-			actor->LastLookPlayerNumber = pnum;
-		}
+			pnum = (pnum + 1) & (MAXPLAYERS - 1);
+			if (!playeringame[pnum])
+				continue;
 
-		if (++c == MAXPLAYERS-1 || pnum == stop)
+			if (actor->TIDtoHate == 0)
+			{
+				actor->LastLookPlayerNumber = pnum;
+			}
+		}
+		else
 		{
 			// done looking
 			if (actor->target == NULL)
@@ -1689,11 +1708,11 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 					&& P_AproxDistance (player->mo->velx, player->mo->vely)
 					< 5*FRACUNIT)
 				{ // Player is sneaking - can't detect
-					return false;
+					continue;
 				}
 				if (pr_lookforplayers() < 225)
 				{ // Player isn't sneaking, but still didn't detect
-					return false;
+					continue;
 				}
 			}
 		}
@@ -2516,149 +2535,124 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 		fixed_t viletryx = self->x + FixedMul (absSpeed, xspeed[self->movedir]);
 		fixed_t viletryy = self->y + FixedMul (absSpeed, yspeed[self->movedir]);
 		AActor *corpsehit;
-		FState *raisestate;
 
 		FBlockThingsIterator it(FBoundingBox(viletryx, viletryy, 32*FRACUNIT));
 		while ((corpsehit = it.Next()))
 		{
-			if (!(corpsehit->flags & MF_CORPSE) )
-				continue;	// not a monster
-			
-			if (corpsehit->tics != -1)
-				continue;	// not lying still yet
-			
-			raisestate = corpsehit->FindState(NAME_Raise);
-			if (raisestate == NULL)
-				continue;	// monster doesn't have a raise state
-
-			if (corpsehit->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
-				continue;	// do not resurrect players
-
-			// use the current actor's radius instead of the Arch Vile's default.
-			fixed_t maxdist = corpsehit->GetDefault()->radius + self->radius; 
-
-			maxdist = corpsehit-> GetDefault()->radius + self->radius; 
-				
-			if ( abs(corpsehit-> x - viletryx) > maxdist ||
-				 abs(corpsehit-> y - viletryy) > maxdist )
-				continue;			// not actually touching
-#ifdef _3DFLOORS
-			// Let's check if there are floors in between the archvile and its target
-			sector_t *vilesec = self->Sector;
-			sector_t *corpsec = corpsehit->Sector;
-			// We only need to test if at least one of the sectors has a 3D floor.
-			sector_t *testsec = vilesec->e->XFloor.ffloors.Size() ? vilesec : 
-				(vilesec != corpsec && corpsec->e->XFloor.ffloors.Size()) ? corpsec : NULL;
-			if (testsec)
+			FState *raisestate = corpsehit->GetRaiseState();
+			if (raisestate != NULL)
 			{
-				fixed_t zdist1, zdist2;
-				if (P_Find3DFloor(testsec, corpsehit->x, corpsehit->y, corpsehit->z, false, true, zdist1)
-					!= P_Find3DFloor(testsec, self->x, self->y, self->z, false, true, zdist2))
+				// use the current actor's radius instead of the Arch Vile's default.
+				fixed_t maxdist = corpsehit->GetDefault()->radius + self->radius;
+
+				if (abs(corpsehit->x - viletryx) > maxdist ||
+					abs(corpsehit->y - viletryy) > maxdist)
+					continue;			// not actually touching
+#ifdef _3DFLOORS
+				// Let's check if there are floors in between the archvile and its target
+				sector_t *vilesec = self->Sector;
+				sector_t *corpsec = corpsehit->Sector;
+				// We only need to test if at least one of the sectors has a 3D floor.
+				sector_t *testsec = vilesec->e->XFloor.ffloors.Size() ? vilesec :
+					(vilesec != corpsec && corpsec->e->XFloor.ffloors.Size()) ? corpsec : NULL;
+				if (testsec)
 				{
-					// Not on same floor
-					if (vilesec == corpsec || abs(zdist1 - self->z) > self->height)
+					fixed_t zdist1, zdist2;
+					if (P_Find3DFloor(testsec, corpsehit->x, corpsehit->y, corpsehit->z, false, true, zdist1)
+						!= P_Find3DFloor(testsec, self->x, self->y, self->z, false, true, zdist2))
+					{
+						// Not on same floor
+						if (vilesec == corpsec || abs(zdist1 - self->z) > self->height)
 							continue;
+					}
 				}
-			}
 #endif
 
-			corpsehit->velx = corpsehit->vely = 0;
-			// [RH] Check against real height and radius
+				corpsehit->velx = corpsehit->vely = 0;
+				// [RH] Check against real height and radius
 
-			fixed_t oldheight = corpsehit->height;
-			fixed_t oldradius = corpsehit->radius;
-			int oldflags = corpsehit->flags;
+				fixed_t oldheight = corpsehit->height;
+				fixed_t oldradius = corpsehit->radius;
+				int oldflags = corpsehit->flags;
 
-			corpsehit->flags |= MF_SOLID;
-			corpsehit->height = corpsehit->GetDefault()->height;
-			bool check = P_CheckPosition (corpsehit, corpsehit->x, corpsehit->y);
-			corpsehit->flags = oldflags;
-			corpsehit->radius = oldradius;
-			corpsehit->height = oldheight;
-			if (!check) continue;
+				corpsehit->flags |= MF_SOLID;
+				corpsehit->height = corpsehit->GetDefault()->height;
+				bool check = P_CheckPosition(corpsehit, corpsehit->x, corpsehit->y);
+				corpsehit->flags = oldflags;
+				corpsehit->radius = oldradius;
+				corpsehit->height = oldheight;
+				if (!check) continue;
 
-			// got one!
-			temp = self->target;
-			self->target = corpsehit;
-			A_FaceTarget (self);
-			if (self->flags & MF_FRIENDLY)
-			{
-				// If this is a friendly Arch-Vile (which is turning the resurrected monster into its friend)
-				// and the Arch-Vile is currently targetting the resurrected monster the target must be cleared.
-				if (self->lastenemy == temp) self->lastenemy = NULL;
-				if (self->lastenemy == corpsehit) self->lastenemy = NULL;
-				if (temp == self->target) temp = NULL;
-			}
-			self->target = temp;
-								
-			// Make the state the monster enters customizable.
-			FState * state = self->FindState(NAME_Heal);
-			if (state != NULL)
-			{
-				self->SetState (state);
-			}
-			else if (usevilestates)
-			{
-				// For Dehacked compatibility this has to use the Arch Vile's
-				// heal state as a default if the actor doesn't define one itself.
-				const PClass *archvile = PClass::FindClass("Archvile");
-				if (archvile != NULL)
+				// got one!
+				temp = self->target;
+				self->target = corpsehit;
+				A_FaceTarget(self);
+				if (self->flags & MF_FRIENDLY)
 				{
-					self->SetState (archvile->ActorInfo->FindState(NAME_Heal));
+					// If this is a friendly Arch-Vile (which is turning the resurrected monster into its friend)
+					// and the Arch-Vile is currently targetting the resurrected monster the target must be cleared.
+					if (self->lastenemy == temp) self->lastenemy = NULL;
+					if (self->lastenemy == corpsehit) self->lastenemy = NULL;
+					if (temp == self->target) temp = NULL;
 				}
-			}
-			S_Sound (corpsehit, CHAN_BODY, "vile/raise", 1, ATTN_IDLE);
-			info = corpsehit->GetDefault ();
-			
-			if (corpsehit->state == corpsehit->FindState(NAME_GenericCrush))
-			{			
-				corpsehit->Translation = info->Translation; // Clean up bloodcolor translation from crushed corpses
-			}
-			if (ib_compatflags & BCOMPATF_VILEGHOSTS)
-			{
-				corpsehit->height <<= 2;
-				// [GZ] This was a commented-out feature, so let's make use of it,
-				// but only for ghost monsters so that they are visibly different.
-				if (corpsehit->height == 0)
+				self->target = temp;
+
+				// Make the state the monster enters customizable.
+				FState * state = self->FindState(NAME_Heal);
+				if (state != NULL)
 				{
-					// Make raised corpses look ghostly
-					if (corpsehit->alpha > TRANSLUC50)
+					self->SetState(state);
+				}
+				else if (usevilestates)
+				{
+					// For Dehacked compatibility this has to use the Arch Vile's
+					// heal state as a default if the actor doesn't define one itself.
+					const PClass *archvile = PClass::FindClass("Archvile");
+					if (archvile != NULL)
 					{
-						corpsehit->alpha /= 2;
-					}
-					// This will only work if the render style is changed as well.
-					if (corpsehit->RenderStyle == LegacyRenderStyles[STYLE_Normal])
-					{
-						corpsehit->RenderStyle = STYLE_Translucent;
+						self->SetState(archvile->ActorInfo->FindState(NAME_Heal));
 					}
 				}
-			}
-			else
-			{
-				corpsehit->height = info->height;	// [RH] Use real mobj height
-				corpsehit->radius = info->radius;	// [RH] Use real radius
-			}
-			corpsehit->flags = info->flags;
-			corpsehit->flags2 = info->flags2;
-			corpsehit->flags3 = info->flags3;
-			corpsehit->flags4 = info->flags4;
-			corpsehit->flags5 = info->flags5;
-			corpsehit->flags6 = info->flags6;
-			corpsehit->health = info->health;
-			corpsehit->target = NULL;
-			corpsehit->lastenemy = NULL;
+				S_Sound(corpsehit, CHAN_BODY, "vile/raise", 1, ATTN_IDLE);
+				info = corpsehit->GetDefault();
 
-			// [RH] If it's a monster, it gets to count as another kill
-			if (corpsehit->CountsAsKill())
-			{
-				level.total_monsters++;
+				if (GetTranslationType(corpsehit->Translation) == TRANSLATION_Blood)
+				{
+					corpsehit->Translation = info->Translation; // Clean up bloodcolor translation from crushed corpses
+				}
+				if (ib_compatflags & BCOMPATF_VILEGHOSTS)
+				{
+					corpsehit->height <<= 2;
+					// [GZ] This was a commented-out feature, so let's make use of it,
+					// but only for ghost monsters so that they are visibly different.
+					if (corpsehit->height == 0)
+					{
+						// Make raised corpses look ghostly
+						if (corpsehit->alpha > TRANSLUC50)
+						{
+							corpsehit->alpha /= 2;
+						}
+						// This will only work if the render style is changed as well.
+						if (corpsehit->RenderStyle == LegacyRenderStyles[STYLE_Normal])
+						{
+							corpsehit->RenderStyle = STYLE_Translucent;
+						}
+					}
+				}
+				else
+				{
+					corpsehit->height = info->height;	// [RH] Use real mobj height
+					corpsehit->radius = info->radius;	// [RH] Use real radius
+				}
+
+				corpsehit->Revive();
+
+				// You are the Archvile's minion now, so hate what it hates
+				corpsehit->CopyFriendliness(self, false);
+				corpsehit->SetState(raisestate);
+
+				return true;
 			}
-
-			// You are the Archvile's minion now, so hate what it hates
-			corpsehit->CopyFriendliness (self, false);
-			corpsehit->SetState (raisestate);
-
-			return true;
 		}
 	}
 	return false;
@@ -2737,7 +2731,14 @@ void A_Chase(AActor *self)
 // A_FaceTracer
 //
 //=============================================================================
-void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
+enum FAF_Flags
+{
+	FAF_BOTTOM = 1,
+	FAF_MIDDLE = 2,
+	FAF_TOP = 4,
+	FAF_NODISTFACTOR = 8,
+};
+void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch, angle_t ang_offset, angle_t pitch_offset, int flags)
 {
 	if (!other)
 		return;
@@ -2754,34 +2755,34 @@ void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
 
 	// 0 means no limit. Also, if we turn in a single step anyways, no need to go through the algorithms.
 	// It also means that there is no need to check for going past the other.
-	if (max_turn && (max_turn < (angle_t)abs(self->angle - other_angle)))
+	if (max_turn && (max_turn < absangle(self->angle - other_angle)))
 	{
 		if (self->angle > other_angle)
 		{
 			if (self->angle - other_angle < ANGLE_180)
 			{
-				self->angle -= max_turn;
+				self->angle -= max_turn + ang_offset;
 			}
 			else
 			{
-				self->angle += max_turn;
+				self->angle += max_turn + ang_offset;
 			}
 		}
 		else
 		{
 			if (other_angle - self->angle < ANGLE_180)
 			{
-				self->angle += max_turn;
+				self->angle += max_turn + ang_offset;
 			}
 			else
 			{
-				self->angle -= max_turn;
+				self->angle -= max_turn + ang_offset;
 			}
 		}
 	}
 	else
 	{
-		self->angle = other_angle;
+		self->angle = other_angle + ang_offset;
 	}
 
 	// [DH] Now set pitch. In order to maintain compatibility, this can be
@@ -2792,20 +2793,33 @@ void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
 		// result is only used in a ratio.
 		double dist_x = other->x - self->x;
 		double dist_y = other->y - self->y;
+		
 		// Positioning ala missile spawning, 32 units above foot level
 		fixed_t source_z = self->z + 32*FRACUNIT + self->GetBobOffset();
 		fixed_t target_z = other->z + 32*FRACUNIT + other->GetBobOffset();
+
 		// If the target z is above the target's head, reposition to the middle of
-		// its body.
+		// its body.		
 		if (target_z >= other->z + other->height)
 		{
-			target_z = other->z + other->height / 2;
+			target_z = other->z + (other->height / 2);
 		}
+
+		//Note there is no +32*FRACUNIT on purpose. This is for customization sake. 
+		//If one doesn't want this behavior, just don't use FAF_BOTTOM.
+		if (flags & FAF_BOTTOM)
+			target_z = other->z + other->GetBobOffset(); 
+		if (flags & FAF_MIDDLE)
+			target_z = other->z + (other->height / 2) + other->GetBobOffset();
+		if (flags & FAF_TOP)
+			target_z = other->z + (other->height) + other->GetBobOffset();
+		if (!(flags & FAF_NODISTFACTOR))
+			target_z += pitch_offset;
+
 		double dist_z = target_z - source_z;
 		double dist = sqrt(dist_x*dist_x + dist_y*dist_y + dist_z*dist_z);
-
 		int other_pitch = (int)rad2bam(asin(dist_z / dist));
-
+		
 		if (max_pitch != 0)
 		{
 			if (self->pitch > other_pitch)
@@ -2823,7 +2837,11 @@ void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
 		{
 			self->pitch = other_pitch;
 		}
+		if (flags & FAF_NODISTFACTOR)
+			self->pitch += pitch_offset;
 	}
+	
+
 
 	// This will never work well if the turn angle is limited.
 	if (max_turn == 0 && (self->angle == other_angle) && other->flags & MF_SHADOW && !(self->flags6 & MF6_SEEINVISIBLE) )
@@ -2832,46 +2850,55 @@ void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
     }
 }
 
-void A_FaceTarget (AActor *self, angle_t max_turn, angle_t max_pitch)
+void A_FaceTarget(AActor *self, angle_t max_turn, angle_t max_pitch, angle_t ang_offset, angle_t pitch_offset, int flags)
 {
-	A_Face(self, self->target, max_turn, max_pitch);
+	A_Face(self, self->target, max_turn, max_pitch, ang_offset, pitch_offset, flags);
 }
 
-void A_FaceMaster (AActor *self, angle_t max_turn, angle_t max_pitch)
+void A_FaceMaster(AActor *self, angle_t max_turn, angle_t max_pitch, angle_t ang_offset, angle_t pitch_offset, int flags)
 {
-	A_Face(self, self->master, max_turn, max_pitch);
+	A_Face(self, self->master, max_turn, max_pitch, ang_offset, pitch_offset, flags);
 }
 
-void A_FaceTracer (AActor *self, angle_t max_turn, angle_t max_pitch)
+void A_FaceTracer(AActor *self, angle_t max_turn, angle_t max_pitch, angle_t ang_offset, angle_t pitch_offset, int flags)
 {
-	A_Face(self, self->tracer, max_turn, max_pitch);
+	A_Face(self, self->tracer, max_turn, max_pitch, ang_offset, pitch_offset, flags);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTarget)
 {
-	ACTION_PARAM_START(2);
+	ACTION_PARAM_START(5);
 	ACTION_PARAM_ANGLE(max_turn, 0);
 	ACTION_PARAM_ANGLE(max_pitch, 1);
+	ACTION_PARAM_ANGLE(ang_offset, 2);
+	ACTION_PARAM_ANGLE(pitch_offset, 3);
+	ACTION_PARAM_INT(flags, 4);
 
-	A_FaceTarget(self, max_turn, max_pitch);
+	A_FaceTarget(self, max_turn, max_pitch, ang_offset, pitch_offset, flags);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMaster)
 {
-	ACTION_PARAM_START(2);
+	ACTION_PARAM_START(5);
 	ACTION_PARAM_ANGLE(max_turn, 0);
 	ACTION_PARAM_ANGLE(max_pitch, 1);
+	ACTION_PARAM_ANGLE(ang_offset, 2);
+	ACTION_PARAM_ANGLE(pitch_offset, 3);
+	ACTION_PARAM_INT(flags, 4);
 
-	A_FaceMaster(self, max_turn, max_pitch);
+	A_FaceMaster(self, max_turn, max_pitch, ang_offset, pitch_offset, flags);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTracer)
 {
-	ACTION_PARAM_START(2);
+	ACTION_PARAM_START(5);
 	ACTION_PARAM_ANGLE(max_turn, 0);
 	ACTION_PARAM_ANGLE(max_pitch, 1);
+	ACTION_PARAM_ANGLE(ang_offset, 2);
+	ACTION_PARAM_ANGLE(pitch_offset, 3);
+	ACTION_PARAM_INT(flags, 4);
 
-	A_FaceTracer(self, max_turn, max_pitch);
+	A_FaceTracer(self, max_turn, max_pitch, ang_offset, pitch_offset, flags);
 }
 
 //===========================================================================
@@ -3087,6 +3114,7 @@ AInventory *P_DropItem (AActor *source, const PClass *type, int dropamount, int 
 			{
 				AInventory * inv = static_cast<AInventory *>(mo);
 				ModifyDropAmount(inv, dropamount);
+				inv->ItemFlags |= IF_TOSSED;
 				if (inv->SpecialDropAction (source))
 				{
 					// The special action indicates that the item should not spawn
@@ -3290,13 +3318,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_BossDeath)
 	{
 		if (type == NAME_Fatso)
 		{
-			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, FRACUNIT, 0, 0, 0, false);
+			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, FRACUNIT, 0, -1, 0, false);
 			return;
 		}
 		
 		if (type == NAME_Arachnotron)
 		{
-			EV_DoFloor (DFloor::floorRaiseByTexture, NULL, 667, FRACUNIT, 0, 0, 0, false);
+			EV_DoFloor (DFloor::floorRaiseByTexture, NULL, 667, FRACUNIT, 0, -1, 0, false);
 			return;
 		}
 	}
@@ -3305,11 +3333,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_BossDeath)
 		switch (level.flags & LEVEL_SPECACTIONSMASK)
 		{
 		case LEVEL_SPECLOWERFLOOR:
-			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, FRACUNIT, 0, 0, 0, false);
+			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, FRACUNIT, 0, -1, 0, false);
 			return;
 		
 		case LEVEL_SPECLOWERFLOORTOHIGHEST:
-			EV_DoFloor (DFloor::floorLowerToHighest, NULL, 666, FRACUNIT, 0, 0, 0, false);
+			EV_DoFloor (DFloor::floorLowerToHighest, NULL, 666, FRACUNIT, 0, -1, 0, false);
 			return;
 		
 		case LEVEL_SPECOPENDOOR:

@@ -47,6 +47,7 @@
 #include "v_video.h"
 #include "gameconfigfile.h"
 #include "resourcefiles/resourcefile.h"
+#include "version.h"
 
 
 CVAR (Bool, queryiwad, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
@@ -136,6 +137,12 @@ void FIWadManager::ParseIWadInfo(const char *fn, const char *data, int datasize)
 					sc.MustGetStringName("=");
 					sc.MustGetString();
 					iwad->Autoname = sc.String;
+				}
+				else if (sc.Compare("Group"))
+				{
+					sc.MustGetStringName("=");
+					sc.MustGetString();
+					iwad->Group = sc.String;
 				}
 				else if (sc.Compare("Config"))
 				{
@@ -368,7 +375,7 @@ int FIWadManager::CheckIWAD (const char *doomwaddir, WadStuff *wads)
 // Under UNIX OSes, the search path is:
 //	  1. Current directory
 //	  2. $DOOMWADDIR
-//	  3. $HOME/.zdoom
+//	  3. $HOME/.config/zdoom
 //	  4. The share directory defined at compile time (/usr/local/share/zdoom)
 //
 // The search path can be altered by editing the IWADSearch.Directories
@@ -431,27 +438,11 @@ int FIWadManager::IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, 
 				}
 			}
 		}
-#ifdef _WIN32
-		FString steam_path = I_GetSteamPath();
-		if (steam_path.IsNotEmpty())
+		TArray<FString> steam_path = I_GetSteamPath();
+		for (i = 0; i < steam_path.Size(); ++i)
 		{
-			static const char *const steam_dirs[] =
-			{
-				"doom 2/base",
-				"final doom/base",
-				"heretic shadow of the serpent riders/base",
-				"hexen/base",
-				"hexen deathkings of the dark citadel/base",
-				"ultimate doom/base",
-				"DOOM 3 BFG Edition/base/wads"
-			};
-			steam_path += "/SteamApps/common/";
-			for (i = 0; i < countof(steam_dirs); ++i)
-			{
-				CheckIWAD (steam_path + steam_dirs[i], &wads[0]);
-			}
+			CheckIWAD (steam_path[i], &wads[0]);
 		}
-#endif
 	}
 
 	if (iwadparm != NULL && !wads[0].Path.IsEmpty())
@@ -515,11 +506,21 @@ int FIWadManager::IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, 
 	if (numwads == 0)
 	{
 		I_FatalError ("Cannot find a game IWAD (doom.wad, doom2.wad, heretic.wad, etc.).\n"
-					  "Did you install ZDoom properly? You can do either of the following:\n"
+					  "Did you install " GAMENAME " properly? You can do either of the following:\n"
 					  "\n"
-					  "1. Place one or more of these wads in the same directory as ZDoom.\n"
-					  "2. Edit your zdoom-username.ini and add the directories of your iwads\n"
+#if defined(_WIN32)
+					  "1. Place one or more of these wads in the same directory as " GAMENAME ".\n"
+					  "2. Edit your " GAMENAMELOWERCASE "-username.ini and add the directories of your iwads\n"
 					  "to the list beneath [IWADSearch.Directories]");
+#elif defined(__APPLE__)
+					  "1. Place one or more of these wads in ~/Library/Application Support/" GAMENAMELOWERCASE "/\n"
+					  "2. Edit your ~/Library/Preferences/" GAMENAMELOWERCASE ".ini and add the directories\n"
+					  "of your iwads to the list beneath [IWADSearch.Directories]");
+#else
+					  "1. Place one or more of these wads in ~/.config/" GAMENAMELOWERCASE "/.\n"
+					  "2. Edit your ~/.config/" GAMENAMELOWERCASE "/" GAMENAMELOWERCASE ".ini and add the directories of your\n"
+					  "iwads to the list beneath [IWADSearch.Directories]");
+#endif
 	}
 
 	pickwad = 0;

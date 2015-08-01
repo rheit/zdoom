@@ -153,6 +153,7 @@ class FxExpression
 {
 protected:
 	FxExpression(const FScriptPosition &pos)
+	: ScriptPosition(pos)
 	{
 		isresolved = false;
 		ScriptPosition = pos;
@@ -312,6 +313,25 @@ public:
 	ExpVal EvalExpression (AActor *self);
 };
 
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+class FxFloatCast : public FxExpression
+{
+	FxExpression *basex;
+
+public:
+
+	FxFloatCast(FxExpression *x);
+	~FxFloatCast();
+	FxExpression *Resolve(FCompileContext&);
+
+	ExpVal EvalExpression (AActor *self);
+};
 
 //==========================================================================
 //
@@ -551,6 +571,27 @@ public:
 	FxExpression *Resolve(FCompileContext&);
 
 	ExpVal EvalExpression (AActor *self);
+};
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+class FxRandomPick : public FxExpression
+{
+protected:
+	FRandom * rng;
+	TDeletingArray<FxExpression*> min;
+
+public:
+
+	FxRandomPick(FRandom *, TArray<FxExpression*> mi, bool floaty, const FScriptPosition &pos);
+	~FxRandomPick();
+	FxExpression *Resolve(FCompileContext&);
+
+	ExpVal EvalExpression(AActor *self);
 };
 
 //==========================================================================

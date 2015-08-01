@@ -35,6 +35,7 @@
 #include <string.h>
 #include "m_argv.h"
 #include "cmdlib.h"
+#include "i_system.h"
 
 IMPLEMENT_CLASS (DArgs)
 
@@ -55,9 +56,8 @@ DArgs::DArgs()
 //===========================================================================
 
 DArgs::DArgs(const DArgs &other)
-: DObject()
+: DObject(), Argv(other.Argv)
 {
-	Argv = other.Argv;
 }
 
 //===========================================================================
@@ -262,7 +262,6 @@ void DArgs::RemoveArgs(const char *check)
 const char *DArgs::GetArg(int arg) const
 {
 	return ((unsigned)arg < Argv.Size()) ? Argv[arg].GetChars() : NULL;
-		return Argv[arg];
 }
 
 //===========================================================================
@@ -350,7 +349,6 @@ void DArgs::RemoveArg(int argindex)
 void DArgs::CollectFiles(const char *param, const char *extension)
 {
 	TArray<FString> work;
-	DArgs *out = new DArgs;
 	unsigned int i;
 	size_t extlen = extension == NULL ? 0 : strlen(extension);
 
@@ -390,6 +388,14 @@ void DArgs::CollectFiles(const char *param, const char *extension)
 			Argv.Delete(i);
 		}
 	}
+
+	// Optional: Replace short path names with long path names
+#ifdef _WIN32
+	for (i = 0; i < work.Size(); ++i)
+	{
+		work[i] = I_GetLongPathName(work[i]);
+	}
+#endif
 
 	// Step 3: Add work back to Argv, as long as it's non-empty.
 	if (work.Size() > 0)

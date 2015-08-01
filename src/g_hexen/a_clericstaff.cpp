@@ -71,22 +71,28 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffCheck)
 		if (linetarget)
 		{
 			P_LineAttack (pmo, angle, fixed_t(1.5*MELEERANGE), slope, damage, NAME_Melee, PClass::FindClass ("CStaffPuff"), false, &linetarget);
-			pmo->angle = R_PointToAngle2 (pmo->x, pmo->y, 
-				linetarget->x, linetarget->y);
-			if (((linetarget->player && (!linetarget->IsTeammate (pmo) || level.teamdamage != 0))|| linetarget->flags3&MF3_ISMONSTER)
-				&& (!(linetarget->flags2&(MF2_DORMANT+MF2_INVULNERABLE))))
+			if (linetarget != NULL)
 			{
-				newLife = player->health+(damage>>3);
-				newLife = newLife > max ? max : newLife;
-				if (newLife > player->health)
+				pmo->angle = R_PointToAngle2 (pmo->x, pmo->y, linetarget->x, linetarget->y);
+				if (((linetarget->player && (!linetarget->IsTeammate (pmo) || level.teamdamage != 0))|| linetarget->flags3&MF3_ISMONSTER)
+					&& (!(linetarget->flags2&(MF2_DORMANT+MF2_INVULNERABLE))))
 				{
-					pmo->health = player->health = newLife;
+					newLife = player->health+(damage>>3);
+					newLife = newLife > max ? max : newLife;
+					if (newLife > player->health)
+					{
+						pmo->health = player->health = newLife;
+					}
+					if (weapon != NULL)
+					{
+						FState * newstate = weapon->FindState("Drain");
+						if (newstate != NULL) P_SetPsprite(player, ps_weapon, newstate);
+					}
 				}
-				P_SetPsprite (player, ps_weapon, weapon->FindState ("Drain"));
-			}
-			if (weapon != NULL)
-			{
-				weapon->DepleteAmmo (weapon->bAltFire, false);
+				if (weapon != NULL)
+				{
+					weapon->DepleteAmmo (weapon->bAltFire, false);
+				}
 			}
 			break;
 		}
@@ -95,16 +101,21 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffCheck)
 		if (linetarget)
 		{
 			P_LineAttack (pmo, angle, fixed_t(1.5*MELEERANGE), slope, damage, NAME_Melee, PClass::FindClass ("CStaffPuff"), false, &linetarget);
-			pmo->angle = R_PointToAngle2 (pmo->x, pmo->y, 
-				linetarget->x, linetarget->y);
-			if ((linetarget->player && (!linetarget->IsTeammate (pmo) || level.teamdamage != 0)) || linetarget->flags3&MF3_ISMONSTER)
+			if (linetarget != NULL)
 			{
-				newLife = player->health+(damage>>4);
-				newLife = newLife > max ? max : newLife;
-				pmo->health = player->health = newLife;
-				P_SetPsprite (player, ps_weapon, weapon->FindState ("Drain"));
+				pmo->angle = R_PointToAngle2 (pmo->x, pmo->y, linetarget->x, linetarget->y);
+				if ((linetarget->player && (!linetarget->IsTeammate (pmo) || level.teamdamage != 0)) || linetarget->flags3&MF3_ISMONSTER)
+				{
+					newLife = player->health+(damage>>4);
+					newLife = newLife > max ? max : newLife;
+					pmo->health = player->health = newLife;
+					P_SetPsprite (player, ps_weapon, weapon->FindState ("Drain"));
+				}
+				if (weapon != NULL)
+				{
+					weapon->DepleteAmmo (weapon->bAltFire, false);
+				}
 			}
-			weapon->DepleteAmmo (weapon->bAltFire, false);
 			break;
 		}
 	}
@@ -164,7 +175,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffMissileSlither)
 
 DEFINE_ACTION_FUNCTION(AActor, A_CStaffInitBlink)
 {
-	self->special1 = (pr_blink()>>1)+20;
+	self->weaponspecial = (pr_blink()>>1)+20;
 }
 
 //============================================================================
@@ -177,10 +188,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffCheckBlink)
 {
 	if (self->player && self->player->ReadyWeapon)
 	{
-		if (!--self->special1)
+		if (!--self->weaponspecial)
 		{
 			P_SetPsprite (self->player, ps_weapon, self->player->ReadyWeapon->FindState ("Blink"));
-			self->special1 = (pr_blink()+50)>>2;
+			self->weaponspecial = (pr_blink()+50)>>2;
 		}
 		else 
 		{

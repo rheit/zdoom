@@ -92,8 +92,8 @@ private:
 
 struct FActionMap
 {
-	unsigned int	Key;	// value from passing Name to MakeKey()
 	FButtonStatus	*Button;
+	unsigned int	Key;	// value from passing Name to MakeKey()
 	char			Name[12];
 };
 
@@ -134,38 +134,38 @@ bool ParsingKeyConf;
 
 FActionMap ActionMaps[] =
 {
-	{ 0x0d52d67b, &Button_AM_PanLeft,	"am_panleft"},
-	{ 0x125f5226, &Button_User2,		"user2" },
-	{ 0x1eefa611, &Button_Jump,			"jump" },
-	{ 0x201f1c55, &Button_Right,		"right" },
-	{ 0x20ccc4d5, &Button_Zoom,			"zoom" },
-	{ 0x23a99cd7, &Button_Back,			"back" },
-	{ 0x41df90c2, &Button_AM_ZoomIn,	"am_zoomin"},
-	{ 0x426b69e7, &Button_Reload,		"reload" },
-	{ 0x4463f43a, &Button_LookDown,		"lookdown" },
-	{ 0x51f7a334, &Button_AM_ZoomOut,	"am_zoomout"},
-	{ 0x534c30ee, &Button_User4,		"user4" },
-	{ 0x5622bf42, &Button_Attack,		"attack" },
-	{ 0x577712d0, &Button_User1,		"user1" },
-	{ 0x57c25cb2, &Button_Klook,		"klook" },
-	{ 0x59f3e907, &Button_Forward,		"forward" },
-	{ 0x6167ce99, &Button_MoveDown,		"movedown" },
-	{ 0x676885b8, &Button_AltAttack,	"altattack" },
-	{ 0x6fa41b84, &Button_MoveLeft,		"moveleft" },
-	{ 0x818f08e6, &Button_MoveRight,	"moveright" },
-	{ 0x8197097b, &Button_AM_PanRight,	"am_panright"},
-	{ 0x8d89955e, &Button_AM_PanUp,		"am_panup"} ,
-	{ 0xa2b62d8b, &Button_Mlook,		"mlook" },
-	{ 0xab2c3e71, &Button_Crouch,		"crouch" },
-	{ 0xb000b483, &Button_Left,			"left" },
-	{ 0xb62b1e49, &Button_LookUp,		"lookup" },
-	{ 0xb6f8fe92, &Button_User3,		"user3" },
-	{ 0xb7e6a54b, &Button_Strafe,		"strafe" },
-	{ 0xce301c81, &Button_AM_PanDown,	"am_pandown"},
-	{ 0xd5897c73, &Button_ShowScores,	"showscores" },
-	{ 0xe0ccb317, &Button_Speed,		"speed" },
-	{ 0xe0cfc260, &Button_Use,			"use" },
-	{ 0xfdd701c7, &Button_MoveUp,		"moveup" },
+	{ &Button_AM_PanLeft,	0x0d52d67b, "am_panleft"},
+	{ &Button_User2,		0x125f5226, "user2" },
+	{ &Button_Jump,			0x1eefa611, "jump" },
+	{ &Button_Right,		0x201f1c55, "right" },
+	{ &Button_Zoom,			0x20ccc4d5, "zoom" },
+	{ &Button_Back,			0x23a99cd7, "back" },
+	{ &Button_AM_ZoomIn,	0x41df90c2, "am_zoomin"},
+	{ &Button_Reload,		0x426b69e7, "reload" },
+	{ &Button_LookDown,		0x4463f43a, "lookdown" },
+	{ &Button_AM_ZoomOut,	0x51f7a334, "am_zoomout"},
+	{ &Button_User4,		0x534c30ee, "user4" },
+	{ &Button_Attack,		0x5622bf42, "attack" },
+	{ &Button_User1,		0x577712d0, "user1" },
+	{ &Button_Klook,		0x57c25cb2, "klook" },
+	{ &Button_Forward,		0x59f3e907, "forward" },
+	{ &Button_MoveDown,		0x6167ce99, "movedown" },
+	{ &Button_AltAttack,	0x676885b8, "altattack" },
+	{ &Button_MoveLeft,		0x6fa41b84, "moveleft" },
+	{ &Button_MoveRight,	0x818f08e6, "moveright" },
+	{ &Button_AM_PanRight,	0x8197097b, "am_panright"},
+	{ &Button_AM_PanUp,		0x8d89955e, "am_panup"} ,
+	{ &Button_Mlook,		0xa2b62d8b, "mlook" },
+	{ &Button_Crouch,		0xab2c3e71, "crouch" },
+	{ &Button_Left,			0xb000b483, "left" },
+	{ &Button_LookUp,		0xb62b1e49, "lookup" },
+	{ &Button_User3,		0xb6f8fe92, "user3" },
+	{ &Button_Strafe,		0xb7e6a54b, "strafe" },
+	{ &Button_AM_PanDown,	0xce301c81, "am_pandown"},
+	{ &Button_ShowScores,	0xd5897c73, "showscores" },
+	{ &Button_Speed,		0xe0ccb317, "speed" },
+	{ &Button_Use,			0xe0cfc260, "use" },
+	{ &Button_MoveUp,		0xfdd701c7, "moveup" },
 };
 #define NUM_ACTIONS countof(ActionMaps)
 
@@ -184,6 +184,9 @@ static const char *KeyConfCommands[] =
 	"addplayerclass",
 	"clearplayerclasses"
 };
+
+static TArray<FString> StoredStartupSets;
+static bool RunningStoredStartups;
 
 // CODE --------------------------------------------------------------------
 
@@ -537,6 +540,18 @@ void ResetButtonStates ()
 	}
 }
 
+void C_ExecStoredSets()
+{
+	assert(!RunningStoredStartups);
+	RunningStoredStartups = true;
+	for (unsigned i = 0; i < StoredStartupSets.Size(); ++i)
+	{
+		C_DoCommand(StoredStartupSets[i]);
+	}
+	StoredStartupSets.Clear();
+	RunningStoredStartups = false;
+}
+
 void C_DoCommand (const char *cmd, int keynum)
 {
 	FConsoleCommand *com;
@@ -612,7 +627,22 @@ void C_DoCommand (const char *cmd, int keynum)
 
 	if ( (com = FindNameInHashTable (Commands, beg, len)) )
 	{
-		if (gamestate != GS_STARTUP || ParsingKeyConf ||
+		if (gamestate == GS_STARTUP && !RunningStoredStartups &&
+			len == 3 && strnicmp(beg, "set", 3) == 0)
+		{
+			// Save setting of unknown cvars for later, in case a loaded wad has a
+			// CVARINFO that defines it.
+			FCommandLine args(beg);
+			if (args.argc() > 1 && FindCVar(args[1], NULL) == NULL)
+			{
+				StoredStartupSets.Push(beg);
+			}
+			else
+			{
+				com->Run(args, players[consoleplayer].mo, keynum);
+			}
+		}
+		else if (gamestate != GS_STARTUP || ParsingKeyConf ||
 			(len == 3 && strnicmp (beg, "set", 3) == 0) ||
 			(len == 7 && strnicmp (beg, "logfile", 7) == 0) ||
 			(len == 9 && strnicmp (beg, "unbindall", 9) == 0) ||
@@ -627,7 +657,14 @@ void C_DoCommand (const char *cmd, int keynum)
 		}
 		else
 		{
-			new DStoredCommand (com, beg);
+			if (len == 4 && strnicmp(beg, "warp", 4) == 0)
+			{
+				StoredWarp = beg;
+			}
+			else
+			{
+				new DStoredCommand (com, beg);
+			}
 		}
 	}
 	else
@@ -650,12 +687,15 @@ void C_DoCommand (const char *cmd, int keynum)
 		}
 		else
 		{ // We don't know how to handle this command
-			char cmdname[64];
-			size_t minlen = MIN<size_t> (len, 63);
-
-			memcpy (cmdname, beg, minlen);
-			cmdname[len] = 0;
-			Printf ("Unknown command \"%s\"\n", cmdname);
+			if (gamestate == GS_STARTUP && !RunningStoredStartups)
+			{
+				// Save it for later, in case a CVARINFO defines it.
+				StoredStartupSets.Push(beg);
+			}
+			else
+			{
+				Printf ("Unknown command \"%.*s\"\n", (int)len, beg);
+			}
 		}
 	}
 }
@@ -716,7 +756,7 @@ void AddCommandString (char *cmd, int keynum)
 						  // Note that deferred commands lose track of which key
 						  // (if any) they were pressed from.
 							*brkpt = ';';
-							new DWaitingCommand (brkpt, tics+1);
+							new DWaitingCommand (brkpt, tics);
 						}
 						return;
 					}
@@ -953,6 +993,11 @@ bool FConsoleCommand::AddToHash (FConsoleCommand **table)
 		}
 	}
 	return true;
+}
+
+FConsoleCommand* FConsoleCommand::FindByName (const char* name)
+{
+	return FindNameInHashTable (Commands, name, strlen (name));
 }
 
 FConsoleCommand::FConsoleCommand (const char *name, CCmdRun runFunc)
@@ -1291,7 +1336,7 @@ CCMD (alias)
 			}
 			else
 			{
-				alias = new FConsoleAlias (argv[1], argv[2], ParsingKeyConf);
+				new FConsoleAlias (argv[1], argv[2], ParsingKeyConf);
 			}
 		}
 	}
@@ -1501,7 +1546,7 @@ CCMD (pullin)
 	{
 		const char *lastSlash;
 
-#ifdef unix
+#ifdef __unix__
 		lastSlash = strrchr (PullinFile, '/');
 #else
 		const char *lastSlash1, *lastSlash2;

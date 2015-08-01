@@ -167,7 +167,7 @@ INTBOOL CheckActorFlag(const AActor *owner, FFlagDef *fd)
 	{
 		return fd->flagbit & *(DWORD *)(((char*)owner) + fd->structoffset);
 	}
-#ifdef __BID_ENDIAN__
+#ifdef __BIG_ENDIAN__
 	else if (fd->fieldsize == 2)
 	{
 		return fd->flagbit & *(WORD *)(((char*)owner) + fd->structoffset);
@@ -178,6 +178,33 @@ INTBOOL CheckActorFlag(const AActor *owner, FFlagDef *fd)
 		return fd->flagbit & *(BYTE *)(((char*)owner) + fd->structoffset);
 	}
 #endif
+}
+
+INTBOOL CheckActorFlag(const AActor *owner, const char *flagname, bool printerror)
+{
+	const char *dot = strchr (flagname, '.');
+	FFlagDef *fd;
+	const PClass *cls = owner->GetClass();
+
+	if (dot != NULL)
+	{
+		FString part1(flagname, dot-flagname);
+		fd = FindFlag (cls, part1, dot+1);
+	}
+	else
+	{
+		fd = FindFlag (cls, flagname, NULL);
+	}
+
+	if (fd != NULL)
+	{
+		return CheckActorFlag(owner, fd);
+	}
+	else
+	{
+		if (printerror) Printf("Unknown flag '%s' in '%s'\n", flagname, cls->TypeName.GetChars());
+		return false;
+	}
 }
 
 //===========================================================================
@@ -437,7 +464,7 @@ DEFINE_PROPERTY(skip_super, 0, Actor)
 		return;
 	}
 
-	memcpy (defaults, GetDefault<AActor>(), sizeof(AActor));
+	memcpy ((void *)defaults, (void *)GetDefault<AActor>(), sizeof(AActor));
 	if (bag.DropItemList != NULL)
 	{
 		FreeDropItemChain (bag.DropItemList);
@@ -773,11 +800,13 @@ DEFINE_PROPERTY(renderstyle, S, Actor)
 {
 	PROP_STRING_PARM(str, 0);
 	static const char * renderstyles[]={
-		"NONE","NORMAL","FUZZY","SOULTRANS","OPTFUZZY","STENCIL","TRANSLUCENT", "ADD","SHADED", NULL};
+		"NONE", "NORMAL", "FUZZY", "SOULTRANS", "OPTFUZZY", "STENCIL", 
+		"TRANSLUCENT", "ADD", "SHADED", "SHADOW", "SUBTRACT", "ADDSTENCIL", "ADDSHADED", NULL };
 
 	static const int renderstyle_values[]={
 		STYLE_None, STYLE_Normal, STYLE_Fuzzy, STYLE_SoulTrans, STYLE_OptFuzzy,
-			STYLE_TranslucentStencil, STYLE_Translucent, STYLE_Add, STYLE_Shaded};
+			STYLE_TranslucentStencil, STYLE_Translucent, STYLE_Add, STYLE_Shaded,
+			STYLE_Shadow, STYLE_Subtract, STYLE_AddStencil, STYLE_AddShaded};
 
 	// make this work for old style decorations, too.
 	if (!strnicmp(str, "style_", 6)) str+=6;
@@ -1275,6 +1304,17 @@ DEFINE_PROPERTY(gravity, F, Actor)
 //==========================================================================
 //
 //==========================================================================
+DEFINE_PROPERTY(friction, F, Actor)
+{
+	PROP_FIXED_PARM(i, 0);
+
+	if (i < 0) I_Error ("Friction must not be negative.");
+	defaults->Friction = i;
+}
+
+//==========================================================================
+//
+//==========================================================================
 DEFINE_PROPERTY(species, S, Actor)
 {
 	PROP_STRING_PARM(n, 0);
@@ -1290,7 +1330,8 @@ DEFINE_PROPERTY(clearflags, 0, Actor)
 		defaults->flags3 =
 		defaults->flags4 =
 		defaults->flags5 =
-		defaults->flags6 = 0;
+		defaults->flags6 =
+		defaults->flags7 = 0;
 	defaults->flags2 &= MF2_ARGSDEFINED;	// this flag must not be cleared
 }
 
@@ -1377,6 +1418,65 @@ DEFINE_PROPERTY(stamina, I, Actor)
 {
 	PROP_INT_PARM(i, 0);
 	defaults->stamina = i;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(telefogsourcetype, S, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	if (!stricmp(str, "") || !stricmp(str, "none")) defaults->TeleFogSourceType = NULL;
+	else defaults->TeleFogSourceType = FindClassTentative(str,"TeleportFog");
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(telefogdesttype, S, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	if (!stricmp(str, "") || !stricmp(str, "none")) defaults->TeleFogDestType = NULL;
+	else defaults->TeleFogDestType = FindClassTentative(str, "TeleportFog");
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(ripperlevel, I, Actor)
+{
+	PROP_INT_PARM(id, 0);
+	if (id < 0)
+	{
+		I_Error ("RipperLevel must not be negative");
+	}
+	defaults->RipperLevel = id;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(riplevelmin, I, Actor)
+{
+	PROP_INT_PARM(id, 0);
+	if (id < 0)
+	{
+		I_Error ("RipLevelMin must not be negative");
+	}
+	defaults->RipLevelMin = id;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(riplevelmax, I, Actor)
+{
+	PROP_INT_PARM(id, 0);
+	if (id < 0)
+	{
+		I_Error ("RipLevelMax must not be negative");
+	}
+	defaults->RipLevelMax = id;
 }
 
 //==========================================================================
@@ -2013,6 +2113,11 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 			*pBlendColor = MakeSpecialColormap(v);
 			return;
 		}
+		else if (!stricmp(name, "none") && info->Class->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
+		{
+			*pBlendColor = MakeSpecialColormap(65535);
+			return;
+		}
 
 		color = V_GetColor(NULL, name);
 	}
@@ -2117,9 +2222,8 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, strength, F, Inventory)
 		I_Error("\"powerup.strength\" requires an actor of type \"Powerup\"\n");
 		return;
 	}
-	// Puts a percent value in the 0.0..1.0 range
 	PROP_FIXED_PARM(f, 0);
-	*pStrength = f / 100;
+	*pStrength = f;
 }
 
 //==========================================================================
@@ -2412,6 +2516,24 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, viewheight, F, PlayerPawn)
 {
 	PROP_FIXED_PARM(z, 0);
 	defaults->ViewHeight = z;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_CLASS_PROPERTY_PREFIX(player, userange, F, PlayerPawn)
+{
+	PROP_FIXED_PARM(z, 0);
+	defaults->UseRange = z;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_CLASS_PROPERTY_PREFIX(player, aircapacity, F, PlayerPawn)
+{
+	PROP_FIXED_PARM(z, 0);
+	defaults->AirCapacity = z;
 }
 
 //==========================================================================

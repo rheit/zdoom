@@ -561,25 +561,26 @@ void I_DetectOS(void)
 		{
 			if (info.dwMinorVersion == 0)
 			{
-				if (info.wProductType == VER_NT_WORKSTATION)
-				{
-					osname = "Vista";
-				}
-				else
-				{
-					osname = "Server 2008";
-				}
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "Vista" : "Server 2008";
 			}
 			else if (info.dwMinorVersion == 1)
 			{
-				if (info.wProductType == VER_NT_WORKSTATION)
-				{
-					osname = "7";
-				}
-				else
-				{
-					osname = "Server 2008 R2";
-				}
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "7" : "Server 2008 R2";
+			}
+			else if (info.dwMinorVersion == 2)	
+			{
+				// Starting with Windows 8.1, you need to specify in your manifest
+				// the highest version of Windows you support, which will also be the
+				// highest version of Windows this function returns.
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "8" : "Server 2012";
+			}
+			else if (info.dwMinorVersion == 3)
+			{
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "8.1" : "Server 2012 R2";
+			}
+			else if (info.dwMinorVersion == 4)
+			{
+				osname = (info.wProductType == VER_NT_WORKSTATION) ? "10 (or higher)" : "Server 10 (or higher)";
 			}
 		}
 		break;
@@ -769,6 +770,8 @@ void I_Quit()
 	{
 		G_CheckDemoStatus();
 	}
+
+	C_DeinitConsole();
 }
 
 
@@ -1510,20 +1513,36 @@ static bool QueryPathKey(HKEY key, const char *keypath, const char *valname, FSt
 //
 //==========================================================================
 
-FString I_GetSteamPath()
+TArray<FString> I_GetSteamPath()
 {
+	TArray<FString> result;
+	static const char *const steam_dirs[] =
+	{
+		"doom 2/base",
+		"final doom/base",
+		"heretic shadow of the serpent riders/base",
+		"hexen/base",
+		"hexen deathkings of the dark citadel/base",
+		"ultimate doom/base",
+		"DOOM 3 BFG Edition/base/wads",
+		"Strife"
+	};
+
 	FString path;
 
-	if (QueryPathKey(HKEY_CURRENT_USER, "Software\\Valve\\Steam", "SteamPath", path))
+	if (!QueryPathKey(HKEY_CURRENT_USER, "Software\\Valve\\Steam", "SteamPath", path))
 	{
-		return path;
+		if (!QueryPathKey(HKEY_LOCAL_MACHINE, "Software\\Valve\\Steam", "InstallPath", path))
+			return result;
 	}
-	if (QueryPathKey(HKEY_LOCAL_MACHINE, "Software\\Valve\\Steam", "InstallPath", path))
+	path += "/SteamApps/common/";
+
+	for(unsigned int i = 0; i < countof(steam_dirs); ++i)
 	{
-		return path;
+		result.Push(path + steam_dirs[i]);
 	}
-	path = "";
-	return path;
+
+	return result;
 }
 
 //==========================================================================
@@ -1568,4 +1587,32 @@ unsigned int I_MakeRNGSeed()
 	}
 	CryptReleaseContext(prov, 0);
 	return seed;
+}
+
+//==========================================================================
+//
+// I_GetLongPathName
+//
+// Returns the long version of the path, or the original if there isn't
+// anything worth changing.
+//
+//==========================================================================
+
+FString I_GetLongPathName(FString shortpath)
+{
+	DWORD buffsize = GetLongPathName(shortpath.GetChars(), NULL, 0);
+	if (buffsize == 0)
+	{ // nothing to change (it doesn't exist, maybe?)
+		return shortpath;
+	}
+	TCHAR *buff = new TCHAR[buffsize];
+	DWORD buffsize2 = GetLongPathName(shortpath.GetChars(), buff, buffsize);
+	if (buffsize2 >= buffsize)
+	{ // Failure! Just return the short path
+		delete[] buff;
+		return shortpath;
+	}
+	FString longpath(buff, buffsize2);
+	delete[] buff;
+	return longpath;
 }

@@ -676,13 +676,9 @@ void DPolyDoor::Tick ()
 		break;
 
 	case PODOOR_SWING:
-		if (poly->RotatePolyobj (m_Speed))
+		if (m_Dist <= 0 || poly->RotatePolyobj (m_Speed))
 		{
 			absSpeed = abs (m_Speed);
-			if (m_Dist == -1)
-			{ // perpetual polyobj
-				return;
-			}
 			m_Dist -= absSpeed;
 			if (m_Dist <= 0)
 			{
@@ -950,18 +946,6 @@ void FPolyObj::UpdateBBox ()
 		// Update the line's slopetype
 		line->dx = line->v2->x - line->v1->x;
 		line->dy = line->v2->y - line->v1->y;
-		if (!line->dx)
-		{
-			line->slopetype = ST_VERTICAL;
-		}
-		else if (!line->dy)
-		{
-			line->slopetype = ST_HORIZONTAL;
-		}
-		else
-		{
-			line->slopetype = ((line->dy ^ line->dx) >= 0) ? ST_POSITIVE : ST_NEGATIVE;
-		}
 	}
 	CalcCenter();
 }
@@ -1063,7 +1047,7 @@ static void RotatePt (int an, fixed_t *x, fixed_t *y, fixed_t startSpotX, fixed_
 //
 //==========================================================================
 
-bool FPolyObj::RotatePolyobj (angle_t angle)
+bool FPolyObj::RotatePolyobj (angle_t angle, bool fromsave)
 {
 	int an;
 	bool blocked;
@@ -1085,23 +1069,27 @@ bool FPolyObj::RotatePolyobj (angle_t angle)
 	validcount++;
 	UpdateBBox();
 
-	for(unsigned i=0;i < Sidedefs.Size(); i++)
+	// If we are loading a savegame we do not really want to damage actors and be blocked by them. This can also cause crashes when trying to damage incompletely deserialized player pawns.
+	if (!fromsave)
 	{
-		if (CheckMobjBlocking(Sidedefs[i]))
+		for (unsigned i = 0; i < Sidedefs.Size(); i++)
 		{
-			blocked = true;
+			if (CheckMobjBlocking(Sidedefs[i]))
+			{
+				blocked = true;
+			}
 		}
-	}
-	if (blocked)
-	{
-		for(unsigned i=0;i < Vertices.Size(); i++)
+		if (blocked)
 		{
-			Vertices[i]->x = PrevPts[i].x;
-			Vertices[i]->y = PrevPts[i].y;
+			for(unsigned i=0;i < Vertices.Size(); i++)
+			{
+				Vertices[i]->x = PrevPts[i].x;
+				Vertices[i]->y = PrevPts[i].y;
+			}
+			UpdateBBox();
+			LinkPolyobj();
+			return false;
 		}
-		UpdateBBox();
-		LinkPolyobj();
-		return false;
 	}
 	this->angle += angle;
 	LinkPolyobj();

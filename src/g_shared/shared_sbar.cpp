@@ -53,6 +53,7 @@
 #include "d_player.h"
 #include "farchive.h"
 #include "a_hexenglobal.h"
+#include "gstrings.h"
 
 #include "../version.h"
 
@@ -130,7 +131,7 @@ void ST_FormatMapName(FString &mapname, const char *mapnamecolor)
 
 	if (am_showmaplabel == 1 || (am_showmaplabel == 2 && !ishub))
 	{
-		mapname << level.mapname << ": ";
+		mapname << level.MapName << ": ";
 	}
 	mapname << mapnamecolor << level.LevelName;
 }
@@ -145,7 +146,6 @@ void ST_LoadCrosshair(bool alwaysload)
 {
 	int num = 0;
 	char name[16], size;
-	int lump;
 
 	if (!crosshairforce &&
 		players[consoleplayer].camera != NULL &&
@@ -178,18 +178,20 @@ void ST_LoadCrosshair(bool alwaysload)
 		num = -num;
 	}
 	size = (SCREENWIDTH < 640) ? 'S' : 'B';
+
 	mysnprintf (name, countof(name), "XHAIR%c%d", size, num);
-	if ((lump = Wads.CheckNumForName (name, ns_graphics)) == -1)
+	FTextureID texid = TexMan.CheckForTexture(name, FTexture::TEX_MiscPatch, FTextureManager::TEXMAN_TryAny | FTextureManager::TEXMAN_ShortNameOnly);
+	if (!texid.isValid())
 	{
 		mysnprintf (name, countof(name), "XHAIR%c1", size);
-		if ((lump = Wads.CheckNumForName (name, ns_graphics)) == -1)
+		texid = TexMan.CheckForTexture(name, FTexture::TEX_MiscPatch, FTextureManager::TEXMAN_TryAny | FTextureManager::TEXMAN_ShortNameOnly);
+		if (!texid.isValid())
 		{
-			strcpy (name, "XHAIRS1");
+			texid = TexMan.CheckForTexture("XHAIRS1", FTexture::TEX_MiscPatch, FTextureManager::TEXMAN_TryAny | FTextureManager::TEXMAN_ShortNameOnly);
 		}
-		num = 1;
 	}
 	CrosshairNum = num;
-	CrosshairImage = TexMan[TexMan.CheckForTexture(name, FTexture::TEX_MiscPatch)];
+	CrosshairImage = TexMan[texid];
 }
 
 //---------------------------------------------------------------------------
@@ -1089,12 +1091,12 @@ void DBaseStatusBar::RefreshBackground () const
 
 		if (setblocks >= 10)
 		{
-			const gameborder_t *border = gameinfo.border;
-			FTexture *p;
-
-			p = TexMan[border->b];
-			screen->FlatFill(0, y, x, y + p->GetHeight(), p, true);
-			screen->FlatFill(x2, y, SCREENWIDTH, y + p->GetHeight(), p, true);
+			FTexture *p = TexMan[gameinfo.Border.b];
+			if (p != NULL)
+			{
+				screen->FlatFill(0, y, x, y + p->GetHeight(), p, true);
+				screen->FlatFill(x2, y, SCREENWIDTH, y + p->GetHeight(), p, true);
+			}
 		}
 	}
 }
@@ -1121,7 +1123,7 @@ void DBaseStatusBar::DrawCrosshair ()
 	ST_LoadCrosshair();
 
 	// Don't draw the crosshair if there is none
-	if (CrosshairImage == NULL || gamestate == GS_TITLELEVEL)
+	if (CrosshairImage == NULL || gamestate == GS_TITLELEVEL || camera->health <= 0)
 	{
 		return;
 	}
@@ -1305,8 +1307,8 @@ void DBaseStatusBar::Draw (EHudState state)
 	}
 	else if (automapactive)
 	{
-		int y, time = level.time / TICRATE, height;
-		int totaltime = level.totaltime / TICRATE;
+		int y, time = Tics2Seconds(level.time), height;
+		int totaltime = Tics2Seconds(level.totaltime);
 		EColorRange highlight = (gameinfo.gametype & GAME_DoomChex) ?
 			CR_UNTRANSLATED : CR_YELLOW;
 
@@ -1375,8 +1377,8 @@ void DBaseStatusBar::Draw (EHudState state)
 			// Draw monster count
 			if (am_showmonsters)
 			{
-				mysnprintf (line, countof(line), "MONSTERS:" TEXTCOLOR_GREY " %d/%d",
-					level.killed_monsters, level.total_monsters);
+				mysnprintf (line, countof(line), "%s" TEXTCOLOR_GREY " %d/%d",
+					GStrings("AM_MONSTERS"), level.killed_monsters, level.total_monsters);
 				screen->DrawText (SmallFont, highlight, 8, y, line,
 					DTA_CleanNoMove, true, TAG_DONE);
 				y += height;
@@ -1385,8 +1387,8 @@ void DBaseStatusBar::Draw (EHudState state)
 			// Draw secret count
 			if (am_showsecrets)
 			{
-				mysnprintf (line, countof(line), "SECRETS:" TEXTCOLOR_GREY " %d/%d",
-					level.found_secrets, level.total_secrets);
+				mysnprintf (line, countof(line), "%s" TEXTCOLOR_GREY " %d/%d",
+					GStrings("AM_SECRETS"), level.found_secrets, level.total_secrets);
 				screen->DrawText (SmallFont, highlight, 8, y, line,
 					DTA_CleanNoMove, true, TAG_DONE);
 				y += height;
@@ -1395,8 +1397,8 @@ void DBaseStatusBar::Draw (EHudState state)
 			// Draw item count
 			if (am_showitems)
 			{
-				mysnprintf (line, countof(line), "ITEMS:" TEXTCOLOR_GREY " %d/%d",
-					level.found_items, level.total_items);
+				mysnprintf (line, countof(line), "%s" TEXTCOLOR_GREY " %d/%d",
+					GStrings("AM_ITEMS"), level.found_items, level.total_items);
 				screen->DrawText (SmallFont, highlight, 8, y, line,
 					DTA_CleanNoMove, true, TAG_DONE);
 			}

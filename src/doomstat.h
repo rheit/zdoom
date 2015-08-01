@@ -59,6 +59,8 @@ extern	FString			startmap;			// [RH] Actual map name now
 
 extern	bool 			autostart;
 
+extern	FString			StoredWarp;			// [RH] +warp at the command line
+
 // Selected by user. 
 EXTERN_CVAR (Int, gameskill);
 extern	int				NextSkill;			// [RH] Skill to use at next level load
@@ -107,6 +109,7 @@ enum EMenuState
 extern	bool			automapactive;	// In AutoMap mode?
 extern	EMenuState		menuactive; 	// Menu overlayed?
 extern	int				paused; 		// Game Pause?
+extern	bool			pauseext;
 
 
 extern	bool			viewactive;
@@ -134,6 +137,8 @@ extern	int				consoleplayer;
 // Disable save/end game?
 extern	bool			usergame;
 
+extern	FString			newdemoname;
+extern	FString			newdemomap;
 extern	bool			demoplayback;
 extern	bool			demorecording;
 extern	int				demover;
@@ -167,6 +172,7 @@ extern	bool	 		playeringame[/*MAXPLAYERS*/];
 
 // File handling stuff.
 extern	FILE*			debugfile;
+extern	FILE*			hashfile;
 
 // if true, load all graphics at level load
 extern	bool	 		precache;

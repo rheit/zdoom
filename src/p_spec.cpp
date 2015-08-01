@@ -61,6 +61,7 @@
 #include "a_sharedglobal.h"
 #include "farchive.h"
 #include "a_keys.h"
+#include "c_dispatch.h"
 
 // State.
 #include "r_state.h"
@@ -72,9 +73,7 @@
 static FRandom pr_playerinspecialsector ("PlayerInSpecialSector");
 void P_SetupPortals();
 
-
-// [GrafZahl] Make this message changable by the user! ;)
-CVAR(String, secretmessage, "A Secret is revealed!", CVAR_ARCHIVE)
+EXTERN_CVAR(Bool, cl_predict_specials)
 
 IMPLEMENT_POINTY_CLASS (DScroller)
  DECLARE_POINTER (m_Interpolations[0])
@@ -254,7 +253,7 @@ bool P_ActivateLine (line_t *line, AActor *mo, int side, int activationType)
 
 	if (buttonSuccess)
 	{
-		if (activationType == SPAC_Use || activationType == SPAC_Impact)
+		if (activationType == SPAC_Use || activationType == SPAC_Impact || activationType == SPAC_Push)
 		{
 			P_ChangeSwitchTexture (line->sidedef[0], repeat, special);
 		}
@@ -408,6 +407,48 @@ bool P_TestActivateLine (line_t *line, AActor *mo, int side, int activationType)
 		!(line->flags & ML_MONSTERSCANACTIVATE))
 	{
 		return false;
+	}
+	return true;
+}
+
+//============================================================================
+//
+// P_PredictLine
+//
+//============================================================================
+
+bool P_PredictLine(line_t *line, AActor *mo, int side, int activationType)
+{
+	int lineActivation;
+	INTBOOL buttonSuccess;
+	BYTE special;
+
+	// Only predict a very specifc section of specials
+	if (line->special != Teleport_Line &&
+		line->special != Teleport)
+	{
+		return false;
+	}
+
+	if (!P_TestActivateLine(line, mo, side, activationType) || !cl_predict_specials)
+	{
+		return false;
+	}
+
+	if (line->locknumber > 0) return false;
+	lineActivation = line->activation;
+	buttonSuccess = false;
+	buttonSuccess = P_ExecuteSpecial(line->special,
+		line, mo, side == 1, line->args[0],
+		line->args[1], line->args[2],
+		line->args[3], line->args[4]);
+
+	special = line->special;
+
+	// end of changed code
+	if (developer && buttonSuccess)
+	{
+		Printf("Line special %d predicted on line %i\n", special, int(line - lines));
 	}
 	return true;
 }
@@ -583,7 +624,7 @@ void P_PlayerInSpecialSector (player_t *player, sector_t * sector)
 	if (sector->special & SECRET_MASK)
 	{
 		sector->special &= ~SECRET_MASK;
-		P_GiveSecret(player->mo, true, true);
+		P_GiveSecret(player->mo, true, true, int(sector - sectors));
 	}
 }
 
@@ -641,12 +682,21 @@ void P_SectorDamage(int tag, int amount, FName type, const PClass *protectClass,
 			{
 				next = actor->snext;
 				// Only affect actors touching the 3D floor
-				if (actor->z + actor->height > sec->floorplane.ZatPoint(actor->x, actor->y))
+				fixed_t z1 = sec->floorplane.ZatPoint(actor->x, actor->y);
+				fixed_t z2 = sec->ceilingplane.ZatPoint(actor->x, actor->y);
+				if (z2 < z1)
+				{
+					// Account for Vavoom-style 3D floors
+					fixed_t zz = z1;
+					z1 = z2;
+					z2 = zz;
+				}
+				if (actor->z + actor->height > z1)
 				{
 					// If DAMAGE_IN_AIR is used, anything not beneath the 3D floor will be
 					// damaged (so, anything touching it or above it). Other 3D floors between
 					// the actor and this one will not stop this effect.
-					if ((flags & DAMAGE_IN_AIR) || actor->z <= sec->ceilingplane.ZatPoint(actor->x, actor->y))
+					if ((flags & DAMAGE_IN_AIR) || actor->z <= z2)
 					{
 						// Here we pass the DAMAGE_IN_AIR flag to disable the floor check, since it
 						// only works with the real sector's floor. We did the appropriate height checks
@@ -665,7 +715,10 @@ void P_SectorDamage(int tag, int amount, FName type, const PClass *protectClass,
 //
 //============================================================================
 
-void P_GiveSecret(AActor *actor, bool printmessage, bool playsound)
+CVAR(Bool, showsecretsector, false, 0)
+CVAR(Bool, cl_showsecretmessage, true, CVAR_ARCHIVE)
+
+void P_GiveSecret(AActor *actor, bool printmessage, bool playsound, int sectornum)
 {
 	if (actor != NULL)
 	{
@@ -673,9 +726,18 @@ void P_GiveSecret(AActor *actor, bool printmessage, bool playsound)
 		{
 			actor->player->secretcount++;
 		}
-		if (actor->CheckLocalView (consoleplayer))
+		if (cl_showsecretmessage && actor->CheckLocalView(consoleplayer))
 		{
-			if (printmessage) C_MidPrint (SmallFont, secretmessage);
+			if (printmessage)
+			{
+				if (!showsecretsector || sectornum < 0) C_MidPrint(SmallFont, GStrings["SECRETMESSAGE"]);
+				else
+				{
+					FString s = GStrings["SECRETMESSAGE"];
+					s.AppendFormat(" (Sector %d)", sectornum);
+					C_MidPrint(SmallFont, s);
+				}
+			}
 			if (playsound) S_Sound (CHAN_AUTO | CHAN_UI, "misc/secret", 1, ATTN_NORM);
 		}
 	}
@@ -2137,26 +2199,12 @@ void P_SetSectorFriction (int tag, int amount, bool alterFlag)
 	friction = (0x1EB8*amount)/0x80 + 0xD001;
 
 	// killough 8/28/98: prevent odd situations
-	if (friction > FRACUNIT)
-		friction = FRACUNIT;
-	if (friction < 0)
-		friction = 0;
+	friction = clamp(friction, 0, FRACUNIT);
 
 	// The following check might seem odd. At the time of movement,
 	// the move distance is multiplied by 'friction/0x10000', so a
 	// higher friction value actually means 'less friction'.
-
-	// [RH] Twiddled these values so that velocity on ice (with
-	//		friction 0xf900) is the same as in Heretic/Hexen.
-	if (friction >= ORIG_FRICTION)	// ice
-//		movefactor = ((0x10092 - friction)*(0x70))/0x158;
-		movefactor = ((0x10092 - friction) * 1024) / 4352 + 568;
-	else
-		movefactor = ((friction - 0xDB34)*(0xA))/0x80;
-
-	// killough 8/28/98: prevent odd situations
-	if (movefactor < 32)
-		movefactor = 32;
+	movefactor = FrictionToMoveFactor(friction);
 
 	for (s = -1; (s = P_FindSectorFromTag (tag,s)) >= 0; )
 	{

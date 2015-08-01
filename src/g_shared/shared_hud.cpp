@@ -37,6 +37,7 @@
 // copy would be.
 
 #include "doomtype.h"
+#include "doomdef.h"
 #include "v_video.h"
 #include "gi.h"
 #include "c_cvars.h"
@@ -48,6 +49,7 @@
 #include "p_local.h"
 #include "doomstat.h"
 #include "g_level.h"
+#include "d_net.h"
 
 #include <time.h>
 
@@ -70,8 +72,11 @@ CVAR (Bool,  hud_showmonsters,	true,CVAR_ARCHIVE);		// Show monster stats on HUD
 CVAR (Bool,  hud_showitems,		false,CVAR_ARCHIVE);	// Show item stats on HUD
 CVAR (Bool,  hud_showstats,		false,	CVAR_ARCHIVE);	// for stamina and accuracy. 
 CVAR (Bool,  hud_showscore,		false,	CVAR_ARCHIVE);	// for user maintained score
+CVAR (Bool,  hud_showweapons,	true, CVAR_ARCHIVE);	// Show weapons collected
+CVAR (Int ,  hud_showammo,		2, CVAR_ARCHIVE);		// Show ammo collected
 CVAR (Int ,  hud_showtime,		0,	    CVAR_ARCHIVE);	// Show time on HUD
 CVAR (Int ,  hud_timecolor,		CR_GOLD,CVAR_ARCHIVE);	// Color of in-game time on HUD
+CVAR (Int ,  hud_showlag,		0, CVAR_ARCHIVE);		// Show input latency (maketic - gametic difference)
 
 CVAR (Int, hud_ammo_red, 25, CVAR_ARCHIVE)					// ammo percent less than which status is red    
 CVAR (Int, hud_ammo_yellow, 50, CVAR_ARCHIVE)				// ammo percent less is yellow more green        
@@ -135,12 +140,12 @@ static void DrawImageToBox(FTexture * tex, int x, int y, int w, int h, int trans
 
 	if (tex)
 	{
-		int texwidth=tex->GetWidth();
-		int texheight=tex->GetHeight();
+		double texwidth=tex->GetScaledWidthDouble();
+		double texheight=tex->GetScaledHeightDouble();
 
-		if (w<texwidth) scale1=(double)w/texwidth;
+		if (w<texwidth) scale1=w/texwidth;
 		else scale1=1.0f;
-		if (h<texheight) scale2=(double)h/texheight;
+		if (h<texheight) scale2=h/texheight;
 		else scale2=1.0f;
 		if (scale2<scale1) scale1=scale2;
 
@@ -543,23 +548,37 @@ static int DrawAmmo(player_t *CPlayer, int x, int y)
 
 	orderedammos.Clear();
 
-	// Order ammo by use of weapons in the weapon slots
-	// Do not check for actual presence in the inventory!
-	// We want to show all ammo types that can be used by
-	// the weapons in the weapon slots.
-	for (k = 0; k < NUM_WEAPON_SLOTS; k++) for(j = 0; j < CPlayer->weapons.Slots[k].Size(); j++)
+	if (0 == hud_showammo)
 	{
-		const PClass *weap = CPlayer->weapons.Slots[k].GetWeapon(j);
-
-		if (weap) AddAmmoToList((AWeapon*)GetDefaultByType(weap));
+		// Show ammo for current weapon if any
+		if (wi) AddAmmoToList(wi);
 	}
-
-	// Now check for the remaining weapons that are in the inventory but not in the weapon slots
-	for(inv=CPlayer->mo->Inventory;inv;inv=inv->Inventory)
+	else
 	{
-		if (inv->IsKindOf(RUNTIME_CLASS(AWeapon)))
+		// Order ammo by use of weapons in the weapon slots
+		for (k = 0; k < NUM_WEAPON_SLOTS; k++) for(j = 0; j < CPlayer->weapons.Slots[k].Size(); j++)
 		{
-			AddAmmoToList((AWeapon*)inv);
+			const PClass *weap = CPlayer->weapons.Slots[k].GetWeapon(j);
+
+			if (weap)
+			{
+				// Show ammo for available weapons if hud_showammo CVAR is 1
+				// or show ammo for all weapons if hud_showammo is greater than 1
+				
+				if (hud_showammo > 1 || CPlayer->mo->FindInventory(weap))
+				{
+					AddAmmoToList((AWeapon*)GetDefaultByType(weap));
+				}
+			}
+		}
+
+		// Now check for the remaining weapons that are in the inventory but not in the weapon slots
+		for(inv=CPlayer->mo->Inventory;inv;inv=inv->Inventory)
+		{
+			if (inv->IsKindOf(RUNTIME_CLASS(AWeapon)))
+			{
+				AddAmmoToList((AWeapon*)inv);
+			}
 		}
 	}
 
@@ -606,22 +625,40 @@ static int DrawAmmo(player_t *CPlayer, int x, int y)
 // Weapons List
 //
 //---------------------------------------------------------------------------
-
-FTextureID GetWeaponIcon(AWeapon *weapon)	// This function is also used by SBARINFO
+FTextureID GetInventoryIcon(AInventory *item, DWORD flags, bool *applyscale=NULL)	// This function is also used by SBARINFO
 {
-	FTextureID AltIcon = GetHUDIcon(weapon->GetClass());
+	FTextureID picnum, AltIcon = GetHUDIcon(item->GetClass());
 	FState * state=NULL, *ReadyState;
 	
-	FTextureID picnum = !AltIcon.isNull()? AltIcon : weapon->Icon;
-
-	if (picnum.isNull())
+	picnum.SetNull();
+	if (flags & DI_ALTICONFIRST)
 	{
-		if (weapon->SpawnState && weapon->SpawnState->sprite!=0)
+		if (!(flags & DI_SKIPALTICON) && AltIcon.isValid())
+			picnum = AltIcon;
+		else if (!(flags & DI_SKIPICON))
+			picnum = item->Icon;
+	}
+	else
+	{
+		if (!(flags & DI_SKIPICON) && item->Icon.isValid())
+			picnum = item->Icon;
+		else if (!(flags & DI_SKIPALTICON))
+			picnum = AltIcon;
+	}
+	
+	if (!picnum.isValid()) //isNull() is bad for checking, because picnum could be also invalid (-1)
+	{
+		if (!(flags & DI_SKIPSPAWN) && item->SpawnState && item->SpawnState->sprite!=0)
 		{
-			state = weapon->SpawnState;
+			state = item->SpawnState;
+			
+			if (applyscale != NULL && !(flags & DI_FORCESCALE))
+			{
+				*applyscale = true;
+			}
 		}
-		// no spawn state - now try the ready state
-		else if ((ReadyState = weapon->FindState(NAME_Ready)) && ReadyState->sprite!=0)
+		// no spawn state - now try the ready state if it's weapon
+		else if (!(flags & DI_SKIPREADY) && item->GetClass()->IsDescendantOf(RUNTIME_CLASS(AWeapon)) && (ReadyState = item->FindState(NAME_Ready)) && ReadyState->sprite!=0)
 		{
 			state = ReadyState;
 		}
@@ -651,7 +688,7 @@ static void DrawOneWeapon(player_t * CPlayer, int x, int & y, AWeapon * weapon)
 		if (weapon==CPlayer->ReadyWeapon || weapon==CPlayer->ReadyWeapon->SisterWeapon) trans=0xd999;
 	}
 
-	FTextureID picnum = GetWeaponIcon(weapon);
+	FTextureID picnum = GetInventoryIcon(weapon, DI_ALTICONFIRST);
 
 	if (picnum.isValid())
 	{
@@ -848,7 +885,7 @@ static void DrawTime()
 				: (hud_showtime < 6
 					? level.time
 					: level.totaltime);
-		const int timeSeconds = timeTicks / TICRATE;
+		const int timeSeconds = Tics2Seconds(timeTicks);
 
 		hours   =  timeSeconds / 3600;
 		minutes = (timeSeconds % 3600) / 60;
@@ -896,6 +933,51 @@ static void DrawTime()
 	const int height = SmallFont->GetHeight();
 
 	DrawHudText(SmallFont, hud_timecolor, timeString, hudwidth - width, height, FRACUNIT);
+}
+
+//---------------------------------------------------------------------------
+//
+// Draw in-game latency
+//
+//---------------------------------------------------------------------------
+
+static void DrawLatency()
+{
+	if (hud_showlag <= 0 ||
+		(hud_showlag == 1 && !netgame) ||
+		hud_showlag > 2)
+	{
+		return;
+	}
+	int i, localdelay = 0, arbitratordelay = 0;
+	for (i = 0; i < BACKUPTICS; i++) localdelay += netdelay[0][i];
+	for (i = 0; i < BACKUPTICS; i++) arbitratordelay += netdelay[nodeforplayer[Net_Arbitrator]][i];
+	localdelay = ((localdelay / BACKUPTICS) * ticdup) * (1000 / TICRATE);
+	arbitratordelay = ((arbitratordelay / BACKUPTICS) * ticdup) * (1000 / TICRATE);
+	int color = CR_GREEN;
+	if (MAX(localdelay, arbitratordelay) > 200)
+	{
+		color = CR_YELLOW;
+	}
+	if (MAX(localdelay, arbitratordelay) > 400)
+	{
+		color = CR_ORANGE;
+	}
+	if (MAX(localdelay, arbitratordelay) >= ((BACKUPTICS / 2 - 1) * ticdup) * (1000 / TICRATE))
+	{
+		color = CR_RED;
+	}
+
+	char tempstr[32];
+
+	const int millis = (level.time % TICRATE) * (1000 / TICRATE);
+	mysnprintf(tempstr, sizeof(tempstr), "a:%dms - l:%dms", arbitratordelay, localdelay);
+
+	const int characterCount = (int)strlen(tempstr);
+	const int width = SmallFont->GetCharWidth('0') * characterCount + 2; // small offset from screen's border
+	const int height = SmallFont->GetHeight() * 2;
+
+	DrawHudText(SmallFont, color, tempstr, hudwidth - width, height, FRACUNIT);
 }
 
 
@@ -954,7 +1036,7 @@ void DrawHUD()
 			CPlayer->mo->FindInventory<AHexenArmor>(),	5, hudheight-20);
 		i=DrawKeys(CPlayer, hudwidth-4, hudheight-10);
 		i=DrawAmmo(CPlayer, hudwidth-5, i);
-		DrawWeapons(CPlayer, hudwidth-5, i);
+		if (hud_showweapons) DrawWeapons(CPlayer, hudwidth - 5, i);
 		DrawInventory(CPlayer, 144, hudheight-28);
 		if (CPlayer->camera && CPlayer->camera->player)
 		{
@@ -963,6 +1045,7 @@ void DrawHUD()
 		if (idmypos) DrawCoordinates(CPlayer);
 
 		DrawTime();
+		DrawLatency();
 	}
 	else
 	{
@@ -975,7 +1058,7 @@ void DrawHUD()
 
 		if (am_showtotaltime)
 		{
-			seconds = level.totaltime / TICRATE;
+			seconds = Tics2Seconds(level.totaltime);
 			mysnprintf(printstr, countof(printstr), "%02i:%02i:%02i", seconds/3600, (seconds%3600)/60, seconds%60);
 			DrawHudText(SmallFont, hudcolor_ttim, printstr, hudwidth-length, bottom, FRACUNIT);
 			bottom -= fonth;
@@ -985,14 +1068,14 @@ void DrawHUD()
 		{
 			if (level.clusterflags&CLUSTER_HUB)
 			{
-				seconds = level.time /TICRATE;
+				seconds = Tics2Seconds(level.time);
 				mysnprintf(printstr, countof(printstr), "%02i:%02i:%02i", seconds/3600, (seconds%3600)/60, seconds%60);
 				DrawHudText(SmallFont, hudcolor_time, printstr, hudwidth-length, bottom, FRACUNIT);
 				bottom -= fonth;
 			}
 
 			// Single level time for hubs
-			seconds= level.maptime /TICRATE;
+			seconds= Tics2Seconds(level.maptime);
 			mysnprintf(printstr, countof(printstr), "%02i:%02i:%02i", seconds/3600, (seconds%3600)/60, seconds%60);
 			DrawHudText(SmallFont, hudcolor_ltim, printstr, hudwidth-length, bottom, FRACUNIT);
 		}

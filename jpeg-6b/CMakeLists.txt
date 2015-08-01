@@ -1,8 +1,10 @@
 cmake_minimum_required( VERSION 2.4 )
 
-if( CMAKE_COMPILER_IS_GNUC )
-	set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -fomit-frame-pointer" )
-endif( CMAKE_COMPILER_IS_GNUC )
+make_release_only()
+
+if( ZD_CMAKE_COMPILER_IS_GNUC_COMPATIBLE )
+	set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-unused-parameter -fomit-frame-pointer" )
+endif( ZD_CMAKE_COMPILER_IS_GNUC_COMPATIBLE )
 
 add_library( jpeg
     jcomapi.c

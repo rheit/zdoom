@@ -257,7 +257,7 @@ static int GetMapIndex(const char *mapname, int lastindex, const char *lumpname,
 //
 //===========================================================================
 
-MapData *P_OpenMapData(const char * mapname)
+MapData *P_OpenMapData(const char * mapname, bool justcheck)
 {
 	MapData * map = new MapData;
 	FileReader * wadReader = NULL;
@@ -279,11 +279,12 @@ MapData *P_OpenMapData(const char * mapname)
 		FString fmt;
 		int lump_wad;
 		int lump_map;
-		int lump_name;
+		int lump_name = -1;
 		
 		// Check for both *.wad and *.map in order to load Build maps
 		// as well. The higher one will take precedence.
-		lump_name = Wads.CheckNumForName(mapname);
+		// Names with more than 8 characters will only be checked as .wad and .map.
+		if (strlen(mapname) <= 8) lump_name = Wads.CheckNumForName(mapname);
 		fmt.Format("maps/%s.wad", mapname);
 		lump_wad = Wads.CheckNumForFullName(fmt);
 		fmt.Format("maps/%s.map", mapname);
@@ -318,7 +319,6 @@ MapData *P_OpenMapData(const char * mapname)
 
 			if (map->Encrypted)
 			{ // If it's encrypted, then it's a Blood file, presumably a map.
-				map->MapLumps[0].Reader = map->file = Wads.ReopenLumpNum(lump_name);
 				if (!P_IsBuildMap(map))
 				{
 					delete map;
@@ -329,22 +329,39 @@ MapData *P_OpenMapData(const char * mapname)
 
 			int index = 0;
 
-			if (stricmp(Wads.GetLumpFullName(lump_name + 1), "TEXTMAP") != 0)
+			const char* nextlumpname = Wads.GetLumpFullName(lump_name + 1);
+			if (stricmp(nextlumpname, "TEXTMAP") != 0)
 			{
-				for(int i = 1;; i++)
+				if (stricmp(nextlumpname, "THINGS") == 0)
 				{
-					// Since levels must be stored in WADs they can't really have full
-					// names and for any valid level lump this always returns the short name.
-					const char * lumpname = Wads.GetLumpFullName(lump_name + i);
-					index = GetMapIndex(mapname, index, lumpname, i != 1 || Wads.LumpLength(lump_name + i) == 0);
-					if (index == ML_BEHAVIOR) map->HasBehavior = true;
-					else if (index == ML_MACROS) map->HasMacros = true;
+					for(int i = 1;; i++)
+					{
+						// Since levels must be stored in WADs they can't really have full
+						// names and for any valid level lump this always returns the short name.
+						const char * lumpname = Wads.GetLumpFullName(lump_name + i);
+						try
+						{
+							index = GetMapIndex(mapname, index, lumpname, !justcheck);
+						}
+						catch(...)
+						{
+							delete map;
+							throw;
+						}
+						if (index == -2)
+						{
+							delete map;
+							return NULL;
+						}
+						if (index == ML_BEHAVIOR) map->HasBehavior = true;
+						else if (index == ML_MACROS) map->HasMacros = true;
 
-					// The next lump is not part of this map anymore
-					if (index < 0) break;
+						// The next lump is not part of this map anymore
+						if (index < 0) break;
 
-					map->MapLumps[index].Reader = Wads.ReopenLumpNum(lump_name + i);
-					strncpy(map->MapLumps[index].Name, lumpname, 8);
+						map->MapLumps[index].Reader = Wads.ReopenLumpNum(lump_name + i);
+						strncpy(map->MapLumps[index].Name, lumpname, 8);
+					}
 				}
 			}
 			else
@@ -396,8 +413,7 @@ MapData *P_OpenMapData(const char * mapname)
 				}
 			}
 
-			const char* lumpname = Wads.GetLumpFullName(lump_name + 1);
-			if(!map->isText && stricmp(lumpname, "THINGS") != 0)
+			if(!map->isText && stricmp(nextlumpname, "THINGS") != 0)
 			{
 				DWORD id;
 				map->file->Read(&id, sizeof(id));
@@ -494,7 +510,20 @@ MapData *P_OpenMapData(const char * mapname)
 
 			if (i>0)
 			{
-				index = GetMapIndex(maplabel, index, lumpname, true);
+				try
+				{
+					index = GetMapIndex(maplabel, index, lumpname, !justcheck);
+				}
+				catch(...)
+				{
+					delete map;
+					throw;
+				}
+				if (index == -2)
+				{
+					delete map;
+					return NULL;
+				}
 				if (index == ML_BEHAVIOR) map->HasBehavior = true;
 				else if (index == ML_MACROS) map->isDoom64 = true;
 
@@ -526,7 +555,7 @@ MapData *P_OpenMapData(const char * mapname)
 
 bool P_CheckMapData(const char *mapname)
 {
-	MapData *mapd = P_OpenMapData(mapname);
+	MapData *mapd = P_OpenMapData(mapname, true);
 	if (mapd == NULL) return false;
 	delete mapd;
 	return true;
@@ -545,34 +574,31 @@ void MapData::GetChecksum(BYTE cksum[16])
 {
 	MD5Context md5;
 
-	if (file != NULL)
+	if (isText)
 	{
-		if (isText)
+		Seek(ML_TEXTMAP);
+		if (file != NULL) md5.Update(file, Size(ML_TEXTMAP));
+	}
+	else
+	{
+		if (Size(ML_LABEL) != 0)
 		{
-			Seek(ML_TEXTMAP);
-			md5.Update(file, Size(ML_TEXTMAP));
+			Seek(ML_LABEL);
+			if (file != NULL) md5.Update(file, Size(ML_LABEL));
 		}
-		else
-		{
-			if (Size(ML_LABEL) != 0)
-			{
-				Seek(ML_LABEL);
-				md5.Update(file, Size(ML_LABEL));
-			}
-			Seek(ML_THINGS);
-			md5.Update(file, Size(ML_THINGS));
-			Seek(ML_LINEDEFS);
-			md5.Update(file, Size(ML_LINEDEFS));
-			Seek(ML_SIDEDEFS);
-			md5.Update(file, Size(ML_SIDEDEFS));
-			Seek(ML_SECTORS);
-			md5.Update(file, Size(ML_SECTORS));
-		}
-		if (HasBehavior)
-		{
-			Seek(ML_BEHAVIOR);
-			md5.Update(file, Size(ML_BEHAVIOR));
-		}
+		Seek(ML_THINGS);
+		if (file != NULL) md5.Update(file, Size(ML_THINGS));
+		Seek(ML_LINEDEFS);
+		if (file != NULL) md5.Update(file, Size(ML_LINEDEFS));
+		Seek(ML_SIDEDEFS);
+		if (file != NULL) md5.Update(file, Size(ML_SIDEDEFS));
+		Seek(ML_SECTORS);
+		if (file != NULL) md5.Update(file, Size(ML_SECTORS));
+	}
+	if (HasBehavior)
+	{
+		Seek(ML_BEHAVIOR);
+		if (file != NULL) md5.Update(file, Size(ML_BEHAVIOR));
 	}
 	md5.Final(cksum);
 }
@@ -584,13 +610,11 @@ void MapData::GetChecksum(BYTE cksum[16])
 //
 //===========================================================================
 
-static void SetTexture (side_t *side, int position, const char *name8, FMissingTextureTracker &track)
+static void SetTexture (side_t *side, int position, const char *name, FMissingTextureTracker &track)
 {
 	static const char *positionnames[] = { "top", "middle", "bottom" };
 	static const char *sidenames[] = { "first", "second" };
-	char name[9];
-	strncpy (name, name8, 8);
-	name[8] = 0;
+
 	FTextureID texture = TexMan.CheckForTexture (name, FTexture::TEX_Wall,
 			FTextureManager::TEXMAN_Overridable|FTextureManager::TEXMAN_TryAny);
 
@@ -626,12 +650,17 @@ static void SetTexture (side_t *side, int position, const char *name8, FMissingT
 //
 //===========================================================================
 
-void SetTexture (sector_t *sector, int index, int position, const char *name8, FMissingTextureTracker &track)
+void SetTexture (sector_t *sector, int index, int position, const char *name, FMissingTextureTracker &track, bool truncate)
 {
 	static const char *positionnames[] = { "floor", "ceiling" };
-	char name[9];
-	strncpy (name, name8, 8);
-	name[8] = 0;
+	char name8[9];
+	if (truncate)
+	{
+		strncpy(name8, name, 8);
+		name8[8] = 0;
+		name = name8;
+	}
+
 	FTextureID texture = TexMan.CheckForTexture (name, FTexture::TEX_Flat,
 			FTextureManager::TEXMAN_Overridable|FTextureManager::TEXMAN_TryAny);
 
@@ -708,11 +737,8 @@ static void SummarizeMissingTextures(const FMissingTextureTracker &missing)
 //
 //===========================================================================
 
-static void SetTexture (side_t *side, int position, DWORD *blend, char *name8)
+static void SetTexture (side_t *side, int position, DWORD *blend, const char *name)
 {
-	char name[9];
-	strncpy (name, name8, 8);
-	name[8] = 0;
 	FTextureID texture;
 	if ((*blend = R_ColormapNumForName (name)) == 0)
 	{
@@ -764,12 +790,9 @@ void SetD64Texture (sector_t *sector, int index, int position, WORD hash)
 	sector->SetTexture(position, texture);
 }
 
-static void SetTextureNoErr (side_t *side, int position, DWORD *color, char *name8, bool *validcolor, bool isFog)
+static void SetTextureNoErr (side_t *side, int position, DWORD *color, const char *name, bool *validcolor, bool isFog)
 {
-	char name[9];
 	FTextureID texture;
-	strncpy (name, name8, 8);
-	name[8] = 0;
 	*validcolor = false;
 	texture = TexMan.CheckForTexture (name, FTexture::TEX_Wall,	
 		FTextureManager::TEXMAN_Overridable|FTextureManager::TEXMAN_TryAny);
@@ -1392,7 +1415,7 @@ void P_LoadSegs (MapData * map)
 
 			ptp_angle = R_PointToAngle2 (li->v1->x, li->v1->y, li->v2->x, li->v2->y);
 			dis = 0;
-			delta_angle = (abs(ptp_angle-(segangle<<16))>>ANGLETOFINESHIFT)*360/FINEANGLES;
+			delta_angle = (absangle(ptp_angle-(segangle<<16))>>ANGLETOFINESHIFT)*360/FINEANGLES;
 
 			if (delta_angle != 0)
 			{
@@ -1443,7 +1466,7 @@ void P_LoadSegs (MapData * map)
 			}
 		}
 	}
-	catch (badseg bad)
+	catch (const badseg &bad) // the preferred way is to catch by (const) reference.
 	{
 		switch (bad.badtype)
 		{
@@ -1548,7 +1571,6 @@ void P_LoadSubsectors (MapData * map)
 
 void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 {
-	char				fname[9];
 	int 				i;
 	char				*msp;
 	mapsector_t			*ms;
@@ -1567,7 +1589,6 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 		defSeqType = -1;
 
 	fogMap = normMap = NULL;
-	fname[8] = 0;
 
 	msp = new char[lumplen];
 	map->Read(ML_SECTORS, msp);
@@ -1589,8 +1610,8 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 		ss->ceilingplane.d = ss->GetPlaneTexZ(sector_t::ceiling);
 		ss->ceilingplane.c = -FRACUNIT;
 		ss->ceilingplane.ic = -FRACUNIT;
-		SetTexture(ss, i, sector_t::floor, ms->floorpic, missingtex);
-		SetTexture(ss, i, sector_t::ceiling, ms->ceilingpic, missingtex);
+		SetTexture(ss, i, sector_t::floor, ms->floorpic, missingtex, true);
+		SetTexture(ss, i, sector_t::ceiling, ms->ceilingpic, missingtex, true);
 		ss->lightlevel = LittleShort(ms->lightlevel);
 		if (map->HasBehavior)
 			ss->special = LittleShort(ms->special);
@@ -2009,9 +2030,13 @@ void P_LoadThings (MapData * map)
 
 		memset (&mti[i], 0, sizeof(mti[i]));
 
+		mti[i].gravity = FRACUNIT;
 		mti[i].Conversation = 0;
 		mti[i].SkillFilter = MakeSkill(flags);
 		mti[i].ClassFilter = 0xffff;	// Doom map format doesn't have class flags so spawn for all player classes
+		mti[i].RenderStyle = STYLE_Count;
+		mti[i].alpha = -1;
+		mti[i].health = 1;
 		flags &= ~MTF_SKILLMASK;
 		mti[i].flags = (short)((flags & 0xf) | 0x7e0);
 		if (gameinfo.gametype == GAME_Strife)
@@ -2071,6 +2096,8 @@ void P_LoadThingsHexen (MapData * map)
 
 	for(int i = 0; i< numthings; i++)
 	{
+		memset (&mti[i], 0, sizeof(mti[i]));
+
 		mti[i].thingid = LittleShort(mth[i].thingid);
 		mti[i].x = LittleShort(mth[i].x)<<FRACBITS;
 		mti[i].y = LittleShort(mth[i].y)<<FRACBITS;
@@ -2083,7 +2110,10 @@ void P_LoadThingsHexen (MapData * map)
 		mti[i].SkillFilter = MakeSkill(mti[i].flags);
 		mti[i].ClassFilter = (mti[i].flags & MTF_CLASS_MASK) >> MTF_CLASS_SHIFT;
 		mti[i].flags &= ~(MTF_SKILLMASK|MTF_CLASS_MASK);
-		mti[i].Conversation = 0;
+		mti[i].gravity = FRACUNIT;
+		mti[i].RenderStyle = STYLE_Count;
+		mti[i].alpha = -1;
+		mti[i].health = 1;
 	}
 	delete[] mtp;
 }
@@ -2184,13 +2214,6 @@ void P_AdjustLine (line_t *ld)
 	ld->dx = v2->x - v1->x;
 	ld->dy = v2->y - v1->y;
 	
-	if (ld->dx == 0)
-		ld->slopetype = ST_VERTICAL;
-	else if (ld->dy == 0)
-		ld->slopetype = ST_HORIZONTAL;
-	else
-		ld->slopetype = ((ld->dy ^ ld->dx) >= 0) ? ST_POSITIVE : ST_NEGATIVE;
-			
 	if (v1->x < v2->x)
 	{
 		ld->bbox[BOXLEFT] = v1->x;
@@ -2859,11 +2882,8 @@ int P_DetermineTranslucency (int lumpnum)
 	return newcolor.r;
 }
 
-void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapsidedef_t *msd, int special, int tag, short *alpha, FMissingTextureTracker &missingtex)
+void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmapsidedef_t *msd, int special, int tag, short *alpha, FMissingTextureTracker &missingtex)
 {
-	char name[9];
-	name[8] = 0;
-
 	switch (special)
 	{
 	case Transfer_Heights:	// variable colormap via 242 linedef
@@ -2889,7 +2909,6 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 
 			SetTextureNoErr (sd, side_t::bottom, &fog, msd->bottomtexture, &foggood, true);
 			SetTextureNoErr (sd, side_t::top, &color, msd->toptexture, &colorgood, false);
-			strncpy (name, msd->midtexture, 8);
 			SetTexture(sd, side_t::mid, msd->midtexture, missingtex);
 
 			if (colorgood | foggood)
@@ -2920,8 +2939,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 	case Sector_Set3DFloor:
 		if (msd->toptexture[0]=='#')
 		{
-			strncpy (name, msd->toptexture, 8);
-			sd->SetTexture(side_t::top, FNullTextureID() +(-strtol(name+1, NULL, 10)));	// store the alpha as a negative texture index
+			sd->SetTexture(side_t::top, FNullTextureID() +(-strtol(&msd->toptexture[1], NULL, 10)));	// store the alpha as a negative texture index
 														// This will be sorted out by the 3D-floor code later.
 		}
 		else
@@ -3015,7 +3033,13 @@ void P_LoadSideDefs2 (MapData *map, FMissingTextureTracker &missingtex)
 		{
 			sd->sector = sec = &sectors[LittleShort(msd->sector)];
 		}
-		P_ProcessSideTextures(!map->HasBehavior, sd, sec, msd, 
+
+		intmapsidedef_t imsd;
+		imsd.toptexture.CopyCStrPart(msd->toptexture, 8);
+		imsd.midtexture.CopyCStrPart(msd->midtexture, 8);
+		imsd.bottomtexture.CopyCStrPart(msd->bottomtexture, 8);
+
+		P_ProcessSideTextures(!map->HasBehavior, sd, sec, &imsd, 
 							  sidetemp[i].a.special, sidetemp[i].a.tag, &sidetemp[i].a.alpha, missingtex);
 	}
 	delete[] msdf;
@@ -3485,15 +3509,12 @@ void P_LoadBlockMap (MapData * map)
 	blockmap = blockmaplump+4;
 }
 
-
-
 //
 // P_GroupLines
 // Builds sector line lists and subsector sector numbers.
 // Finds block bounding boxes for sectors.
 // [RH] Handles extra lights
 //
-struct linf { short tag; WORD count; };
 line_t**				linebuffer;
 
 static void P_GroupLines (bool buildmap)
@@ -3503,7 +3524,6 @@ static void P_GroupLines (bool buildmap)
 	int 				i;
 	int 				j;
 	int 				total;
-	int					totallights;
 	line_t* 			li;
 	sector_t*			sector;
 	FBoundingBox		bbox;
@@ -3536,7 +3556,6 @@ static void P_GroupLines (bool buildmap)
 	// count number of lines in each sector
 	times[1].Clock();
 	total = 0;
-	totallights = 0;
 	for (i = 0, li = lines; i < numlines; i++, li++)
 	{
 		if (li->frontsector == NULL)
@@ -4109,7 +4128,7 @@ void P_FreeExtraLevelData()
 //
 
 // [RH] position indicates the start spot to spawn at
-void P_SetupLevel (char *lumpname, int position)
+void P_SetupLevel (const char *lumpname, int position)
 {
 	cycle_t times[20];
 	FMapThing *buildthings;
@@ -4177,7 +4196,7 @@ void P_SetupLevel (char *lumpname, int position)
 	P_FreeLevelData ();
 	interpolator.ClearInterpolations();	// [RH] Nothing to interpolate on a fresh level.
 
-	MapData *map = P_OpenMapData(lumpname);
+	MapData *map = P_OpenMapData(lumpname, true);
 	if (map == NULL)
 	{
 		I_Error("Unable to open map '%s'\n", lumpname);
@@ -4264,7 +4283,7 @@ void P_SetupLevel (char *lumpname, int position)
 				level.flags2 |= LEVEL2_RAILINGHACK;
 			}
 			if (map->isDoom64)
-				level.flags2 |= LEVEL2_DOOM64HACK;
+				level.flags3 |= LEVEL3_DOOM64HACK;
 			else level.flags2 |= LEVEL2_DUMMYSWITCHES;
 		}
 
@@ -4329,7 +4348,9 @@ void P_SetupLevel (char *lumpname, int position)
 		}
 		else
 		{
+			times[0].Clock();
 			P_ParseTextMap(map, missingtex);
+			times[0].Unclock();
 		}
 
 		times[6].Clock();

@@ -236,7 +236,7 @@ enum
 	MF4_RANDOMIZE		= 0x00000010,	// Missile has random initial tic count
 	MF4_NOSKIN			= 0x00000020,	// Player cannot use skins
 	MF4_FIXMAPTHINGPOS	= 0x00000040,	// Fix this actor's position when spawned as a map thing
-	MF4_ACTLIKEBRIDGE	= 0x00000080,	// Pickups can "stand" on this actor
+	MF4_ACTLIKEBRIDGE	= 0x00000080,	// Pickups can "stand" on this actor / cannot be moved by any sector action.
 	MF4_STRIFEDAMAGE	= 0x00000100,	// Strife projectiles only do up to 4x damage, not 8x
 
 	MF4_CANUSEWALLS		= 0x00000200,	// Can activate 'use' specials
@@ -265,10 +265,10 @@ enum
 	
 // --- mobj.flags5 ---
 
-	/*					= 0x00000001,	*/
-	/*					= 0x00000002,	*/
+	MF5_DONTDRAIN		= 0x00000001,	// cannot be drained health from.
+	/*					= 0x00000002,	   reserved for use by scripting branch */
 	MF5_NODROPOFF		= 0x00000004,	// cannot drop off under any circumstances.
-	MF5_DONTSPAWN		= 0x00000008,	// From Doom 64: kinda like DORMANT, but more thorough
+	MF5_NOFORWARDFALL	= 0x00000008,	// Does not make any actor fall forward by being damaged by this
 	MF5_COUNTSECRET		= 0x00000010,	// From Doom 64: actor acts like a secret
 	MF5_AVOIDINGDROPOFF = 0x00000020,	// Used to move monsters away from dropoffs
 	MF5_NODAMAGE		= 0x00000040,	// Actor can be shot and reacts to being shot but takes no damage
@@ -284,7 +284,7 @@ enum
 	MF5_NEVERFAST		= 0x00010000,	// never uses 'fast' attacking logic
 	MF5_ALWAYSRESPAWN	= 0x00020000,	// always respawns, regardless of skill setting
 	MF5_NEVERRESPAWN	= 0x00040000,	// never respawns, regardless of skill setting
-	MF5_DONTRIP			= 0x00080000,	// Ripping projectiles explode when hittin this actor
+	MF5_DONTRIP			= 0x00080000,	// Ripping projectiles explode when hitting this actor
 	MF5_NOINFIGHTING	= 0x00100000,	// This actor doesn't switch target when it's hurt 
 	MF5_NOINTERACTION	= 0x00200000,	// Thing is completely excluded from any gameplay related checks
 	MF5_NOTIMEFREEZE	= 0x00400000,	// Actor is not affected by time freezer
@@ -331,6 +331,31 @@ enum
 	MF6_DOHARMSPECIES	= 0x08000000,	// Do hurt one's own species with projectiles.
 	MF6_INTRYMOVE		= 0x10000000,	// Executing P_TryMove
 	MF6_NOTAUTOAIMED	= 0x20000000,	// Do not subject actor to player autoaim.
+	MF6_NOTONAUTOMAP	= 0x40000000,	// will not be shown on automap with the 'scanner' powerup.
+	MF6_RELATIVETOFLOOR	= 0x80000000,	// [RC] Make flying actors be affected by lifts.
+
+// --- mobj.flags7 ---
+
+	MF7_NEVERTARGET		= 0x00000001,	// can not be targetted at all, even if monster friendliness is considered.
+	MF7_NOTELESTOMP		= 0x00000002,	// cannot telefrag under any circumstances (even when set by MAPINFO)
+	MF7_ALWAYSTELEFRAG	= 0x00000004,	// will unconditionally be telefragged when in the way. Overrides all other settings.
+	MF7_HANDLENODELAY	= 0x00000008,	// respect NoDelay state flag
+	MF7_WEAPONSPAWN		= 0x00000010,	// subject to DF_NO_COOP_WEAPON_SPAWN dmflag
+	MF7_HARMFRIENDS		= 0x00000020,	// is allowed to harm friendly monsters.
+	MF7_BUDDHA			= 0x00000040,	// Behaves just like the buddha cheat. 
+	MF7_FOILBUDDHA		= 0x00000080,	// Similar to FOILINVUL, foils buddha mode.
+	MF7_DONTTHRUST		= 0x00000100,	// Thrusting functions do not take, and do not give thrust (damage) to actors with this flag.
+	MF7_ALLOWPAIN		= 0x00000200,	// Invulnerable or immune (via damagefactors) actors can still react to taking damage even if they don't.
+	MF7_CAUSEPAIN		= 0x00000400,	// Damage sources with this flag can cause similar effects like ALLOWPAIN.
+	MF7_THRUREFLECT		= 0x00000800,	// Actors who are reflective cause the missiles to not slow down or change angles.
+	MF7_MIRRORREFLECT	= 0x00001000,	// Actor is turned directly 180 degrees around when reflected.
+	MF7_AIMREFLECT		= 0x00002000,	// Actor is directly reflected straight back at the one who fired the projectile.
+	MF7_HITTARGET		= 0x00004000,	// The actor the projectile dies on is set to target, provided it's targetable anyway.
+	MF7_HITMASTER		= 0x00008000,	// Same as HITTARGET, except it's master instead of target.
+	MF7_HITTRACER		= 0x00010000,	// Same as HITTARGET, but for tracer.
+	MF7_FLYCHEAT		= 0x00020000,	// must be part of the actor so that it can be tracked properly
+
+
 
 // --- mobj.renderflags ---
 
@@ -707,6 +732,9 @@ public:
 	// Transforms the actor into a finely-ground paste
 	virtual bool Grind(bool items);
 
+	// Get this actor's team
+	int GetTeam();
+
 	// Is the other actor on my team?
 	bool IsTeammate (AActor *other);
 
@@ -758,6 +786,11 @@ public:
 	{
 		return (PalEntry)GetClass()->Meta.GetMetaInt(AMETA_BloodColor);
 	}
+
+	// These also set CF_INTERPVIEW for players.
+	void SetPitch(int p, bool interpolate);
+	void SetAngle(angle_t ang, bool interpolate);
+	void SetRoll(angle_t roll, bool interpolate);
 
 	const PClass *GetBloodType(int type = 0) const
 	{
@@ -816,7 +849,8 @@ public:
 	DWORD			fillcolor;			// Color to draw when STYLE_Shaded
 
 // interaction info
-	fixed_t			pitch, roll;
+	fixed_t			pitch;
+	angle_t			roll;	// This was fixed_t before, which is probably wrong
 	FBlockNode		*BlockNode;			// links in blocks (if needed)
 	struct sector_t	*Sector;
 	subsector_t *		subsector;
@@ -840,12 +874,14 @@ public:
 	DWORD			flags4;			// [RH] Even more flags!
 	DWORD			flags5;			// OMG! We need another one.
 	DWORD			flags6;			// Shit! Where did all the flags go?
+	DWORD			flags7;			// WHO WANTS TO BET ON 8!?
 
 	// [BB] If 0, everybody can see the actor, if > 0, only members of team (VisibleToTeam-1) can see it.
 	DWORD			VisibleToTeam;
 
 	int				special1;		// Special info
 	int				special2;		// Special info
+	int				weaponspecial;	// Special info for weapons.
 	int 			health;
 	BYTE			movedir;		// 0-7
 	SBYTE			visdir;
@@ -863,6 +899,7 @@ public:
 	TObjPtr<AActor>	LastLookActor;	// Actor last looked for (if TIDtoHate != 0)
 	fixed_t			SpawnPoint[3]; 	// For nightmare respawn
 	WORD			SpawnAngle;
+	int				StartHealth;
 	BYTE			WeaveIndexXY;	// Separated from special2 because it's used by globally accessible functions.
 	BYTE			WeaveIndexZ;
 	int				skillrespawncount;
@@ -894,6 +931,7 @@ public:
 	fixed_t			wallbouncefactor;	// The bounce factor for walls can be different.
 	int				bouncecount;	// Strife's grenades only bounce twice before exploding
 	fixed_t			gravity;		// [GRB] Gravity factor
+	fixed_t			Friction;
 	int 			FastChaseStrafeCount;
 	fixed_t			pushfactor;
 	int				lastpush;
@@ -923,9 +961,6 @@ public:
 	TObjPtr<AInventory>	Inventory;		// [RH] This actor's inventory
 	DWORD			InventoryID;	// A unique ID to keep track of inventory items
 
-	//Added by MC:
-	SDWORD id;						// Player ID (for items, # in list.)
-
 	BYTE smokecounter;
 	BYTE FloatBobPhase;
 	BYTE FriendPlayer;				// [RH] Player # + 1 this friendly monster works for (so 0 is no player, 1 is player 0, etc)
@@ -951,9 +986,15 @@ public:
 	FNameNoInit DamageType;
 	FNameNoInit DamageTypeReceived;
 	fixed_t DamageFactor;
+	fixed_t DamageMultiply;
 
 	FNameNoInit PainType;
 	FNameNoInit DeathType;
+	const PClass *TeleFogSourceType;
+	const PClass *TeleFogDestType;
+	int RipperLevel;
+	int RipLevelMin;
+	int RipLevelMax;
 
 	FState *SpawnState;
 	FState *SeeState;
@@ -997,8 +1038,11 @@ public:
 	bool SetState (FState *newstate, bool nofunction=false);
 	virtual bool UpdateWaterLevel (fixed_t oldz, bool splash=true);
 	bool isFast();
-	void SetIdle();
+	bool isSlow();
+	void SetIdle(bool nofunction=false);
 	void ClearCounters();
+	FState *GetRaiseState();
+	void Revive();
 
 	FState *FindState (FName label) const
 	{

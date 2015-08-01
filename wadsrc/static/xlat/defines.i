@@ -258,5 +258,6 @@ enum
 	
 	// 
 	ML_PASSTHROUGH				= -1,
-	ML_TRANSLUCENT				= -2
+	ML_TRANSLUCENT				= -2,
+	ML_TRANSPARENT				= -3
 }

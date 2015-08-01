@@ -295,7 +295,7 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice()
 		fluid_chorus_speed, fluid_chorus_depth, fluid_chorus_type);
 	if (0 == LoadPatchSets(fluid_patchset))
 	{
-#ifdef unix
+#ifdef __unix__
 		// This is the standard location on Ubuntu.
 		if (0 == LoadPatchSets("/usr/share/sounds/sf2/FluidR3_GS.sf2:/usr/share/sounds/sf2/FluidR3_GM.sf2"))
 		{
@@ -322,7 +322,7 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice()
 			}
 		}
 #endif
-#ifdef unix
+#ifdef __unix__
 		}
 #endif
 	}
@@ -620,10 +620,10 @@ FString FluidSynthMIDIDevice::GetStats()
 	fluid_settings_getint(FluidSettings, "synth.polyphony", &maxpoly);
 	CritSec.Leave();
 
-	out.Format("Voices: "TEXTCOLOR_YELLOW"%3d"TEXTCOLOR_NORMAL"/"TEXTCOLOR_ORANGE"%3d"TEXTCOLOR_NORMAL"("TEXTCOLOR_RED"%3d"TEXTCOLOR_NORMAL")"
-			   TEXTCOLOR_YELLOW"%6.2f"TEXTCOLOR_NORMAL"%% CPU   "
-			   "Reverb: "TEXTCOLOR_YELLOW"%3s"TEXTCOLOR_NORMAL
-			   " Chorus: "TEXTCOLOR_YELLOW"%3s",
+	out.Format("Voices: " TEXTCOLOR_YELLOW "%3d" TEXTCOLOR_NORMAL "/" TEXTCOLOR_ORANGE "%3d" TEXTCOLOR_NORMAL "(" TEXTCOLOR_RED "%3d" TEXTCOLOR_NORMAL ")"
+			   TEXTCOLOR_YELLOW "%6.2f" TEXTCOLOR_NORMAL "%% CPU   "
+			   "Reverb: " TEXTCOLOR_YELLOW "%3s" TEXTCOLOR_NORMAL
+			   " Chorus: " TEXTCOLOR_YELLOW "%3s",
 		voices, polyphony, maxpoly, load, reverb, chorus);
 	return out;
 }

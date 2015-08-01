@@ -13,7 +13,6 @@
 #include <windows.h>
 #include <mmsystem.h>
 #else
-#include <SDL.h>
 #define FALSE 0
 #define TRUE 1
 #endif
@@ -709,7 +708,7 @@ class OPLMUSDumper : public OPLMUSSong
 {
 public:
 	OPLMUSDumper(const OPLMUSSong *original, const char *filename);
-	void Play(bool looping);
+	void Play(bool looping, int);
 };
 
 // CD track/disk played through the multimedia system -----------------------

@@ -303,6 +303,8 @@ class SBarInfoMainBlock : public SBarInfoCommandFlowControl
 		int		Alpha() const { return currentAlpha; }
 		// Same as Draw but takes into account ForceScaled and temporarily sets the scaling if needed.
 		void	DrawAux(const SBarInfoMainBlock *block, DSBarInfo *statusBar, int xOffset, int yOffset, int alpha);
+		// Silence hidden overload warning since this is a special use class.
+		using SBarInfoCommandFlowControl::Draw;
 		void	Draw(const SBarInfoMainBlock *block, const DSBarInfo *statusBar, int xOffset, int yOffset, int alpha)
 		{
 			this->xOffset = xOffset;
@@ -1187,8 +1189,12 @@ public:
 
 		if((offsetflags & SBarInfoCommand::CENTER) == SBarInfoCommand::CENTER)
 		{
-			dx -= (texture->GetScaledWidthDouble()/2.0)-texture->GetScaledLeftOffsetDouble();
-			dy -= (texture->GetScaledHeightDouble()/2.0)-texture->GetScaledTopOffsetDouble();
+			if (forceWidth < 0)	dx -= (texture->GetScaledWidthDouble()/2.0)-texture->GetScaledLeftOffsetDouble();
+			else	dx -= forceWidth*(0.5-(texture->GetScaledLeftOffsetDouble()/texture->GetScaledWidthDouble()));
+			//Unoptimalized formula is dx -= forceWidth/2.0-(texture->GetScaledLeftOffsetDouble()*forceWidth/texture->GetScaledWidthDouble());
+			
+			if (forceHeight < 0)	dy -= (texture->GetScaledHeightDouble()/2.0)-texture->GetScaledTopOffsetDouble();
+			else	dy -= forceHeight*(0.5-(texture->GetScaledTopOffsetDouble()/texture->GetScaledHeightDouble()));
 		}
 
 		dx += xOffset;
@@ -1209,7 +1215,11 @@ public:
 			if(Scaled)
 			{
 				if(cx != 0 || cy != 0)
+				{
 					screen->VirtualToRealCoords(dcx, dcy, tmp, tmp, script->resW, script->resH, true);
+					if (cx == 0) dcx = 0;
+					if (cy == 0) dcy = 0;
+				}
 				if(cr != 0 || cb != 0 || clearDontDraw)
 					screen->VirtualToRealCoords(dcr, dcb, tmp, tmp, script->resW, script->resH, true);
 				screen->VirtualToRealCoords(dx, dy, w, h, script->resW, script->resH, true);
@@ -1270,8 +1280,8 @@ public:
 
 			// We can't use DTA_HUDRules since it forces a width and height.
 			// Translation: No high res.
-			bool xright = rx < 0;
-			bool ybot = ry < 0;
+			bool xright = *x < 0 && !x.RelCenter();
+			bool ybot = *y < 0 && !y.RelCenter();
 
 			w = (forceWidth < 0 ? texture->GetScaledWidthDouble() : forceWidth);
 			h = (forceHeight < 0 ? texture->GetScaledHeightDouble() : forceHeight);

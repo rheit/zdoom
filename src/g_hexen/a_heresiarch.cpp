@@ -88,7 +88,7 @@ void AHeresiarch::Die (AActor *source, AActor *inflictor, int dmgflags)
 
 	if (script != 0)
 	{
-		P_StartScript (this, NULL, script, level.mapname, NULL, 0, 0);
+		P_StartScript (this, NULL, script, level.MapName, NULL, 0, 0);
 	}
 }
 
@@ -314,7 +314,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SorcBallOrbit)
 	case SORC_STOPPING:			// Balls stopping
 		if ((parent->StopBall == RUNTIME_TYPE(actor)) &&
 			 (parent->args[1] > SORCBALL_SPEED_ROTATIONS) &&
-			 (abs(angle - (parent->angle>>ANGLETOFINESHIFT)) < (30<<5)))
+			 (absangle(angle - (parent->angle>>ANGLETOFINESHIFT)) < (30<<5)))
 		{
 			// Can stop now
 			actor->target->args[3] = SORC_FIRESPELL;

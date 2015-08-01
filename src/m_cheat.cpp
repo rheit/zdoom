@@ -99,6 +99,23 @@ void cht_DoCheat (player_t *player, int cheat)
 			msg = GStrings("TXT_BUDDHAOFF");
 		break;
 
+	case CHT_GOD2:
+		player->cheats ^= CF_GODMODE2;
+		if (player->cheats & CF_GODMODE2)
+			msg = GStrings("STSTR_DQD2ON");
+		else
+			msg = GStrings("STSTR_DQD2OFF");
+		ST_SetNeedRefresh();
+		break;
+
+	case CHT_BUDDHA2:
+		player->cheats ^= CF_BUDDHA2;
+		if (player->cheats & CF_BUDDHA2)
+			msg = GStrings("TXT_BUDDHA2ON");
+		else
+			msg = GStrings("TXT_BUDDHA2OFF");
+		break;
+
 	case CHT_NOCLIP:
 		player->cheats ^= CF_NOCLIP;
 		if (player->cheats & CF_NOCLIP)
@@ -132,8 +149,7 @@ void cht_DoCheat (player_t *player, int cheat)
 	case CHT_FLY:
 		if (player->mo != NULL)
 		{
-			player->cheats ^= CF_FLY;
-			if (player->cheats & CF_FLY)
+			if ((player->mo->flags7 ^= MF7_FLYCHEAT) != 0)
 			{
 				player->mo->flags |= MF_NOGRAVITY;
 				player->mo->flags2 |= MF2_FLY;
@@ -311,6 +327,7 @@ void cht_DoCheat (player_t *player, int cheat)
 				player->mo->flags4 = player->mo->GetDefault()->flags4;
 				player->mo->flags5 = player->mo->GetDefault()->flags5;
 				player->mo->flags6 = player->mo->GetDefault()->flags6;
+				player->mo->flags7 = player->mo->GetDefault()->flags7;
 				player->mo->renderflags &= ~RF_INVISIBLE;
 				player->mo->height = player->mo->GetDefault()->height;
 				player->mo->radius = player->mo->GetDefault()->radius;
@@ -322,7 +339,6 @@ void cht_DoCheat (player_t *player, int cheat)
 					player->mo->Translation = TRANSLATION(TRANSLATION_Players, BYTE(player-players));
 				}
 				player->mo->DamageType = NAME_None;
-//				player->mo->GiveDefaultInventory();
 				if (player->ReadyWeapon != NULL)
 				{
 					P_SetPsprite(player, ps_weapon, player->ReadyWeapon->GetUpState());

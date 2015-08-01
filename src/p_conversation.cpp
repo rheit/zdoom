@@ -522,19 +522,8 @@ static void ParseReplies (FStrifeDialogueReply **replyptr, Response *responses)
 
 		// If the first item check has a positive amount required, then
 		// add that to the reply string. Otherwise, use the reply as-is.
-		if (rsp->Count[0] > 0)
-		{
-			char moneystr[128];
-
-			mysnprintf (moneystr, countof(moneystr), "%s for %u", rsp->Reply, rsp->Count[0]);
-			reply->Reply = copystring (moneystr);
-			reply->NeedsGold = true;
-		}
-		else
-		{
-			reply->Reply = copystring (rsp->Reply);
-			reply->NeedsGold = false;
-		}
+		reply->Reply = copystring (rsp->Reply);
+		reply->NeedsGold = (rsp->Count[0] > 0);
 
 		// QuickYes messages are shown when you meet the item checks.
 		// QuickNo messages are shown when you don't.
@@ -666,7 +655,14 @@ static void TakeStrifeItem (player_t *player, const PClass *itemtype, int amount
 		item->Amount -= amount;
 		if (item->Amount <= 0)
 		{
-			item->Destroy ();
+			if (item->ItemFlags & IF_KEEPDEPLETED)
+			{
+				item->Amount = 0;
+			}
+			else
+			{
+				item->Destroy ();
+			}
 		}
 	}
 }
@@ -752,7 +748,10 @@ public:
 			{
 				ReplyText = GStrings(ReplyText + 1);
 			}
-			FBrokenLines *ReplyLines = V_BreakLines (SmallFont, 320-50-10, ReplyText);
+			FString ReplyString = ReplyText;
+			if (reply->NeedsGold) ReplyString.AppendFormat(" for %u", reply->ItemCheck[0].Amount);
+
+			FBrokenLines *ReplyLines = V_BreakLines (SmallFont, 320-50-10, ReplyString);
 
 			mResponses.Push(mResponseLines.Size());
 			for (j = 0; ReplyLines[j].Width >= 0; ++j)
@@ -958,6 +957,7 @@ public:
 		if (CurNode->SpeakerName != NULL)
 		{
 			speakerName = CurNode->SpeakerName;
+			if (speakerName[0] == '$') speakerName = GStrings(speakerName+1);
 		}
 		else
 		{
@@ -1151,7 +1151,7 @@ void P_StartConversation (AActor *npc, AActor *pc, bool facetalker, bool saveang
 				break;
 			}
 		}
-		if (jump)
+		if (jump && CurNode->ItemCheckNode > 0)
 		{
 			int root = pc->player->ConversationNPC->ConversationRoot;
 			CurNode = StrifeDialogues[root + CurNode->ItemCheckNode - 1];

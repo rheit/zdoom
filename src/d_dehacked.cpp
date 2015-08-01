@@ -1755,21 +1755,21 @@ static int PatchCheats (int dummy)
 static int PatchMisc (int dummy)
 {
 	static const struct Key keys[] = {
-		{ "Initial Health",			myoffsetof(struct DehInfo,StartHealth) },
-		{ "Initial Bullets",		myoffsetof(struct DehInfo,StartBullets) },
-		{ "Max Health",				myoffsetof(struct DehInfo,MaxHealth) },
-		{ "Max Armor",				myoffsetof(struct DehInfo,MaxArmor) },
-		{ "Green Armor Class",		myoffsetof(struct DehInfo,GreenAC) },
-		{ "Blue Armor Class",		myoffsetof(struct DehInfo,BlueAC) },
-		{ "Max Soulsphere",			myoffsetof(struct DehInfo,MaxSoulsphere) },
-		{ "Soulsphere Health",		myoffsetof(struct DehInfo,SoulsphereHealth) },
-		{ "Megasphere Health",		myoffsetof(struct DehInfo,MegasphereHealth) },
-		{ "God Mode Health",		myoffsetof(struct DehInfo,GodHealth) },
-		{ "IDFA Armor",				myoffsetof(struct DehInfo,FAArmor) },
-		{ "IDFA Armor Class",		myoffsetof(struct DehInfo,FAAC) },
-		{ "IDKFA Armor",			myoffsetof(struct DehInfo,KFAArmor) },
-		{ "IDKFA Armor Class",		myoffsetof(struct DehInfo,KFAAC) },
-		{ "No Autofreeze",			myoffsetof(struct DehInfo,NoAutofreeze) },
+		{ "Initial Health",			static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,StartHealth)) },
+		{ "Initial Bullets",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,StartBullets)) },
+		{ "Max Health",				static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,MaxHealth)) },
+		{ "Max Armor",				static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,MaxArmor)) },
+		{ "Green Armor Class",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,GreenAC)) },
+		{ "Blue Armor Class",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,BlueAC)) },
+		{ "Max Soulsphere",			static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,MaxSoulsphere)) },
+		{ "Soulsphere Health",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,SoulsphereHealth)) },
+		{ "Megasphere Health",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,MegasphereHealth)) },
+		{ "God Mode Health",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,GodHealth)) },
+		{ "IDFA Armor",				static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,FAArmor)) },
+		{ "IDFA Armor Class",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,FAAC)) },
+		{ "IDKFA Armor",			static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,KFAArmor)) },
+		{ "IDKFA Armor Class",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,KFAAC)) },
+		{ "No Autofreeze",			static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,NoAutofreeze)) },
 		{ NULL, 0 }
 	};
 	int result;
@@ -2154,6 +2154,13 @@ static int PatchText (int oldSize)
 			{
 				strncpy (deh.PlayerSprite, newStr, 4);
 			}
+			for (unsigned ii = 0; ii < OrgSprNames.Size(); ii++)
+			{
+				if (!stricmp(OrgSprNames[ii].c, oldStr))
+				{
+					strcpy(OrgSprNames[ii].c, newStr);
+				}
+			}
 			// If this sprite is used by a pickup, then the DehackedPickup sprite map
 			// needs to be updated too.
 			for (i = 0; (size_t)i < countof(DehSpriteMappings); ++i)
@@ -2183,24 +2190,25 @@ static int PatchText (int oldSize)
 		}
 	}
 
-	if (!good)
-	{	
-		// Search through most other texts
-		const char *str;
-		str = EnglishStrings->MatchString (oldStr);
+	// Search through most other texts
+	const char *str;
+	do
+	{
+		str = EnglishStrings->MatchString(oldStr);
 		if (str != NULL)
 		{
-			GStrings.SetString (str, newStr);
+			GStrings.SetString(str, newStr);
+			EnglishStrings->SetString(str, "~~");	// set to something invalid so that it won't get found again by the next iteration or  by another replacement later
 			good = true;
 		}
+	} 
+	while (str != NULL);	// repeat search until the text can no longer be found
 
-		if (!good)
-		{
-			DPrintf ("   (Unmatched)\n");
-		}
+	if (!good)
+	{
+		DPrintf ("   (Unmatched)\n");
 	}
 		
-
 donewithtext:
 	if (newStr)
 		delete[] newStr;
@@ -2240,7 +2248,10 @@ static int PatchStrings (int dummy)
 
 		ReplaceSpecialChars (holdstring.LockBuffer());
 		holdstring.UnlockBuffer();
-		GStrings.SetString (Line1, holdstring);
+		// Account for a discrepancy between Boom's and ZDoom's name for the red skull key pickup message
+		const char *ll = Line1;
+		if (!stricmp(ll, "GOTREDSKULL")) ll = "GOTREDSKUL";
+		GStrings.SetString (ll, holdstring);
 		DPrintf ("%s set to:\n%s\n", Line1, holdstring.GetChars());
 	}
 
@@ -2329,6 +2340,18 @@ static int DoInclude (int dummy)
 	return GetLine();
 }
 
+CVAR(Int, dehload, 0, CVAR_ARCHIVE)	// Autoloading of .DEH lumps is disabled by default.
+
+// checks if lump is a .deh or .bex file. Only lumps in the root directory are considered valid.
+static bool isDehFile(int lumpnum)
+{
+	const char* const fullName  = Wads.GetLumpFullName(lumpnum);
+	const char* const extension = strrchr(fullName, '.');
+
+	return NULL != extension && strchr(fullName, '/') == NULL
+		&& (0 == stricmp(extension, ".deh") || 0 == stricmp(extension, ".bex"));
+}
+
 int D_LoadDehLumps()
 {
 	int lastlump = 0, lumpnum, count = 0;
@@ -2337,6 +2360,34 @@ int D_LoadDehLumps()
 	{
 		count += D_LoadDehLump(lumpnum);
 	}
+
+	if (0 == PatchSize && dehload > 0)
+	{
+		// No DEH/BEX patch is loaded yet, try to find lump(s) with specific extensions
+
+		if (dehload == 1)	// load all .DEH lumps that are found.
+		{
+			for (lumpnum = 0, lastlump = Wads.GetNumLumps(); lumpnum < lastlump; ++lumpnum)
+			{
+				if (isDehFile(lumpnum))
+				{
+					count += D_LoadDehLump(lumpnum);
+				}
+			}
+		}
+		else 	// only load the last .DEH lump that is found.
+		{
+			for (lumpnum = Wads.GetNumLumps()-1; lumpnum >=0; --lumpnum)
+			{
+				if (isDehFile(lumpnum))
+				{
+					count += D_LoadDehLump(lumpnum);
+					break;
+				}
+			}
+		}
+	}
+
 	return count;
 }
 
@@ -2405,6 +2456,12 @@ static bool DoDehPatch()
 			Printf (PRINT_BOLD, "\"%s\" is an old and unsupported DeHackEd patch\n", PatchFile);
 			return false;
 		}
+		// fix for broken WolfenDoom patches which contain \0 characters in some places.
+		for (int i = 0; i < PatchSize; i++)
+		{
+			if (PatchFile[i] == 0) PatchFile[i] = ' ';	
+		}
+
 		PatchPt = strchr (PatchFile, '\n');
 		while ((cont = GetLine()) == 1)
 		{
@@ -2905,7 +2962,7 @@ void FinishDehPatch ()
 		PClass *subclass = RUNTIME_CLASS(ADehackedPickup)->CreateDerivedClass
 			(typeNameBuilder, sizeof(ADehackedPickup));
 		AActor *defaults2 = GetDefaultByType (subclass);
-		memcpy (defaults2, defaults1, sizeof(AActor));
+		memcpy ((void *)defaults2, (void *)defaults1, sizeof(AActor));
 
 		// Make a copy of the replaced class's state labels 
 		FStateDefinitions statedef;

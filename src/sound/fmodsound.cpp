@@ -63,7 +63,7 @@ extern HWND Window;
 #include "cmdlib.h"
 #include "s_sound.h"
 
-#if FMOD_VERSION > 0x42899 && FMOD_VERSION < 0x43800
+#if FMOD_VERSION > 0x42899 && FMOD_VERSION < 0x43400
 #error You are trying to compile with an unsupported version of FMOD.
 #endif
 
@@ -198,7 +198,9 @@ static const FEnumList SpeakerModeNames[] =
 	{ "Surround",				FMOD_SPEAKERMODE_SURROUND },
 	{ "5.1",					FMOD_SPEAKERMODE_5POINT1 },
 	{ "7.1",					FMOD_SPEAKERMODE_7POINT1 },
+#if FMOD_VERSION < 0x44000
 	{ "Prologic",				FMOD_SPEAKERMODE_PROLOGIC },
+#endif
 	{ "1",						FMOD_SPEAKERMODE_MONO },
 	{ "2",						FMOD_SPEAKERMODE_STEREO },
 	{ "4",						FMOD_SPEAKERMODE_QUAD },
@@ -210,8 +212,11 @@ static const FEnumList ResamplerNames[] =
 	{ "No Interpolation",		FMOD_DSP_RESAMPLER_NOINTERP },
 	{ "NoInterp",				FMOD_DSP_RESAMPLER_NOINTERP },
 	{ "Linear",					FMOD_DSP_RESAMPLER_LINEAR },
+	// [BL] 64-bit version of FMOD Ex 4.26 crashes with these resamplers.
+#if !(defined(_M_X64) || defined(__amd64__)) || !(FMOD_VERSION >= 0x42600 && FMOD_VERSION <= 0x426FF)
 	{ "Cubic",					FMOD_DSP_RESAMPLER_CUBIC },
 	{ "Spline",					FMOD_DSP_RESAMPLER_SPLINE },
+#endif
 	{ NULL, 0 }
 };
 
@@ -627,7 +632,9 @@ bool FMODSoundRenderer::IsValid()
 //
 //==========================================================================
 
+#ifndef FACILITY_VISUALCPP
 #define FACILITY_VISUALCPP  ((LONG)0x6d)
+#endif
 #define VcppException(sev,err)  ((sev) | (FACILITY_VISUALCPP<<16) | err)
 
 static int CheckException(DWORD code)
@@ -730,8 +737,8 @@ bool FMODSoundRenderer::Init()
 	}
 	if (wrongver != NULL)
 	{
-		Printf (" "TEXTCOLOR_ORANGE"Error! You are using %s version of FMOD (%x.%02x.%02x).\n"
-				" "TEXTCOLOR_ORANGE"This program was built for version %x.%02x.%02x\n",
+		Printf (" " TEXTCOLOR_ORANGE "Error! You are using %s version of FMOD (%x.%02x.%02x).\n"
+				" " TEXTCOLOR_ORANGE "This program was built for version %x.%02x.%02x\n",
 				wrongver,
 				version >> 16, (version >> 8) & 255, version & 255,
 				FMOD_VERSION >> 16, (FMOD_VERSION >> 8) & 255, FMOD_VERSION & 255);
@@ -814,7 +821,7 @@ bool FMODSoundRenderer::Init()
 	}
 	
 	result = Sys->getNumDrivers(&driver);
-#ifdef unix
+#ifdef __unix__
 	if (result == FMOD_OK)
 	{
 		// On Linux, FMOD defaults to OSS. If OSS is not present, it doesn't
@@ -854,7 +861,7 @@ bool FMODSoundRenderer::Init()
 		result = Sys->setDriver(driver);
 	}
 	result = Sys->getDriver(&driver);
-#if FMOD_VERSION >= 0x43700
+#if FMOD_VERSION >= 0x43600
 	// We were built with an FMOD that only returns the control panel frequency
 	result = Sys->getDriverCaps(driver, &Driver_Caps, &Driver_MinFrequency, &speakermode);
 	Driver_MaxFrequency = Driver_MinFrequency;
@@ -1039,7 +1046,6 @@ bool FMODSoundRenderer::Init()
 	}
 
 	// Create DSP units for underwater effect
-#if FMOD_VERSION < 0x43701
 	result = Sys->createDSPByType(FMOD_DSP_TYPE_LOWPASS, &WaterLP);
 	if (result != FMOD_OK)
 	{
@@ -1047,15 +1053,12 @@ bool FMODSoundRenderer::Init()
 	}
 	else
 	{
-		result = Sys->createDSPByType(FMOD_DSP_TYPE_REVERB, &WaterReverb);
+		result = Sys->createDSPByType(FMOD_DSP_TYPE_SFXREVERB, &WaterReverb);
 		if (result != FMOD_OK)
 		{
 			Printf(TEXTCOLOR_BLUE"  Could not create underwater reverb unit. (Error %d)\n", result);
 		}
 	}
-#else
-	result = FMOD_ERR_UNSUPPORTED;
-#endif
 
 	// Connect underwater DSP unit between PausableSFX and SFX groups, while
 	// retaining the connection established by SfxGroup->addGroup().
@@ -1102,32 +1105,35 @@ bool FMODSoundRenderer::Init()
 				WaterLP->setActive(false);
 				WaterLP->setParameter(FMOD_DSP_LOWPASS_CUTOFF, snd_waterlp);
 				WaterLP->setParameter(FMOD_DSP_LOWPASS_RESONANCE, 2);
-#if FMOD_VERSION < 0x43701
+
 				if (WaterReverb != NULL)
 				{
-					FMOD::DSPConnection *dry;
-					result = WaterReverb->addInput(pausable_head, &dry);
+					result = WaterReverb->addInput(WaterLP, NULL);
 					if (result == FMOD_OK)
 					{
-						result = dry->setMix(0.1f);
+						result = sfx_head->addInput(WaterReverb, NULL);
 						if (result == FMOD_OK)
 						{
-							result = WaterReverb->addInput(WaterLP, NULL);
-							if (result == FMOD_OK)
-							{
-								result = sfx_head->addInput(WaterReverb, NULL);
-								if (result == FMOD_OK)
-								{
-									WaterReverb->setParameter(FMOD_DSP_REVERB_ROOMSIZE, 0.001f);
-									WaterReverb->setParameter(FMOD_DSP_REVERB_DAMP, 0.2f);
-									WaterReverb->setActive(false);
-								}
-							}
+//							WaterReverb->setParameter(FMOD_DSP_REVERB_ROOMSIZE, 0.001f);
+//							WaterReverb->setParameter(FMOD_DSP_REVERB_DAMP, 0.2f);
+
+							// These parameters are entirely empirical and can probably
+							// stand some improvement, but it sounds remarkably close
+							// to the old reverb unit's output.
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_LFREFERENCE, 150);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_HFREFERENCE, 10000);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_ROOM, 0);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_ROOMHF, -5000);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_DRYLEVEL, 0);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_DECAYHFRATIO, 1);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_DECAYTIME, 0.25f);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_DENSITY, 100);
+							WaterReverb->setParameter(FMOD_DSP_SFXREVERB_DIFFUSION, 100);
+							WaterReverb->setActive(false);
 						}
 					}
 				}
 				else
-#endif
 				{
 					result = sfx_head->addInput(WaterLP, NULL);
 				}
@@ -1259,15 +1265,15 @@ void FMODSoundRenderer::PrintStatus()
 	unsigned int bufferlength;
 	int numbuffers;
 
-	Printf ("Loaded FMOD version: "TEXTCOLOR_GREEN"%x.%02x.%02x\n", ActiveFMODVersion >> 16,
+	Printf ("Loaded FMOD version: " TEXTCOLOR_GREEN "%x.%02x.%02x\n", ActiveFMODVersion >> 16,
 		(ActiveFMODVersion >> 8) & 255, ActiveFMODVersion & 255);
 	if (FMOD_OK == Sys->getOutput(&output))
 	{
-		Printf ("Output type: "TEXTCOLOR_GREEN"%s\n", Enum_NameForNum(OutputNames, output));
+		Printf ("Output type: " TEXTCOLOR_GREEN "%s\n", Enum_NameForNum(OutputNames, output));
 	}
 	if (FMOD_OK == Sys->getSpeakerMode(&speakermode))
 	{
-		Printf ("Speaker mode: "TEXTCOLOR_GREEN"%s\n", Enum_NameForNum(SpeakerModeNames, speakermode));
+		Printf ("Speaker mode: " TEXTCOLOR_GREEN "%s\n", Enum_NameForNum(SpeakerModeNames, speakermode));
 	}
 	if (FMOD_OK == Sys->getDriver(&driver))
 	{
@@ -1276,19 +1282,19 @@ void FMODSoundRenderer::PrintStatus()
 		{
 			strcpy(name, "Unknown");
 		}
-		Printf ("Driver: "TEXTCOLOR_GREEN"%d"TEXTCOLOR_NORMAL" ("TEXTCOLOR_ORANGE"%s"TEXTCOLOR_NORMAL")\n", driver, name);
+		Printf ("Driver: " TEXTCOLOR_GREEN "%d" TEXTCOLOR_NORMAL " (" TEXTCOLOR_ORANGE "%s" TEXTCOLOR_NORMAL ")\n", driver, name);
 		DumpDriverCaps(Driver_Caps, Driver_MinFrequency, Driver_MaxFrequency);
 	}
 	if (FMOD_OK == Sys->getSoftwareFormat(&samplerate, &format, &numoutputchannels, NULL, &resampler, NULL))
 	{
-		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer sample rate: "TEXTCOLOR_GREEN"%d\n", samplerate);
-		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer format: "TEXTCOLOR_GREEN"%s\n", Enum_NameForNum(SoundFormatNames, format));
-		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer channels: "TEXTCOLOR_GREEN"%d\n", numoutputchannels);
-		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer resampler: "TEXTCOLOR_GREEN"%s\n", Enum_NameForNum(ResamplerNames, resampler));
+		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer sample rate: " TEXTCOLOR_GREEN "%d\n", samplerate);
+		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer format: " TEXTCOLOR_GREEN "%s\n", Enum_NameForNum(SoundFormatNames, format));
+		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer channels: " TEXTCOLOR_GREEN "%d\n", numoutputchannels);
+		Printf (TEXTCOLOR_LIGHTBLUE "Software mixer resampler: " TEXTCOLOR_GREEN "%s\n", Enum_NameForNum(ResamplerNames, resampler));
 	}
 	if (FMOD_OK == Sys->getDSPBufferSize(&bufferlength, &numbuffers))
 	{
-		Printf (TEXTCOLOR_LIGHTBLUE "DSP buffers: "TEXTCOLOR_GREEN"%u samples x %d\n", bufferlength, numbuffers);
+		Printf (TEXTCOLOR_LIGHTBLUE "DSP buffers: " TEXTCOLOR_GREEN "%u samples x %d\n", bufferlength, numbuffers);
 	}
 }
 
@@ -1300,8 +1306,8 @@ void FMODSoundRenderer::PrintStatus()
 
 void FMODSoundRenderer::DumpDriverCaps(FMOD_CAPS caps, int minfrequency, int maxfrequency)
 {
-	Printf (TEXTCOLOR_OLIVE "   Min. frequency: "TEXTCOLOR_GREEN"%d\n", minfrequency);
-	Printf (TEXTCOLOR_OLIVE "   Max. frequency: "TEXTCOLOR_GREEN"%d\n", maxfrequency);
+	Printf (TEXTCOLOR_OLIVE "   Min. frequency: " TEXTCOLOR_GREEN "%d\n", minfrequency);
+	Printf (TEXTCOLOR_OLIVE "   Max. frequency: " TEXTCOLOR_GREEN "%d\n", maxfrequency);
 	Printf ("  Features:\n");
 	if (caps == 0)									Printf(TEXTCOLOR_OLIVE "   None\n");
 	if (caps & FMOD_CAPS_HARDWARE)					Printf(TEXTCOLOR_OLIVE "   Hardware mixing\n");
@@ -1316,7 +1322,7 @@ void FMODSoundRenderer::DumpDriverCaps(FMOD_CAPS caps, int minfrequency, int max
 	{
 		Printf("\n");
 	}
-	if (caps & FMOD_CAPS_REVERB_LIMITED)			Printf("TEXTCOLOR_OLIVE    Limited reverb\n");
+	if (caps & FMOD_CAPS_REVERB_LIMITED)			Printf(TEXTCOLOR_OLIVE "   Limited reverb\n");
 }
 
 //==========================================================================
@@ -1384,11 +1390,11 @@ FString FMODSoundRenderer::GatherStats()
 	}
 #endif
 
-	out.Format ("%d channels,"TEXTCOLOR_YELLOW"%5.2f"TEXTCOLOR_NORMAL"%% CPU "
-		"(DSP:"TEXTCOLOR_YELLOW"%5.2f"TEXTCOLOR_NORMAL"%% "
-		"Stream:"TEXTCOLOR_YELLOW"%5.2f"TEXTCOLOR_NORMAL"%% "
-		"Geometry:"TEXTCOLOR_YELLOW"%5.2f"TEXTCOLOR_NORMAL"%% "
-		"Update:"TEXTCOLOR_YELLOW"%5.2f"TEXTCOLOR_NORMAL"%%)",
+	out.Format ("%d channels," TEXTCOLOR_YELLOW "%5.2f" TEXTCOLOR_NORMAL "%% CPU "
+		"(DSP:" TEXTCOLOR_YELLOW "%5.2f" TEXTCOLOR_NORMAL "%% "
+		"Stream:" TEXTCOLOR_YELLOW "%5.2f" TEXTCOLOR_NORMAL "%% "
+		"Geometry:" TEXTCOLOR_YELLOW "%5.2f" TEXTCOLOR_NORMAL "%% "
+		"Update:" TEXTCOLOR_YELLOW "%5.2f" TEXTCOLOR_NORMAL "%%)",
 		channels, total, dsp, stream, geometry, update);
 	return out;
 }

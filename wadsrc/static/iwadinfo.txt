@@ -2,6 +2,24 @@
 
 IWad
 {
+	Name = "The Adventures of Square"
+	Game = "Doom"
+	Config = "Square"
+	MustContain = "SQU-IWAD", "E1A1"
+	BannerColors = "ff ff ff", "80 00 80"
+}
+
+IWad
+{
+	Name = "The Adventures of Square (Square-ware)"
+	Game = "Doom"
+	Config = "Square"
+	MustContain = "SQU-SWE1", "E1A1"
+	BannerColors = "ff ff ff", "80 00 80"
+}
+
+IWad
+{
 	Name = "Harmony"
 	Game = "Doom"
 	Config = "Harmony"
@@ -156,7 +174,7 @@ IWad
 IWad
 {
 	Name = "Heretic: Shadow of the Serpent Riders"
-	Autoname = "Heretic1"
+	Autoname = "HereticSR"
 	Game = "Heretic"
 	Config = "Heretic"
 	Mapinfo = "mapinfo/heretic.txt"
@@ -168,7 +186,6 @@ IWad
 IWad
 {
 	Name = "Heretic"
-	Autoname = "Heretic1"
 	Game = "Heretic"
 	Config = "Heretic"
 	Mapinfo = "mapinfo/heretic.txt"
@@ -191,6 +208,7 @@ IWad
 {
 	Name = "FreeDM"
 	Autoname = "FreeDM"
+	Group = "Freedoom"
 	Game = "Doom"
 	Config = "Doom"
 	Mapinfo = "mapinfo/doom2.txt"
@@ -200,8 +218,9 @@ IWad
 
 IWad
 {
-	Name = "Freedoom"
-	Autoname = "Freedoom"
+	Name = "Freedoom: Phase 2"
+	Autoname = "Freedoom2"
+	Group = "Freedoom"
 	Game = "Doom"
 	Config = "Doom"
 	Mapinfo = "mapinfo/doom2.txt"
@@ -211,8 +230,9 @@ IWad
 
 IWad
 {
-	Name = "Ultimate Freedoom"
+	Name = "Freedoom: Phase 1"
 	Autoname = "Freedoom1"
+	Group = "Freedoom"
 	Game = "Doom"
 	Config = "Doom"
 	Mapinfo = "mapinfo/doom1.txt"
@@ -222,8 +242,9 @@ IWad
 	
 IWad
 {
-	Name = "Freedoom 'Demo'"
+	Name = "Freedoom: Demo Version"
 	Autoname = "Freedoom1"
+	Group = "Freedoom"
 	Game = "Doom"
 	Config = "Doom"
 	Mapinfo = "mapinfo/doom1.txt"
@@ -233,8 +254,8 @@ IWad
 	
 IWad
 {
-	Name = "DOOM 1: BFG Edition"
-	Autoname = "Doom1"
+	Name = "DOOM: BFG Edition"
+	Autoname = "DoomBFG"
 	Game = "Doom"
 	Config = "Doom"
 	Mapinfo = "mapinfo/ultdoom.txt"
@@ -249,7 +270,7 @@ IWad
 IWad
 {
 	Name = "The Ultimate DOOM"
-	Autoname = "Doom1"
+	Autoname = "DoomU"
 	Game = "Doom"
 	Config = "Doom"
 	Mapinfo = "mapinfo/ultdoom.txt"
@@ -359,9 +380,10 @@ Names
 	"strife1.wad"
 	"strife0.wad"
 	"strife.wad"
-	"freedoom.wad"
 	"freedoom1.wad"
+	"freedoom2.wad"
 	"freedoomu.wad"
+	"freedoom.wad"
 	"freedm.wad"
 	"blasphem.wad"
 	"blasphemer.wad"
@@ -371,5 +393,6 @@ Names
 	"harm1.wad"
 	"hacx.wad"
 	"hacx2.wad"
+	"square1.pk3"
 	"doom64.wad"
 }

@@ -166,15 +166,18 @@ public:
 				NewWidth = SCREENWIDTH;
 				NewHeight = SCREENHEIGHT;
 			}
-			OldWidth = SCREENWIDTH;
-			OldHeight = SCREENHEIGHT;
-			OldBits = DisplayBits;
-			NewBits = BitTranslate[DummyDepthCvar];
-			setmodeneeded = true;
-			testingmode = I_GetTime(false) + 5 * TICRATE;
-			S_Sound (CHAN_VOICE | CHAN_UI, "menu/choose", snd_menuvolume, ATTN_NONE);
-			SetModesMenu (NewWidth, NewHeight, NewBits);
-			return true;
+			else
+			{
+				OldWidth = SCREENWIDTH;
+				OldHeight = SCREENHEIGHT;
+				OldBits = DisplayBits;
+				NewBits = BitTranslate[DummyDepthCvar];
+				setmodeneeded = true;
+				testingmode = I_GetTime(false) + 5 * TICRATE;
+				S_Sound (CHAN_VOICE | CHAN_UI, "menu/choose", snd_menuvolume, ATTN_NONE);
+				SetModesMenu (NewWidth, NewHeight, NewBits);
+				return true;
+			}
 		}
 		return Super::Responder(ev);
 	}
@@ -244,8 +247,12 @@ static void BuildModesList (int hiwidth, int hiheight, int hi_bits)
 					if (Video != NULL)
 					{
 						while ((haveMode = Video->NextMode (&width, &height, &letterbox)) &&
-							(ratiomatch >= 0 && CheckRatio (width, height) != ratiomatch))
+							ratiomatch >= 0)
 						{
+							int ratio;
+							CheckRatio (width, height, &ratio);
+							if (ratio == ratiomatch)
+								break;
 						}
 					}
 
@@ -348,7 +355,7 @@ void M_InitVideoModesMenu ()
 static bool GetSelectedSize (int *width, int *height)
 {
 	FOptionMenuDescriptor *opt = GetVideoModeMenu();
-	if (opt != NULL)
+	if (opt != NULL && (unsigned)opt->mSelectedItem < opt->mItems.Size())
 	{
 		int line = opt->mSelectedItem;
 		int hsel;

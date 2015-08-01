@@ -129,7 +129,7 @@ typedef struct compressor_s
 	int method;
 } compressor_t;
 
-typedef unsigned int DWORD;
+typedef unsigned int UINT32;
 typedef unsigned short WORD;
 typedef unsigned char BYTE;
 
@@ -139,49 +139,49 @@ typedef unsigned char BYTE;
 //#pragma pack(push,1)
 typedef struct
 {
-	DWORD	Magic;						// 0
+	UINT32	Magic;						// 0
 	BYTE	VersionToExtract[2];		// 4
 	WORD	Flags;						// 6
 	WORD	Method;						// 8
 	WORD	ModTime;					// 10
 	WORD	ModDate;					// 12
-	DWORD	CRC32;						// 14
-	DWORD	CompressedSize;				// 18
-	DWORD	UncompressedSize;			// 22
+	UINT32	CRC32;						// 14
+	UINT32	CompressedSize;				// 18
+	UINT32	UncompressedSize;			// 22
 	WORD	NameLength;					// 26
 	WORD	ExtraLength;				// 28
 } LocalFileHeader;
 
 typedef struct
 {
-	DWORD	Magic;
+	UINT32	Magic;
 	BYTE	VersionMadeBy[2];
 	BYTE	VersionToExtract[2];
 	WORD	Flags;
 	WORD	Method;
 	WORD	ModTime;
 	WORD	ModDate;
-	DWORD	CRC32;
-	DWORD	CompressedSize;
-	DWORD	UncompressedSize;
+	UINT32	CRC32;
+	UINT32	CompressedSize;
+	UINT32	UncompressedSize;
 	WORD	NameLength;
 	WORD	ExtraLength;
 	WORD	CommentLength;
 	WORD	StartingDiskNumber;
 	WORD	InternalAttributes;
-	DWORD	ExternalAttributes;
-	DWORD	LocalHeaderOffset;
+	UINT32	ExternalAttributes;
+	UINT32	LocalHeaderOffset;
 } CentralDirectoryEntry;
 
 typedef struct
 {
-	DWORD	Magic;
+	UINT32	Magic;
 	WORD	DiskNumber;
 	WORD	FirstDisk;
 	WORD	NumEntries;
 	WORD	NumEntriesOnAllDisks;
-	DWORD	DirectorySize;
-	DWORD	DirectoryOffset;
+	UINT32	DirectorySize;
+	UINT32	DirectoryOffset;
 	WORD	ZipCommentLength;
 } EndOfCentralDirectory;
 //#pragma pack(pop)
@@ -871,8 +871,8 @@ int append_to_zip(FILE *zip_file, file_sorted_t *filep, FILE *ozip, BYTE *odir)
 	LocalFileHeader local;
 	uLong crc;
 	file_entry_t *file;
-	char *readbuf;
-	char *compbuf[2];
+	Byte *readbuf;
+	Byte *compbuf[2];
 	unsigned int comp_len[2];
 	int offset[2];
 	int method[2];
@@ -937,7 +937,7 @@ int append_to_zip(FILE *zip_file, file_sorted_t *filep, FILE *ozip, BYTE *odir)
 	if (odir != NULL && ozip != NULL)
 	{
 		CentralDirectoryEntry *dirent;
-		
+
 		dirent = find_file_in_zip(odir, filep->path_in_zip, len, crc, file->date, file->time);
 		if (dirent != NULL)
 		{
@@ -1256,7 +1256,7 @@ int compress_lzma(Byte *out, unsigned int *outlen, const Byte *in, unsigned int 
 
 int compress_bzip2(Byte *out, unsigned int *outlen, const Byte *in, unsigned int inlen)
 {
-	if (BZ_OK == BZ2_bzBuffToBuffCompress(out, outlen, (char *)in, inlen, 9, 0, 0))
+	if (BZ_OK == BZ2_bzBuffToBuffCompress((char *)out, outlen, (char *)in, inlen, 9, 0, 0))
 	{
 		return 0;
 	}
@@ -1373,7 +1373,7 @@ BYTE *find_central_dir(FILE *fin)
 	back_read = 4;
 	while (back_read < max_back)
 	{
-		DWORD read_size, read_pos;
+		UINT32 read_size, read_pos;
 		int i;
 		if (back_read + BUFREADCOMMENT > max_back) 
 			back_read = max_back;
@@ -1420,12 +1420,12 @@ BYTE *find_central_dir(FILE *fin)
 		free(dir);
 		return NULL;
 	}
-	if (*(DWORD *)dir != ZIP_CENTRALFILE)
+	if (*(UINT32 *)dir != ZIP_CENTRALFILE)
 	{
 		free(dir);
 		return NULL;
 	}
-	*(DWORD *)(dir + LittleLong(eod.DirectorySize)) = ZIP_ENDOFDIR;
+	*(UINT32 *)(dir + LittleLong(eod.DirectorySize)) = ZIP_ENDOFDIR;
 	return dir;
 }
 
@@ -1444,7 +1444,7 @@ CentralDirectoryEntry *find_file_in_zip(BYTE *dir, const char *path, unsigned in
 	CentralDirectoryEntry *ent;
 	int flags;
 
-	while (*(DWORD *)dir == ZIP_CENTRALFILE)
+	while (*(UINT32 *)dir == ZIP_CENTRALFILE)
 	{
 		ent = (CentralDirectoryEntry *)dir;
 		if (pathlen == LittleShort(ent->NameLength) &&
@@ -1455,7 +1455,7 @@ CentralDirectoryEntry *find_file_in_zip(BYTE *dir, const char *path, unsigned in
 		}
 		dir += sizeof(*ent) + LittleShort(ent->NameLength) + LittleShort(ent->ExtraLength) + LittleShort(ent->CommentLength);
 	}
-	if (*(DWORD *)dir != ZIP_CENTRALFILE)
+	if (*(UINT32 *)dir != ZIP_CENTRALFILE)
 	{
 		return NULL;
 	}
@@ -1495,7 +1495,7 @@ int copy_zip_file(FILE *zip, file_entry_t *file, FILE *ozip, CentralDirectoryEnt
 {
 	LocalFileHeader lfh;
 	BYTE *buf;
-	DWORD buf_size;
+	UINT32 buf_size;
 
 	if (fseek(ozip, LittleLong(ent->LocalHeaderOffset), SEEK_SET) != 0)
 	{
@@ -1525,7 +1525,7 @@ int copy_zip_file(FILE *zip, file_entry_t *file, FILE *ozip, CentralDirectoryEnt
 		return 0;
 	}
 	// Check to be sure name matches.
-	if (strncmp(buf, (char *)(ent + 1), LittleShort(lfh.NameLength)) != 0)
+	if (strncmp((char *)buf, (char *)(ent + 1), LittleShort(lfh.NameLength)) != 0)
 	{
 		free(buf);
 		return 0;

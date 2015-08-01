@@ -263,7 +263,7 @@ void FMugShot::Tick(player_t *player)
 			CurrentState = NULL;
 		}
 	}
-	if ((player->cmd.ucmd.buttons & (BT_ATTACK|BT_ALTATTACK)) && !(player->cheats & (CF_FROZEN | CF_TOTALLYFROZEN)) && player->ReadyWeapon)
+	if (player->attackdown && !(player->cheats & (CF_FROZEN | CF_TOTALLYFROZEN)) && player->ReadyWeapon)
 	{
 		if (RampageTimer != ST_RAMPAGEDELAY)
 		{
@@ -352,11 +352,8 @@ int FMugShot::UpdateState(player_t *player, StateFlags stateflags)
 				SetState("grin", false);
 				return 0;
 			}
-			else if (CurrentState == NULL)
-			{
-				bEvilGrin = false;
-			}
 		}
+		bEvilGrin = false;
 
 		bool ouch = (!st_oldouch && FaceHealth - player->health > ST_MUCHPAIN) || (st_oldouch && player->health - FaceHealth > ST_MUCHPAIN);
 		if (player->damagecount && 
@@ -447,7 +444,7 @@ int FMugShot::UpdateState(player_t *player, StateFlags stateflags)
 		if (bNormal)
 		{
 			bool good;
-			if ((player->cheats & CF_GODMODE) || (player->mo != NULL && player->mo->flags2 & MF2_INVULNERABLE))
+			if ((player->cheats & CF_GODMODE) || (player->cheats & CF_GODMODE2) || (player->mo != NULL && player->mo->flags2 & MF2_INVULNERABLE))
 			{
 				good = SetState((stateflags & ANIMATEDGODMODE) ? "godanimated" : "god");
 			}
