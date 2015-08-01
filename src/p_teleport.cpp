@@ -35,6 +35,8 @@
 #include "i_system.h"
 #include "doomstat.h"
 
+#define FUDGEFACTOR		10
+
 static FRandom pr_teleport ("Teleport");
 
 extern void P_CalcHeight (player_t *player);
@@ -101,7 +103,7 @@ void P_SpawnTeleportFog(fixed_t x, fixed_t y, fixed_t z, int spawnid)
 //
 
 bool P_Teleport (AActor *thing, fixed_t x, fixed_t y, fixed_t z, angle_t angle,
-				 bool useFog, bool sourceFog, bool keepOrientation, bool bHaltVelocity)
+				 bool useFog, bool sourceFog, bool keepOrientation, bool bHaltVelocity, bool keepHeight)
 {
 	fixed_t oldx;
 	fixed_t oldy;
@@ -112,6 +114,7 @@ bool P_Teleport (AActor *thing, fixed_t x, fixed_t y, fixed_t z, angle_t angle,
 	sector_t *destsect;
 	bool resetpitch = false;
 	fixed_t floorheight, ceilingheight;
+	fixed_t missilespeed;
 
 	oldx = thing->x;
 	oldy = thing->y;
@@ -124,7 +127,15 @@ bool P_Teleport (AActor *thing, fixed_t x, fixed_t y, fixed_t z, angle_t angle,
 		player = NULL;
 	floorheight = destsect->floorplane.ZatPoint (x, y);
 	ceilingheight = destsect->ceilingplane.ZatPoint (x, y);
-	if (z == ONFLOORZ)
+	if (thing->flags & MF_MISSILE)
+	{ // We don't measure z velocity, because it doesn't change.
+		missilespeed = xs_CRoundToInt(TVector2<double>(thing->velx, thing->vely).Length());
+	}
+	if (keepHeight)
+	{
+		z = floorheight + aboveFloor;
+	}
+	else if (z == ONFLOORZ)
 	{
 		if (player)
 		{
@@ -208,8 +219,8 @@ bool P_Teleport (AActor *thing, fixed_t x, fixed_t y, fixed_t z, angle_t angle,
 	if (thing->flags & MF_MISSILE)
 	{
 		angle >>= ANGLETOFINESHIFT;
-		thing->velx = FixedMul (thing->Speed, finecosine[angle]);
-		thing->vely = FixedMul (thing->Speed, finesine[angle]);
+		thing->velx = FixedMul (missilespeed, finecosine[angle]);
+		thing->vely = FixedMul (missilespeed, finesine[angle]);
 	}
 	// [BC] && bHaltVelocity.
 	else if (!keepOrientation && bHaltVelocity) // no fog doesn't alter the player's momentum
@@ -317,13 +328,14 @@ static AActor *SelectTeleDest (int tid, int tag)
 }
 
 bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, bool fog,
-				  bool sourceFog, bool keepOrientation, bool haltVelocity)
+				  bool sourceFog, bool keepOrientation, bool haltVelocity, bool keepHeight)
 {
 	AActor *searcher;
 	fixed_t z;
 	angle_t angle = 0;
 	fixed_t s = 0, c = 0;
 	fixed_t velx = 0, vely = 0;
+	angle_t badangle = 0;
 
 	if (thing == NULL)
 	{ // Teleport function called with an invalid actor
@@ -369,7 +381,11 @@ bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, bool 
 	{
 		z = ONFLOORZ;
 	}
-	if (P_Teleport (thing, searcher->x, searcher->y, z, searcher->angle, fog, sourceFog, keepOrientation, haltVelocity))
+	if ((i_compatflags2 & COMPATF2_BADANGLES) && (thing->player != NULL))
+	{
+		badangle = 1 << ANGLETOFINESHIFT;
+	}
+	if (P_Teleport (thing, searcher->x, searcher->y, z, searcher->angle + badangle, fog, sourceFog, keepOrientation, haltVelocity, keepHeight))
 	{
 		// [RH] Lee Killough's changes for silent teleporters from BOOM
 		if (!fog && line && keepOrientation)
@@ -480,16 +496,52 @@ bool EV_SilentLineTeleport (line_t *line, int side, AActor *thing, int id, INTBO
 			player_t *player = thing->player && thing->player->mo == thing ?
 				thing->player : NULL;
 
-			// Height of thing above ground
-			fixed_t z;
-			
-			z = thing->z - line->backsector->floorplane.ZatPoint (thing->x, thing->y)
-				+ l->frontsector->floorplane.ZatPoint (x, y);
+			// Whether walking towards first side of exit linedef steps down
+			bool stepdown = l->frontsector->floorplane.ZatPoint(x, y) < l->backsector->floorplane.ZatPoint(x, y);
 
-			// Attempt to teleport, aborting if blocked
+			// Height of thing above ground
+			fixed_t z = thing->z - thing->floorz;
+
+			// Side to exit the linedef on positionally.
+			//
+			// Notes:
+			//
+			// This flag concerns exit position, not momentum. Due to
+			// roundoff error, the thing can land on either the left or
+			// the right side of the exit linedef, and steps must be
+			// taken to make sure it does not end up on the wrong side.
+			//
+			// Exit momentum is always towards side 1 in a reversed
+			// teleporter, and always towards side 0 otherwise.
+			//
+			// Exiting positionally on side 1 is always safe, as far
+			// as avoiding oscillations and stuck-in-wall problems,
+			// but may not be optimum for non-reversed teleporters.
+			//
+			// Exiting on side 0 can cause oscillations if momentum
+			// is towards side 1, as it is with reversed teleporters.
+			//
+			// Exiting on side 1 slightly improves player viewing
+			// when going down a step on a non-reversed teleporter.
+
+			int side = reverse || (player && stepdown);
+			int fudge = FUDGEFACTOR;
+
+			// Make sure we are on correct side of exit linedef.
+			while (P_PointOnLineSide(x, y, l) != side && --fudge >= 0)
+			{
+				if (abs(l->dx) > abs(l->dy))
+					y -= (l->dx < 0) != side ? -1 : 1;
+				else
+					x += (l->dy < 0) != side ? -1 : 1;
+			}
+
 			// Adjust z position to be same height above ground as before.
 			// Ground level at the exit is measured as the higher of the
 			// two floor heights at the exit linedef.
+			z = z + l->sidedef[stepdown]->sector->floorplane.ZatPoint(x, y);
+
+			// Attempt to teleport, aborting if blocked
 			if (!P_TeleportMove (thing, x, y, z, false))
 			{
 				return false;

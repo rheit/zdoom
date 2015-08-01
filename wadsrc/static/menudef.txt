@@ -467,6 +467,8 @@ OptionMenu "CustomizeControls"
 	StaticText 	"Controls", 1
 	Control 	"Fire",					"+attack"
 	Control 	"Secondary Fire",		"+altattack"
+	Control 	"Weapon Reload",			"+reload"
+	Control 	"Weapon Zoom",				"+zoom"
 	Control 	"Use / Open",			"+use"
 	Control 	"Move forward",			"+forward"
 	Control 	"Move backward",		"+back"
@@ -755,6 +757,18 @@ OptionValue Crosshairs
 	// will be filled in from the XHAIRS lump
 }
 
+OptionValue ZDoomHexen
+{
+	0.0, "ZDoom"
+	1.0, "Hexen"
+}
+
+OptionValue ZDoomStrife
+{
+	0.0, "ZDoom"
+	1.0, "Strife"
+}
+
 OptionMenu "HUDOptions"
 {
 	Title "HUD Options"
@@ -771,7 +785,13 @@ OptionMenu "HUDOptions"
 	Option "Display nametags",			"displaynametags", "DisplayTagsTypes"
 	Option "Nametag color",				"nametagcolor", "TextColors", "displaynametags"
 	Option "Stretch status bar",		"st_scale", "OnOff"
+	Option "Stretch Fullscreen HUD",	"hud_scale", "OnOff"
 	Option "Use old ouch mug shot formula",	"st_oldouch", "OnOff"
+	StaticText " "
+	Option "Hexen weapon flashes",		"pf_hexenweaps",	"ZDoomHexen"
+	Option "Poison damage flashes",		"pf_poison",		"ZDoomHexen"
+	Option "Ice death flashes",			"pf_ice",			"ZDoomHexen"
+	Option "Poison Buildup flashes",	"pf_hazard",		"ZDoomStrife"
 }
 	
 //-------------------------------------------------------------------------------------------
@@ -786,11 +806,19 @@ OptionValue "AMCoordinates"
 	1, "Map"
 }
 
+OptionValue "AltHUDScale"
+{
+	0, "Off"
+	1, "Scale to 640x400"
+	2, "Pixel double"
+}
+
 OptionMenu "AltHUDOptions"
 {
 	Title "Alternative HUD"
 	//Indent 220
 	Option "Enable alternative HUD",				"hud_althud", "OnOff"
+	Option "Stretch alternative HUD",				"hud_althudscale", "AltHUDScale"
 	Option "Show secret count",						"hud_showsecrets", "OnOff"
 	Option "Show monster count",					"hud_showmonsters", "OnOff"
 	Option "Show item count",						"hud_showitems", "OnOff"
@@ -822,6 +850,13 @@ OptionMenu "AltHUDOptions"
 //
 //-------------------------------------------------------------------------------------------
 
+OptionValue Autosave
+{
+	0,	"Always"
+	1,	"Scripts Only"
+	2,	"Never"
+}
+
 OptionMenu "MiscOptions"
 {
 	Title "Miscellaneous Options"
@@ -834,8 +869,8 @@ OptionMenu "MiscOptions"
 	Option "Show IWAD selection dialog",			"queryiwad", "OnOff"
 	StaticText " "
 	Option "Enable cheats from all games",			"allcheats", "OnOff"
-	Option "Enable autosaves",						"disableautosave", "OffOn"
-	Slider "Number of autosaves",					"autosavecount", 1, 32, 1, 0
+	Option "Enable autosaves",						"disableautosave", "Autosave"
+	Slider "Number of autosaves",					"autosavecount", 1, 20, 1, 0
 	StaticText " "
 	Option "Cache nodes",							"gl_cachenodes", "OnOff"
 	Slider "Time threshold for node caching",		"gl_cachetime", 0.0, 2.0, 0.1
@@ -1138,6 +1173,7 @@ OptionMenu GameplayOptions
 	Option "Chasecam cheat",		"sv_chasecam", "YesNo"
 	Option "Check ammo for weapon switch",	"sv_dontcheckammo", "NoYes"
 	Option "Killing Romero kills all his spawns",	"sv_killbossmonst", "YesNo"
+	Option "Count monsters in end level sectors",	"sv_nocountendmonst", "NoYes"
 
 	StaticText " "
 	StaticText "Deathmatch Settings",1
@@ -1223,6 +1259,9 @@ OptionMenu "CompatibilityOptions"
 	Option "Use Doom code for hitscan checks",			"compat_HITSCAN", "YesNo"
 	Option "Cripple sound for silent BFG trick",		"compat_soundslots", "YesNo"
 	Option "Draw polyobjects like Hexen",				"compat_POLYOBJ", "YesNo"
+	Option "Ignore Y offsets on masked midtextures",	"compat_MASKEDMIDTEX", "YesNo"
+	Option "Cannot travel straight NSEW",				"compat_badangles", "YesNo"
+	Option "Use Doom's floor motion behavior",			"compat_floormove", "YesNo"
 	
 	Class "CompatibilityMenu"
 }
@@ -1295,6 +1334,7 @@ OptionString SoundOutputsUnix
 	"ALSA",			"ALSA"
 	"SDL",			"SDL"
 	"ESD",			"ESD"
+	"PulseAudio",	"PulseAudio"
 	"No sound",		"No sound"
 }
 
@@ -1384,6 +1424,15 @@ OptionMenu SoundOptions
  *
  *=======================================*/
 
+OptionValue GusMemory
+{
+	0, "Unlimited"
+	1, "256K"
+	2, "512K"
+	3, "768K"
+	4, "1024K"
+}
+
 OptionMenu AdvSoundOptions
 {
 	Title "ADVANCED SOUND OPTIONS"
@@ -1393,6 +1442,12 @@ OptionMenu AdvSoundOptions
 	StaticText " "
 	StaticText "OPL Synthesis",	1
 	Option "Only emulate one OPL chip", "opl_onechip", "OnOff"
+	StaticText " "
+	StaticText "GUS Emulation",	1
+	Slider "MIDI voices",	"midi_voices", 16, 256, 4, 0
+	Option "Emulate TiMidity", "midi_timiditylike", "OnOff"
+	Option "Read DMXGUS lumps", "midi_dmxgus", "OnOff"
+	Option "GUS memory size", "gus_memsize", "GusMemory"
 }
 
 /*=======================================
@@ -1449,26 +1504,29 @@ OptionMenu ModReplayerOptions
 
 OptionValue ForceRatios
 {
-	0.0, "Off" 
-	3.0, "4:3" 
-	1.0, "16:9" 
-	2.0, "16:10" 
+	0.0, "Off"
+	3.0, "4:3"
+	1.0, "16:9"
+	5.0, "17:10"
+	2.0, "16:10"
 	4.0, "5:4"
 }
 OptionValue Ratios
 {
-	0.0, "4:3" 
-	1.0, "16:9" 
-	2.0, "16:10" 
-	3.0, "All"
+	0.0, "4:3"
+	1.0, "16:9"
+	2.0, "16:10"
+	3.0, "17:10"
+	 -1, "All"
 }
 OptionValue RatiosTFT
 {
-	0.0, "4:3" 
-	4.0, "5:4" 
-	1.0, "16:9" 
-	2.0, "16:10" 
-	3.0, "All"
+	0.0, "4:3"
+	4.0, "5:4"
+	1.0, "16:9"
+	2.0, "16:10"
+	3.0, "17:10"
+	 -1, "All"
 }
 
 OptionMenu VideoModeMenu

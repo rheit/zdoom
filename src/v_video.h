@@ -38,7 +38,7 @@
 
 #include "doomdef.h"
 #include "dobject.h"
-#include "r_blend.h"
+#include "r_data/renderstyle.h"
 #include "c_cvars.h"
 
 extern int CleanWidth, CleanHeight, CleanXfac, CleanYfac;
@@ -193,8 +193,6 @@ public:
 	// Calculate gamma table
 	void CalcGamma (float gamma, BYTE gammalookup[256]);
 
-	// Can be overridden so that the colormaps for sector color/fade won't be built.
-	virtual bool UsesColormap() const;
 
 	// Retrieves a buffer containing image data for a screenshot.
 	// Hint: Pitch can be negative for upside-down images, in which case buffer
@@ -217,6 +215,10 @@ public:
 
 	// 2D Text drawing
 	void STACK_ARGS DrawText (FFont *font, int normalcolor, int x, int y, const char *string, ...);
+#ifndef DrawText	// See WinUser.h for the definition of DrawText as a macro
+	void STACK_ARGS DrawTextA (FFont *font, int normalcolor, int x, int y, const char *string, ...);
+#endif
+	void DrawTextV (FFont *font, int normalcolor, int x, int y, const char *string, va_list tags);
 	void STACK_ARGS DrawChar (FFont *font, int normalcolor, int x, int y, BYTE character, ...);
 
 	struct DrawParms
@@ -364,27 +366,6 @@ public:
 	// Set the rect defining the area affected by blending.
 	virtual void SetBlendingRect (int x1, int y1, int x2, int y2);
 
-	// Remap voxel palette
-	virtual void RemapVoxels();
-
-	// render 3D view
-	virtual void RenderView(player_t *player);
-
-	// renders view to a savegame picture
-	virtual void WriteSavePic (player_t *player, FILE *file, int width, int height);
-
-	// draws player sprites with hardware acceleration (only useful for software rendering)
-	virtual void DrawRemainingPlayerSprites();
-
-	// notifies the renderer that an actor has changed state.
-	virtual void StateChanged(AActor *actor);
-
-	// notify the renderer that serialization of the curent level is about to start/end
-	virtual void StartSerialize(FArchive &arc);
-	virtual void EndSerialize(FArchive &arc);
-
-	virtual int GetMaxViewPitch(bool down);
-
 	bool Accel2D;	// If true, 2D drawing can be accelerated.
 
 	// Begin 2D drawing operations. This is like Update, but it doesn't end
@@ -408,7 +389,6 @@ public:
 
 	// Precaches or unloads a texture
 	virtual void GetHitlist(BYTE *hitlist);
-	virtual void PrecacheTexture(FTexture *tex, int cache);
 
 	// Report a game restart
 	virtual void GameRestart();
@@ -498,6 +478,11 @@ FString V_GetColorStringByName (const char *name);
 // Tries to get color by name, then by string
 int V_GetColor (const DWORD *palette, const char *str);
 void V_DrawFrame (int left, int top, int width, int height);
+
+// If the view size is not full screen, draws a border around it.
+void V_DrawBorder (int x1, int y1, int x2, int y2);
+void V_RefreshViewBorder ();
+
 
 #if defined(X86_ASM) || defined(X64_ASM)
 extern "C" void ASM_PatchPitch (void);

@@ -65,6 +65,8 @@
 #include "g_level.h"
 #include "v_palette.h"
 #include "v_font.h"
+#include "r_data/colormaps.h"
+#include "farchive.h"
 
 static FRandom pr_script("FScript");
 
@@ -2221,7 +2223,7 @@ void FParser::SF_LineTrigger()
 		mld.special=intvalue(t_argv[0]);
 		mld.tag=t_argc > 1 ? intvalue(t_argv[1]) : 0;
 		P_TranslateLineDef(&line, &mld);
-		LineSpecials[line.special](NULL, Script->trigger, false, 
+		P_ExecuteSpecial(line.special, NULL, Script->trigger, false, 
 			line.args[0],line.args[1],line.args[2],line.args[3],line.args[4]); 
 	}
 }
@@ -3745,7 +3747,7 @@ void FParser::SF_LineAttack()
 		angle = (intvalue(t_argv[1]) * (ANG45 / 45));
 		slope = P_AimLineAttack(mo, angle, MISSILERANGE);
 
-		P_LineAttack(mo, angle, MISSILERANGE, slope, damage, NAME_None, NAME_BulletPuff);
+		P_LineAttack(mo, angle, MISSILERANGE, slope, damage, NAME_Hitscan, NAME_BulletPuff);
 	}
 }
 
@@ -4042,7 +4044,7 @@ void FParser::SF_Ls()
 			if (t_argc>=i+2) args[i]=intvalue(t_argv[i+1]);
 		}
 		if (spc>=0 && spc<256)
-			LineSpecials[spc](NULL,Script->trigger,false, args[0],args[1],args[2],args[3],args[4]);
+			P_ExecuteSpecial(spc, NULL,Script->trigger,false, args[0],args[1],args[2],args[3],args[4]);
 	}
 }
 
@@ -4421,7 +4423,7 @@ void FParser::RunLineSpecial(const FLineSpecial *spec)
 			if (t_argc>i) args[i]=intvalue(t_argv[i]);
 			else args[i] = 0;
 		}
-		t_return.value.i = LineSpecials[spec->number](NULL,Script->trigger,false, args[0],args[1],args[2],args[3],args[4]);
+		t_return.value.i = P_ExecuteSpecial(spec->number, NULL,Script->trigger,false, args[0],args[1],args[2],args[3],args[4]);
 	}
 }
 

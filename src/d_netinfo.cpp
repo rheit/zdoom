@@ -43,19 +43,20 @@
 #include "d_netinf.h"
 #include "d_net.h"
 #include "d_protocol.h"
+#include "d_player.h"
 #include "c_dispatch.h"
 #include "v_palette.h"
 #include "v_video.h"
 #include "i_system.h"
-#include "r_draw.h"
 #include "r_state.h"
 #include "sbar.h"
 #include "gi.h"
 #include "m_random.h"
 #include "teaminfo.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "templates.h"
 #include "cmdlib.h"
+#include "farchive.h"
 
 static FRandom pr_pickteam ("PickRandomTeam");
 
@@ -597,8 +598,8 @@ void D_WriteUserInfoStrings (int i, BYTE **stream, bool compact)
 					 ,
 					 D_EscapeUserInfo(info->netname).GetChars(),
 					 (double)info->aimdist / (float)ANGLE_1,
-					 info->colorset,
 					 RPART(info->color), GPART(info->color), BPART(info->color),
+					 info->colorset,
 					 D_EscapeUserInfo(skins[info->skin].name).GetChars(),
 					 info->team,
 					 info->gender == GENDER_FEMALE ? "female" :
@@ -746,6 +747,7 @@ void D_ReadUserInfoStrings (int i, BYTE **stream, bool update)
 				if (infotype == INFO_Color)
 				{
 					info->color = V_GetColorFromString (NULL, value);
+					info->colorset = -1;
 				}
 				else
 				{
@@ -763,6 +765,7 @@ void D_ReadUserInfoStrings (int i, BYTE **stream, bool update)
 				if (players[i].mo != NULL)
 				{
 					if (players[i].cls != NULL &&
+						!(players[i].mo->flags4 & MF4_NOSKIN) &&
 						players[i].mo->state->sprite ==
 						GetDefaultByType (players[i].cls)->SpawnState->sprite)
 					{ // Only change the sprite if the player is using a standard one

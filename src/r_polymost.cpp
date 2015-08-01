@@ -81,6 +81,8 @@ Low priority:
 #include "r_bsp.h"
 #include "v_palette.h"
 #include "v_font.h"
+#include "v_video.h"
+#include "r_data/colormaps.h"
 
 EXTERN_CVAR (Int, r_polymost)
 
@@ -527,7 +529,6 @@ int PolyClipper::DoMost (float x0, float y0, float x1, float y1, pmostcallbackty
 }
 
 #include "d_event.h"
-CVAR(Bool, testpolymost, false, 0)
 static int pmx, pmy;
 static int pt, px0, py0, px1, py1;
 static struct polypt { float x, y; } polypts[80];
@@ -670,7 +671,7 @@ void drawquad(float x0, float y0, float x1, float y1, float x2, float y2, float 
 void printnum(int x, int y, int num)
 {
 	char foo[16]; mysnprintf (foo, countof(foo), "%d", num);
-	RenderTarget->DrawText (SmallFont, CR_WHITE, x, y, foo);
+	RenderTarget->DrawText (SmallFont, CR_WHITE, x, y, foo, TAG_DONE);
 }
 
 void drawpolymosttest()

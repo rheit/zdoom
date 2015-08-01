@@ -45,7 +45,7 @@
 #include "teaminfo.h"
 #include "v_palette.h"
 #include "r_state.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "v_text.h"
 
 EXTERN_CVAR (String, playerclass)
@@ -54,8 +54,6 @@ EXTERN_CVAR (Int, team)
 EXTERN_CVAR (Float, autoaim)
 EXTERN_CVAR(Bool, neverswitchonpickup)
 EXTERN_CVAR (Bool, cl_run)
-
-void R_GetPlayerTranslation (int color, const FPlayerColorSet *colorset, FPlayerSkin *skin, FRemapTable *table);
 
 //=============================================================================
 //

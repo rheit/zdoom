@@ -48,10 +48,11 @@
 #include "v_video.h"
 #include "hu_stuff.h"
 #include "gi.h"
+#include "v_palette.h"
 #include "i_input.h"
 #include "gameconfigfile.h"
 #include "gstrings.h"
-#include "r_main.h"
+#include "r_utility.h"
 #include "menu/menu.h"
 #include "textures/textures.h"
 
@@ -395,7 +396,7 @@ void M_SetMenu(FName menu, int param)
 		return;
 
 	case NAME_Savegamemenu:
-		if (!usergame || (players[consoleplayer].health <= 0 && !multiplayer))
+		if (!usergame || (players[consoleplayer].health <= 0 && !multiplayer) || gamestate != GS_LEVEL)
 		{
 			// cannot save outside the game.
 			M_StartMessage (GStrings("SAVEDEAD"), 1);

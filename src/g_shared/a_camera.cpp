@@ -35,8 +35,8 @@
 #include "actor.h"
 #include "info.h"
 #include "a_sharedglobal.h"
-#include "r_main.h"
 #include "p_local.h"
+#include "farchive.h"
 
 /*
 == SecurityCamera

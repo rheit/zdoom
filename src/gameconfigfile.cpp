@@ -83,7 +83,8 @@ FGameConfigFile::FGameConfigFile ()
 	FString user_docs, user_app_support, local_app_support;
 #endif
 	FString pathname;
-	
+
+	OkayToWrite = false;	// Do not allow saving of the config before DoGameSetup()
 	bMigrating = false;
 	pathname = GetConfigPath (true);
 	ChangePathName (pathname);
@@ -154,6 +155,7 @@ FGameConfigFile::FGameConfigFile ()
 #elif !defined(unix)
 		SetValueForKey ("Path", "$PROGDIR", true);
 #else
+		SetValueForKey ("Path", "~/" GAME_DIR, true);
 		SetValueForKey ("Path", SHARE_DIR, true);
 #endif
 		SetValueForKey ("Path", "$DOOMWADDIR", true);
@@ -440,6 +442,7 @@ void FGameConfigFile::DoGameSetup (const char *gamename)
 			}
 		}
 	}
+	OkayToWrite = true;
 }
 
 void FGameConfigFile::ReadNetVars ()

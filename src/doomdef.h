@@ -296,6 +296,7 @@ enum
 	DF2_NOAUTOAIM			= 1 << 23,	// Players cannot use autoaim.
 	DF2_DONTCHECKAMMO		= 1 << 24,	// Don't Check ammo when switching weapons.
 	DF2_KILLBOSSMONST		= 1 << 25,	// Kills all monsters spawned by a boss cube when the boss dies
+	DF2_NOCOUNTENDMONST		= 1 << 26,	// Do not count monsters in 'end level when dying' sectors towards kill count
 };
 
 // [RH] Compatibility flags.
@@ -332,6 +333,10 @@ enum
 	COMPATF_HITSCAN			= 1 << 28,	// Hitscans use original blockmap anf hit check code.
 	COMPATF_LIGHT			= 1 << 29,	// Find neighboring light level like Doom
 	COMPATF_POLYOBJ			= 1 << 30,	// Draw polyobjects the old fashioned way
+	COMPATF_MASKEDMIDTEX	= 1 << 31,	// Ignore compositing when drawing masked midtextures
+
+	COMPATF2_BADANGLES		= 1 << 0,	// It is impossible to face directly NSEW.
+	COMPATF2_FLOORMOVE		= 1 << 1,	// Use the same floor motion behavior as Doom.
 };
 
 // Emulate old bugs for select maps. These are not exposed by a cvar

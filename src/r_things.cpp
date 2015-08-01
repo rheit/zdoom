@@ -34,7 +34,6 @@
 #include "templates.h"
 #include "doomdef.h"
 #include "m_swap.h"
-#include "m_argv.h"
 #include "i_system.h"
 #include "w_wad.h"
 #include "r_local.h"
@@ -53,12 +52,38 @@
 #include "d_net.h"
 #include "colormatcher.h"
 #include "d_netinf.h"
+#include "p_effect.h"
 #include "r_bsp.h"
 #include "r_plane.h"
 #include "r_segs.h"
 #include "r_3dfloors.h"
 #include "v_palette.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
+#include "r_data/colormaps.h"
+#include "r_data/voxels.h"
+
+// [RH] A c-buffer. Used for keeping track of offscreen voxel spans.
+
+struct FCoverageBuffer
+{
+	struct Span
+	{
+		Span *NextSpan;
+		short Start, Stop;
+	};
+
+	FCoverageBuffer(int size);
+	~FCoverageBuffer();
+
+	void Clear();
+	void InsertSpan(int listnum, int start, int stop);
+	Span *AllocSpan();
+
+	FMemArena SpanArena;
+	Span **Spans;	// [0..NumLists-1] span lists
+	Span *FreeSpans;
+	unsigned int NumLists;
+};
 
 extern fixed_t globaluclip, globaldclip;
 
@@ -67,8 +92,8 @@ extern fixed_t globaluclip, globaldclip;
 #define BASEYCENTER 	(100)
 
 EXTERN_CVAR (Bool, st_scale)
-CVAR (Int, r_drawfuzz, 1, CVAR_ARCHIVE)
-
+EXTERN_CVAR(Bool, r_shadercolormaps)
+EXTERN_CVAR(Int, r_drawfuzz)
 
 //
 // Sprite rotation 0 is facing the viewer,
@@ -88,1152 +113,21 @@ FDynamicColormap *VisPSpritesBaseColormap[NUMPSPRITES];
 
 static int		spriteshade;
 
-TArray<WORD>	ParticlesInSubsec;
-
 // constant arrays
 //	used for psprite clipping and initializing clipping
 short			zeroarray[MAXWIDTH];
 short			screenheightarray[MAXWIDTH];
 
-#define MAX_SPRITE_FRAMES	29		// [RH] Macro-ized as in BOOM.
-
-
-CVAR (Bool, r_drawplayersprites, true, 0)	// [RH] Draw player sprites?
-
-CVAR (Bool, r_drawvoxels, true, 0)
+EXTERN_CVAR (Bool, r_drawplayersprites)
+EXTERN_CVAR (Bool, r_drawvoxels)
 
 //
 // INITIALIZATION FUNCTIONS
 //
 
-// variables used to look up
-//	and range check thing_t sprites patches
-TArray<spritedef_t> sprites;
-TArray<spriteframe_t> SpriteFrames;
-DWORD			NumStdSprites;		// The first x sprites that don't belong to skins.
-
-TDeletingArray<FVoxel *> Voxels;	// used only to auto-delete voxels on exit.
-TDeletingArray<FVoxelDef *> VoxelDefs;
-
 int OffscreenBufferWidth, OffscreenBufferHeight;
 BYTE *OffscreenColorBuffer;
 FCoverageBuffer *OffscreenCoverageBuffer;
-
-struct spriteframewithrotate : public spriteframe_t
-{
-	int rotate;
-}
-sprtemp[MAX_SPRITE_FRAMES];
-int 			maxframe;
-char*			spritename;
-
-struct VoxelOptions
-{
-	VoxelOptions()
-	: DroppedSpin(0), PlacedSpin(0), Scale(FRACUNIT), AngleOffset(0)
-	{}
-
-	int			DroppedSpin;
-	int			PlacedSpin;
-	fixed_t		Scale;
-	angle_t		AngleOffset;
-};
-
-// [RH] skin globals
-FPlayerSkin		*skins;
-size_t			numskins;
-BYTE			OtherGameSkinRemap[256];
-PalEntry		OtherGameSkinPalette[256];
-
-// [RH] particle globals
-WORD			NumParticles;
-WORD			ActiveParticles;
-WORD			InactiveParticles;
-particle_t		*Particles;
-
-CVAR (Bool, r_particles, true, 0);
-
-
-//
-// R_InstallSpriteLump
-// Local function for R_InitSprites.
-//
-// [RH] Removed checks for coexistance of rotation 0 with other
-//		rotations and made it look more like BOOM's version.
-//
-static void R_InstallSpriteLump (FTextureID lump, unsigned frame, char rot, bool flipped)
-{
-	unsigned rotation;
-
-	if (rot >= '0' && rot <= '9')
-	{
-		rotation = rot - '0';
-	}
-	else if (rot >= 'A')
-	{
-		rotation = rot - 'A' + 10;
-	}
-	else
-	{
-		rotation = 17;
-	}
-
-	if (frame >= MAX_SPRITE_FRAMES || rotation > 16)
-		I_FatalError ("R_InstallSpriteLump: Bad frame characters in lump %s", TexMan[lump]->Name);
-
-	if ((int)frame > maxframe)
-		maxframe = frame;
-
-	if (rotation == 0)
-	{
-		// the lump should be used for all rotations
-        // false=0, true=1, but array initialised to -1
-        // allows doom to have a "no value set yet" boolean value!
-		int r;
-
-		for (r = 14; r >= 0; r -= 2)
-		{
-			if (!sprtemp[frame].Texture[r].isValid())
-			{
-				sprtemp[frame].Texture[r] = lump;
-				if (flipped)
-				{
-					sprtemp[frame].Flip |= 1 << r;
-				}
-				sprtemp[frame].rotate = false;
-			}
-		}
-	}
-	else
-	{
-		if (rotation <= 8)
-		{
-			rotation = (rotation - 1) * 2;
-		}
-		else
-		{
-			rotation = (rotation - 9) * 2 + 1;
-		}
-
-		if (!sprtemp[frame].Texture[rotation].isValid())
-		{
-			// the lump is only used for one rotation
-			sprtemp[frame].Texture[rotation] = lump;
-			if (flipped)
-			{
-				sprtemp[frame].Flip |= 1 << rotation;
-			}
-			sprtemp[frame].rotate = true;
-		}
-	}
-}
-
-
-// [RH] Seperated out of R_InitSpriteDefs()
-static void R_InstallSprite (int num)
-{
-	int frame;
-	int framestart;
-	int rot;
-//	int undefinedFix;
-
-	if (maxframe == -1)
-	{
-		sprites[num].numframes = 0;
-		return;
-	}
-
-	maxframe++;
-
-	// [RH] If any frames are undefined, but there are some defined frames, map
-	// them to the first defined frame. This is a fix for Doom Raider, which actually
-	// worked with ZDoom 2.0.47, because of a bug here. It does not define frames A,
-	// B, or C for the sprite PSBG, but because I had sprtemp[].rotate defined as a
-	// bool, this code never detected that it was not actually present. After switching
-	// to the unified texture system, this caused it to crash while loading the wad.
-
-// [RH] Let undefined frames actually be blank because LWM uses this in at least
-// one of her wads.
-//	for (frame = 0; frame < maxframe && sprtemp[frame].rotate == -1; ++frame)
-//	{ }
-//
-//	undefinedFix = frame;
-
-	for (frame = 0; frame < maxframe; ++frame)
-	{
-		switch (sprtemp[frame].rotate)
-		{
-		case -1:
-			// no rotations were found for that frame at all
-			//I_FatalError ("R_InstallSprite: No patches found for %s frame %c", sprites[num].name, frame+'A');
-			break;
-			
-		case 0:
-			// only the first rotation is needed
-			for (rot = 1; rot < 16; ++rot)
-			{
-				sprtemp[frame].Texture[rot] = sprtemp[frame].Texture[0];
-			}
-			// If the frame is flipped, they all should be
-			if (sprtemp[frame].Flip & 1)
-			{
-				sprtemp[frame].Flip = 0xFFFF;
-			}
-			break;
-					
-		case 1:
-			// must have all 8 frame pairs
-			for (rot = 0; rot < 8; ++rot)
-			{
-				if (!sprtemp[frame].Texture[rot*2+1].isValid())
-				{
-					sprtemp[frame].Texture[rot*2+1] = sprtemp[frame].Texture[rot*2];
-					if (sprtemp[frame].Flip & (1 << (rot*2)))
-					{
-						sprtemp[frame].Flip |= 1 << (rot*2+1);
-					}
-				}
-				if (!sprtemp[frame].Texture[rot*2].isValid())
-				{
-					sprtemp[frame].Texture[rot*2] = sprtemp[frame].Texture[rot*2+1];
-					if (sprtemp[frame].Flip & (1 << (rot*2+1)))
-					{
-						sprtemp[frame].Flip |= 1 << (rot*2);
-					}
-				}
-
-			}
-			for (rot = 0; rot < 16; ++rot)
-			{
-				if (!sprtemp[frame].Texture[rot].isValid())
-					I_FatalError ("R_InstallSprite: Sprite %s frame %c is missing rotations",
-									sprites[num].name, frame+'A');
-			}
-			break;
-		}
-	}
-
-	for (frame = 0; frame < maxframe; ++frame)
-	{
-		if (sprtemp[frame].rotate == -1)
-		{
-			memset (&sprtemp[frame].Texture, 0, sizeof(sprtemp[0].Texture));
-			sprtemp[frame].Flip = 0;
-			sprtemp[frame].rotate = 0;
-		}
-	}
-	
-	// allocate space for the frames present and copy sprtemp to it
-	sprites[num].numframes = maxframe;
-	sprites[num].spriteframes = WORD(framestart = SpriteFrames.Reserve (maxframe));
-	for (frame = 0; frame < maxframe; ++frame)
-	{
-		memcpy (SpriteFrames[framestart+frame].Texture, sprtemp[frame].Texture, sizeof(sprtemp[frame].Texture));
-		SpriteFrames[framestart+frame].Flip = sprtemp[frame].Flip;
-		SpriteFrames[framestart+frame].Voxel = sprtemp[frame].Voxel;
-	}
-
-	// Let the textures know about the rotations
-	for (frame = 0; frame < maxframe; ++frame)
-	{
-		if (sprtemp[frame].rotate == 1)
-		{
-			for (int rot = 0; rot < 16; ++rot)
-			{
-				TexMan[sprtemp[frame].Texture[rot]]->Rotations = framestart + frame;
-			}
-		}
-	}
-}
-
-
-//
-// R_InitSpriteDefs
-// Pass a null terminated list of sprite names
-//	(4 chars exactly) to be used.
-// Builds the sprite rotation matrices to account
-//	for horizontally flipped sprites.
-// Will report an error if the lumps are inconsistant. 
-// Only called at startup.
-//
-// Sprite lump names are 4 characters for the actor,
-//	a letter for the frame, and a number for the rotation.
-// A sprite that is flippable will have an additional
-//	letter/number appended.
-// The rotation character can be 0 to signify no rotations.
-//
-void R_InitSpriteDefs () 
-{
-	struct Hasher
-	{
-		int Head, Next;
-	} *hashes;
-	struct VHasher
-	{
-		int Head, Next, Name, Spin;
-		char Frame;
-	} *vhashes;
-	unsigned int i, j, smax, vmax;
-	DWORD intname;
-
-	// Create a hash table to speed up the process
-	smax = TexMan.NumTextures();
-	hashes = new Hasher[smax];
-	clearbuf(hashes, sizeof(Hasher)*smax/4, -1);
-	for (i = 0; i < smax; ++i)
-	{
-		FTexture *tex = TexMan.ByIndex(i);
-		if (tex->UseType == FTexture::TEX_Sprite && strlen(tex->Name) >= 6)
-		{
-			size_t bucket = tex->dwName % smax;
-			hashes[i].Next = hashes[bucket].Head;
-			hashes[bucket].Head = i;
-		}
-	}
-
-	// Repeat, for voxels
-	vmax = Wads.GetNumLumps();
-	vhashes = new VHasher[vmax];
-	clearbuf(vhashes, sizeof(VHasher)*vmax/4, -1);
-	for (i = 0; i < vmax; ++i)
-	{
-		if (Wads.GetLumpNamespace(i) == ns_voxels)
-		{
-			char name[9];
-			size_t namelen;
-			int spin;
-			int sign;
-
-			Wads.GetLumpName(name, i);
-			name[8] = 0;
-			namelen = strlen(name);
-			if (namelen < 4)
-			{ // name is too short
-				continue;
-			}
-			if (name[4] != '\0' && name[4] != ' ' && (name[4] < 'A' || name[4] >= 'A' + MAX_SPRITE_FRAMES))
-			{ // frame char is invalid
-				continue;
-			}
-			spin = 0;
-			sign = 2;	// 2 to convert from deg/halfsec to deg/sec
-			j = 5;
-			if (j < namelen && name[j] == '-')
-			{ // a minus sign is okay, but only before any digits
-				j++;
-				sign = -2;
-			}
-			for (; j < namelen; ++j)
-			{ // the remainder to the end of the name must be digits
-				if (name[j] >= '0' && name[j] <= '9')
-				{
-					spin = spin * 10 + name[j] - '0';
-				}
-				else
-				{
-					break;
-				}
-			}
-			if (j < namelen)
-			{ // the spin part is invalid
-				continue;
-			}
-			memcpy(&vhashes[i].Name, name, 4);
-			vhashes[i].Frame = name[4];
-			vhashes[i].Spin = spin * sign;
-			size_t bucket = vhashes[i].Name % vmax;
-			vhashes[i].Next = vhashes[bucket].Head;
-			vhashes[bucket].Head = i;
-		}
-	}
-
-	// scan all the lump names for each of the names, noting the highest frame letter.
-	for (i = 0; i < sprites.Size(); ++i)
-	{
-		memset (sprtemp, 0xFF, sizeof(sprtemp));
-		for (j = 0; j < MAX_SPRITE_FRAMES; ++j)
-		{
-			sprtemp[j].Flip = 0;
-			sprtemp[j].Voxel = NULL;
-		}
-				
-		maxframe = -1;
-		intname = sprites[i].dwName;
-
-		// scan the lumps, filling in the frames for whatever is found
-		int hash = hashes[intname % smax].Head;
-		while (hash != -1)
-		{
-			FTexture *tex = TexMan[hash];
-			if (tex->dwName == intname)
-			{
-				R_InstallSpriteLump (FTextureID(hash), tex->Name[4] - 'A', tex->Name[5], false);
-
-				if (tex->Name[6])
-					R_InstallSpriteLump (FTextureID(hash), tex->Name[6] - 'A', tex->Name[7], true);
-			}
-			hash = hashes[hash].Next;
-		}
-
-		// repeat, for voxels
-		hash = vhashes[intname % vmax].Head;
-		while (hash != -1)
-		{
-			VHasher *vh = &vhashes[hash];
-			if (vh->Name == intname)
-			{
-				FVoxel *vox = R_LoadKVX(hash);
-				if (vox == NULL)
-				{
-					Printf("%s is not a valid voxel file\n", Wads.GetLumpFullName(hash));
-				}
-				else
-				{
-					FVoxelDef *voxdef = new FVoxelDef;
-
-					voxdef->Voxel = vox;
-					voxdef->Scale = FRACUNIT;
-					voxdef->DroppedSpin = voxdef->PlacedSpin = vh->Spin;
-					voxdef->AngleOffset = 0;
-
-					Voxels.Push(vox);
-					VoxelDefs.Push(voxdef);
-
-					if (vh->Frame == ' ' || vh->Frame == '\0')
-					{ // voxel applies to every sprite frame
-						for (j = 0; j < MAX_SPRITE_FRAMES; ++j)
-						{
-							if (sprtemp[j].Voxel == NULL)
-							{
-								sprtemp[j].Voxel = voxdef;
-							}
-						}
-						maxframe = MAX_SPRITE_FRAMES-1;
-					}
-					else
-					{ // voxel applies to a specific frame
-						j = vh->Frame - 'A';
-						sprtemp[j].Voxel = voxdef;
-						maxframe = MAX<int>(maxframe, j);
-					}
-				}
-			}
-			hash = vh->Next;
-		}
-		
-		R_InstallSprite ((int)i);
-	}
-
-	delete[] hashes;
-	delete[] vhashes;
-}
-
-//==========================================================================
-//
-// R_ExtendSpriteFrames
-//
-// Extends a sprite so that it can hold the desired frame.
-//
-//==========================================================================
-
-static void R_ExtendSpriteFrames(spritedef_t &spr, int frame)
-{
-	unsigned int i, newstart;
-
-	if (spr.numframes >= ++frame)
-	{ // The sprite already has enough frames, so do nothing.
-		return;
-	}
-
-	if (spr.numframes == 0 || (spr.spriteframes + spr.numframes == SpriteFrames.Size()))
-	{ // Sprite's frames are at the end of the array, or it has no frames
-	  // at all, so we can tack the new frames directly on to the end
-	  // of the SpriteFrames array.
-		newstart = SpriteFrames.Reserve(frame - spr.numframes);
-	}
-	else
-	{ // We need to allocate space for all the sprite's frames and copy
-	  // the existing ones over to the new space. The old space will be
-	  // lost.
-		newstart = SpriteFrames.Reserve(frame);
-		for (i = 0; i < spr.numframes; ++i)
-		{
-			SpriteFrames[newstart + i] = SpriteFrames[spr.spriteframes + i];
-		}
-		spr.spriteframes = WORD(newstart);
-		newstart += i;
-	}
-	// Initialize all new frames to 0.
-	memset(&SpriteFrames[newstart], 0, sizeof(spriteframe_t)*(frame - spr.numframes));
-	spr.numframes = frame;
-}
-
-//==========================================================================
-//
-// VOX_ReadSpriteNames
-//
-// Reads a list of sprite names from a VOXELDEF lump.
-//
-//==========================================================================
-
-static bool VOX_ReadSpriteNames(FScanner &sc, TArray<DWORD> &vsprites)
-{
-	unsigned int i;
-
-	vsprites.Clear();
-	while (sc.GetString())
-	{
-		// A sprite name list is terminated by an '=' character.
-		if (sc.String[0] == '=')
-		{
-			if (vsprites.Size() == 0)
-			{
-				sc.ScriptMessage("No sprites specified for voxel.\n");
-			}
-			return true;
-		}
-		if (sc.StringLen != 4 && sc.StringLen != 5)
-		{
-			sc.ScriptMessage("Sprite name \"%s\" is wrong size.\n", sc.String);
-		}
-		else if (sc.StringLen == 5 && (sc.String[4] = toupper(sc.String[4]), sc.String[4] < 'A' || sc.String[4] >= 'A' + MAX_SPRITE_FRAMES))
-		{
-			sc.ScriptMessage("Sprite frame %s is invalid.\n", sc.String[4]);
-		}
-		else
-		{
-			int frame = (sc.StringLen == 4) ? 255 : sc.String[4] - 'A';
-			int spritename;
-
-			for (i = 0; i < 4; ++i)
-			{
-				sc.String[i] = toupper(sc.String[i]);
-			}
-			spritename = *(int *)sc.String;
-			for (i = 0; i < sprites.Size(); ++i)
-			{
-				if (sprites[i].dwName == spritename)
-				{
-					break;
-				}
-			}
-			if (i != sprites.Size())
-			{
-				vsprites.Push((frame << 24) | i);
-			}
-		}
-	}
-	if (vsprites.Size() != 0)
-	{
-		sc.ScriptMessage("Unexpected end of file\n");
-	}
-	return false;
-}
-
-//==========================================================================
-//
-// VOX_ReadOptions
-//
-// Reads a list of options from a VOXELDEF lump, terminated with a '}'
-// character. The leading '{' must already be consumed
-//
-//==========================================================================
-
-static void VOX_ReadOptions(FScanner &sc, VoxelOptions &opts)
-{
-	while (sc.GetToken())
-	{
-		if (sc.TokenType == '}')
-		{
-			return;
-		}
-		sc.TokenMustBe(TK_Identifier);
-		if (sc.Compare("scale"))
-		{
-			sc.MustGetToken('=');
-			sc.MustGetToken(TK_FloatConst);
-			opts.Scale = FLOAT2FIXED(sc.Float);
-		}
-		else if (sc.Compare("spin"))
-		{
-			sc.MustGetToken('=');
-			sc.MustGetToken(TK_IntConst);
-			opts.DroppedSpin = opts.PlacedSpin = sc.Number;
-		}
-		else if (sc.Compare("placedspin"))
-		{
-			sc.MustGetToken('=');
-			sc.MustGetToken(TK_IntConst);
-			opts.PlacedSpin = sc.Number;
-		}
-		else if (sc.Compare("droppedspin"))
-		{
-			sc.MustGetToken('=');
-			sc.MustGetToken(TK_IntConst);
-			opts.DroppedSpin = sc.Number;
-		}
-		else if (sc.Compare("angleoffset"))
-		{
-			sc.MustGetToken('=');
-			sc.MustGetAnyToken();
-			if (sc.TokenType == TK_IntConst)
-			{
-				sc.Float = sc.Number;
-			}
-			else
-			{
-				sc.TokenMustBe(TK_FloatConst);
-			}
-			opts.AngleOffset = angle_t(sc.Float * ANGLE_180 / 180.0);
-		}
-		else
-		{
-			sc.ScriptMessage("Unknown voxel option '%s'\n", sc.String);
-			if (sc.CheckToken('='))
-			{
-				sc.MustGetAnyToken();
-			}
-		}
-	}
-	sc.ScriptMessage("Unterminated voxel option block\n");
-}
-
-//==========================================================================
-//
-// VOX_GetVoxel
-//
-// Returns a voxel object for the given lump or NULL if it is not a valid
-// voxel. If the voxel has already been loaded, it will be reused.
-//
-//==========================================================================
-
-static FVoxel *VOX_GetVoxel(int lumpnum)
-{
-	// Is this voxel already loaded? If so, return it.
-	for (unsigned i = 0; i < Voxels.Size(); ++i)
-	{
-		if (Voxels[i]->LumpNum == lumpnum)
-		{
-			return Voxels[i];
-		}
-	}
-	FVoxel *vox = R_LoadKVX(lumpnum);
-	if (vox != NULL)
-	{
-		Voxels.Push(vox);
-	}
-	return vox;
-}
-
-//==========================================================================
-//
-// VOX_AddVoxel
-//
-// Sets a voxel for a single sprite frame.
-//
-//==========================================================================
-
-static void VOX_AddVoxel(int sprnum, int frame, FVoxelDef *def)
-{
-	R_ExtendSpriteFrames(sprites[sprnum], frame);
-	SpriteFrames[sprites[sprnum].spriteframes + frame].Voxel = def;
-}
-
-//==========================================================================
-//
-// R_InitVoxels
-//
-// Process VOXELDEF lumps for defining voxel options that cannot be
-// condensed neatly into a sprite name format.
-//
-//==========================================================================
-
-void R_InitVoxels()
-{
-	int lump, lastlump = 0;
-	
-	while ((lump = Wads.FindLump("VOXELDEF", &lastlump)) != -1)
-	{
-		FScanner sc(lump);
-		TArray<DWORD> vsprites;
-
-		while (VOX_ReadSpriteNames(sc, vsprites))
-		{
-			FVoxel *voxeldata = NULL;
-			int voxelfile;
-			VoxelOptions opts;
-
-			sc.SetCMode(true);
-			sc.MustGetToken(TK_StringConst);
-			voxelfile = Wads.CheckNumForFullName(sc.String, true, ns_voxels);
-			if (voxelfile < 0)
-			{
-				sc.ScriptMessage("Voxel \"%s\" not found.\n", sc.String);
-			}
-			else
-			{
-				voxeldata = VOX_GetVoxel(voxelfile);
-				if (voxeldata == NULL)
-				{
-					sc.ScriptMessage("\"%s\" is not a valid voxel file.\n", sc.String);
-				}
-			}
-			if (sc.CheckToken('{'))
-			{
-				VOX_ReadOptions(sc, opts);
-			}
-			sc.SetCMode(false);
-			if (voxeldata != NULL && vsprites.Size() != 0)
-			{
-				FVoxelDef *def = new FVoxelDef;
-
-				def->Voxel = voxeldata;
-				def->Scale = opts.Scale;
-				def->DroppedSpin = opts.DroppedSpin;
-				def->PlacedSpin = opts.PlacedSpin;
-				def->AngleOffset = opts.AngleOffset;
-				VoxelDefs.Push(def);
-
-				for (unsigned i = 0; i < vsprites.Size(); ++i)
-				{
-					int sprnum = int(vsprites[i] & 0xFFFFFF);
-					int frame = int(vsprites[i] >> 24);
-					if (frame == 255)
-					{ // Apply voxel to all frames.
-						for (int j = MAX_SPRITE_FRAMES - 1; j >= 0; --j)
-						{
-							VOX_AddVoxel(sprnum, j, def);
-						}
-					}
-					else
-					{ // Apply voxel to only one frame.
-						VOX_AddVoxel(sprnum, frame, def);
-					}
-				}
-			}
-		}
-	}
-}
-
-// [RH]
-// R_InitSkins
-// Reads in everything applicable to a skin. The skins should have already
-// been counted and had their identifiers assigned to namespaces.
-//
-#define NUMSKINSOUNDS 17
-static const char *skinsoundnames[NUMSKINSOUNDS][2] =
-{ // The *painXXX sounds must be the first four
-	{ "dsplpain",	"*pain100" },
-	{ "dsplpain",	"*pain75" },
-	{ "dsplpain",	"*pain50" },
-	{ "dsplpain",	"*pain25" },
-	{ "dsplpain",	"*poison" },
-
-	{ "dsoof",		"*grunt" },
-	{ "dsoof",		"*land" },
-
-	{ "dspldeth",	"*death" },
-	{ "dspldeth",	"*wimpydeath" },
-
-	{ "dspdiehi",	"*xdeath" },
-	{ "dspdiehi",	"*crazydeath" },
-
-	{ "dsnoway",	"*usefail" },
-	{ "dsnoway",	"*puzzfail" },
-
-	{ "dsslop",		"*gibbed" },
-	{ "dsslop",		"*splat" },
-
-	{ "dspunch",	"*fist" },
-	{ "dsjump",		"*jump" }
-};
-
-/*
-static int STACK_ARGS skinsorter (const void *a, const void *b)
-{
-	return stricmp (((FPlayerSkin *)a)->name, ((FPlayerSkin *)b)->name);
-}
-*/
-
-void R_InitSkins (void)
-{
-	FSoundID playersoundrefs[NUMSKINSOUNDS];
-	spritedef_t temp;
-	int sndlumps[NUMSKINSOUNDS];
-	char key[65];
-	DWORD intname, crouchname;
-	size_t i;
-	int j, k, base;
-	int lastlump;
-	int aliasid;
-	bool remove;
-	const PClass *basetype, *transtype;
-
-	key[sizeof(key)-1] = 0;
-	i = PlayerClasses.Size () - 1;
-	lastlump = 0;
-
-	for (j = 0; j < NUMSKINSOUNDS; ++j)
-	{
-		playersoundrefs[j] = skinsoundnames[j][1];
-	}
-
-	while ((base = Wads.FindLump ("S_SKIN", &lastlump, true)) != -1)
-	{
-		// The player sprite has 23 frames. This means that the S_SKIN
-		// marker needs a minimum of 23 lumps after it.
-		if (base >= Wads.GetNumLumps() - 23 || base == -1)
-			continue;
-
-		i++;
-		for (j = 0; j < NUMSKINSOUNDS; j++)
-			sndlumps[j] = -1;
-		skins[i].namespc = Wads.GetLumpNamespace (base);
-
-		FScanner sc(base);
-		intname = 0;
-		crouchname = 0;
-
-		remove = false;
-		basetype = NULL;
-		transtype = NULL;
-
-		// Data is stored as "key = data".
-		while (sc.GetString ())
-		{
-			strncpy (key, sc.String, sizeof(key)-1);
-			if (!sc.GetString() || sc.String[0] != '=')
-			{
-				Printf (PRINT_BOLD, "Bad format for skin %d: %s\n", (int)i, key);
-				break;
-			}
-			sc.GetString ();
-			if (0 == stricmp (key, "name"))
-			{
-				strncpy (skins[i].name, sc.String, 16);
-				for (j = 0; (size_t)j < i; j++)
-				{
-					if (stricmp (skins[i].name, skins[j].name) == 0)
-					{
-						mysnprintf (skins[i].name, countof(skins[i].name), "skin%d", (int)i);
-						Printf (PRINT_BOLD, "Skin %s duplicated as %s\n",
-							skins[j].name, skins[i].name);
-						break;
-					}
-				}
-			}
-			else if (0 == stricmp (key, "sprite"))
-			{
-				for (j = 3; j >= 0; j--)
-					sc.String[j] = toupper (sc.String[j]);
-				intname = *((DWORD *)sc.String);
-			}
-			else if (0 == stricmp (key, "crouchsprite"))
-			{
-				for (j = 3; j >= 0; j--)
-					sc.String[j] = toupper (sc.String[j]);
-				crouchname = *((DWORD *)sc.String);
-			}
-			else if (0 == stricmp (key, "face"))
-			{
-				for (j = 2; j >= 0; j--)
-					skins[i].face[j] = toupper (sc.String[j]);
-				skins[i].face[3] = '\0';
-			}
-			else if (0 == stricmp (key, "gender"))
-			{
-				skins[i].gender = D_GenderToInt (sc.String);
-			}
-			else if (0 == stricmp (key, "scale"))
-			{
-				skins[i].ScaleX = clamp<fixed_t> (FLOAT2FIXED(atof (sc.String)), 1, 256*FRACUNIT);
-				skins[i].ScaleY = skins[i].ScaleX;
-			}
-			else if (0 == stricmp (key, "game"))
-			{
-				if (gameinfo.gametype == GAME_Heretic)
-					basetype = PClass::FindClass (NAME_HereticPlayer);
-				else if (gameinfo.gametype == GAME_Strife)
-					basetype = PClass::FindClass (NAME_StrifePlayer);
-				else
-					basetype = PClass::FindClass (NAME_DoomPlayer);
-
-				transtype = basetype;
-
-				if (stricmp (sc.String, "heretic") == 0)
-				{
-					if (gameinfo.gametype & GAME_DoomChex)
-					{
-						transtype = PClass::FindClass (NAME_HereticPlayer);
-						skins[i].othergame = true;
-					}
-					else if (gameinfo.gametype != GAME_Heretic)
-					{
-						remove = true;
-					}
-				}
-				else if (stricmp (sc.String, "strife") == 0)
-				{
-					if (gameinfo.gametype != GAME_Strife)
-					{
-						remove = true;
-					}
-				}
-				else
-				{
-					if (gameinfo.gametype == GAME_Heretic)
-					{
-						transtype = PClass::FindClass (NAME_DoomPlayer);
-						skins[i].othergame = true;
-					}
-					else if (!(gameinfo.gametype & GAME_DoomChex))
-					{
-						remove = true;
-					}
-				}
-
-				if (remove)
-					break;
-			}
-			else if (0 == stricmp (key, "class"))
-			{ // [GRB] Define the skin for a specific player class
-				int pclass = D_PlayerClassToInt (sc.String);
-
-				if (pclass < 0)
-				{
-					remove = true;
-					break;
-				}
-
-				basetype = transtype = PlayerClasses[pclass].Type;
-			}
-			else if (key[0] == '*')
-			{ // Player sound replacment (ZDoom extension)
-				int lump = Wads.CheckNumForName (sc.String, skins[i].namespc);
-				if (lump == -1)
-				{
-					lump = Wads.CheckNumForFullName (sc.String, true, ns_sounds);
-				}
-				if (lump != -1)
-				{
-					if (stricmp (key, "*pain") == 0)
-					{ // Replace all pain sounds in one go
-						aliasid = S_AddPlayerSound (skins[i].name, skins[i].gender,
-							playersoundrefs[0], lump, true);
-						for (int l = 3; l > 0; --l)
-						{
-							S_AddPlayerSoundExisting (skins[i].name, skins[i].gender,
-								playersoundrefs[l], aliasid, true);
-						}
-					}
-					else
-					{
-						int sndref = S_FindSoundNoHash (key);
-						if (sndref != 0)
-						{
-							S_AddPlayerSound (skins[i].name, skins[i].gender, sndref, lump, true);
-						}
-					}
-				}
-			}
-			else
-			{
-				for (j = 0; j < NUMSKINSOUNDS; j++)
-				{
-					if (stricmp (key, skinsoundnames[j][0]) == 0)
-					{
-						sndlumps[j] = Wads.CheckNumForName (sc.String, skins[i].namespc);
-						if (sndlumps[j] == -1)
-						{ // Replacement not found, try finding it in the global namespace
-							sndlumps[j] = Wads.CheckNumForFullName (sc.String, true, ns_sounds);
-						}
-					}
-				}
-				//if (j == 8)
-				//	Printf ("Funny info for skin %i: %s = %s\n", i, key, sc.String);
-			}
-		}
-
-		// [GRB] Assume Doom skin by default
-		if (!remove && basetype == NULL)
-		{
-			if (gameinfo.gametype & GAME_DoomChex)
-			{
-				basetype = transtype = PClass::FindClass (NAME_DoomPlayer);
-			}
-			else if (gameinfo.gametype == GAME_Heretic)
-			{
-				basetype = PClass::FindClass (NAME_HereticPlayer);
-				transtype = PClass::FindClass (NAME_DoomPlayer);
-				skins[i].othergame = true;
-			}
-			else
-			{
-				remove = true;
-			}
-		}
-
-		if (!remove)
-		{
-			skins[i].range0start = transtype->Meta.GetMetaInt (APMETA_ColorRange) & 0xff;
-			skins[i].range0end = transtype->Meta.GetMetaInt (APMETA_ColorRange) >> 8;
-
-			remove = true;
-			for (j = 0; j < (int)PlayerClasses.Size (); j++)
-			{
-				const PClass *type = PlayerClasses[j].Type;
-
-				if (type->IsDescendantOf (basetype) &&
-					GetDefaultByType (type)->SpawnState->sprite == GetDefaultByType (basetype)->SpawnState->sprite &&
-					type->Meta.GetMetaInt (APMETA_ColorRange) == basetype->Meta.GetMetaInt (APMETA_ColorRange))
-				{
-					PlayerClasses[j].Skins.Push ((int)i);
-					remove = false;
-				}
-			}
-		}
-
-		if (!remove)
-		{
-			if (skins[i].name[0] == 0)
-				mysnprintf (skins[i].name, countof(skins[i].name), "skin%d", (int)i);
-
-			// Now collect the sprite frames for this skin. If the sprite name was not
-			// specified, use whatever immediately follows the specifier lump.
-			if (intname == 0)
-			{
-				char name[9];
-				Wads.GetLumpName (name, base+1);
-				memcpy(&intname, name, 4);
-			}
-
-			int basens = Wads.GetLumpNamespace(base);
-
-			for(int spr = 0; spr<2; spr++)
-			{
-				memset (sprtemp, 0xFFFF, sizeof(sprtemp));
-				for (k = 0; k < MAX_SPRITE_FRAMES; ++k)
-				{
-					sprtemp[k].Flip = 0;
-					sprtemp[k].Voxel = NULL;
-				}
-				maxframe = -1;
-
-				if (spr == 1)
-				{
-					if (crouchname !=0 && crouchname != intname)
-					{
-						intname = crouchname;
-					}
-					else
-					{
-						skins[i].crouchsprite = -1;
-						break;
-					}
-				}
-
-				for (k = base + 1; Wads.GetLumpNamespace(k) == basens; k++)
-				{
-					char lname[9];
-					DWORD lnameint;
-					Wads.GetLumpName (lname, k);
-					memcpy(&lnameint, lname, 4);
-					if (lnameint == intname)
-					{
-						FTextureID picnum = TexMan.CreateTexture(k, FTexture::TEX_SkinSprite);
-						R_InstallSpriteLump (picnum, lname[4] - 'A', lname[5], false);
-
-						if (lname[6])
-							R_InstallSpriteLump (picnum, lname[6] - 'A', lname[7], true);
-					}
-				}
-
-				if (spr == 0 && maxframe <= 0)
-				{
-					Printf (PRINT_BOLD, "Skin %s (#%d) has no frames. Removing.\n", skins[i].name, (int)i);
-					remove = true;
-					break;
-				}
-
-				Wads.GetLumpName (temp.name, base+1);
-				temp.name[4] = 0;
-				int sprno = (int)sprites.Push (temp);
-				if (spr==0)	skins[i].sprite = sprno;
-				else skins[i].crouchsprite = sprno;
-				R_InstallSprite (sprno);
-			}
-		}
-
-		if (remove)
-		{
-			if (i < numskins-1)
-				memmove (&skins[i], &skins[i+1], sizeof(skins[0])*(numskins-i-1));
-			i--;
-			continue;
-		}
-
-		// Register any sounds this skin provides
-		aliasid = 0;
-		for (j = 0; j < NUMSKINSOUNDS; j++)
-		{
-			if (sndlumps[j] != -1)
-			{
-				if (j == 0 || sndlumps[j] != sndlumps[j-1])
-				{
-					aliasid = S_AddPlayerSound (skins[i].name, skins[i].gender,
-						playersoundrefs[j], sndlumps[j], true);
-				}
-				else
-				{
-					S_AddPlayerSoundExisting (skins[i].name, skins[i].gender,
-						playersoundrefs[j], aliasid, true);
-				}
-			}
-		}
-
-		// Make sure face prefix is a full 3 chars
-		if (skins[i].face[1] == 0 || skins[i].face[2] == 0)
-		{
-			skins[i].face[0] = 0;
-		}
-	}
-
-	if (numskins > PlayerClasses.Size ())
-	{ // The sound table may have changed, so rehash it.
-		S_HashSounds ();
-		S_ShrinkPlayerSoundLists ();
-	}
-}
-
-// [RH] Find a skin by name
-int R_FindSkin (const char *name, int pclass)
-{
-	if (stricmp ("base", name) == 0)
-	{
-		return pclass;
-	}
-
-	for (unsigned i = PlayerClasses.Size(); i < numskins; i++)
-	{
-		if (strnicmp (skins[i].name, name, 16) == 0)
-		{
-			if (PlayerClasses[pclass].CheckSkin (i))
-				return i;
-			else
-				return pclass;
-		}
-	}
-	return pclass;
-}
-
-// [RH] List the names of all installed skins
-CCMD (skins)
-{
-	int i;
-
-	for (i = PlayerClasses.Size ()-1; i < (int)numskins; i++)
-		Printf ("% 3d %s\n", i-PlayerClasses.Size ()+1, skins[i].name);
-}
 
 //
 // GAME FUNCTIONS
@@ -1249,123 +143,9 @@ static vissprite_t **spritesorter;
 static int spritesortersize = 0;
 static int vsprcount;
 
-static void R_CreateSkinTranslation (const char *palname)
-{
-	FMemLump lump = Wads.ReadLump (palname);
-	const BYTE *otherPal = (BYTE *)lump.GetMem();
- 
-	for (int i = 0; i < 256; ++i)
-	{
-		OtherGameSkinRemap[i] = ColorMatcher.Pick (otherPal[0], otherPal[1], otherPal[2]);
-		OtherGameSkinPalette[i] = PalEntry(otherPal[0], otherPal[1], otherPal[2]);
-		otherPal += 3;
-	}
-}
-
-
-//
-// R_InitSprites
-// Called at program start.
-//
-void R_InitSprites ()
-{
-	int lump, lastlump;
-	unsigned int i, j;
-
-	clearbufshort (zeroarray, MAXWIDTH, 0);
-
-	// [RH] Create a standard translation to map skins between Heretic and Doom
-	if (gameinfo.gametype == GAME_DoomChex)
-	{
-		R_CreateSkinTranslation ("SPALHTIC");
-	}
-	else
-	{
-		R_CreateSkinTranslation ("SPALDOOM");
-	}
-
-	// [RH] Count the number of skins.
-	numskins = PlayerClasses.Size ();
-	lastlump = 0;
-	while ((lump = Wads.FindLump ("S_SKIN", &lastlump, true)) != -1)
-	{
-		numskins++;
-	}
-
-	SpriteFrames.Clear();
-
-	// [RH] Do some preliminary setup
-	if (skins != NULL) delete [] skins;
-	skins = new FPlayerSkin[numskins];
-	memset (skins, 0, sizeof(*skins) * numskins);
-	for (i = 0; i < numskins; i++)
-	{ // Assume Doom skin by default
-		const PClass *type = PlayerClasses[0].Type;
-		skins[i].range0start = type->Meta.GetMetaInt (APMETA_ColorRange) & 255;
-		skins[i].range0end = type->Meta.GetMetaInt (APMETA_ColorRange) >> 8;
-		skins[i].ScaleX = GetDefaultByType (type)->scaleX;
-		skins[i].ScaleY = GetDefaultByType (type)->scaleY;
-	}
-
-	R_InitSpriteDefs ();
-	R_InitVoxels();		// [RH] Parse VOXELDEF
-	NumStdSprites = sprites.Size();
-	R_InitSkins ();		// [RH] Finish loading skin data
-
-	// [RH] Set up base skin
-	// [GRB] Each player class has its own base skin
-	for (i = 0; i < PlayerClasses.Size (); i++)
-	{
-		const PClass *basetype = PlayerClasses[i].Type;
-		const char *pclassface = basetype->Meta.GetMetaString (APMETA_Face);
-
-		strcpy (skins[i].name, "Base");
-		if (pclassface == NULL || strcmp(pclassface, "None") == 0)
-		{
-			skins[i].face[0] = 'S';
-			skins[i].face[1] = 'T';
-			skins[i].face[2] = 'F';
-			skins[i].face[3] = '\0';
-		}
-		else
-		{
-			strcpy(skins[i].face, pclassface);
-		}
-		skins[i].range0start = basetype->Meta.GetMetaInt (APMETA_ColorRange) & 255;
-		skins[i].range0end = basetype->Meta.GetMetaInt (APMETA_ColorRange) >> 8;
-		skins[i].ScaleX = GetDefaultByType (basetype)->scaleX;
-		skins[i].ScaleY = GetDefaultByType (basetype)->scaleY;
-		skins[i].sprite = GetDefaultByType (basetype)->SpawnState->sprite;
-		skins[i].namespc = ns_global;
-
-		PlayerClasses[i].Skins.Push (i);
-
-		if (memcmp (sprites[skins[i].sprite].name, "PLAY", 4) == 0)
-		{
-			for (j = 0; j < sprites.Size (); j++)
-			{
-				if (memcmp (sprites[j].name, deh.PlayerSprite, 4) == 0)
-				{
-					skins[i].sprite = (int)j;
-					break;
-				}
-			}
-		}
-	}
-
-	// [RH] Sort the skins, but leave base as skin 0
-	//qsort (&skins[PlayerClasses.Size ()], numskins-PlayerClasses.Size (), sizeof(FPlayerSkin), skinsorter);
-}
 
 void R_DeinitSprites()
 {
-	// Free skins
-	if (skins != NULL)
-	{
-		delete[] skins;
-		skins = NULL;
-	}
-
 	// Free vissprites
 	for (int i = 0; i < MaxVisSprites; ++i)
 	{
@@ -1543,9 +323,16 @@ void R_DrawVisSprite (vissprite_t *vis)
 	fixed_t			xiscale;
 	ESPSResult		mode;
 
-	dc_colormap = vis->colormap;
+	dc_colormap = vis->Style.colormap;
 
-	mode = R_SetPatchStyle (vis->RenderStyle, vis->alpha, vis->Translation, vis->FillColor);
+	mode = R_SetPatchStyle (vis->Style.RenderStyle, vis->Style.alpha, vis->Translation, vis->FillColor);
+
+	if (vis->Style.RenderStyle == LegacyRenderStyles[STYLE_Shaded])
+	{ // For shaded sprites, R_SetPatchStyle sets a dc_colormap to an alpha table, but
+	  // it is the brightest one. We need to get back to the proper light level for
+	  // this sprite.
+		dc_colormap += vis->ColormapNum << COLORMAPSHIFT;
+	}
 
 	if (mode != DontDraw)
 	{
@@ -1617,8 +404,8 @@ void R_DrawVisVoxel(vissprite_t *spr, int minslabz, int maxslabz, short *cliptop
 	int flags = 0;
 
 	// Do setup for blending.
-	dc_colormap = spr->colormap;
-	mode = R_SetPatchStyle(spr->RenderStyle, spr->alpha, spr->Translation, spr->FillColor);
+	dc_colormap = spr->Style.colormap;
+	mode = R_SetPatchStyle(spr->Style.RenderStyle, spr->Style.alpha, spr->Translation, spr->FillColor);
 
 	if (mode == DontDraw)
 	{
@@ -1638,7 +425,7 @@ void R_DrawVisVoxel(vissprite_t *spr, int minslabz, int maxslabz, short *cliptop
 	}
 
 	// Render the voxel, either directly to the screen or offscreen.
-	R_DrawVoxel(spr->gx, spr->gy, spr->gz, spr->angle, spr->xscale, spr->yscale, spr->voxel, spr->colormap, cliptop, clipbot,
+	R_DrawVoxel(spr->gx, spr->gy, spr->gz, spr->angle, spr->xscale, spr->yscale, spr->voxel, spr->Style.colormap, cliptop, clipbot,
 		minslabz, maxslabz, flags);
 
 	// Blend the voxel, if that's what we need to do.
@@ -1695,7 +482,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	fixed_t 			tx, tx2;
 	fixed_t 			tz;
 
-	fixed_t 			xscale, yscale;
+	fixed_t 			xscale = FRACUNIT, yscale = FRACUNIT;
 	
 	int 				x1;
 	int 				x2;
@@ -1715,7 +502,8 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	// Don't waste time projecting sprites that are definitely not visible.
 	if (thing == NULL ||
 		(thing->renderflags & RF_INVISIBLE) ||
-		!thing->RenderStyle.IsVisible(thing->alpha))
+		!thing->RenderStyle.IsVisible(thing->alpha) ||
+		!thing->IsVisibleToPlayer())
 	{
 		return;
 	}
@@ -1823,7 +611,9 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	tx2 = tx >> 4;
 
 	// too far off the side?
-	if ((abs(tx) >> 6) > abs(tz))
+	// if it's a voxel, it can be further off the side
+	if ((voxel == NULL && (abs(tx) >> 6) > abs(tz)) ||
+		(voxel != NULL && (abs(tx) >> 7) > abs(tz)))
 	{
 		return;
 	}
@@ -1868,7 +658,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 		{
 			if (gzt < heightsec->floorplane.ZatPoint (fx, fy))
 				return;
-			if (gzb >= heightsec->ceilingplane.ZatPoint (fx, fy))
+			if (!(heightsec->MoreFlags & SECF_FAKEFLOORONLY) && gzb >= heightsec->ceilingplane.ZatPoint (fx, fy))
 				return;
 		}
 	}
@@ -1958,7 +748,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 		if (voxelspin != 0)
 		{
 			double ang = double(I_FPSTime()) * voxelspin / 1000;
-			vis->angle += angle_t(ang * (4294967296.f / 360));
+			vis->angle -= angle_t(ang * (4294967296.f / 360));
 		}
 
 		// These are irrelevant for voxels.
@@ -1980,13 +770,14 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	vis->gzt = gzt;		// killough 3/27/98
 	vis->renderflags = thing->renderflags;
 	if(thing->flags5 & MF5_BRIGHT) vis->renderflags |= RF_FULLBRIGHT; // kg3D
-	vis->RenderStyle = thing->RenderStyle;
+	vis->Style.RenderStyle = thing->RenderStyle;
 	vis->FillColor = thing->fillcolor;
 	vis->Translation = thing->Translation;		// [RH] thing translation table
 	vis->FakeFlatStat = fakeside;
-	vis->alpha = thing->alpha;
+	vis->Style.alpha = thing->alpha;
 	vis->fakefloor = fakefloor;
 	vis->fakeceiling = fakeceiling;
+	vis->ColormapNum = 0;
 
 	if (voxel != NULL)
 	{
@@ -2002,9 +793,9 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	// The software renderer cannot invert the source without inverting the overlay
 	// too. That means if the source is inverted, we need to do the reverse of what
 	// the invert overlay flag says to do.
-	INTBOOL invertcolormap = (vis->RenderStyle.Flags & STYLEF_InvertOverlay);
+	INTBOOL invertcolormap = (vis->Style.RenderStyle.Flags & STYLEF_InvertOverlay);
 
-	if (vis->RenderStyle.Flags & STYLEF_InvertSource)
+	if (vis->Style.RenderStyle.Flags & STYLEF_InvertSource)
 	{
 		invertcolormap = !invertcolormap;
 	}
@@ -2012,12 +803,12 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	FDynamicColormap *mybasecolormap = basecolormap;
 
 	// Sprites that are added to the scene must fade to black.
-	if (vis->RenderStyle == LegacyRenderStyles[STYLE_Add] && mybasecolormap->Fade != 0)
+	if (vis->Style.RenderStyle == LegacyRenderStyles[STYLE_Add] && mybasecolormap->Fade != 0)
 	{
 		mybasecolormap = GetSpecialLights(mybasecolormap->Color, 0, mybasecolormap->Desaturate);
 	}
 
-	if (vis->RenderStyle.Flags & STYLEF_FadeToBlack)
+	if (vis->Style.RenderStyle.Flags & STYLEF_FadeToBlack)
 	{
 		if (invertcolormap)
 		{ // Fade to white
@@ -2033,7 +824,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	// get light level
 	if (fixedcolormap != NULL)
 	{ // fixed map
-		vis->colormap = fixedcolormap;
+		vis->Style.colormap = fixedcolormap;
 	}
 	else
 	{
@@ -2043,16 +834,17 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 		}
 		if (fixedlightlev >= 0)
 		{
-			vis->colormap = mybasecolormap->Maps + fixedlightlev;
+			vis->Style.colormap = mybasecolormap->Maps + fixedlightlev;
 		}
 		else if (!foggy && ((thing->renderflags & RF_FULLBRIGHT) || (thing->flags5 & MF5_BRIGHT)))
 		{ // full bright
-			vis->colormap = mybasecolormap->Maps;
+			vis->Style.colormap = mybasecolormap->Maps;
 		}
 		else
 		{ // diminished light
-			vis->colormap = mybasecolormap->Maps + (GETPALOOKUP (
-				(fixed_t)DivScale12 (r_SpriteVisibility, MAX(tz, MINZ)), spriteshade) << COLORMAPSHIFT);
+			vis->ColormapNum = GETPALOOKUP(
+				(fixed_t)DivScale12 (r_SpriteVisibility, MAX(tz, MINZ)), spriteshade);
+			vis->Style.colormap = mybasecolormap->Maps + (vis->ColormapNum << COLORMAPSHIFT);
 		}
 	}
 }
@@ -2212,6 +1004,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 	vis->yscale = DivScale16(pspriteyscale, tex->yScale);
 	vis->Translation = 0;		// [RH] Use default colors
 	vis->pic = tex;
+	vis->ColormapNum = 0;
 
 	if (flip)
 	{
@@ -2230,22 +1023,22 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 	noaccel = false;
 	if (pspnum <= ps_flash)
 	{
-		vis->alpha = owner->alpha;
-		vis->RenderStyle = owner->RenderStyle;
+		vis->Style.alpha = owner->alpha;
+		vis->Style.RenderStyle = owner->RenderStyle;
 
 		// The software renderer cannot invert the source without inverting the overlay
 		// too. That means if the source is inverted, we need to do the reverse of what
 		// the invert overlay flag says to do.
-		INTBOOL invertcolormap = (vis->RenderStyle.Flags & STYLEF_InvertOverlay);
+		INTBOOL invertcolormap = (vis->Style.RenderStyle.Flags & STYLEF_InvertOverlay);
 
-		if (vis->RenderStyle.Flags & STYLEF_InvertSource)
+		if (vis->Style.RenderStyle.Flags & STYLEF_InvertSource)
 		{
 			invertcolormap = !invertcolormap;
 		}
 
 		FDynamicColormap *mybasecolormap = basecolormap;
 
-		if (vis->RenderStyle.Flags & STYLEF_FadeToBlack)
+		if (vis->Style.RenderStyle.Flags & STYLEF_FadeToBlack)
 		{
 			if (invertcolormap)
 			{ // Fade to white
@@ -2260,7 +1053,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 
 		if (realfixedcolormap != NULL)
 		{ // fixed color
-			vis->colormap = realfixedcolormap->Colormap;
+			vis->Style.colormap = realfixedcolormap->Colormap;
 		}
 		else
 		{
@@ -2270,54 +1063,69 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 			}
 			if (fixedlightlev >= 0)
 			{
-				vis->colormap = mybasecolormap->Maps + fixedlightlev;
+				vis->Style.colormap = mybasecolormap->Maps + fixedlightlev;
 			}
 			else if (!foggy && psp->state->GetFullbright())
 			{ // full bright
-				vis->colormap = mybasecolormap->Maps;	// [RH] use basecolormap
+				vis->Style.colormap = mybasecolormap->Maps;	// [RH] use basecolormap
 			}
 			else
 			{ // local light
-				vis->colormap = mybasecolormap->Maps + (GETPALOOKUP (0, spriteshade) << COLORMAPSHIFT);
+				vis->Style.colormap = mybasecolormap->Maps + (GETPALOOKUP (0, spriteshade) << COLORMAPSHIFT);
 			}
 		}
 		if (camera->Inventory != NULL)
 		{
-			lighttable_t *oldcolormap = vis->colormap;
-			camera->Inventory->AlterWeaponSprite (vis);
-			if (vis->colormap != oldcolormap)
+			lighttable_t *oldcolormap = vis->Style.colormap;
+			camera->Inventory->AlterWeaponSprite (&vis->Style);
+			if (vis->Style.colormap != oldcolormap)
 			{
 				// The colormap has changed. Is it one we can easily identify?
 				// If not, then don't bother trying to identify it for
 				// hardware accelerated drawing.
-				if (vis->colormap < SpecialColormaps[0].Colormap || 
-					vis->colormap >= SpecialColormaps[SpecialColormaps.Size()].Colormap)
+				if (vis->Style.colormap < SpecialColormaps[0].Colormap || 
+					vis->Style.colormap > SpecialColormaps.Last().Colormap)
 				{
 					noaccel = true;
 				}
 				// Has the basecolormap changed? If so, we can't hardware accelerate it,
 				// since we don't know what it is anymore.
-				else if (vis->colormap < mybasecolormap->Maps ||
-					vis->colormap >= mybasecolormap->Maps + NUMCOLORMAPS*256)
+				else if (vis->Style.colormap < mybasecolormap->Maps ||
+					vis->Style.colormap >= mybasecolormap->Maps + NUMCOLORMAPS*256)
 				{
 					noaccel = true;
 				}
 			}
+		}
+		// If we're drawing with a special colormap, but shaders for them are disabled, do
+		// not accelerate.
+		if (!r_shadercolormaps && (vis->Style.colormap >= SpecialColormaps[0].Colormap &&
+			vis->Style.colormap <= SpecialColormaps.Last().Colormap))
+		{
+			noaccel = true;
+		}
+		// If the main colormap has fixed lights, and this sprite is being drawn with that
+		// colormap, disable acceleration so that the lights can remain fixed.
+		if (!noaccel &&
+			NormalLightHasFixedLights && mybasecolormap == &NormalLight &&
+			vis->pic->UseBasePalette())
+		{
+			noaccel = true;
 		}
 		VisPSpritesBaseColormap[pspnum] = mybasecolormap;
 	}
 	else
 	{
 		VisPSpritesBaseColormap[pspnum] = basecolormap;
-		vis->colormap = basecolormap->Maps;
-		vis->RenderStyle = STYLE_Normal;
+		vis->Style.colormap = basecolormap->Maps;
+		vis->Style.RenderStyle = STYLE_Normal;
 	}
 
 	// Check for hardware-assisted 2D. If it's available, and this sprite is not
 	// fuzzy, don't draw it until after the switch to 2D mode.
 	if (!noaccel && RenderTarget == screen && (DFrameBuffer *)screen->Accel2D)
 	{
-		FRenderStyle style = vis->RenderStyle;
+		FRenderStyle style = vis->Style.RenderStyle;
 		style.CheckFuzz();
 		if (style.BlendOp != STYLEOP_Fuzz)
 		{
@@ -2452,18 +1260,18 @@ void R_DrawRemainingPlayerSprites()
 			FColormapStyle colormapstyle;
 			bool usecolormapstyle = false;
 
-			if (vis->colormap >= SpecialColormaps[0].Colormap && 
-				vis->colormap < SpecialColormaps[SpecialColormaps.Size()].Colormap)
+			if (vis->Style.colormap >= SpecialColormaps[0].Colormap && 
+				vis->Style.colormap < SpecialColormaps[SpecialColormaps.Size()].Colormap)
 			{
 				// Yuck! There needs to be a better way to store colormaps in the vissprite... :(
-				ptrdiff_t specialmap = (vis->colormap - SpecialColormaps[0].Colormap) / sizeof(FSpecialColormap);
+				ptrdiff_t specialmap = (vis->Style.colormap - SpecialColormaps[0].Colormap) / sizeof(FSpecialColormap);
 				special = &SpecialColormaps[specialmap];
 			}
 			else if (colormap->Color == PalEntry(255,255,255) &&
 				colormap->Desaturate == 0)
 			{
 				overlay = colormap->Fade;
-				overlay.a = BYTE(((vis->colormap - colormap->Maps) >> 8) * 255 / NUMCOLORMAPS);
+				overlay.a = BYTE(((vis->Style.colormap - colormap->Maps) >> 8) * 255 / NUMCOLORMAPS);
 			}
 			else
 			{
@@ -2471,7 +1279,7 @@ void R_DrawRemainingPlayerSprites()
 				colormapstyle.Color = colormap->Color;
 				colormapstyle.Fade = colormap->Fade;
 				colormapstyle.Desaturate = colormap->Desaturate;
-				colormapstyle.FadeLevel = ((vis->colormap - colormap->Maps) >> 8) / float(NUMCOLORMAPS);
+				colormapstyle.FadeLevel = ((vis->Style.colormap - colormap->Maps) >> 8) / float(NUMCOLORMAPS);
 			}
 			screen->DrawTexture(vis->pic,
 				viewwindowx + VisPSpritesX1[i],
@@ -2486,8 +1294,8 @@ void R_DrawRemainingPlayerSprites()
 				DTA_ClipTop, viewwindowy,
 				DTA_ClipRight, viewwindowx + viewwidth,
 				DTA_ClipBottom, viewwindowy + viewheight,
-				DTA_Alpha, vis->alpha,
-				DTA_RenderStyle, vis->RenderStyle,
+				DTA_Alpha, vis->Style.alpha,
+				DTA_RenderStyle, vis->Style.RenderStyle,
 				DTA_FillColor, vis->FillColor,
 				DTA_SpecialColormap, special,
 				DTA_ColorOverlay, overlay.d,
@@ -2708,7 +1516,7 @@ void R_DrawSprite (vissprite_t *spr)
 	int r1, r2;
 	short topclip, botclip;
 	short *clip1, *clip2;
-	lighttable_t *colormap = spr->colormap;
+	lighttable_t *colormap = spr->Style.colormap;
 	F3DFloor *rover;
 	FDynamicColormap *mybasecolormap;
 
@@ -2772,20 +1580,20 @@ void R_DrawSprite (vissprite_t *spr)
 		// found new values, recalculate
 		if (sec) 
 		{
-			INTBOOL invertcolormap = (spr->RenderStyle.Flags & STYLEF_InvertOverlay);
+			INTBOOL invertcolormap = (spr->Style.RenderStyle.Flags & STYLEF_InvertOverlay);
 
-			if (spr->RenderStyle.Flags & STYLEF_InvertSource)
+			if (spr->Style.RenderStyle.Flags & STYLEF_InvertSource)
 			{
 				invertcolormap = !invertcolormap;
 			}
 
 			// Sprites that are added to the scene must fade to black.
-			if (spr->RenderStyle == LegacyRenderStyles[STYLE_Add] && mybasecolormap->Fade != 0)
+			if (spr->Style.RenderStyle == LegacyRenderStyles[STYLE_Add] && mybasecolormap->Fade != 0)
 			{
 				mybasecolormap = GetSpecialLights(mybasecolormap->Color, 0, mybasecolormap->Desaturate);
 			}
 
-			if (spr->RenderStyle.Flags & STYLEF_FadeToBlack)
+			if (spr->Style.RenderStyle.Flags & STYLEF_FadeToBlack)
 			{
 				if (invertcolormap)
 				{ // Fade to white
@@ -2805,16 +1613,16 @@ void R_DrawSprite (vissprite_t *spr)
 			}
 			if (fixedlightlev >= 0)
 			{
-				spr->colormap = mybasecolormap->Maps + fixedlightlev;
+				spr->Style.colormap = mybasecolormap->Maps + fixedlightlev;
 			}
 			else if (!foggy && (spr->renderflags & RF_FULLBRIGHT))
 			{ // full bright
-				spr->colormap = mybasecolormap->Maps;
+				spr->Style.colormap = mybasecolormap->Maps;
 			}
 			else
 			{ // diminished light
 				spriteshade = LIGHT2SHADE(sec->lightlevel + r_actualextralight);
-				spr->colormap = mybasecolormap->Maps + (GETPALOOKUP (
+				spr->Style.colormap = mybasecolormap->Maps + (GETPALOOKUP (
 					(fixed_t)DivScale12 (r_SpriteVisibility, spr->depth), spriteshade) << COLORMAPSHIFT);
 			}
 		}
@@ -2862,7 +1670,7 @@ void R_DrawSprite (vissprite_t *spr)
 				hzb = MAX(hzb, hz);
 			}
 		}
-		if (spr->FakeFlatStat != FAKED_BelowFloor)
+		if (spr->FakeFlatStat != FAKED_BelowFloor && !(spr->heightsec->MoreFlags & SECF_FAKEFLOORONLY))
 		{
 			fixed_t hz = spr->heightsec->ceilingplane.ZatPoint (spr->gx, spr->gy);
 			fixed_t h = (centeryfrac - FixedMul (hz-viewz, scale)) >> FRACBITS;
@@ -2965,7 +1773,7 @@ void R_DrawSprite (vissprite_t *spr)
 
 	if (topclip >= botclip)
 	{
-		spr->colormap = colormap;
+		spr->Style.colormap = colormap;
 		return;
 	}
 
@@ -3079,7 +1887,7 @@ void R_DrawSprite (vissprite_t *spr)
 			}
 			if (i == x2)
 			{
-				spr->colormap = colormap;
+				spr->Style.colormap = colormap;
 				return;
 			}
 		}
@@ -3087,7 +1895,7 @@ void R_DrawSprite (vissprite_t *spr)
 		int maxvoxely = spr->gzb > hzb ? INT_MAX : (spr->gzt - hzb) / spr->yscale;
 		R_DrawVisVoxel(spr, minvoxely, maxvoxely, cliptop, clipbot);
 	}
-	spr->colormap = colormap;
+	spr->Style.colormap = colormap;
 }
 
 // kg3D:
@@ -3185,101 +1993,9 @@ void R_DrawMasked (void)
 		R_3D_DeleteHeights();
 		fake3D = 0;
 	}
-	// draw the psprites on top of everything but does not draw on side views
-	if (!viewangleoffset)
-	{
-		R_DrawPlayerSprites ();
-	}
+	R_DrawPlayerSprites ();
 }
 
-
-//
-// [RH] Particle functions
-//
-
-// [BC] Allow the maximum number of particles to be specified by a cvar (so people
-// with lots of nice hardware can have lots of particles!).
-CUSTOM_CVAR( Int, r_maxparticles, 4000, CVAR_ARCHIVE )
-{
-	if ( self == 0 )
-		self = 4000;
-	else if ( self < 100 )
-		self = 100;
-
-	if ( gamestate != GS_STARTUP )
-	{
-		R_DeinitParticles( );
-		R_InitParticles( );
-	}
-}
-
-void R_InitParticles ()
-{
-	const char *i;
-
-	if ((i = Args->CheckValue ("-numparticles")))
-		NumParticles = atoi (i);
-	// [BC] Use r_maxparticles now.
-	else
-		NumParticles = r_maxparticles;
-
-	// This should be good, but eh...
-	if ( NumParticles < 100 )
-		NumParticles = 100;
-
-	R_DeinitParticles();
-	Particles = new particle_t[NumParticles];
-	R_ClearParticles ();
-	atterm (R_DeinitParticles);
-}
-
-void R_DeinitParticles()
-{
-	if (Particles != NULL)
-	{
-		delete[] Particles;
-		Particles = NULL;
-	}
-}
-
-void R_ClearParticles ()
-{
-	int i;
-
-	memset (Particles, 0, NumParticles * sizeof(particle_t));
-	ActiveParticles = NO_PARTICLE;
-	InactiveParticles = 0;
-	for (i = 0; i < NumParticles-1; i++)
-		Particles[i].tnext = i + 1;
-	Particles[i].tnext = NO_PARTICLE;
-}
-
-// Group particles by subsectors. Because particles are always
-// in motion, there is little benefit to caching this information
-// from one frame to the next.
-
-void R_FindParticleSubsectors ()
-{
-	if (ParticlesInSubsec.Size() < (size_t)numsubsectors)
-	{
-		ParticlesInSubsec.Reserve (numsubsectors - ParticlesInSubsec.Size());
-	}
-
-	clearbufshort (&ParticlesInSubsec[0], numsubsectors, NO_PARTICLE);
-
-	if (!r_particles)
-	{
-		return;
-	}
-	for (WORD i = ActiveParticles; i != NO_PARTICLE; i = Particles[i].tnext)
-	{
-		subsector_t *ssec = R_PointInSubsector (Particles[i].x, Particles[i].y);
-		int ssnum = int(ssec-subsectors);
-		Particles[i].subsector = ssec;
-		Particles[i].snext = ParticlesInSubsec[ssnum];
-		ParticlesInSubsec[ssnum] = i;
-	}
-}
 
 void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade, int fakeside)
 {
@@ -3405,33 +2121,37 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 	vis->cx = tx;
 	vis->gx = particle->x;
 	vis->gy = particle->y;
-	vis->texturemid = particle->z; // kg3D
+	vis->gz = particle->z; // kg3D
 	vis->gzb = y1;
 	vis->gzt = y2;
 	vis->x1 = x1;
 	vis->x2 = x2;
 	vis->Translation = 0;
-	vis->startfrac = particle->color;
+	vis->startfrac = 255 & (particle->color >>24);
 	vis->pic = NULL;
 	vis->bIsVoxel = false;
 	vis->renderflags = particle->trans;
 	vis->FakeFlatStat = fakeside;
 	vis->floorclip = 0;
+	vis->ColormapNum = 0;
 
 	if (fixedlightlev >= 0)
 	{
-		vis->colormap = map + fixedlightlev;
+		vis->Style.colormap = map + fixedlightlev;
 	}
 	else if (fixedcolormap)
 	{
-		vis->colormap = fixedcolormap;
+		vis->Style.colormap = fixedcolormap;
+	}
+	else if(particle->bright) {
+		vis->Style.colormap = map;
 	}
 	else
 	{
 		// Using MulScale15 instead of 16 makes particles slightly more visible
 		// than regular sprites.
-		vis->colormap = map + (GETPALOOKUP (MulScale15 (tiz, r_SpriteVisibility),
-			shade) << COLORMAPSHIFT);
+		vis->ColormapNum = GETPALOOKUP(MulScale15 (tiz, r_SpriteVisibility), shade);
+		vis->Style.colormap = map + (vis->ColormapNum << COLORMAPSHIFT);
 	}
 }
 
@@ -3464,7 +2184,7 @@ void R_DrawParticle (vissprite_t *vis)
 	int spacing;
 	BYTE *dest;
 	DWORD fg;
-	BYTE color = vis->colormap[vis->startfrac];
+	BYTE color = vis->Style.colormap[vis->startfrac];
 	int yl = vis->gzb;
 	int ycount = vis->gzt - yl + 1;
 	int x1 = vis->x1;
@@ -3500,12 +2220,6 @@ void R_DrawParticle (vissprite_t *vis)
 	} while (--ycount);
 }
 
-static fixed_t distrecip(fixed_t y)
-{
-	y >>= 3;
-	return y == 0 ? 0 : SafeDivScale32(centerxwide, y);
-}
-
 extern fixed_t baseyaspectmul;
 
 void R_DrawVoxel(fixed_t dasprx, fixed_t daspry, fixed_t dasprz, angle_t dasprang,
@@ -3516,22 +2230,28 @@ void R_DrawVoxel(fixed_t dasprx, fixed_t daspry, fixed_t dasprz, angle_t daspran
 	fixed_t cosang, sinang, sprcosang, sprsinang;
 	int backx, backy, gxinc, gyinc;
 	int daxscalerecip, dayscalerecip, cnt, gxstart, gystart, dazscale;
-	int lx, rx, nx, ny, x1=0, y1=0, x2=0, y2=0, yplc, yinc=0;
+	int lx, rx, nx, ny, x1=0, y1=0, x2=0, y2=0, yinc=0;
 	int yoff, xs=0, ys=0, xe, ye, xi=0, yi=0, cbackx, cbacky, dagxinc, dagyinc;
 	kvxslab_t *voxptr, *voxend;
 	FVoxelMipLevel *mip;
+	int z1a[64], z2a[64], yplc[64];
 
 	const int nytooclose = centerxwide * 2100, nytoofar = 32768*32768 - 1048576;
 	const int xdimenscale = Scale(centerxwide, yaspectmul, 160);
 	const fixed_t globalposx =  viewx >> 12;
 	const fixed_t globalposy = -viewy >> 12;
 	const fixed_t globalposz = -viewz >> 8;
+	const double centerxwide_f = centerxwide;
+	const double centerxwidebig_f = centerxwide_f * 65536*65536*8;
 
 	dasprx =  dasprx >> 12;
 	daspry = -daspry >> 12;
 	dasprz = -dasprz >> 8;
-	daxscale >>= 10;
-	dayscale >>= 10;
+
+	// Shift the scales from 16 bits of fractional precision to 6.
+	// Also do some magic voodoo scaling to make them the right size.
+	daxscale = daxscale / (0xC000 >> 6);
+	dayscale = dayscale / (0xC000 >> 6);
 
 	cosang = viewcos >> 2;
 	sinang = -viewsin >> 2;
@@ -3596,7 +2316,7 @@ void R_DrawVoxel(fixed_t dasprx, fixed_t daspry, fixed_t dasprz, angle_t daspran
 		ggyinc[i] = y; y += gyinc;
 	}
 
-	syoff = DivScale21(globalposz - dasprz, dazscale) + (mip->PivotZ << 7);
+	syoff = DivScale21(globalposz - dasprz, FixedMul(dazscale, 0xE800)) + (mip->PivotZ << 7);
 	yoff = (abs(gxinc) + abs(gyinc)) >> 1;
 
 	for (cnt = 0; cnt < 8; cnt++)
@@ -3672,15 +2392,14 @@ void R_DrawVoxel(fixed_t dasprx, fixed_t daspry, fixed_t dasprz, angle_t daspran
 				voxend = (kvxslab_t *)(slabxoffs + xyoffs[y+1]);
 				if (voxptr >= voxend) continue;
 
-				lx = MulScale32(nx >> 3, distrecip(ny+y1)) + centerx;
+				lx = xs_RoundToInt(nx * centerxwide_f / (ny + y1)) + centerx;
 				if (lx < 0) lx = 0;
-				rx = MulScale32((nx + nxoff) >> 3, distrecip(ny+y2)) + centerx;
+				rx = xs_RoundToInt((nx + nxoff) * centerxwide_f / (ny + y2)) + centerx;
 				if (rx > viewwidth) rx = viewwidth;
 				if (rx <= lx) continue;
-				rx -= lx;
 
-				fixed_t l1 = distrecip(ny-yoff);
-				fixed_t l2 = distrecip(ny+yoff);
+				fixed_t l1 = xs_RoundToInt(centerxwidebig_f / (ny - yoff));
+				fixed_t l2 = xs_RoundToInt(centerxwidebig_f / (ny + yoff));
 				for (; voxptr < voxend; voxptr = (kvxslab_t *)((BYTE *)voxptr + voxptr->zleng + 3))
 				{
 					const BYTE *col = voxptr->col;
@@ -3725,43 +2444,88 @@ void R_DrawVoxel(fixed_t dasprx, fixed_t daspry, fixed_t dasprz, angle_t daspran
 						z2 = MulScale32(l1, j + (zleng << 15)) + centery;
 					}
 
+					if (z2 <= z1) continue;
+
 					if (zleng == 1)
 					{
-						yplc = 0; yinc = 0;
-						if (z1 < daumost[lx]) z1 = daumost[lx];
+						yinc = 0;
 					}
 					else
 					{
 						if (z2-z1 >= 1024) yinc = FixedDiv(zleng, z2 - z1);
-						else if (z2 > z1) yinc = (((1 << 24) - 1) / (z2 - z1)) * zleng >> 8;
-						if (z1 < daumost[lx]) { yplc = yinc*(daumost[lx]-z1); z1 = daumost[lx]; } else yplc = 0;
+						else yinc = (((1 << 24) - 1) / (z2 - z1)) * zleng >> 8;
 					}
-					if (z2 > dadmost[lx]) z2 = dadmost[lx];
-					z2 -= z1; if (z2 <= 0) continue;
-
-					if (!(flags & DVF_OFFSCREEN))
+					// [RH] Clip each column separately, not just by the first one.
+					for (int stripwidth = MIN<int>(countof(z1a), rx - lx), lxt = lx;
+						lxt < rx;
+						(lxt += countof(z1a)), stripwidth = MIN<int>(countof(z1a), rx - lxt))
 					{
-						// Draw directly to the screen.
-						R_DrawSlab(rx, yplc, z2, yinc, col, ylookup[z1] + lx + dc_destorg);
-					}
-					else
-					{
-						// Record the area covered and possibly draw to an offscreen buffer.
-						dc_yl = z1;
-						dc_yh = z1 + z2 - 1;
-						dc_count = z2;
-						dc_iscale = yinc;
-						for (int x = 0; x < rx; ++x)
+						// Calculate top and bottom pixels locations
+						for (int xxx = 0; xxx < stripwidth; ++xxx)
 						{
-							OffscreenCoverageBuffer->InsertSpan(lx + x, z1, z1 + z2);
-							if (!(flags & DVF_SPANSONLY))
+							if (zleng == 1)
 							{
-								dc_x = lx + x;
-								rt_initcols(OffscreenColorBuffer + (dc_x & ~3) * OffscreenBufferHeight);
-								dc_source = col;
-								dc_texturefrac = yplc;
-								hcolfunc_pre();
+								yplc[xxx] = 0;
+								z1a[xxx] = MAX<int>(z1, daumost[lxt + xxx]);
 							}
+							else
+							{
+								if (z1 < daumost[lxt + xxx])
+								{
+									yplc[xxx] = yinc * (daumost[lxt + xxx] - z1);
+									z1a[xxx] = daumost[lxt + xxx];
+								}
+								else
+								{
+									yplc[xxx] = 0;
+									z1a[xxx] = z1;
+								}
+							}
+							z2a[xxx] = MIN<int>(z2, dadmost[lxt + xxx]);
+						}
+						// Find top and bottom pixels that match and draw them as one strip
+						for (int xxl = 0, xxr; xxl < stripwidth; )
+						{
+							if (z1a[xxl] >= z2a[xxl])
+							{ // No column here
+								xxl++;
+								continue;
+							}
+							int z1 = z1a[xxl];
+							int z2 = z2a[xxl];
+							// How many columns share the same extents?
+							for (xxr = xxl + 1; xxr < stripwidth; ++xxr)
+							{
+								if (z1a[xxr] != z1 || z2a[xxr] != z2)
+									break;
+							}
+
+							if (!(flags & DVF_OFFSCREEN))
+							{
+								// Draw directly to the screen.
+								R_DrawSlab(xxr - xxl, yplc[xxl], z2 - z1, yinc, col, ylookup[z1] + lxt + xxl + dc_destorg);
+							}
+							else
+							{
+								// Record the area covered and possibly draw to an offscreen buffer.
+								dc_yl = z1;
+								dc_yh = z2 - 1;
+								dc_count = z2 - z1;
+								dc_iscale = yinc;
+								for (int x = xxl; x < xxr; ++x)
+								{
+									OffscreenCoverageBuffer->InsertSpan(lxt + x, z1, z2);
+									if (!(flags & DVF_SPANSONLY))
+									{
+										dc_x = lxt + x;
+										rt_initcols(OffscreenColorBuffer + (dc_x & ~3) * OffscreenBufferHeight);
+										dc_source = col;
+										dc_texturefrac = yplc[xxl];
+										hcolfunc_pre();
+									}
+								}
+							}
+							xxl = xxr;
 						}
 					}
 				}
@@ -3849,7 +2613,7 @@ void FCoverageBuffer::InsertSpan(int listnum, int start, int stop)
 			{ // The existing span completely covers this one.	//     +++++
 				return;
 			}
-			// Extend the existing span with the new one.		// ======
+extend:		// Extend the existing span with the new one.		// ======
 			span = *span_p;										//     +++++++
 			span->Stop = stop;									// (or)  +++++
 
@@ -3877,6 +2641,11 @@ void FCoverageBuffer::InsertSpan(int listnum, int start, int stop)
 		{ // The new span extends the existing span from		//    ++++
 		  // the beginning.										// (or) ++++
 			(*span_p)->Start = start;
+			if ((*span_p)->Stop < stop)
+			{ // The new span also extends the existing span	//     ======
+			  // at the bottom									// ++++++++++++++
+				goto extend;
+			}
 			goto check;
 		}
 		else													//         ======
@@ -3946,7 +2715,7 @@ void R_CheckOffscreenBuffer(int width, int height, bool spansonly)
 		assert(OffscreenColorBuffer == NULL && "The color buffer cannot exist without the coverage buffer");
 		OffscreenCoverageBuffer = new FCoverageBuffer(width);
 	}
-	else if (OffscreenCoverageBuffer->NumLists != width)
+	else if (OffscreenCoverageBuffer->NumLists != (unsigned)width)
 	{
 		delete OffscreenCoverageBuffer;
 		OffscreenCoverageBuffer = new FCoverageBuffer(width);

@@ -42,7 +42,6 @@
 #include "m_random.h"
 #include "doomstat.h"
 #include "wi_stuff.h"
-#include "r_data.h"
 #include "w_wad.h"
 #include "am_map.h"
 #include "c_dispatch.h"
@@ -70,15 +69,18 @@
 #include "version.h"
 #include "statnums.h"
 #include "sbarinfo.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "p_lnspec.h"
-#include "r_interpolate.h"
+#include "r_data/r_interpolate.h"
 #include "cmdlib.h"
 #include "d_net.h"
 #include "d_netinf.h"
 #include "v_palette.h"
 #include "menu/menu.h"
 #include "a_strifeglobal.h"
+#include "r_data/colormaps.h"
+#include "farchive.h"
+#include "r_renderer.h"
 
 #include "gi.h"
 
@@ -662,6 +664,9 @@ void G_DoCompleted (void)
 		}
 		else
 		{
+
+
+
 			level_info_t *nextinfo = FindLevelInfo (nextlevel);
 			wminfo.next = nextinfo->mapname;
 			wminfo.LName1 = TexMan[TexMan.CheckForTexture(nextinfo->pname, FTexture::TEX_MiscPatch)];
@@ -915,10 +920,13 @@ void G_DoLoadLevel (int position, bool autosave)
 	level.starttime = gametic;
 	G_UnSnapshotLevel (!savegamerestore);	// [RH] Restore the state of the level.
 	G_FinishTravel ();
-	if (players[consoleplayer].camera == NULL ||
-		players[consoleplayer].camera->player != NULL)
-	{ // If we are viewing through a player, make sure it is us.
-        players[consoleplayer].camera = players[consoleplayer].mo;
+	// For each player, if they are viewing through a player, make sure it is themselves.
+	for (int ii = 0; i < MAXPLAYERS; ++i)
+	{
+		if (playeringame[ii] && (players[ii].camera == NULL || players[ii].camera->player != NULL))
+		{
+			players[ii].camera = players[ii].mo;
+		}
 	}
 	StatusBar->AttachToPlayer (&players[consoleplayer]);
 	P_DoDeferedScripts ();	// [RH] Do script actions that were triggered on another map.
@@ -1114,7 +1122,7 @@ void G_FinishTravel ()
 			// The player being spawned here is a short lived dummy and
 			// must not start any ENTER script or big problems will happen.
 			pawndup = P_SpawnPlayer (&playerstarts[pawn->player - players], true);
-			if (!changeflags & CHANGELEVEL_KEEPFACING)
+			if (!(changeflags & CHANGELEVEL_KEEPFACING))
 			{
 				pawn->angle = pawndup->angle;
 				pawn->pitch = pawndup->pitch;
@@ -1138,12 +1146,14 @@ void G_FinishTravel ()
 			pawn->target = NULL;
 			pawn->lastenemy = NULL;
 			pawn->player->mo = pawn;
+			pawn->player->camera = pawn;
 			DObject::StaticPointerSubstitution (oldpawn, pawn);
 			oldpawn->Destroy();
 			pawndup->Destroy ();
 			pawn->LinkToWorld ();
 			pawn->AddToHash ();
 			pawn->SetState(pawn->SpawnState);
+			pawn->player->SendPitchLimits();
 
 			for (inv = pawn->Inventory; inv != NULL; inv = inv->Inventory)
 			{
@@ -1251,6 +1261,7 @@ void G_InitLevelLocals ()
 	level.skypic2[8] = 0;
 
 	compatflags.Callback();
+	compatflags2.Callback();
 
 	NormalLight.ChangeFade (level.fadeto);
 
@@ -1348,7 +1359,7 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 {
 	int i = level.totaltime;
 	
-	screen->StartSerialize(arc);
+	Renderer->StartSerialize(arc);
 
 	arc << level.flags
 		<< level.flags2
@@ -1361,6 +1372,11 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 		<< level.teamdamage
 		<< level.maptime
 		<< i;
+
+	if (SaveVersion >= 3313)
+	{
+		arc << level.nextmusic;
+	}
 
 	// Hub transitions must keep the current total time
 	if (!hubLoad)
@@ -1467,7 +1483,7 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 			}
 		}
 	}
-	screen->EndSerialize(arc);
+	Renderer->EndSerialize(arc);
 }
 
 //==========================================================================
@@ -1741,6 +1757,21 @@ void G_ReadSnapshots (PNGHandle *png)
 	png->File->ResetFilePtr();
 }
 
+//==========================================================================
+
+CCMD(listsnapshots)
+{
+	for (unsigned i = 0; i < wadlevelinfos.Size(); ++i)
+	{
+		FCompressedMemFile *snapshot = wadlevelinfos[i].snapshot;
+		if (snapshot != NULL)
+		{
+			unsigned int comp, uncomp;
+			snapshot->GetSizes(comp, uncomp);
+			Printf("%s (%u -> %u bytes)\n", wadlevelinfos[i].mapname, comp, uncomp);
+		}
+	}
+}
 
 //==========================================================================
 //
@@ -1861,10 +1892,13 @@ CCMD(listmaps)
 	for(unsigned i = 0; i < wadlevelinfos.Size(); i++)
 	{
 		level_info_t *info = &wadlevelinfos[i];
+		MapData *map = P_OpenMapData(info->mapname);
 
-		if (P_CheckMapData(info->mapname))
+		if (map != NULL)
 		{
-			Printf("%s: '%s'\n", info->mapname, info->LookupLevelName().GetChars());
+			Printf("%s: '%s' (%s)\n", info->mapname, info->LookupLevelName().GetChars(),
+				Wads.GetWadName(Wads.GetLumpFile(map->lumpnum)));
+			delete map;
 		}
 	}
 }

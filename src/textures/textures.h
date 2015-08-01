@@ -27,6 +27,7 @@ public:
 	bool isValid() const { return texnum > 0; }
 	bool Exists() const { return texnum >= 0; }
 	void SetInvalid() { texnum = -1; }
+	void SetNull() { texnum = 0; }
 	bool operator ==(const FTextureID &other) const { return texnum == other.texnum; }
 	bool operator !=(const FTextureID &other) const { return texnum != other.texnum; }
 	FTextureID operator +(int offset) throw();
@@ -173,7 +174,7 @@ public:
 	BYTE bHasCanvas:1;		// Texture is based off FCanvasTexture
 	BYTE bWarped:2;			// This is a warped texture. Used to avoid multiple warps on one texture
 	BYTE bComplex:1;		// Will be used to mark extended MultipatchTextures that have to be
-							// fully composited before subjected to any kinf of postprocessing instead of
+							// fully composited before subjected to any kind of postprocessing instead of
 							// doing it per patch.
 	BYTE bMultiPatch:1;		// This is a multipatch texture (we really could use real type info for textures...)
 
@@ -215,6 +216,7 @@ public:
 	virtual bool UseBasePalette();
 	virtual int GetSourceLump() { return SourceLump; }
 	virtual FTexture *GetRedirect(bool wantwarped);
+	virtual FTexture *GetRawTexture();		// for FMultiPatchTexture to override
 	FTextureID GetID() const { return id; }
 
 	virtual void Unload () = 0;
@@ -294,6 +296,7 @@ protected:
 		Rotations = other->Rotations;
 	}
 
+public:
 	static void FlipSquareBlock (BYTE *block, int x, int y);
 	static void FlipSquareBlockRemap (BYTE *block, int x, int y, const BYTE *remap);
 	static void FlipNonSquareBlock (BYTE *blockto, const BYTE *blockfrom, int x, int y, int srcpitch);
@@ -330,15 +333,20 @@ public:
 	FTexture *FindTexture(const char *texname, int usetype = FTexture::TEX_MiscPatch, BITFIELD flags = TEXMAN_TryAny);
 
 	// Get texture with translation
-	FTexture *operator() (FTextureID texnum)
+	FTexture *operator() (FTextureID texnum, bool withpalcheck=false)
 	{
 		if ((size_t)texnum.texnum >= Textures.Size()) return NULL;
-		return Textures[Translation[texnum.texnum]].Texture;
+		int picnum = Translation[texnum.texnum];
+		if (withpalcheck)
+		{
+			picnum = PalCheck(picnum).GetIndex();
+		}
+		return Textures[picnum].Texture;
 	}
 	FTexture *operator() (const char *texname)
 	{
 		FTextureID texnum = GetTexture (texname, FTexture::TEX_MiscPatch);
-		if (texnum.texnum==-1) return NULL;
+		if (texnum.texnum == -1) return NULL;
 		return Textures[Translation[texnum.texnum]].Texture;
 	}
 
@@ -347,6 +355,8 @@ public:
 		if (unsigned(i) >= Textures.Size()) return NULL;
 		return Textures[Translation[i]].Texture;
 	}
+
+	FTextureID PalCheck(FTextureID tex);
 
 	enum
 	{
@@ -392,6 +402,7 @@ public:
 	void UnloadAll ();
 
 	int NumTextures () const { return (int)Textures.Size(); }
+	void PrecacheLevel (void);
 
 	void WriteTexture (FArchive &arc, int picnum);
 	int ReadTexture (FArchive &arc);
@@ -432,6 +443,8 @@ private:
 	void SetTranslation (FTextureID fromtexnum, FTextureID totexnum);
 	void ParseAnimatedDoor(FScanner &sc);
 
+	void InitPalettedVersions();
+
 	// Switches
 
 	void InitSwitchList ();
@@ -450,6 +463,7 @@ private:
 	int HashFirst[HASH_SIZE];
 	FTextureID DefaultTexture;
 	TArray<int> FirstTextureForFile;
+	TMap<int,int> PalettedVersions;		// maps from normal -> paletted version
 
 	FTextureID Doom64HashTable[65536];
 
@@ -459,6 +473,90 @@ private:
 	TArray<FSwitchDef *> mSwitchDefs;
 	TArray<FDoorAnimation> mAnimatedDoors;
 	TArray<BYTE *> BuildTileFiles;
+};
+
+// A texture that doesn't really exist
+class FDummyTexture : public FTexture
+{
+public:
+	FDummyTexture ();
+	const BYTE *GetColumn (unsigned int column, const Span **spans_out);
+	const BYTE *GetPixels ();
+	void Unload ();
+	void SetSize (int width, int height);
+};
+
+// A texture that returns a wiggly version of another texture.
+class FWarpTexture : public FTexture
+{
+public:
+	FWarpTexture (FTexture *source);
+	~FWarpTexture ();
+
+	virtual int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate=0, FCopyInfo *inf = NULL);
+	const BYTE *GetColumn (unsigned int column, const Span **spans_out);
+	const BYTE *GetPixels ();
+	void Unload ();
+	bool CheckModified ();
+
+	float GetSpeed() const { return Speed; }
+	int GetSourceLump() { return SourcePic->GetSourceLump(); }
+	void SetSpeed(float fac) { Speed = fac; }
+	FTexture *GetRedirect(bool wantwarped);
+
+	DWORD GenTime;
+protected:
+	FTexture *SourcePic;
+	BYTE *Pixels;
+	Span **Spans;
+	float Speed;
+
+	virtual void MakeTexture (DWORD time);
+};
+
+// [GRB] Eternity-like warping
+class FWarp2Texture : public FWarpTexture
+{
+public:
+	FWarp2Texture (FTexture *source);
+
+protected:
+	void MakeTexture (DWORD time);
+};
+
+// A texture that can be drawn to.
+class DSimpleCanvas;
+class AActor;
+class FArchive;
+
+class FCanvasTexture : public FTexture
+{
+public:
+	FCanvasTexture (const char *name, int width, int height);
+	~FCanvasTexture ();
+
+	const BYTE *GetColumn (unsigned int column, const Span **spans_out);
+	const BYTE *GetPixels ();
+	void Unload ();
+	bool CheckModified ();
+	void NeedUpdate() { bNeedsUpdate=true; }
+	void SetUpdated() { bNeedsUpdate = false; bDidUpdate = true; bFirstUpdate = false; }
+	DSimpleCanvas *GetCanvas() { return Canvas; }
+	void MakeTexture ();
+
+protected:
+
+	DSimpleCanvas *Canvas;
+	BYTE *Pixels;
+	Span DummySpans[2];
+	bool bNeedsUpdate;
+	bool bDidUpdate;
+	bool bPixelsAllocated;
+public:
+	bool bFirstUpdate;
+
+
+	friend struct FCanvasTextureInfo;
 };
 
 extern FTextureManager TexMan;

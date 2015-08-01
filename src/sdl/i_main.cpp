@@ -61,7 +61,7 @@
 #include "g_level.h"
 #include "r_state.h"
 #include "cmdlib.h"
-#include "r_main.h"
+#include "r_utility.h"
 #include "doomstat.h"
 
 // MACROS ------------------------------------------------------------------
@@ -80,6 +80,10 @@ extern "C" int cc_install_handlers(int, char**, int, int*, const char*, int(*)(c
 // PRIVATE FUNCTION PROTOTYPES ---------------------------------------------
 
 // EXTERNAL DATA DECLARATIONS ----------------------------------------------
+
+#ifdef USE_XCURSOR
+extern bool UseXCursor;
+#endif
 
 // PUBLIC DATA DEFINITIONS -------------------------------------------------
 
@@ -132,20 +136,6 @@ void STACK_ARGS call_terms ()
 //		printf ("term %d - %s\n", NumTerms, TermNames[NumTerms-1]);
 		TermFuncs[--NumTerms] ();
 	}
-}
-
-//==========================================================================
-//
-// FinalGC
-//
-// Collect garbage one last time before exiting.
-//
-//==========================================================================
-
-static void FinalGC()
-{
-	Args = NULL;
-	GC::FullGC();
 }
 
 static void STACK_ARGS NewFailure ()
@@ -251,12 +241,14 @@ void I_ShutdownJoysticks();
 
 int main (int argc, char **argv)
 {
+#if !defined (__APPLE__)
 	{
 		int s[4] = { SIGSEGV, SIGILL, SIGFPE, SIGBUS };
 		cc_install_handlers(argc, argv, 4, s, "zdoom-crash.log", DoomSpecificInfo);
 	}
+#endif // !__APPLE__
 
-	printf(GAMENAME" v%s - SVN revision %s - SDL version\nCompiled on %s\n\n",
+	printf(GAMENAME" v%s - SVN revision %s - SDL version\nCompiled on %s\n",
 		DOTVERSIONSTR_NOREV,SVN_REVISION_STRING,__DATE__);
 
 	seteuid (getuid ());
@@ -279,12 +271,44 @@ int main (int argc, char **argv)
 	}
 	atterm (SDL_Quit);
 
+	{
+		char viddriver[80];
+
+		if (SDL_VideoDriverName(viddriver, sizeof(viddriver)) != NULL)
+		{
+			printf("Using video driver %s\n", viddriver);
+#ifdef USE_XCURSOR
+			UseXCursor = (strcmp(viddriver, "x11") == 0);
+#endif
+		}
+		printf("\n");
+	}
+
 	SDL_WM_SetCaption (GAMESIG " " DOTVERSIONSTR " (" __DATE__ ")", NULL);
+
+#ifdef __APPLE__
+	
+	const SDL_VideoInfo* videoInfo = SDL_GetVideoInfo();
+	if ( NULL != videoInfo )
+	{
+		EXTERN_CVAR(  Int, vid_defwidth  )
+		EXTERN_CVAR(  Int, vid_defheight )
+		EXTERN_CVAR(  Int, vid_defbits   )
+		EXTERN_CVAR( Bool, vid_vsync     )
+		EXTERN_CVAR( Bool, fullscreen    )
+		
+		vid_defwidth  = videoInfo->current_w;
+		vid_defheight = videoInfo->current_h;
+		vid_defbits   = videoInfo->vfmt->BitsPerPixel;
+		vid_vsync     = True;
+		fullscreen    = True;
+	}
+	
+#endif // __APPLE__
 	
     try
     {
 		Args = new DArgs(argc, argv);
-		atterm(FinalGC);
 
 		/*
 		  killough 1/98:

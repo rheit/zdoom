@@ -41,7 +41,6 @@
 #include "c_console.h"
 #include "v_video.h"
 #include "m_swap.h"
-#include "r_draw.h"
 #include "w_wad.h"
 #include "v_text.h"
 #include "s_sound.h"
@@ -51,6 +50,9 @@
 #include "d_net.h"
 #include "colormatcher.h"
 #include "v_palette.h"
+#include "d_player.h"
+#include "farchive.h"
+#include "a_hexenglobal.h"
 
 #include "../version.h"
 
@@ -85,6 +87,12 @@ static int CrosshairNum;
 int BaseBlendR, BaseBlendG, BaseBlendB;
 float BaseBlendA;
 
+CVAR (Int, paletteflash, 0, CVAR_ARCHIVE)
+CVAR (Flag, pf_hexenweaps,	paletteflash, PF_HEXENWEAPONS)
+CVAR (Flag, pf_poison,		paletteflash, PF_POISON)
+CVAR (Flag, pf_ice,			paletteflash, PF_ICE)
+CVAR (Flag, pf_hazard,		paletteflash, PF_HAZARD)
+
 // Stretch status bar to full screen width?
 CUSTOM_CVAR (Bool, st_scale, true, CVAR_ARCHIVE)
 {
@@ -107,20 +115,6 @@ CUSTOM_CVAR(Int, am_showmaplabel, 2, CVAR_ARCHIVE)
 }
 
 CVAR (Bool, idmypos, false, 0);
-
-// [RH] Amount of red flash for up to 114 damage points. Calculated by hand
-//		using a logarithmic scale and my trusty HP48G.
-BYTE DBaseStatusBar::DamageToAlpha[114] =
-{
-	  0,   8,  16,  23,  30,  36,  42,  47,  53,  58,  62,  67,  71,  75,  79,
-	 83,  87,  90,  94,  97, 100, 103, 107, 109, 112, 115, 118, 120, 123, 125,
-	128, 130, 133, 135, 137, 139, 141, 143, 145, 147, 149, 151, 153, 155, 157,
-	159, 160, 162, 164, 165, 167, 169, 170, 172, 173, 175, 176, 178, 179, 181,
-	182, 183, 185, 186, 187, 189, 190, 191, 192, 194, 195, 196, 197, 198, 200,
-	201, 202, 203, 204, 205, 206, 207, 209, 210, 211, 212, 213, 214, 215, 216,
-	217, 218, 219, 220, 221, 221, 222, 223, 224, 225, 226, 227, 228, 229, 229,
-	230, 231, 232, 233, 234, 235, 235, 236, 237
-};
 
 //---------------------------------------------------------------------------
 //
@@ -1052,8 +1046,8 @@ void DBaseStatusBar::RefreshBackground () const
 			y = x == ST_X ? ST_Y : ::ST_Y;
 			x2 = !(ratio & 3) || !Scaled ? ST_X+HorizontalResolution :
 				SCREENWIDTH - (SCREENWIDTH*(48-BaseRatioSizes[ratio][3])+48*2-1)/(48*2);
-			R_DrawBorder (0, y, x, SCREENHEIGHT);
-			R_DrawBorder (x2, y, SCREENWIDTH, SCREENHEIGHT);
+			V_DrawBorder (0, y, x, SCREENHEIGHT);
+			V_DrawBorder (x2, y, SCREENWIDTH, SCREENHEIGHT);
 
 			if (setblocks >= 10)
 			{
@@ -1357,11 +1351,6 @@ void DBaseStatusBar::Draw (EHudState state)
 			}
 		}
 	}
-
-	if (noisedebug)
-	{
-		S_NoiseDebug ();
-	}
 }
 
 
@@ -1466,6 +1455,11 @@ void DBaseStatusBar::DrawTopStuff (EHudState state)
 
 	DrawConsistancy ();
 	if (ShowLog && MustDrawLog(state)) DrawLog ();
+
+	if (noisedebug)
+	{
+		S_NoiseDebug ();
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -1496,27 +1490,6 @@ void DBaseStatusBar::DrawPowerups ()
 	}
 }
 
-/*
-=============
-SV_AddBlend
-[RH] This is from Q2.
-=============
-*/
-void DBaseStatusBar::AddBlend (float r, float g, float b, float a, float v_blend[4])
-{
-	float a2, a3;
-
-	if (a <= 0)
-		return;
-	a2 = v_blend[3] + (1-v_blend[3])*a;	// new total alpha
-	a3 = v_blend[3]/a2;		// fraction of color from old
-
-	v_blend[0] = v_blend[0]*a3 + r*(1-a3);
-	v_blend[1] = v_blend[1]*a3 + g*(1-a3);
-	v_blend[2] = v_blend[2]*a3 + b*(1-a3);
-	v_blend[3] = a2;
-}
-
 //---------------------------------------------------------------------------
 //
 // BlendView
@@ -1525,64 +1498,13 @@ void DBaseStatusBar::AddBlend (float r, float g, float b, float a, float v_blend
 
 void DBaseStatusBar::BlendView (float blend[4])
 {
-	int cnt;
-
-	AddBlend (BaseBlendR / 255.f, BaseBlendG / 255.f, BaseBlendB / 255.f, BaseBlendA, blend);
-
-	// [RH] All powerups can effect the screen blending now
-	for (AInventory *item = CPlayer->mo->Inventory; item != NULL; item = item->Inventory)
-	{
-		PalEntry color = item->GetBlend ();
-		if (color.a != 0)
-		{
-			AddBlend (color.r/255.f, color.g/255.f, color.b/255.f, color.a/255.f, blend);
-		}
-	}
-	if (CPlayer->bonuscount)
-	{
-		cnt = CPlayer->bonuscount << 3;
-		
-		AddBlend (RPART(gameinfo.pickupcolor)/255.f, GPART(gameinfo.pickupcolor)/255.f, 
-					BPART(gameinfo.pickupcolor)/255.f, cnt > 128 ? 0.5f : cnt / 255.f, blend);
-	}
-
-	if (CPlayer->mo->DamageFade.a != 0)
-	{
-		cnt = DamageToAlpha[MIN (113, CPlayer->damagecount * CPlayer->mo->DamageFade.a / 255)];
-			
-		if (cnt)
-		{
-			if (cnt > 228)
-				cnt = 228;
-
-			APlayerPawn *mo = CPlayer->mo;
-			AddBlend (mo->DamageFade.r / 255.f, mo->DamageFade.g / 255.f, mo->DamageFade.b / 255.f, cnt / 255.f, blend);
-		}
-	}
-
-	// Unlike Doom, I did not have any utility source to look at to find the
-	// exact numbers to use here, so I've had to guess by looking at how they
-	// affect the white color in Hexen's palette and picking an alpha value
-	// that seems reasonable.
-
-	if (CPlayer->poisoncount)
-	{
-		cnt = MIN (CPlayer->poisoncount, 64);
-		AddBlend (0.04f, 0.2571f, 0.f, cnt/93.2571428571f, blend);
-	}
-	if (CPlayer->hazardcount > 16*TICRATE || (CPlayer->hazardcount & 8))
-	{
-		AddBlend (0.f, 1.f, 0.f, 0.125f, blend);
-	}
-	if (CPlayer->mo->DamageType == NAME_Ice)
-	{
-		AddBlend (0.25f, 0.25f, 0.853f, 0.4f, blend);
-	}
+	V_AddBlend (BaseBlendR / 255.f, BaseBlendG / 255.f, BaseBlendB / 255.f, BaseBlendA, blend);
+	V_AddPlayerBlend(CPlayer, blend, 1.0f, 228);
 
 	if (screen->Accel2D || (CPlayer->camera != NULL && menuactive == MENU_Off && ConsoleState == c_up))
 	{
 		player_t *player = (CPlayer->camera != NULL && CPlayer->camera->player != NULL) ? CPlayer->camera->player : CPlayer;
-		AddBlend (player->BlendR, player->BlendG, player->BlendB, player->BlendA, blend);
+		V_AddBlend (player->BlendR, player->BlendG, player->BlendB, player->BlendA, blend);
 	}
 
 	V_SetBlend ((int)(blend[0] * 255.0f), (int)(blend[1] * 255.0f),

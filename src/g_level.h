@@ -301,8 +301,8 @@ struct level_info_t
 	float		aircontrol;
 	int			WarpTrans;
 	int			airsupply;
-	DWORD		compatflags;
-	DWORD		compatmask;
+	DWORD		compatflags, compatflags2;
+	DWORD		compatmask, compatmask2;
 	FString		Translator;	// for converting Doom-format linedef and sector types.
 	int			DefaultEnvironment;	// Default sound environment for the map.
 	FName		Intermission;
@@ -403,6 +403,7 @@ struct FLevelLocals
 	int			musicorder;
 	int			cdtrack;
 	unsigned int cdid;
+	int			nextmusic;				// For MUSINFO purposes
 	char		skypic1[9];
 	char		skypic2[9];
 
@@ -548,7 +549,8 @@ enum ESkillProperty
 	SKILLP_MonsterHealth,
 	SKILLP_FriendlyHealth,
 	SKILLP_NoPain,
-	SKILLP_ArmorFactor
+	SKILLP_ArmorFactor,
+	SKILLP_EasyKey,
 };
 int G_SkillProperty(ESkillProperty prop);
 const char * G_SkillName();
@@ -565,7 +567,9 @@ struct FSkillInfo
 	bool FastMonsters;
 	bool DisableCheats;
 	bool AutoUseHealth;
+
 	bool EasyBossBrain;
+	bool EasyKey;
 	int RespawnCounter;
 	int RespawnLimit;
 	fixed_t Aggressiveness;

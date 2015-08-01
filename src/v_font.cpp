@@ -85,14 +85,14 @@ The FON2 header is followed by variable length data:
 #include "v_font.h"
 #include "v_video.h"
 #include "w_wad.h"
-#include "r_data.h"
 #include "i_system.h"
 #include "gi.h"
 #include "cmdlib.h"
 #include "sc_man.h"
 #include "hu_stuff.h"
-#include "r_draw.h"
-#include "r_translate.h"
+#include "farchive.h"
+#include "textures/textures.h"
+#include "r_data/r_translate.h"
 #include "colormatcher.h"
 #include "v_palette.h"
 
@@ -739,6 +739,11 @@ FRemapTable *FFont::GetColorTranslation (EColorRange range) const
 
 int FFont::GetCharCode(int code, bool needpic) const
 {
+	if (code < 0 && code >= -128)
+	{
+		// regular chars turn negative when the 8th bit is set.
+		code &= 255;
+	}
 	if (code >= FirstChar && code <= LastChar && (!needpic || Chars[code - FirstChar].Pic != NULL))
 	{
 		return code;
@@ -1132,8 +1137,9 @@ void FSingleLumpFont::LoadBMF(int lump, const BYTE *data)
 	// BMF palettes are only six bits per component. Fix that.
 	for (i = 0; i < ActiveColors*3; ++i)
 	{
-		raw_palette[i] = (data[17 + i] << 2) | (data[17 + i] >> 4);
+		raw_palette[i+3] = (data[17 + i] << 2) | (data[17 + i] >> 4);
 	}
+	ActiveColors++;
 
 	// Sort the palette by increasing brightness
 	for (i = 0; i < ActiveColors; ++i)
@@ -2037,7 +2043,7 @@ void V_InitFontColors ()
 {
 	TArray<FName> names;
 	int lump, lastlump = 0;
-	TranslationParm tparm = { 0 };	// Silence GCC
+	TranslationParm tparm = { 0, 0, {0}, {0} };	// Silence GCC (for real with -Wextra )
 	TArray<TranslationParm> parms;
 	TArray<TempParmInfo> parminfo;
 	TArray<TempColorInfo> colorinfo;

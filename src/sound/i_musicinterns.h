@@ -425,13 +425,15 @@ public:
 	void FluidSettingInt(const char *setting, int value);
 	void FluidSettingNum(const char *setting, double value);
 	void FluidSettingStr(const char *setting, const char *value);
-	void CreateSMF(TArray<BYTE> &file);
+	void CreateSMF(TArray<BYTE> &file, int looplimit=0);
 
 protected:
 	MIDIStreamer(const char *dumpname, EMidiDevice type);
 
 	void OutputVolume (DWORD volume);
 	int FillBuffer(int buffer_num, int max_events, DWORD max_time);
+	int FillStopBuffer(int buffer_num);
+	DWORD *WriteStopNotes(DWORD *events);
 	int ServiceEvent();
 	int VolumeControllerChange(int channel, int volume);
 	int ClampLoopCount(int loopcount);

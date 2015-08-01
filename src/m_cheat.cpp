@@ -40,7 +40,7 @@
 #include "a_keys.h"
 #include "templates.h"
 #include "c_console.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "g_level.h"
 #include "d_net.h"
 #include "d_dehacked.h"
@@ -181,7 +181,7 @@ void cht_DoCheat (player_t *player, int cheat)
 	case CHT_POWER:
 		if (player->mo != NULL && player->health >= 0)
 		{
-			item = player->mo->FindInventory (RUNTIME_CLASS(APowerWeaponLevel2));
+			item = player->mo->FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true);
 			if (item != NULL)
 			{
 				item->Destroy ();
@@ -768,7 +768,11 @@ void cht_Give (player_t *player, const char *name, int amount)
 					!type->IsDescendantOf (RUNTIME_CLASS(APowerup)) &&
 					!type->IsDescendantOf (RUNTIME_CLASS(AArmor)))
 				{
-					GiveSpawner (player, type, amount <= 0 ? def->MaxAmount : amount);
+					// Do not give replaced items unless using "give everything"
+					if (giveall == ALL_YESYES || type->GetReplacement() == type)
+					{
+						GiveSpawner (player, type, amount <= 0 ? def->MaxAmount : amount);
+					}
 				}
 			}
 		}
@@ -786,7 +790,11 @@ void cht_Give (player_t *player, const char *name, int amount)
 				AInventory *def = (AInventory*)GetDefaultByType (type);
 				if (def->Icon.isValid())
 				{
-					GiveSpawner (player, type, amount <= 0 ? def->MaxAmount : amount);
+					// Do not give replaced items unless using "give everything"
+					if (giveall == ALL_YESYES || type->GetReplacement() == type)
+					{
+						GiveSpawner (player, type, amount <= 0 ? def->MaxAmount : amount);
+					}
 				}
 			}
 		}
@@ -1039,7 +1047,11 @@ void cht_Suicide (player_t *plyr)
 	{
 		plyr->mo->flags |= MF_SHOOTABLE;
 		plyr->mo->flags2 &= ~MF2_INVULNERABLE;
+		//Store the players current damage factor, to restore it later.
+		fixed_t plyrdmgfact = plyr->mo->DamageFactor;
+		plyr->mo->DamageFactor = 65536;
 		P_DamageMobj (plyr->mo, plyr->mo, plyr->mo, TELEFRAG_DAMAGE, NAME_Suicide);
+		plyr->mo->DamageFactor = plyrdmgfact;
 		if (plyr->mo->health <= 0) plyr->mo->flags &= ~MF_SHOOTABLE;
 	}
 }

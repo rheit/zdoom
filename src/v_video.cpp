@@ -28,8 +28,6 @@
 #include "i_system.h"
 #include "x86.h"
 #include "i_video.h"
-#include "r_local.h"
-#include "r_draw.h"
 #include "r_state.h"
 
 #include "doomdef.h"
@@ -56,14 +54,19 @@
 #include "templates.h"
 #include "sbar.h"
 #include "hardware.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "f_wipe.h"
 #include "m_png.h"
 #include "colormatcher.h"
 #include "v_palette.h"
 #include "r_sky.h"
+#include "r_utility.h"
+#include "r_renderer.h"
 #include "menu/menu.h"
+#include "r_data/voxels.h"
 
+
+FRenderer *Renderer;
 
 IMPLEMENT_ABSTRACT_CLASS (DCanvas)
 IMPLEMENT_ABSTRACT_CLASS (DFrameBuffer)
@@ -319,7 +322,7 @@ void DCanvas::Dim (PalEntry color)
 	if (color.a != 0)
 	{
 		float dim[4] = { color.r/255.f, color.g/255.f, color.b/255.f, color.a/255.f };
-		DBaseStatusBar::AddBlend (dimmer.r/255.f, dimmer.g/255.f, dimmer.b/255.f, amount, dim);
+		V_AddBlend (dimmer.r/255.f, dimmer.g/255.f, dimmer.b/255.f, amount, dim);
 		dimmer = PalEntry (BYTE(dim[0]*255), BYTE(dim[1]*255), BYTE(dim[2]*255));
 		amount = dim[3];
 	}
@@ -344,6 +347,23 @@ void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
 	int gap;
 	BYTE *spot;
 	int x, y;
+
+	if (x1 >= Width || y1 >= Height)
+	{
+		return;
+	}
+	if (x1 + w > Width)
+	{
+		w = Width - x1;
+	}
+	if (y1 + h > Height)
+	{
+		h = Height - y1;
+	}
+	if (w <= 0 || h <= 0)
+	{
+		return;
+	}
 
 	{
 		int amount;
@@ -371,17 +391,6 @@ void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
 		}
 		spot += gap;
 	}
-}
-
-//==========================================================================
-//
-// DCanvas :: UsesColormap
-//
-//==========================================================================
-
-bool DCanvas::UsesColormap() const
-{
-	return true;
 }
 
 //==========================================================================
@@ -841,7 +850,7 @@ void DFrameBuffer::DrawRateStuff ()
 	{
 		DWORD ms = I_FPSTime();
 		DWORD howlong = ms - LastMS;
-		if (howlong >= 0)
+		if ((signed)howlong >= 0)
 		{
 			char fpsbuff[40];
 			int chars;
@@ -1274,131 +1283,6 @@ void DFrameBuffer::GetHitlist(BYTE *hitlist)
 	}
 }
 
-//===========================================================================
-//
-// Texture precaching
-//
-//===========================================================================
-
-void DFrameBuffer::PrecacheTexture(FTexture *tex, int cache)
-{
-	if (tex != NULL)
-	{
-		if (cache & 1)
-		{
-			const FTexture::Span *spanp;
-			tex->GetColumn(0, &spanp);
-		}
-		else if (cache != 0)
-		{
-			tex->GetPixels ();
-		}
-		else
-		{
-			tex->Unload ();
-		}
-	}
-}
-
-//===========================================================================
-//
-// Render the view 
-//
-//===========================================================================
-
-void DFrameBuffer::RenderView(player_t *player)
-{
-	R_RenderActorView (player->mo);
-	// [RH] Let cameras draw onto textures that were visible this frame.
-	FCanvasTextureInfo::UpdateAll ();
-}
-
-//==========================================================================
-//
-//
-//
-//==========================================================================
-extern TDeletingArray<FVoxel *> Voxels;
-
-void DFrameBuffer::RemapVoxels()
-{
-	for (unsigned i=0; i<Voxels.Size(); i++)
-	{
-		Voxels[i]->Remap();
-	}
-}
-
-//===========================================================================
-//
-// Render the view to a savegame picture
-//
-//===========================================================================
-
-void DFrameBuffer::WriteSavePic (player_t *player, FILE *file, int width, int height)
-{
-	DCanvas *pic = new DSimpleCanvas (width, height);
-	PalEntry palette[256];
-
-	// Take a snapshot of the player's view
-	pic->ObjectFlags |= OF_Fixed;
-	pic->Lock ();
-	R_RenderViewToCanvas (player->mo, pic, 0, 0, width, height);
-	GetFlashedPalette (palette);
-	M_CreatePNG (file, pic->GetBuffer(), palette, SS_PAL, width, height, pic->GetPitch());
-	pic->Unlock ();
-	pic->Destroy();
-	pic->ObjectFlags |= OF_YesReallyDelete;
-	delete pic;
-}
-
-//===========================================================================
-//
-// 
-//
-//===========================================================================
-
-void DFrameBuffer::DrawRemainingPlayerSprites()
-{
-	R_DrawRemainingPlayerSprites();
-}
-
-//===========================================================================
-//
-// notify the renderer that an actor has changed state
-//
-//===========================================================================
-
-void DFrameBuffer::StateChanged(AActor *actor)
-{
-}
-
-//===========================================================================
-//
-// notify the renderer that serialization of the curent level is about to start/end
-//
-//===========================================================================
-
-void DFrameBuffer::StartSerialize(FArchive &arc)
-{
-}
-
-void DFrameBuffer::EndSerialize(FArchive &arc)
-{
-}
-
-//===========================================================================
-//
-// Get max. view angle (renderer specific information so it goes here now)
-//
-//===========================================================================
-#define MAX_DN_ANGLE	56		// Max looking down angle
-#define MAX_UP_ANGLE	32		// Max looking up angle
-
-int DFrameBuffer::GetMaxViewPitch(bool down)
-{
-	return down? MAX_DN_ANGLE*ANGLE_1 : -MAX_UP_ANGLE*ANGLE_1;
-}
-
 //==========================================================================
 //
 // DFrameBuffer :: GameRestart
@@ -1533,13 +1417,9 @@ bool V_DoModeSetup (int width, int height, int bits)
 	DisplayHeight = height;
 	DisplayBits = bits;
 
-	R_MultiresInit ();
-
-	RenderTarget = screen;
-	screen->Lock (true);
-	R_SetupBuffer ();
-	screen->Unlock ();
-
+	R_OldBlend = ~0;
+	Renderer->OnModeSet();
+	
 	M_RefreshModesList ();
 
 	return true;
@@ -1676,7 +1556,14 @@ void V_Init (bool restart)
 		}
 		screen = new DDummyFrameBuffer (width, height);
 	}
-
+	// Update screen palette when restarting
+	else
+	{
+		PalEntry *palette = screen->GetPalette ();
+		for (int i = 0; i < 256; ++i)
+			*palette++ = GPalette.BaseColors[i];
+		screen->UpdatePalette();
+	}
 
 	BuildTransTable (GPalette.BaseColors);
 }
@@ -1704,7 +1591,7 @@ void V_Init2()
 		Printf ("Resolution: %d x %d\n", SCREENWIDTH, SCREENHEIGHT);
 
 	screen->SetGamma (gamma);
-	screen->RemapVoxels();
+	Renderer->RemapVoxels();
 	FBaseCVar::ResetColors ();
 	C_NewModeAdjust();
 	M_InitVideoModesMenu();
@@ -1748,16 +1635,25 @@ CUSTOM_CVAR (Int, vid_aspect, 0, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 // 0: 4:3
 // 1: 16:9
 // 2: 16:10
+// 3: 17:10
 // 4: 5:4
 int CheckRatio (int width, int height, int *trueratio)
 {
 	int fakeratio = -1;
 	int ratio;
 
-	if ((vid_aspect >=1) && (vid_aspect <=4))
+	if ((vid_aspect >= 1) && (vid_aspect <= 5))
 	{
 		// [SP] User wants to force aspect ratio; let them.
-		fakeratio = vid_aspect == 3? 0: int(vid_aspect);
+		fakeratio = int(vid_aspect);
+		if (fakeratio == 3)
+		{
+			fakeratio = 0;
+		}
+		else if (fakeratio == 5)
+		{
+			fakeratio = 3;
+		}
 	}
 	if (vid_nowidescreen)
 	{
@@ -1774,6 +1670,11 @@ int CheckRatio (int width, int height, int *trueratio)
 	if (abs (height * 16/9 - width) < 10)
 	{
 		ratio = 1;
+	}
+	// Consider 17:10 as well.
+	else if (abs (height * 17/10 - width) < 10)
+	{
+		ratio = 3;
 	}
 	// 16:10 has more variance in the pixel dimensions. Grr.
 	else if (abs (height * 16/10 - width) < 60)
@@ -1793,7 +1694,7 @@ int CheckRatio (int width, int height, int *trueratio)
 	{
 		ratio = 4;
 	}
-	// Assume anything else is 4:3.
+	// Assume anything else is 4:3. (Which is probably wrong these days...)
 	else
 	{
 		ratio = 0;
@@ -1806,16 +1707,21 @@ int CheckRatio (int width, int height, int *trueratio)
 	return (fakeratio >= 0) ? fakeratio : ratio;
 }
 
-// First column: Base width (unused)
+// First column: Base width
 // Second column: Base height (used for wall visibility multiplier)
 // Third column: Psprite offset (needed for "tallscreen" modes)
 // Fourth column: Width or height multiplier
+
+// For widescreen aspect ratio x:y ...
+//     base_width = 240 * x / y
+//     multiplier = 320 / base_width
+//     base_height = 200 * multiplier
 const int BaseRatioSizes[5][4] =
 {
 	{  960, 600, 0,                   48 },			//  4:3   320,      200,      multiplied by three
 	{ 1280, 450, 0,                   48*3/4 },		// 16:9   426.6667, 150,      multiplied by three
 	{ 1152, 500, 0,                   48*5/6 },		// 16:10  386,      166.6667, multiplied by three
-	{  960, 600, 0,                   48 },
+	{ 1224, 471, 0,                   48*40/51 },	// 17:10  408,		156.8627, multiplied by three
 	{  960, 640, (int)(6.5*FRACUNIT), 48*15/16 }	//  5:4   320,      213.3333, multiplied by three
 };
 

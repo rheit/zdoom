@@ -61,9 +61,7 @@
 #include "p_local.h" 
 #include "s_sound.h"
 #include "gstrings.h"
-#include "r_data.h"
 #include "r_sky.h"
-#include "r_draw.h"
 #include "g_game.h"
 #include "g_level.h"
 #include "b_bot.h"			//Added by MC:
@@ -73,12 +71,15 @@
 #include "gi.h"
 #include "a_keys.h"
 #include "a_artifacts.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "cmdlib.h"
 #include "d_net.h"
 #include "d_event.h"
 #include "p_acs.h"
 #include "m_joy.h"
+#include "farchive.h"
+#include "r_renderer.h"
+#include "r_data/colormaps.h"
 
 #include <zlib.h>
 
@@ -579,9 +580,15 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 	}
 
 	if (Button_LookUp.bDown)
+	{
 		G_AddViewPitch (lookspeed[speed]);
+		LocalKeyboardTurner = true;
+	}
 	if (Button_LookDown.bDown)
+	{
 		G_AddViewPitch (-lookspeed[speed]);
+		LocalKeyboardTurner = true;
+	}
 
 	if (Button_MoveUp.bDown)
 		fly += flyspeed[speed];
@@ -830,7 +837,12 @@ static void ChangeSpy (bool forward)
 	// If not viewing through a player, return your eyes to your own head.
 	if (players[consoleplayer].camera->player == NULL)
 	{
-		players[consoleplayer].camera = players[consoleplayer].mo;
+		// When watching demos, you will just have to wait until your player
+		// has done this for you, since it could desync otherwise.
+		if (!demoplayback)
+		{
+			Net_WriteByte(DEM_REVERTCAMERA);
+		}
 		return;
 	}
 
@@ -1015,6 +1027,7 @@ void G_Ticker ()
 			G_DoNewGame ();
 			break;
 		case ga_loadgame:
+		case ga_loadgamehidecon:
 		case ga_autoloadgame:
 			G_DoLoadGame ();
 			break;
@@ -1028,6 +1041,9 @@ void G_Ticker ()
 			G_DoAutoSave ();
 			gameaction = ga_nothing;
 			break;
+		case ga_loadgameplaydemo:
+			G_DoLoadGame ();
+			// fallthrough
 		case ga_playdemo:
 			G_DoPlayDemo ();
 			break;
@@ -1192,6 +1208,11 @@ void G_PlayerFinishLevel (int player, EFinishLevelType mode, int flags)
 
 	p = &players[player];
 
+	if (p->morphTics != 0)
+	{ // Undo morph
+		P_UndoPlayerMorph (p, p, 0, true);
+	}
+
 	// Strip all current powers, unless moving in a hub and the power is okay to keep.
 	item = p->mo->Inventory;
 	while (item != NULL)
@@ -1214,9 +1235,17 @@ void G_PlayerFinishLevel (int player, EFinishLevelType mode, int flags)
 		// Unselect powered up weapons if the unpowered counterpart is pending
 		p->ReadyWeapon=p->PendingWeapon;
 	}
-	p->mo->flags &= ~MF_SHADOW; 		// cancel invisibility
-	p->mo->RenderStyle = STYLE_Normal;
-	p->mo->alpha = FRACUNIT;
+	// reset invisibility to default
+	if (p->mo->GetDefault()->flags & MF_SHADOW)
+	{
+		p->mo->flags |= MF_SHADOW;
+	}
+	else
+	{
+		p->mo->flags &= ~MF_SHADOW;
+	}
+	p->mo->RenderStyle = p->mo->GetDefault()->RenderStyle;
+	p->mo->alpha = p->mo->GetDefault()->alpha;
 	p->extralight = 0;					// cancel gun flashes
 	p->fixedcolormap = NOFIXEDCOLORMAP;	// cancel ir goggles
 	p->fixedlightlevel = -1;
@@ -1252,13 +1281,8 @@ void G_PlayerFinishLevel (int player, EFinishLevelType mode, int flags)
 		}
 	}
 
-	if (p->morphTics)
-	{ // Undo morph
-		P_UndoPlayerMorph (p, p, 0, true);
-	}
-
-	// Resets player health to default
-	if (flags & CHANGELEVEL_RESETHEALTH)
+	// Resets player health to default if not dead.
+	if ((flags & CHANGELEVEL_RESETHEALTH) && p->playerstate != PST_DEAD)
 	{
 		p->health = p->mo->health = p->mo->SpawnHealth();
 	}
@@ -1266,26 +1290,7 @@ void G_PlayerFinishLevel (int player, EFinishLevelType mode, int flags)
 	// Clears the entire inventory and gives back the defaults for starting a game
 	if (flags & CHANGELEVEL_RESETINVENTORY)
 	{
-		AInventory *inv = p->mo->Inventory;
-
-		while (inv != NULL)
-		{
-			AInventory *next = inv->Inventory;
-			if (!(inv->ItemFlags & IF_UNDROPPABLE))
-			{
-				inv->Destroy ();
-			}
-			else if (inv->GetClass() == RUNTIME_CLASS(AHexenArmor))
-			{
-				AHexenArmor *harmor = static_cast<AHexenArmor *> (inv);
-				harmor->Slots[3] = harmor->Slots[2] = harmor->Slots[1] = harmor->Slots[0] = 0;
-			}
-			inv = next;
-		}
-		p->ReadyWeapon = NULL;
-		p->PendingWeapon = WP_NOCHANGE;
-		p->psprites[ps_weapon].state = NULL;
-		p->psprites[ps_flash].state = NULL;
+		p->mo->ClearInventory();
 		p->mo->GiveDefaultInventory();
 	}
 }
@@ -1496,17 +1501,30 @@ void G_DeathMatchSpawnPlayer (int playernum)
 	else
 		spot = SelectRandomDeathmatchSpot (playernum, selections);
 
-	if (!spot)
-	{ // no good spot, so the player will probably get stuck
+	if (spot == NULL)
+	{ // No good spot, so the player will probably get stuck.
+	  // We were probably using select farthest above, and all
+	  // the spots were taken.
 		spot = &playerstarts[playernum];
+		if (spot == NULL || spot->type == 0)
+		{ // This map doesn't have enough coop spots for this player
+		  // to use one.
+			spot = SelectRandomDeathmatchSpot(playernum, selections);
+			if (spot == NULL)
+			{ // We have a player 1 start, right?
+				spot = &playerstarts[0];
+				if (spot == NULL)
+				{ // Fine, whatever.
+					spot = &deathmatchstarts[0];
+				}
+			}
+		}
 	}
-	else
-	{
-		if (playernum < 4)
-			spot->type = playernum+1;
-		else 
-			spot->type = playernum + gameinfo.player5start - 4;
-	}
+
+	if (playernum < 4)
+		spot->type = playernum+1;
+	else 
+		spot->type = playernum + gameinfo.player5start - 4;
 
 	AActor *mo = P_SpawnPlayer (spot);
 	if (mo != NULL) P_PlayerStartStomp(mo);
@@ -1631,12 +1649,12 @@ void G_ScreenShot (char *filename)
 // G_InitFromSavegame
 // Can be called by the startup code or the menu task.
 //
-void G_LoadGame (const char* name)
+void G_LoadGame (const char* name, bool hidecon)
 {
 	if (name != NULL)
 	{
 		savename = name;
-		gameaction = ga_loadgame;
+		gameaction = !hidecon ? ga_loadgame : ga_loadgamehidecon;
 	}
 }
 
@@ -1696,11 +1714,13 @@ void G_DoLoadGame ()
 	char sigcheck[20];
 	char *text = NULL;
 	char *map;
+	bool hidecon;
 
 	if (gameaction != ga_autoloadgame)
 	{
 		demoplayback = false;
 	}
+	hidecon = gameaction == ga_loadgamehidecon;
 	gameaction = ga_nothing;
 
 	FILE *stdfile = fopen (savename.GetChars(), "rb");
@@ -1746,13 +1766,19 @@ void G_DoLoadGame ()
 		delete[] engine;
 	}
 
+	SaveVersion = 0;
 	if (!M_GetPNGText (png, "ZDoom Save Version", sigcheck, 20) ||
 		0 != strncmp (sigcheck, SAVESIG, 9) ||		// ZDOOMSAVE is the first 9 chars
 		(SaveVersion = atoi (sigcheck+9)) < MINSAVEVER)
 	{
-		Printf ("Savegame is from an incompatible version\n");
 		delete png;
 		fclose (stdfile);
+		Printf ("Savegame is from an incompatible version");
+		if (SaveVersion != 0)
+		{
+			Printf(": %d (%d is the oldest supported)", SaveVersion, MINSAVEVER);
+		}
+		Printf("\n");
 		return;
 	}
 
@@ -1768,6 +1794,13 @@ void G_DoLoadGame ()
 		Printf ("Savegame is missing the current map\n");
 		fclose (stdfile);
 		return;
+	}
+
+	// Now that it looks like we can load this save, hide the fullscreen console if it was up
+	// when the game was selected from the menu.
+	if (hidecon && gamestate == GS_FULLCONSOLE)
+	{
+		gamestate = GS_HIDECONSOLE;
 	}
 
 	// Read intermission data for hubs
@@ -2018,7 +2051,7 @@ static void PutSavePic (FILE *file, int width, int height)
 	else
 	{
 		P_CheckPlayerSprites();
-		screen->WriteSavePic(&players[consoleplayer], file, width, height);
+		Renderer->WriteSavePic(&players[consoleplayer], file, width, height);
 	}
 }
 
@@ -2331,7 +2364,7 @@ FString defdemoname;
 void G_DeferedPlayDemo (const char *name)
 {
 	defdemoname = name;
-	gameaction = ga_playdemo;
+	gameaction = (gameaction == ga_loadgame) ? ga_loadgameplaydemo : ga_playdemo;
 }
 
 CCMD (playdemo)
@@ -2414,7 +2447,11 @@ bool G_ProcessIFFDemo (char *mapname)
 			mapname[8] = 0;
 			demo_p += 8;
 			rngseed = ReadLong (&demo_p);
-			FRandom::StaticClearRandom ();
+			// Only reset the RNG if this demo is not in conjunction with a savegame.
+			if (mapname[0] != 0)
+			{
+				FRandom::StaticClearRandom ();
+			}
 			consoleplayer = *demo_p++;
 			break;
 
@@ -2476,7 +2513,7 @@ bool G_ProcessIFFDemo (char *mapname)
 		int r = uncompress (uncompressed, &uncompSize, demo_p, uLong(zdembodyend - demo_p));
 		if (r != Z_OK)
 		{
-			Printf ("Could not decompress demo!\n");
+			Printf ("Could not decompress demo! %s\n", M_ZLibError(r).GetChars());
 			delete[] uncompressed;
 			return true;
 		}
@@ -2517,7 +2554,7 @@ void G_DoPlayDemo (void)
 
 	if (ReadLong (&demo_p) != FORM_ID)
 	{
-		const char *eek = "Cannot play non-ZDoom demos.\n(They would go out of sync badly.)\n";
+		const char *eek = "Cannot play non-ZDoom demos.\n";
 
 		C_ForgetCVars();
 		M_Free(demobuffer);
@@ -2543,7 +2580,14 @@ void G_DoPlayDemo (void)
 		// don't spend a lot of time in loadlevel 
 		precache = false;
 		demonew = true;
-		G_InitNew (mapname, false);
+		if (mapname[0] != 0)
+		{
+			G_InitNew (mapname, false);
+		}
+		else if (numsectors == 0)
+		{
+			I_Error("Cannot play demo without its savegame\n");
+		}
 		C_HideConsole ();
 		demonew = false;
 		precache = true;
@@ -2564,7 +2608,7 @@ void G_TimeDemo (const char* name)
 	singletics = true;
 
 	defdemoname = name;
-	gameaction = ga_playdemo;
+	gameaction = (gameaction == ga_loadgame) ? ga_loadgameplaydemo : ga_playdemo;
 }
 
 
@@ -2607,8 +2651,10 @@ bool G_CheckDemoStatus (void)
 			playeringame[i] = 0;
 		consoleplayer = 0;
 		players[0].camera = NULL;
-		StatusBar->AttachToPlayer (&players[0]);
-
+		if (StatusBar != NULL)
+		{
+			StatusBar->AttachToPlayer (&players[0]);
+		}
 		if (singledemo || timingdemo)
 		{
 			if (timingdemo)

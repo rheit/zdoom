@@ -59,18 +59,22 @@
 #include "s_sndseq.h"
 #include "sbar.h"
 #include "p_setup.h"
-#include "r_translate.h"
-#include "r_interpolate.h"
+#include "r_data/r_translate.h"
+#include "r_data/r_interpolate.h"
 #include "r_sky.h"
 #include "cmdlib.h"
 #include "g_level.h"
 #include "md5.h"
 #include "compatibility.h"
 #include "po_man.h"
+#include "r_renderer.h"
+#include "r_data/colormaps.h"
 
 #include "fragglescript/t_fs.h"
 
-void P_SpawnSlopeMakers (FMapThing *firstmt, FMapThing *lastmt);
+#define MISSING_TEXTURE_WARN_LIMIT		20
+
+void P_SpawnSlopeMakers (FMapThing *firstmt, FMapThing *lastmt, const int *oldvertextable);
 void P_SetSlopes ();
 void P_CopySlopes();
 void BloodCrypt (void *data, int key, int len);
@@ -81,7 +85,7 @@ extern bool P_LoadBuildMap (BYTE *mapdata, size_t len, FMapThing **things, int *
 
 extern void P_TranslateTeleportThings (void);
 
-void P_ParseTextMap(MapData *map);
+void P_ParseTextMap(MapData *map, FMissingTextureTracker &);
 
 extern int numinterpolations;
 extern unsigned int R_OldBlend;
@@ -164,6 +168,8 @@ int				*blockmaplump;	// offsets in blockmap are from here
 
 fixed_t 		bmaporgx;		// origin of block map
 fixed_t 		bmaporgy;
+int				bmapnegx;		// min negs of block map before wrapping
+int				bmapnegy;
 
 FBlockNode**	blocklinks;		// for thing chains
 
@@ -592,7 +598,7 @@ void MapData::GetChecksum(BYTE cksum[16])
 //
 //===========================================================================
 
-static void SetTexture (side_t *side, int position, const char *name8)
+static void SetTexture (side_t *side, int position, const char *name8, FMissingTextureTracker &track)
 {
 	static const char *positionnames[] = { "top", "middle", "bottom" };
 	static const char *sidenames[] = { "first", "second" };
@@ -604,16 +610,21 @@ static void SetTexture (side_t *side, int position, const char *name8)
 
 	if (!texture.Exists())
 	{
-		// Print an error that lists all references to this sidedef.
-		// We must scan the linedefs manually for all references to this sidedef.
-		for(int i = 0; i < numlines; i++)
+		if (++track[name].Count <= MISSING_TEXTURE_WARN_LIMIT)
 		{
-			for(int j = 0; j < 2; j++)
+			// Print an error that lists all references to this sidedef.
+			// We must scan the linedefs manually for all references to this sidedef.
+			for(int i = 0; i < numlines; i++)
 			{
-				if (lines[i].sidedef[j] == side)
+				for(int j = 0; j < 2; j++)
 				{
-					Printf("Unknown %s texture '%s' on %s side of linedef %d\n",
-						positionnames[position], name, sidenames[j], i);
+					if (lines[i].sidedef[j] == side)
+					{
+						Printf(TEXTCOLOR_RED"Unknown %s texture '"
+							TEXTCOLOR_ORANGE "%s" TEXTCOLOR_RED
+							"' on %s side of linedef %d\n",
+							positionnames[position], name, sidenames[j], i);
+					}
 				}
 			}
 		}
@@ -629,7 +640,7 @@ static void SetTexture (side_t *side, int position, const char *name8)
 //
 //===========================================================================
 
-void SetTexture (sector_t *sector, int index, int position, const char *name8)
+void SetTexture (sector_t *sector, int index, int position, const char *name8, FMissingTextureTracker &track)
 {
 	static const char *positionnames[] = { "floor", "ceiling" };
 	char name[9];
@@ -640,8 +651,13 @@ void SetTexture (sector_t *sector, int index, int position, const char *name8)
 
 	if (!texture.Exists())
 	{
-		Printf("Unknown %s texture '%s' in sector %d\n",
-			positionnames[position], name, index);
+		if (++track[name].Count <= MISSING_TEXTURE_WARN_LIMIT)
+		{
+			Printf(TEXTCOLOR_RED"Unknown %s texture '"
+				TEXTCOLOR_ORANGE "%s" TEXTCOLOR_RED
+				"' in sector %d\n",
+				positionnames[position], name, index);
+		}
 		texture = TexMan.GetDefaultTexture();
 	}
 	sector->SetTexture(position, texture);
@@ -672,6 +688,32 @@ static void SetD64Texture (side_t *side, int position, WORD hash)
 		texture = TexMan.GetDefaultTexture();
 	}
 	side->SetTexture(position, texture);
+}
+
+//===========================================================================
+//
+// SummarizeMissingTextures
+//
+// Lists textures that were missing more than MISSING_TEXTURE_WARN_LIMIT
+// times.
+//
+//===========================================================================
+
+static void SummarizeMissingTextures(const FMissingTextureTracker &missing)
+{
+	FMissingTextureTracker::ConstIterator it(missing);
+	FMissingTextureTracker::ConstPair *pair;
+
+	while (it.NextPair(pair))
+	{
+		if (pair->Value.Count > MISSING_TEXTURE_WARN_LIMIT)
+		{
+			Printf(TEXTCOLOR_RED "Missing texture '"
+				TEXTCOLOR_ORANGE "%s" TEXTCOLOR_RED
+				"' is used %d more times\n",
+				pair->Key.GetChars(), pair->Value.Count - MISSING_TEXTURE_WARN_LIMIT);
+		}
+	}
 }
 
 //===========================================================================
@@ -1033,6 +1075,11 @@ void LoadZNodes(FileReaderBase &data, int glnodes)
 	unsigned int i;
 
 	data >> orgVerts >> newVerts;
+	if (orgVerts > (DWORD)numvertexes)
+	{ // These nodes are based on a map with more vertex data than we have.
+	  // We can't use them.
+		throw CRecoverableError("Incorrect number of vertexes in nodes.\n");
+	}
 	if (orgVerts + newVerts == (DWORD)numvertexes)
 	{
 		newvertarray = vertexes;
@@ -1085,10 +1132,7 @@ void LoadZNodes(FileReaderBase &data, int glnodes)
 	// segs used by subsectors.
 	if (numSegs != currSeg)
 	{
-		Printf ("Incorrect number of segs in nodes.\n");
-		delete[] subsectors;
-		ForceNodeBuild = true;
-		return;
+		throw CRecoverableError("Incorrect number of segs in nodes.\n");
 	}
 
 	numsegs = numSegs;
@@ -1499,7 +1543,7 @@ void P_LoadSubsectors (MapData * map)
 //
 //===========================================================================
 
-void P_LoadSectors (MapData * map)
+void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 {
 	char				fname[9];
 	int 				i;
@@ -1542,9 +1586,9 @@ void P_LoadSectors (MapData * map)
 		ss->ceilingplane.d = ss->GetPlaneTexZ(sector_t::ceiling);
 		ss->ceilingplane.c = -FRACUNIT;
 		ss->ceilingplane.ic = -FRACUNIT;
-		SetTexture(ss, i, sector_t::floor, ms->floorpic);
-		SetTexture(ss, i, sector_t::ceiling, ms->ceilingpic);
-		ss->lightlevel = (BYTE)clamp (LittleShort(ms->lightlevel), (short)0, (short)255);
+		SetTexture(ss, i, sector_t::floor, ms->floorpic, missingtex);
+		SetTexture(ss, i, sector_t::ceiling, ms->ceilingpic, missingtex);
+		ss->lightlevel = LittleShort(ms->lightlevel);
 		if (map->HasBehavior)
 			ss->special = LittleShort(ms->special);
 		else	// [RH] Translate to new sector special
@@ -1926,6 +1970,7 @@ void P_LoadThings (MapData * map)
 
 		memset (&mti[i], 0, sizeof(mti[i]));
 
+		mti[i].Conversation = 0;
 		mti[i].SkillFilter = MakeSkill(flags);
 		mti[i].ClassFilter = 0xffff;	// Doom map format doesn't have class flags so spawn for all player classes
 		flags &= ~MTF_SKILLMASK;
@@ -1999,6 +2044,7 @@ void P_LoadThingsHexen (MapData * map)
 		mti[i].SkillFilter = MakeSkill(mti[i].flags);
 		mti[i].ClassFilter = (mti[i].flags & MTF_CLASS_MASK) >> MTF_CLASS_SHIFT;
 		mti[i].flags &= ~(MTF_SKILLMASK|MTF_CLASS_MASK);
+		mti[i].Conversation = 0;
 	}
 	delete[] mtp;
 }
@@ -2463,7 +2509,14 @@ void P_LoadLineDefsHexen (MapData * map)
 
 		// convert the activation type
 		ld->activation = 1 << GET_SPAC(ld->flags);
-		if (ld->activation == SPAC_AnyCross) ld->activation = SPAC_Impact|SPAC_PCross;	// this is really PTouch
+		if (ld->activation == SPAC_AnyCross)
+		{ // this is really PTouch
+			ld->activation = SPAC_Impact | SPAC_PCross;
+		}
+		else if (ld->activation == SPAC_Impact)
+		{ // In non-UMDF maps, Impact implies PCross
+			ld->activation = SPAC_Impact | SPAC_PCross;
+		}
 		ld->flags &= ~ML_SPAC_MASK;
 	}
 	delete[] mldf;
@@ -2762,7 +2815,7 @@ int P_DetermineTranslucency (int lumpnum)
 	return newcolor.r;
 }
 
-void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapsidedef_t *msd, int special, int tag, short *alpha)
+void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapsidedef_t *msd, int special, int tag, short *alpha, FMissingTextureTracker &missingtex)
 {
 	char name[9];
 	name[8] = 0;
@@ -2793,7 +2846,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 			SetTextureNoErr (sd, side_t::bottom, &fog, msd->bottomtexture, &foggood, true);
 			SetTextureNoErr (sd, side_t::top, &color, msd->toptexture, &colorgood, false);
 			strncpy (name, msd->midtexture, 8);
-			SetTexture(sd, side_t::mid, msd->midtexture);
+			SetTexture(sd, side_t::mid, msd->midtexture, missingtex);
 
 			if (colorgood | foggood)
 			{
@@ -2829,11 +2882,11 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 		}
 		else
 		{
-			SetTexture(sd, side_t::top, msd->toptexture);
+			SetTexture(sd, side_t::top, msd->toptexture, missingtex);
 		}
 
-		SetTexture(sd, side_t::mid, msd->midtexture);
-		SetTexture(sd, side_t::bottom, msd->bottomtexture);
+		SetTexture(sd, side_t::mid, msd->midtexture, missingtex);
+		SetTexture(sd, side_t::bottom, msd->bottomtexture, missingtex);
 		break;
 #endif
 
@@ -2855,20 +2908,20 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 			}
 			else
 			{
-				SetTexture(sd, side_t::mid, msd->midtexture);
+				SetTexture(sd, side_t::mid, msd->midtexture, missingtex);
 			}
 
-			SetTexture(sd, side_t::top, msd->toptexture);
-			SetTexture(sd, side_t::bottom, msd->bottomtexture);
+			SetTexture(sd, side_t::top, msd->toptexture, missingtex);
+			SetTexture(sd, side_t::bottom, msd->bottomtexture, missingtex);
 			break;
 		}
 		// Fallthrough for Hexen maps is intentional
 
 	default:			// normal cases
 
-		SetTexture(sd, side_t::mid, msd->midtexture);
-		SetTexture(sd, side_t::top, msd->toptexture);
-		SetTexture(sd, side_t::bottom, msd->bottomtexture);
+		SetTexture(sd, side_t::mid, msd->midtexture, missingtex);
+		SetTexture(sd, side_t::top, msd->toptexture, missingtex);
+		SetTexture(sd, side_t::bottom, msd->bottomtexture, missingtex);
 		break;
 	}
 }
@@ -2877,7 +2930,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, mapside
 // after linedefs are loaded, to allow overloading.
 // killough 5/3/98: reformatted, cleaned up
 
-void P_LoadSideDefsHexen (MapData * map)
+void P_LoadSideDefs2 (MapData *map, FMissingTextureTracker &missingtex)
 {
 	int  i;
 	char * msdf = new char[map->Size(ML_SIDEDEFS)];
@@ -2919,7 +2972,7 @@ void P_LoadSideDefsHexen (MapData * map)
 			sd->sector = sec = &sectors[LittleShort(msd->sector)];
 		}
 		P_ProcessSideTextures(!map->HasBehavior, sd, sec, msd, 
-							  sidetemp[i].a.special, sidetemp[i].a.tag, &sidetemp[i].a.alpha);
+							  sidetemp[i].a.special, sidetemp[i].a.tag, &sidetemp[i].a.alpha, missingtex);
 	}
 	delete[] msdf;
 }
@@ -3371,10 +3424,15 @@ void P_LoadBlockMap (MapData * map)
 
 	}
 
-	bmaporgx = blockmaplump[0]<<FRACBITS;
-	bmaporgy = blockmaplump[1]<<FRACBITS;
+	bmaporgx = blockmaplump[0] << FRACBITS;
+	bmaporgy = blockmaplump[1] << FRACBITS;
 	bmapwidth = blockmaplump[2];
 	bmapheight = blockmaplump[3];
+	// MAES: set blockmapxneg and blockmapyneg
+	// E.g. for a full 512x512 map, they should be both
+	// -1. For a 257*257, they should be both -255 etc.
+	bmapnegx = bmapwidth > 255 ? bmapwidth - 512 : -257;
+	bmapnegy = bmapheight > 255 ? bmapheight - 512 : -257;
 
 	// clear out mobj chains
 	count = bmapwidth*bmapheight;
@@ -3518,7 +3576,35 @@ static void P_GroupLines (bool buildmap)
 		// set the soundorg to the middle of the bounding box
 		sector->soundorg[0] = bbox.Right()/2 + bbox.Left()/2;
 		sector->soundorg[1] = bbox.Top()/2 + bbox.Bottom()/2;
-		sector->soundorg[2] = sector->floorplane.ZatPoint (sector->soundorg[0], sector->soundorg[1]);
+
+		// For triangular sectors the above does not calculate good points unless the longest of the triangle's lines is perfectly horizontal and vertical
+		if (sector->linecount == 3)
+		{
+			vertex_t *Triangle[2];
+			Triangle[0] = sector->lines[0]->v1;
+			Triangle[1] = sector->lines[0]->v2;
+			if (sector->linecount > 1)
+			{
+				fixed_t dx = Triangle[1]->x - Triangle[0]->x;
+				fixed_t dy = Triangle[1]->y - Triangle[0]->y;
+				// Find another point in the sector that does not lie
+				// on the same line as the first two points.
+				for (j = 0; j < 2; ++j)
+				{
+					vertex_t *v;
+
+					v = (j == 1) ? sector->lines[1]->v1 : sector->lines[1]->v2;
+					if (DMulScale32 (v->y - Triangle[0]->y, dx,
+									Triangle[0]->x - v->x, dy) != 0)
+					{
+						sector->soundorg[0] = Triangle[0]->x / 3 + Triangle[1]->x / 3 + v->x / 3;
+						sector->soundorg[1] = Triangle[0]->y / 3 + Triangle[1]->y / 3 + v->y / 3;
+						break;
+					}
+				}
+			}
+		}
+
 	}
 	delete[] linesDoneInEachSector;
 	times[3].Unclock();
@@ -3598,7 +3684,7 @@ void P_LoadReject (MapData * map, bool junk)
 		qwords *= 8;
 		for (i = 0; i < rejectsize; ++i)
 		{
-			if (rejectmatrix[qwords+rejectsize] != 0)
+			if (rejectmatrix[qwords + i] != 0)
 				return;
 		}
 
@@ -3810,6 +3896,7 @@ extern polyblock_t **PolyBlockMap;
 
 void P_FreeLevelData ()
 {
+	Renderer->CleanLevelData();
 	FPolyObj::ClearAllSubsectorLinks(); // can't be done as part of the polyobj deletion process.
 	SN_StopAllSequences ();
 	DThinker::DestroyAllThinkers ();
@@ -3985,9 +4072,11 @@ void P_SetupLevel (char *lumpname, int position)
 	int numbuildthings;
 	int i;
 	bool buildmap;
+	const int *oldvertextable = NULL;
 
 	// This is motivated as follows:
-	bool RequireGLNodes = am_textured;
+
+	bool RequireGLNodes = Renderer->RequireGLNodes() || am_textured;
 
 	for (i = 0; i < (int)countof(times); ++i)
 	{
@@ -4133,6 +4222,8 @@ void P_SetupLevel (char *lumpname, int position)
 
 		P_LoadStrifeConversations (map, lumpname);
 
+		FMissingTextureTracker missingtex;
+
 		if (!map->isText)
 		{
 			times[0].Clock();
@@ -4145,7 +4236,7 @@ void P_SetupLevel (char *lumpname, int position)
 			// Check for maps without any BSP data at all (e.g. SLIGE)
 			times[1].Clock();
 			if (!map->isDoom64)
-				P_LoadSectors (map);
+				P_LoadSectors (map, missingtex);
 			else
 				P_LoadSectorsDoom64 (map);
 			times[1].Unclock();
@@ -4168,7 +4259,7 @@ void P_SetupLevel (char *lumpname, int position)
 
 			times[4].Clock();
 			if (!map->isDoom64)
-				P_LoadSideDefsHexen (map);
+				P_LoadSideDefs2 (map, missingtex);
 			else
 				P_LoadSideDefsDoom64 (map);
 			times[4].Unclock();
@@ -4188,7 +4279,7 @@ void P_SetupLevel (char *lumpname, int position)
 		}
 		else
 		{
-			P_ParseTextMap(map);
+			P_ParseTextMap(map, missingtex);
 		}
 
 		times[6].Clock();
@@ -4200,6 +4291,7 @@ void P_SetupLevel (char *lumpname, int position)
 
 		if (map->isDoom64)
 			ForceNodeBuild = true;
+		SummarizeMissingTextures(missingtex);
 	}
 	else
 	{
@@ -4231,7 +4323,7 @@ void P_SetupLevel (char *lumpname, int position)
 		}
 
 		map->file->Read (&id, 4);
-		if (id == idcheck || id == idcheck2 || id == idcheck3 || id == idcheck4)
+		if (id != 0 && (id == idcheck || id == idcheck2 || id == idcheck3 || id == idcheck4))
 		{
 			try
 			{
@@ -4303,7 +4395,7 @@ void P_SetupLevel (char *lumpname, int position)
 		{
 			if (P_LoadGLNodes(map)) 
 			{
-				ForceNodeBuild=false;
+				ForceNodeBuild = false;
 				reloop = true;
 			}
 		}
@@ -4315,7 +4407,7 @@ void P_SetupLevel (char *lumpname, int position)
 	bool BuildGLNodes;
 	if (ForceNodeBuild)
 	{
-		BuildGLNodes = am_textured || multiplayer || demoplayback || demorecording || genglnodes;
+		BuildGLNodes = RequireGLNodes || multiplayer || demoplayback || demorecording || genglnodes;
 
 		startTime = I_FPSTime ();
 		TArray<FNodeBuilder::FPolyStart> polyspots, anchors;
@@ -4324,7 +4416,8 @@ void P_SetupLevel (char *lumpname, int position)
 		{
 			vertexes, numvertexes,
 			sides, numsides,
-			lines, numlines
+			lines, numlines,
+			0, 0, 0, 0
 		};
 		leveldata.FindMapBounds ();
 		// We need GL nodes if am_textured is on.
@@ -4338,6 +4431,7 @@ void P_SetupLevel (char *lumpname, int position)
 			vertexes, numvertexes);
 		endTime = I_FPSTime ();
 		DPrintf ("BSP generation took %.3f sec (%d segs)\n", (endTime - startTime) * 0.001, numsegs);
+		oldvertextable = builder.GetOldVertexTable();
 		reloop = true;
 	}
 	else
@@ -4424,7 +4518,7 @@ void P_SetupLevel (char *lumpname, int position)
 	if (!buildmap)
 	{
 		// [RH] Spawn slope creating things first.
-		P_SpawnSlopeMakers (&MapThingsConverted[0], &MapThingsConverted[MapThingsConverted.Size()]);
+		P_SpawnSlopeMakers (&MapThingsConverted[0], &MapThingsConverted[MapThingsConverted.Size()], oldvertextable);
 		P_CopySlopes();
 
 		// Spawn 3d floors - must be done before spawning things so it can't be done in P_SpawnSpecials
@@ -4456,9 +4550,16 @@ void P_SetupLevel (char *lumpname, int position)
 		delete[] buildthings;
 	}
 	delete map;
+	if (oldvertextable != NULL)
+	{
+		delete[] oldvertextable;
+	}
 
 	// set up world state
 	P_SpawnSpecials ();
+
+	// This must be done BEFORE the PolyObj Spawn!!!
+	Renderer->PreprocessLevel();
 
 	times[16].Clock();
 	if (reloop) P_LoopSidedefs (false);
@@ -4478,6 +4579,24 @@ void P_SetupLevel (char *lumpname, int position)
 			{
 				players[i].mo = NULL;
 				G_DeathMatchSpawnPlayer (i);
+			}
+		}
+	}
+
+	// Don't count monsters in end-of-level sectors if option is on
+	if (dmflags2 & DF2_NOCOUNTENDMONST)
+	{
+		TThinkerIterator<AActor> it;
+		AActor * mo;
+
+		while ((mo=it.Next()))
+		{
+			if (mo->flags & MF_COUNTKILL)
+			{
+				if (mo->Sector->special == dDamage_End)
+				{
+					mo->ClearCounters();
+				}
 			}
 		}
 	}
@@ -4510,13 +4629,13 @@ void P_SetupLevel (char *lumpname, int position)
 	R_OldBlend = 0xffffffff;
 
 	// [RH] Remove all particles
-	R_ClearParticles ();
+	P_ClearParticles ();
 
 	times[17].Clock();
 	// preload graphics and sounds
 	if (precache)
 	{
-		R_PrecacheLevel ();
+		TexMan.PrecacheLevel ();
 		S_PrecacheLevel ();
 	}
 	times[17].Unclock();
@@ -4584,7 +4703,7 @@ void P_Init ()
 
 static void P_Shutdown ()
 {
-	R_DeinitSprites ();
+	R_DeinitSpriteData ();
 	P_DeinitKeyMessages ();
 	P_FreeLevelData ();
 	P_FreeExtraLevelData ();

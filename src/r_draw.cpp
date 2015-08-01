@@ -36,8 +36,9 @@
 #include "a_hexenglobal.h"
 #include "g_game.h"
 #include "g_level.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "v_palette.h"
+#include "r_data/colormaps.h"
 
 #include "gi.h"
 #include "stats.h"
@@ -60,15 +61,11 @@ extern	int		ST_Y;
 
 BYTE*			viewimage;
 extern "C" {
-int 			viewwidth;
 int				halfviewwidth;
-int 			viewheight;
 int				ylookup[MAXHEIGHT];
 BYTE			*dc_destorg;
 }
 int 			scaledviewwidth;
-int 			viewwindowx;
-int 			viewwindowy;
 
 // [RH] Pointers to the different column drawers.
 //		These get changed depending on the current
@@ -124,66 +121,47 @@ BYTE shadetables[NUMCOLORMAPS*16*256];
 FDynamicColormap ShadeFakeColormap[16];
 BYTE identitymap[256];
 
-// Convert legacy render styles to flexible render styles.
+EXTERN_CVAR (Int, r_columnmethod)
 
-// Apple's GCC 4.0.1 apparently wants to initialize the AsDWORD member of FRenderStyle
-// rather than the struct before it, which goes against the standard.
-#ifndef __APPLE__
-FRenderStyle LegacyRenderStyles[STYLE_Count] =
-{
-			/* STYLE_None */  {{ STYLEOP_None, 		STYLEALPHA_Zero,	STYLEALPHA_Zero,	0 }},
-		  /* STYLE_Normal */  {{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_Alpha1 }},
-		   /* STYLE_Fuzzy */  {{ STYLEOP_Fuzz,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	0 }},
-	   /* STYLE_SoulTrans */  {{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_TransSoulsAlpha }},
-		/* STYLE_OptFuzzy */  {{ STYLEOP_FuzzOrAdd,	STYLEALPHA_Src,		STYLEALPHA_InvSrc,	0 }},
-		 /* STYLE_Stencil */  {{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_Alpha1 | STYLEF_ColorIsFixed }},
-	 /* STYLE_Translucent */  {{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	0 }},
-			 /* STYLE_Add */  {{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_One,		0 }},
-		  /* STYLE_Shaded */  {{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_RedIsAlpha | STYLEF_ColorIsFixed }},
-/* STYLE_TranslucentStencil */{{ STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_ColorIsFixed }},
-            /* STYLE_Shadow */{{ STYLEOP_Shadow,	0,					0,					0 }},
-};
-#else
-FRenderStyle LegacyRenderStyles[STYLE_Count];
 
-static const BYTE Styles[STYLE_Count * 4] =
+void R_InitShadeMaps()
 {
-	STYLEOP_None, 		STYLEALPHA_Zero,	STYLEALPHA_Zero,	0,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_Alpha1,
-	STYLEOP_Fuzz,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	0,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_TransSoulsAlpha,
-	STYLEOP_FuzzOrAdd,	STYLEALPHA_Src,		STYLEALPHA_InvSrc,	0,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_Alpha1 | STYLEF_ColorIsFixed,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	0,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_One,		0,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_RedIsAlpha | STYLEF_ColorIsFixed,
-	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_ColorIsFixed,
-	STYLEOP_Shadow,		0,					0,					0
-};
+	int i,j;
+	// set up shading tables for shaded columns
+	// 16 colormap sets, progressing from full alpha to minimum visible alpha
 
-static struct LegacyInit
-{
-	LegacyInit()
+	BYTE *table = shadetables;
+
+	// Full alpha
+	for (i = 0; i < 16; ++i)
 	{
-		for (int i = 0; i < STYLE_Count; ++i)
+		ShadeFakeColormap[i].Color = ~0u;
+		ShadeFakeColormap[i].Desaturate = ~0u;
+		ShadeFakeColormap[i].Next = NULL;
+		ShadeFakeColormap[i].Maps = table;
+
+		for (j = 0; j < NUMCOLORMAPS; ++j)
 		{
-			LegacyRenderStyles[i].BlendOp = Styles[i*4];
-			LegacyRenderStyles[i].SrcAlpha = Styles[i*4+1];
-			LegacyRenderStyles[i].DestAlpha = Styles[i*4+2];
-			LegacyRenderStyles[i].Flags = Styles[i*4+3];
+			int a = (NUMCOLORMAPS - j) * 256 / NUMCOLORMAPS * (16-i);
+			for (int k = 0; k < 256; ++k)
+			{
+				BYTE v = (((k+2) * a) + 256) >> 14;
+				table[k] = MIN<BYTE> (v, 64);
+			}
+			table += 256;
 		}
 	}
-} DoLegacyInit;
+	for (i = 0; i < NUMCOLORMAPS*16*256; ++i)
+	{
+		assert(shadetables[i] <= 64);
+	}
 
-#endif
-
-FArchive &operator<< (FArchive &arc, FRenderStyle &style)
-{
-	arc << style.BlendOp << style.SrcAlpha << style.DestAlpha << style.Flags;
-	return arc;
+	// Set up a guaranteed identity map
+	for (i = 0; i < 256; ++i)
+	{
+		identitymap[i] = i;
+	}
 }
-
-EXTERN_CVAR (Int, r_columnmethod)
 
 /************************************/
 /*									*/
@@ -1363,12 +1341,12 @@ void R_FillSpan (void)
 #ifndef X86_ASM
 static const BYTE *slabcolormap;
 
-extern "C" void R_SetupDrawSlab(const BYTE *colormap)
+extern "C" void R_SetupDrawSlabC(const BYTE *colormap)
 {
 	slabcolormap = colormap;
 }
 
-extern "C" void STACK_ARGS R_DrawSlab(int dx, fixed_t v, int dy, fixed_t vi, const BYTE *vptr, BYTE *p)
+extern "C" void STACK_ARGS R_DrawSlabC(int dx, fixed_t v, int dy, fixed_t vi, const BYTE *vptr, BYTE *p)
 {
 	int x;
 	const BYTE *colormap = slabcolormap;
@@ -2019,114 +1997,18 @@ void tmvline4_revsubclamp ()
 }
 
 
-void R_DrawBorder (int x1, int y1, int x2, int y2)
+//==========================================================================
+//
+// R_GetColumn
+//
+//==========================================================================
+
+const BYTE *R_GetColumn (FTexture *tex, int col)
 {
-	FTextureID picnum;
-
-	if (level.info != NULL && level.info->bordertexture[0] != 0)
-	{
-		picnum = TexMan.CheckForTexture (level.info->bordertexture, FTexture::TEX_Flat);
-	}
-	else
-	{
-		picnum = TexMan.CheckForTexture (gameinfo.borderFlat, FTexture::TEX_Flat);
-	}
-
-	if (picnum.isValid())
-	{
-		screen->FlatFill (x1, y1, x2, y2, TexMan(picnum));
-	}
-	else
-	{
-		screen->Clear (x1, y1, x2, y2, 0, 0);
-	}
+	return tex->GetColumn (col, NULL);
 }
 
-/*
-==================
-=
-= R_DrawViewBorder
-=
-= Draws the border around the view for different size windows
-==================
-*/
 
-int BorderNeedRefresh;
-
-void V_MarkRect (int x, int y, int width, int height);
-void V_DrawFrame (int x, int y, int width, int height);
-
-void R_DrawViewBorder (void)
-{
-	// [RH] Redraw the status bar if SCREENWIDTH > status bar width.
-	// Will draw borders around itself, too.
-	if (SCREENWIDTH > 320)
-	{
-		SB_state = screen->GetPageCount ();
-	}
-
-	if (viewwidth == SCREENWIDTH)
-	{
-		return;
-	}
-
-	R_DrawBorder (0, 0, SCREENWIDTH, viewwindowy);
-	R_DrawBorder (0, viewwindowy, viewwindowx, viewheight + viewwindowy);
-	R_DrawBorder (viewwindowx + viewwidth, viewwindowy, SCREENWIDTH, viewheight + viewwindowy);
-	R_DrawBorder (0, viewwindowy + viewheight, SCREENWIDTH, ST_Y);
-
-	V_DrawFrame (viewwindowx, viewwindowy, viewwidth, viewheight);
-	V_MarkRect (0, 0, SCREENWIDTH, ST_Y);
-}
-
-/*
-==================
-=
-= R_DrawTopBorder
-=
-= Draws the top border around the view for different size windows
-==================
-*/
-
-int BorderTopRefresh;
-
-void R_DrawTopBorder ()
-{
-	FTexture *p;
-	int offset;
-
-	if (viewwidth == SCREENWIDTH)
-		return;
-
-	offset = gameinfo.border->offset;
-
-	if (viewwindowy < 34)
-	{
-		R_DrawBorder (0, 0, viewwindowx, 34);
-		R_DrawBorder (viewwindowx, 0, viewwindowx + viewwidth, viewwindowy);
-		R_DrawBorder (viewwindowx + viewwidth, 0, SCREENWIDTH, 34);
-		p = TexMan(gameinfo.border->t);
-		screen->FlatFill(viewwindowx, viewwindowy - p->GetHeight(),
-						 viewwindowx + viewwidth, viewwindowy, p, true);
-
-		p = TexMan(gameinfo.border->l);
-		screen->FlatFill(viewwindowx - p->GetWidth(), viewwindowy,
-						 viewwindowx, 35, p, true);
-		p = TexMan(gameinfo.border->r);
-		screen->FlatFill(viewwindowx + viewwidth, viewwindowy,
-						 viewwindowx + viewwidth + p->GetWidth(), 35, p, true);
-
-		p = TexMan(gameinfo.border->tl);
-		screen->DrawTexture (p, viewwindowx - offset, viewwindowy - offset, TAG_DONE);
-
-		p = TexMan(gameinfo.border->tr);
-		screen->DrawTexture (p, viewwindowx + viewwidth, viewwindowy - offset, TAG_DONE);
-	}
-	else
-	{
-		R_DrawBorder (0, 0, SCREENWIDTH, 34);
-	}
-}
 // [RH] Initialize the column drawer pointers
 void R_InitColumnDrawers ()
 {
@@ -2162,8 +2044,8 @@ void R_InitColumnDrawers ()
 
 // [RH] Choose column drawers in a single place
 EXTERN_CVAR (Int, r_drawfuzz)
+EXTERN_CVAR (Bool, r_drawtrans)
 EXTERN_CVAR (Float, transsouls)
-CVAR (Bool, r_drawtrans, true, 0)
 
 static FDynamicColormap *basecolormapsave;
 
@@ -2310,18 +2192,6 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 	}
 }
 
-static fixed_t GetAlpha(int type, fixed_t alpha)
-{
-	switch (type)
-	{
-	case STYLEALPHA_Zero:		return 0;
-	case STYLEALPHA_One:		return FRACUNIT;
-	case STYLEALPHA_Src:		return alpha;
-	case STYLEALPHA_InvSrc:		return FRACUNIT - alpha;
-	default:					return 0;
-	}
-}
-
 ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, DWORD color)
 {
 	fixed_t fglevel, bglevel;
@@ -2368,7 +2238,7 @@ ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, 
 	}
 	else if (style == LegacyRenderStyles[STYLE_Shaded])
 	{
-		// Shaded drawer only gets 16 levels because it saves memory.
+		// Shaded drawer only gets 16 levels of alpha because it saves memory.
 		if ((alpha >>= 12) == 0)
 			return DontDraw;
 		colfunc = R_DrawShadedColumn;
@@ -2448,84 +2318,3 @@ bool R_GetTransMaskDrawers (fixed_t (**tmvline1)(), void (**tmvline4)())
 	return false;
 }
 
-//==========================================================================
-//
-// FRenderStyle :: IsVisible
-//
-// Coupled with the given alpha, will this render style produce something
-// visible on-screen?
-//
-//==========================================================================
-
-bool FRenderStyle::IsVisible(fixed_t alpha) const throw()
-{
-	if (BlendOp == STYLEOP_None)
-	{
-		return false;
-	}
-	if (BlendOp == STYLEOP_Add || BlendOp == STYLEOP_RevSub)
-	{
-		if (Flags & STYLEF_Alpha1)
-		{
-			alpha = FRACUNIT;
-		}
-		else
-		{
-			alpha = clamp(alpha, 0, FRACUNIT);
-		}
-		return GetAlpha(SrcAlpha, alpha) != 0 || GetAlpha(DestAlpha, alpha) != FRACUNIT;
-	}
-	// Treat anything else as visible.
-	return true;
-}
-
-
-//==========================================================================
-//
-// FRenderStyle :: CheckFuzz
-//
-// Adjusts settings based on r_drawfuzz CVAR
-//
-//==========================================================================
-
-void FRenderStyle::CheckFuzz()
-{
-	switch (BlendOp)
-	{
-	default:
-		return;
-
-	case STYLEOP_FuzzOrAdd:
-		if (r_drawtrans && r_drawfuzz == 0)
-		{
-			BlendOp = STYLEOP_Add;
-			return;
-		}
-		break;
-
-	case STYLEOP_FuzzOrSub:
-		if (r_drawtrans && r_drawfuzz == 0)
-		{
-			BlendOp = STYLEOP_Sub;
-			return;
-		}
-		break;
-
-	case STYLEOP_FuzzOrRevSub:
-		if (r_drawtrans && r_drawfuzz == 0)
-		{
-			BlendOp = STYLEOP_RevSub;
-			return;
-		}
-		break;
-	}
-
-	if (r_drawfuzz == 2)
-	{
-		BlendOp = STYLEOP_Shadow;
-	}
-	else
-	{
-		BlendOp = STYLEOP_Fuzz;
-	}
-}

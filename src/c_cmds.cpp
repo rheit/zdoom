@@ -61,7 +61,6 @@
 #include "gi.h"
 #include "r_defs.h"
 #include "d_player.h"
-#include "r_main.h"
 #include "templates.h"
 #include "p_local.h"
 #include "r_sky.h"
@@ -70,6 +69,7 @@
 #include "d_net.h"
 #include "v_text.h"
 #include "p_lnspec.h"
+#include "v_video.h"
 
 extern FILE *Logfile;
 extern bool insave;
@@ -451,9 +451,9 @@ CCMD (puke)
 {
 	int argc = argv.argc();
 
-	if (argc < 2 || argc > 5)
+	if (argc < 2 || argc > 6)
 	{
-		Printf ("Usage: puke <script> [arg1] [arg2] [arg3]\n");
+		Printf ("Usage: puke <script> [arg1] [arg2] [arg3] [arg4]\n");
 	}
 	else
 	{
@@ -463,8 +463,8 @@ CCMD (puke)
 		{ // Script 0 is reserved for Strife support. It is not pukable.
 			return;
 		}
-		int arg[3] = { 0, 0, 0 };
-		int argn = MIN (argc - 2, 3), i;
+		int arg[4] = { 0, 0, 0, 0 };
+		int argn = MIN<int>(argc - 2, countof(arg)), i;
 
 		for (i = 0; i < argn; ++i)
 		{
@@ -485,6 +485,44 @@ CCMD (puke)
 		for (i = 0; i < argn; ++i)
 		{
 			Net_WriteLong (arg[i]);
+		}
+	}
+}
+
+CCMD (pukename)
+{
+	int argc = argv.argc();
+
+	if (argc < 2 || argc > 7)
+	{
+		Printf ("Usage: pukename \"<script>\" [\"always\"] [arg1] [arg2] [arg3] [arg4]\n");
+	}
+	else
+	{
+		bool always = false;
+		int argstart = 2;
+		int arg[4] = { 0, 0, 0, 0 };
+		int argn = 0, i;
+		
+		if (argc > 2)
+		{
+			if (stricmp(argv[2], "always") == 0)
+			{
+				always = true;
+				argstart = 3;
+			}
+			argn = MIN<int>(argc - argstart, countof(arg));
+			for (i = 0; i < argn; ++i)
+			{
+				arg[i] = atoi(argv[argstart + i]);
+			}
+		}
+		Net_WriteByte(DEM_RUNNAMEDSCRIPT);
+		Net_WriteString(argv[1]);
+		Net_WriteByte(argn | (always << 7));
+		for (i = 0; i < argn; ++i)
+		{
+			Net_WriteLong(arg[i]);
 		}
 	}
 }
@@ -660,32 +698,6 @@ CCMD (fov)
 		Net_WriteByte (DEM_MYFOV);
 	}
 	Net_WriteByte (clamp (atoi (argv[1]), 5, 179));
-}
-
-//==========================================================================
-//
-// CCMD r_visibility
-//
-// Controls how quickly light ramps across a 1/z range. Set this, and it
-// sets all the r_*Visibility variables (except r_SkyVisibilily, which is
-// currently unused).
-//
-//==========================================================================
-
-CCMD (r_visibility)
-{
-	if (argv.argc() < 2)
-	{
-		Printf ("Visibility is %g\n", R_GetVisibility());
-	}
-	else if (!netgame)
-	{
-		R_SetVisibility ((float)atof (argv[1]));
-	}
-	else
-	{
-		Printf ("Visibility cannot be changed in net games.\n");
-	}
 }
 
 //==========================================================================
@@ -1076,7 +1088,8 @@ CCMD(secret)
 				{
 					FString levelname;
 					level_info_t *info = FindLevelInfo(mapname);
-					levelname.Format("%s - %s\n", mapname, info->LevelName.GetChars());
+					const char *ln = !(info->flags & LEVEL_LOOKUPLEVELNAME)? info->LevelName.GetChars() : GStrings[info->LevelName.GetChars()];
+					levelname.Format("%s - %s\n", mapname, ln);
 					size_t llen = levelname.Len() - 1;
 					for(size_t ii=0; ii<llen; ii++) levelname += '-';
 					Printf(TEXTCOLOR_YELLOW"%s\n", levelname.GetChars());

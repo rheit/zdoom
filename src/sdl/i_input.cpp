@@ -172,7 +172,7 @@ static void CenterMouse ()
 static void PostMouseMove (int x, int y)
 {
 	static int lastx = 0, lasty = 0;
-	event_t ev = { 0 };
+	event_t ev = { 0,0,0,0,0,0,0 };
 	
 	if (m_filter)
 	{
@@ -263,7 +263,7 @@ static void I_CheckNativeMouse ()
 			== (SDL_APPINPUTFOCUS|SDL_APPACTIVE);
 	bool fs = (SDL_GetVideoSurface ()->flags & SDL_FULLSCREEN) != 0;
 	
-	bool wantNative = !focus || (!fs && (!use_mouse || GUICapture || paused || demoplayback || !inGame()));
+	bool wantNative = !focus || (!use_mouse || GUICapture || paused || demoplayback || !inGame());
 
 	if (wantNative != NativeMouse)
 	{
@@ -286,7 +286,7 @@ void MessagePump (const SDL_Event &sev)
 {
 	static int lastx = 0, lasty = 0;
 	int x, y;
-	event_t event = { 0, };
+	event_t event = { 0,0,0,0,0,0,0 };
 	
 	switch (sev.type)
 	{
@@ -493,10 +493,13 @@ void I_StartTic ()
 	I_GetEvent ();
 }
 
+void I_ProcessJoysticks ();
 void I_StartFrame ()
 {
 	if (KeySymToDIK[SDLK_BACKSPACE] == 0)
 	{
 		InitKeySymMap ();
 	}
+
+	I_ProcessJoysticks();
 }

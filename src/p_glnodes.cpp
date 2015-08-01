@@ -208,7 +208,7 @@ bool P_CheckForGLNodes()
 	int missing = CheckForMissingSegs();
 	if (missing > 0)
 	{
-		Printf("%d missing segs counted\nThe BSP needs to be rebuilt", missing);
+		Printf("%d missing segs counted\nThe BSP needs to be rebuilt.\n", missing);
 	}
 	return missing == 0;
 }
@@ -718,7 +718,7 @@ static bool DoLoadGLNodes(FileReader * f, wadlump_t * lumps)
 	int missing = CheckForMissingSegs();
 	if (missing > 0)
 	{
-		Printf("%d missing segs counted in GL nodes.\nThe BSP has to be rebuilt", missing);
+		Printf("%d missing segs counted in GL nodes.\nThe BSP has to be rebuilt.\n", missing);
 	}
 	return missing == 0;
 }
@@ -851,7 +851,6 @@ static int FindGLNodesInFile(FileReader * f, const char * label)
 
 bool P_LoadGLNodes(MapData * map)
 {
-
 	if (map->MapLumps[ML_GLZNODES].Size != 0)
 	{
 		const int idcheck = MAKE_ID('Z','G','L','N');
@@ -1009,7 +1008,8 @@ bool P_CheckNodes(MapData * map, bool rebuilt, int buildtime)
 			{
 				vertexes, numvertexes,
 				sides, numsides,
-				lines, numlines
+				lines, numlines,
+				0, 0, 0, 0
 			};
 			leveldata.FindMapBounds ();
 			FNodeBuilder builder (leveldata, polyspots, anchors, true);
@@ -1077,7 +1077,7 @@ static FString GetCachePath()
 	FSRef folder;
 
 	if (noErr == FSFindFolder(kLocalDomain, kApplicationSupportFolderType, kCreateFolder, &folder) &&
-		noErr == FSRefMakePath(&folder, (UInt8*)path.GetChars(), PATH_MAX))
+		noErr == FSRefMakePath(&folder, (UInt8*)pathstr, PATH_MAX))
 	{
 		path = pathstr;
 	}
@@ -1233,7 +1233,7 @@ static bool CheckCachedNodes(MapData *map)
 	BYTE md5[16];
 	BYTE md5map[16];
 	DWORD numlin;
-	DWORD *verts;
+	DWORD *verts = NULL;
 
 	FString path = CreateCacheName(map, false);
 	FILE *f = fopen(path, "rb");
@@ -1297,6 +1297,10 @@ static bool CheckCachedNodes(MapData *map)
 	return true;
 
 errorout:
+	if (verts != NULL)
+	{
+		delete[] verts;
+	}
 	fclose(f);
 	return false;
 }

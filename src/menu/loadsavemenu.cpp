@@ -553,7 +553,7 @@ void DLoadSaveMenu::Drawer ()
 	bool didSeeSelected = false;
 
 	// Draw picture area
-	if (gameaction == ga_loadgame || gameaction == ga_savegame)
+	if (gameaction == ga_loadgame || gameaction == ga_loadgamehidecon || gameaction == ga_savegame)
 	{
 		return;
 	}
@@ -753,7 +753,7 @@ bool DLoadSaveMenu::MenuEvent (int mkey, bool fromcontroller)
 
 	case MKEY_MBYes:
 	{
-		if (Selected != -1 && Selected < SaveGames.Size())
+		if ((unsigned)Selected < SaveGames.Size())
 		{
 			int listindex = SaveGames[0]->bNoDelete? Selected-1 : Selected;
 			remove (SaveGames[Selected]->Filename.GetChars());
@@ -819,7 +819,7 @@ bool DLoadSaveMenu::Responder (event_t *ev)
 	{
 		if (ev->subtype == EV_GUI_KeyDown)
 		{
-			if (Selected != -1 && Selected < SaveGames.Size())
+			if ((unsigned)Selected < SaveGames.Size())
 			{
 				switch (ev->data1)
 				{
@@ -1094,11 +1094,7 @@ bool DLoadMenu::MenuEvent (int mkey, bool fromcontroller)
 
 	if (mkey == MKEY_Enter)
 	{
-		G_LoadGame (SaveGames[Selected]->Filename.GetChars());
-		if (gamestate == GS_FULLCONSOLE)
-		{
-			gamestate = GS_HIDECONSOLE;
-		}
+		G_LoadGame (SaveGames[Selected]->Filename.GetChars(), true);
 		if (quickSaveSlot == (FSaveGameNode*)1)
 		{
 			quickSaveSlot = SaveGames[Selected];

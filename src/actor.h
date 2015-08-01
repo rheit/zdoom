@@ -37,7 +37,7 @@
 
 #include "doomdef.h"
 #include "textures/textures.h"
-#include "r_blend.h"
+#include "r_data/renderstyle.h"
 #include "s_sound.h"
 #include "memarena.h"
 
@@ -266,8 +266,8 @@ enum
 	
 // --- mobj.flags5 ---
 
-	MF5_FASTER			= 0x00000001,	// moves faster when DF_FAST_MONSTERS or nightmare is on.
-	MF5_FASTMELEE		= 0x00000002,	// has a faster melee attack when DF_FAST_MONSTERS or nightmare is on.
+	/*					= 0x00000001,	*/
+	/*					= 0x00000002,	*/
 	MF5_NODROPOFF		= 0x00000004,	// cannot drop off under any circumstances.
 	MF5_DONTSPAWN		= 0x00000008,	// From Doom 64: kinda like DORMANT, but more thorough
 	MF5_COUNTSECRET		= 0x00000010,	// From Doom 64: actor acts like a secret
@@ -326,6 +326,12 @@ enum
 	MF6_ADDITIVEPOISONDURATION	= 0x00200000,
 	MF6_NOMENU			= 0x00400000,	// Player class should not appear in the class selection menu.
 	MF6_BOSSCUBE		= 0x00800000,	// Actor spawned by A_BrainSpit, flagged for timefreeze reasons.
+	MF6_SEEINVISIBLE	= 0x01000000,	// Monsters can see invisible player.
+	MF6_DONTCORPSE		= 0x02000000,	// [RC] Don't autoset MF_CORPSE upon death and don't force Crash state change.
+	MF6_POISONALWAYS	= 0x04000000,	// Always apply poison, even when target can't take the damage.
+	MF6_DOHARMSPECIES	= 0x08000000,	// Do hurt one's own species with projectiles.
+	MF6_INTRYMOVE		= 0x10000000,	// Executing P_TryMove
+	MF6_NOTAUTOAIMED	= 0x20000000,	// Do not subject actor to player autoaim.
 
 // --- mobj.renderflags ---
 
@@ -396,7 +402,7 @@ enum EBounceFlags
 	BOUNCE_Ceilings = 1<<2,		// bounces off of ceilings
 	BOUNCE_Actors = 1<<3,		// bounces off of some actors
 	BOUNCE_AllActors = 1<<4,	// bounces off of all actors (requires BOUNCE_Actors to be set, too)
-	BOUNCE_AutoOff = 1<<5,		// when bouncing off a floor, if the new Z velocity is below 3.0, disable further bouncing
+	BOUNCE_AutoOff = 1<<5,		// when bouncing off a sector plane, if the new Z velocity is below 3.0, disable further bouncing
 	BOUNCE_HereticType = 1<<6,	// goes into Death state when bouncing on floors or ceilings
 
 	BOUNCE_UseSeeSound = 1<<7,	// compatibility fallback. This will only be set by
@@ -408,6 +414,7 @@ enum EBounceFlags
 	// MBF bouncing is a bit different from other modes as Killough coded many special behavioral cases
 	// for them that are not present in ZDoom, so it is necessary to identify it properly.
 	BOUNCE_MBF = 1<<12,			// This in itself is not a valid mode, but replaces MBF's MF_BOUNCE flag.
+	BOUNCE_AutoOffFloorOnly = 1<<13,		// like BOUNCE_AutoOff, but only on floors
 
 	BOUNCE_TypeMask = BOUNCE_Walls | BOUNCE_Floors | BOUNCE_Ceilings | BOUNCE_Actors | BOUNCE_AutoOff | BOUNCE_HereticType | BOUNCE_MBF,
 
@@ -597,11 +604,11 @@ public:
 	virtual void Tick ();
 
 	// Called when actor dies
-	virtual void Die (AActor *source, AActor *inflictor);
+	virtual void Die (AActor *source, AActor *inflictor, int dmgflags = 0);
 
 	// Perform some special damage action. Returns the amount of damage to do.
 	// Returning -1 signals the damage routine to exit immediately
-	virtual int DoSpecialDamage (AActor *target, int damage);
+	virtual int DoSpecialDamage (AActor *target, int damage, FName damagetype);
 
 	// Like DoSpecialDamage, but called on the actor receiving the damage.
 	virtual int TakeSpecialDamage (AActor *inflictor, AActor *source, int damage, FName damagetype);
@@ -656,6 +663,9 @@ public:
 	// Tosses an item out of the inventory.
 	virtual AInventory *DropInventory (AInventory *item);
 
+	// Removes all items from the inventory.
+	void ClearInventory();
+
 	// Returns true if this view is considered "local" for the player.
 	bool CheckLocalView (int playernum) const;
 
@@ -687,7 +697,7 @@ public:
 	void ConversationAnimation (int animnum);
 
 	// Make this actor hate the same things as another actor
-	void CopyFriendliness (AActor *other, bool changeTarget);
+	void CopyFriendliness (AActor *other, bool changeTarget, bool resetHealth=true);
 
 	// Moves the other actor's inventory to this one
 	void ObtainInventory (AActor *other);
@@ -716,6 +726,11 @@ public:
 	// Return starting health adjusted by skill level
 	int SpawnHealth();
 	int GibHealth();
+
+	inline bool isMissile(bool precise=true)
+	{
+		return (flags&MF_MISSILE) || (precise && GetDefault()->flags&MF_MISSILE);
+	}
 
 	// Check for monsters that count as kill but excludes all friendlies.
 	bool CountsAsKill() const
@@ -758,6 +773,10 @@ public:
 		return bloodcls;
 	}
 
+	inline void SetFriendPlayer(player_t *player);
+
+	bool IsVisibleToPlayer() const;
+
 	// Calculate amount of missile damage
 	virtual int GetMissileDamage(int mask, int add);
 
@@ -768,6 +787,8 @@ public:
 	const char *GetTag(const char *def = NULL) const;
 	void SetTag(const char *def);
 
+	// Triggers SECSPAC_Exit/SECSPAC_Enter and related events if oldsec != current sector
+	void CheckSectorTransition(sector_t *oldsec);
 
 // info for drawing
 // NOTE: The first member variable *must* be x.
@@ -802,12 +823,17 @@ public:
 	SDWORD			tics;				// state tic counter
 	FState			*state;
 	SDWORD			Damage;			// For missiles and monster railgun
+	int				projectileKickback;
 	DWORD			flags;
 	DWORD			flags2;			// Heretic flags
 	DWORD			flags3;			// [RH] Hexen/Heretic actor-dependant behavior made flaggable
 	DWORD			flags4;			// [RH] Even more flags!
 	DWORD			flags5;			// OMG! We need another one.
 	DWORD			flags6;			// Shit! Where did all the flags go?
+
+	// [BB] If 0, everybody can see the actor, if > 0, only members of team (VisibleToTeam-1) can see it.
+	DWORD			VisibleToTeam;
+
 	int				special1;		// Special info
 	int				special2;		// Special info
 	int 			health;
@@ -839,6 +865,8 @@ public:
 	int				special;		// special
 	int				args[5];		// special arguments
 
+	int		accuracy, stamina;		// [RH] Strife stats -- [XA] moved here for DECORATE/ACS access.
+
 	AActor			*inext, **iprev;// Links to other mobjs in same bucket
 	TObjPtr<AActor> goal;			// Monster's goal if not chasing anything
 	int				waterlevel;		// 0=none, 1=feet, 2=waist, 3=eyes
@@ -869,10 +897,12 @@ public:
 	line_t			*BlockingLine;	// Line that blocked the last move
 
 	int PoisonDamage; // Damage received per tic from poison.
+	FNameNoInit PoisonDamageType; // Damage type dealt by poison.
 	int PoisonDuration; // Duration left for receiving poison damage.
 	int PoisonPeriod; // How often poison damage is applied. (Every X tics.)
 
 	int PoisonDamageReceived; // Damage received per tic from poison.
+	FNameNoInit PoisonDamageTypeReceived; // Damage type received by poison.
 	int PoisonDurationReceived; // Duration left for receiving poison damage.
 	int PoisonPeriodReceived; // How often poison damage is applied. (Every X tics.)
 	TObjPtr<AActor> Poisoner; // Last source of received poison damage.
@@ -909,7 +939,11 @@ public:
 	SWORD PainChance;
 	int PainThreshold;
 	FNameNoInit DamageType;
+	FNameNoInit DamageTypeReceived;
 	fixed_t DamageFactor;
+
+	FNameNoInit PainType;
+	FNameNoInit DeathType;
 
 	FState *SpawnState;
 	FState *SeeState;
@@ -1045,6 +1079,7 @@ inline T *Spawn (fixed_t x, fixed_t y, fixed_t z, replace_t allowreplacement)
 {
 	return static_cast<T *>(AActor::StaticSpawn (RUNTIME_CLASS(T), x, y, z, allowreplacement));
 }
+
 
 void PrintMiscActorInfo(AActor * query);
 

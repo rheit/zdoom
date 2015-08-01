@@ -366,8 +366,6 @@ private:
 	void DrawMessages (int bottom);
 	void DrawConsistancy () const;
 
-	static BYTE DamageToAlpha[114];
-
 	TObjPtr<DHUDMessage> Messages;
 	bool ShowLog;
 };
@@ -385,5 +383,7 @@ void ST_FormatMapName(FString &mapname, const char *mapnamecolor = "");
 void ST_LoadCrosshair(bool alwaysload=false);
 void ST_Clear();
 extern FTexture *CrosshairImage;
+
+FTextureID GetWeaponIcon(AWeapon *weapon);
 
 #endif /* __SBAR_H__ */

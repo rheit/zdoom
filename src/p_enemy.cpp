@@ -115,7 +115,7 @@ void P_RandomChaseDir (AActor *actor);
 // sound blocking lines cut off traversal.
 //----------------------------------------------------------------------------
 
-void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soundblocks)
+void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soundblocks, AActor *emitter, fixed_t maxdist)
 {
 	int 		i;
 	line_t* 	check;
@@ -136,7 +136,8 @@ void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soun
 	// [RH] Set this in the actors in the sector instead of the sector itself.
 	for (actor = sec->thinglist; actor != NULL; actor = actor->snext)
 	{
-		if (actor != soundtarget && (!splash || !(actor->flags4 & MF4_NOSPLASHALERT)))
+		if (actor != soundtarget && (!splash || !(actor->flags4 & MF4_NOSPLASHALERT)) &&
+			(!maxdist || (P_AproxDistance(actor->x - emitter->x, actor->y - emitter->y) <= maxdist)))
 		{
 			actor->LastHeard = soundtarget;
 		}
@@ -179,11 +180,11 @@ void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soun
 		if (check->flags & ML_SOUNDBLOCK)
 		{
 			if (!soundblocks)
-				P_RecursiveSound (other, soundtarget, splash, 1);
+				P_RecursiveSound (other, soundtarget, splash, 1, emitter, maxdist);
 		}
 		else
 		{
-			P_RecursiveSound (other, soundtarget, splash, soundblocks);
+			P_RecursiveSound (other, soundtarget, splash, soundblocks, emitter, maxdist);
 		}
 	}
 }
@@ -199,7 +200,7 @@ void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soun
 //
 //----------------------------------------------------------------------------
 
-void P_NoiseAlert (AActor *target, AActor *emitter, bool splash)
+void P_NoiseAlert (AActor *target, AActor *emitter, bool splash, fixed_t maxdist)
 {
 	if (emitter == NULL)
 		return;
@@ -208,7 +209,7 @@ void P_NoiseAlert (AActor *target, AActor *emitter, bool splash)
 		return;
 
 	validcount++;
-	P_RecursiveSound (emitter->Sector, target, splash, 0);
+	P_RecursiveSound (emitter->Sector, target, splash, 0, emitter, maxdist);
 }
 
 
@@ -430,7 +431,7 @@ bool P_Move (AActor *actor)
 
 	// [RH] Walking actors that are not on the ground cannot walk. We don't
 	// want to yank them to the ground here as Doom did, since that makes
-	// it difficult ot thrust them vertically in a reasonable manner.
+	// it difficult to thrust them vertically in a reasonable manner.
 	// [GZ] Let jumping actors jump.
 	if (!((actor->flags & MF_NOGRAVITY) || (actor->flags6 & MF6_CANJUMP))
 		&& actor->z > actor->floorz && !(actor->flags2 & MF2_ONMOBJ))
@@ -1126,7 +1127,7 @@ bool P_IsVisible(AActor *lookee, AActor *other, INTBOOL allaround, FLookExParams
 	else
 	{
 		mindist = maxdist = 0;
-		fov = allaround? 0 : ANGLE_180;
+		fov = allaround ? 0 : ANGLE_180;
 	}
 
 	fixed_t dist = P_AproxDistance (other->x - lookee->x, other->y - lookee->y);
@@ -1667,19 +1668,24 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 				continue;
 		}
 
-		if ((player->mo->flags & MF_SHADOW && !(i_compatflags & COMPATF_INVISIBILITY)) ||
-			player->mo->flags3 & MF3_GHOST)
+		// [RC] Well, let's let special monsters with this flag active be able to see
+		// the player then, eh?
+		if(!(actor->flags & MF6_SEEINVISIBLE)) 
 		{
-			if ((P_AproxDistance (player->mo->x - actor->x,
-					player->mo->y - actor->y) > 2*MELEERANGE)
-				&& P_AproxDistance (player->mo->velx, player->mo->vely)
-				< 5*FRACUNIT)
-			{ // Player is sneaking - can't detect
-				return false;
-			}
-			if (pr_lookforplayers() < 225)
-			{ // Player isn't sneaking, but still didn't detect
-				return false;
+			if ((player->mo->flags & MF_SHADOW && !(i_compatflags & COMPATF_INVISIBILITY)) ||
+				player->mo->flags3 & MF3_GHOST)
+			{
+				if ((P_AproxDistance (player->mo->x - actor->x,
+						player->mo->y - actor->y) > 2*MELEERANGE)
+					&& P_AproxDistance (player->mo->velx, player->mo->vely)
+					< 5*FRACUNIT)
+				{ // Player is sneaking - can't detect
+					return false;
+				}
+				if (pr_lookforplayers() < 225)
+				{ // Player isn't sneaking, but still didn't detect
+					return false;
+				}
 			}
 		}
 		
@@ -1826,12 +1832,13 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 	ACTION_PARAM_FIXED(minseedist, 1);
 	ACTION_PARAM_FIXED(maxseedist, 2);
 	ACTION_PARAM_FIXED(maxheardist, 3);
-	ACTION_PARAM_ANGLE(fov, 4);
+	ACTION_PARAM_DOUBLE(fov_f, 4);
 	ACTION_PARAM_STATE(seestate, 5);
 
 	AActor *targ = NULL; // Shuts up gcc
 	fixed_t dist;
-	FLookExParams params = {fov, minseedist, maxseedist, maxheardist, flags, seestate };
+	angle_t fov = (fov_f == 0) ? ANGLE_180 : angle_t(fov_f * ANGLE_90 / 90);
+	FLookExParams params = { fov, minseedist, maxseedist, maxheardist, flags, seestate };
 
 	if (self->flags5 & MF5_INCONVERSATION)
 		return;
@@ -2001,6 +2008,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 }
 
 // [KS] *** End additions by me ***
+
+//==========================================================================
+//
+// A_ClearLastHeard
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearLastHeard)
+{
+	self->LastHeard = NULL;
+}
 
 //==========================================================================
 //
@@ -2295,7 +2313,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 			// as the goal.
 			while ( (spec = specit.Next()) )
 			{
-				LineSpecials[spec->special] (NULL, actor, false, spec->args[0],
+				P_ExecuteSpecial(spec->special, NULL, actor, false, spec->args[0],
 					spec->args[1], spec->args[2], spec->args[3], spec->args[4]);
 			}
 
@@ -2705,11 +2723,13 @@ void A_Chase(AActor *self)
 //=============================================================================
 //
 // A_FaceTarget
+// A_FaceMaster
+// A_FaceTracer
 //
 //=============================================================================
-void A_FaceTarget (AActor *self, angle_t max_turn)
+void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
 {
-	if (!self->target)
+	if (!other)
 		return;
 
 	// [RH] Andy Baker's stealth monsters
@@ -2720,15 +2740,15 @@ void A_FaceTarget (AActor *self, angle_t max_turn)
 
 	self->flags &= ~MF_AMBUSH;
 
-	angle_t target_angle = R_PointToAngle2 (self->x, self->y, self->target->x, self->target->y);
+	angle_t other_angle = R_PointToAngle2 (self->x, self->y, other->x, other->y);
 
 	// 0 means no limit. Also, if we turn in a single step anyways, no need to go through the algorithms.
-	// It also means that there is no need to check for going past the target.
-	if (max_turn && (max_turn < (angle_t)abs(self->angle - target_angle)))
+	// It also means that there is no need to check for going past the other.
+	if (max_turn && (max_turn < (angle_t)abs(self->angle - other_angle)))
 	{
-		if (self->angle > target_angle)
+		if (self->angle > other_angle)
 		{
-			if (self->angle - target_angle < ANGLE_180)
+			if (self->angle - other_angle < ANGLE_180)
 			{
 				self->angle -= max_turn;
 			}
@@ -2739,7 +2759,7 @@ void A_FaceTarget (AActor *self, angle_t max_turn)
 		}
 		else
 		{
-			if (target_angle - self->angle < ANGLE_180)
+			if (other_angle - self->angle < ANGLE_180)
 			{
 				self->angle += max_turn;
 			}
@@ -2751,22 +2771,88 @@ void A_FaceTarget (AActor *self, angle_t max_turn)
 	}
 	else
 	{
-		self->angle = target_angle;
+		self->angle = other_angle;
+	}
+
+	// [DH] Now set pitch. In order to maintain compatibility, this can be
+	// disabled and is so by default.
+	if (max_pitch <= ANGLE_180)
+	{
+		// [DH] Don't need to do proper fixed->double conversion, since the
+		// result is only used in a ratio.
+		double dist_x = self->target->x - self->x;
+		double dist_y = self->target->y - self->y;
+		double dist_z = self->target->z - self->z;
+		double dist = sqrt(dist_x*dist_x + dist_y*dist_y + dist_z*dist_z);
+
+		int other_pitch = (int)rad2bam(asin(dist_z / dist));
+
+		if (max_pitch != 0)
+		{
+			if (self->pitch > other_pitch)
+			{
+				max_pitch = MIN(max_pitch, unsigned(self->pitch - other_pitch));
+				self->pitch -= max_pitch;
+			}
+			else
+			{
+				max_pitch = MIN(max_pitch, unsigned(other_pitch - self->pitch));
+				self->pitch += max_pitch;
+			}
+		}
+		else
+		{
+			self->pitch = other_pitch;
+		}
 	}
 
 	// This will never work well if the turn angle is limited.
-	if (max_turn == 0 && (self->angle == target_angle) && self->target->flags & MF_SHADOW)
+	if (max_turn == 0 && (self->angle == other_angle) && other->flags & MF_SHADOW && !(self->flags6 & MF6_SEEINVISIBLE) )
     {
 		self->angle += pr_facetarget.Random2() << 21;
     }
 }
 
+void A_FaceTarget (AActor *self, angle_t max_turn, angle_t max_pitch)
+{
+	A_Face(self, self->target, max_turn, max_pitch);
+}
+
+void A_FaceMaster (AActor *self, angle_t max_turn, angle_t max_pitch)
+{
+	A_Face(self, self->master, max_turn, max_pitch);
+}
+
+void A_FaceTracer (AActor *self, angle_t max_turn, angle_t max_pitch)
+{
+	A_Face(self, self->tracer, max_turn, max_pitch);
+}
+
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTarget)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_ANGLE(max_turn, 0);
+	ACTION_PARAM_ANGLE(max_pitch, 1);
 
-	A_FaceTarget(self, max_turn);
+	A_FaceTarget(self, max_turn, max_pitch);
+}
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMaster)
+{
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_ANGLE(max_turn, 0);
+	ACTION_PARAM_ANGLE(max_pitch, 1);
+
+	A_FaceMaster(self, max_turn, max_pitch);
+}
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTracer)
+{
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_ANGLE(max_turn, 0);
+	ACTION_PARAM_ANGLE(max_pitch, 1);
+
+	A_FaceTracer(self, max_turn, max_pitch);
 }
 
 //===========================================================================
@@ -2813,10 +2899,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_MonsterRail)
 									self->target->x - self->target->velx * 3,
 									self->target->y - self->target->vely * 3);
 
-	if (self->target->flags & MF_SHADOW)
-    {
+	if (self->target->flags & MF_SHADOW && !(self->flags6 & MF6_SEEINVISIBLE))
+	{
 		self->angle += pr_railface.Random2() << 21;
-    }
+	}
 
 	P_RailAttack (self, self->GetMissileDamage (0, 1), 0);
 	self->pitch = saved_pitch;
@@ -3134,7 +3220,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BossDeath)
 			}
 			checked = true;
 
-			LineSpecials[sa->Action](NULL, self, false, 
+			P_ExecuteSpecial(sa->Action, NULL, self, false, 
 				sa->Args[0], sa->Args[1], sa->Args[2], sa->Args[3], sa->Args[4]);
 		}
 	}

@@ -100,7 +100,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxChase)
 			P_Teleport (self, spot->x, spot->y, ONFLOORZ, spot->angle, true, true, false);
 		}
 
-		P_StartScript (self, NULL, 249, NULL, 0, 0, 0, 0, 0, false);
+		P_StartScript (self, NULL, 249, NULL, NULL, 0, 0);
 		self->special2 = 1;	// Don't run again
 
 		return;
@@ -160,7 +160,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxBonePop)
 		if (mo) KSpiritInit (mo, self);
 	}
 
-	P_StartScript (self, NULL, 255, NULL, 0, 0, 0, 0, false, false);		// Death script
+	P_StartScript (self, NULL, 255, NULL, NULL, 0, 0);		// Death script
 }
 
 //============================================================================
@@ -270,8 +270,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxCommand)
 		numcommands = 4;
 	}
 
-	P_StartScript (self, NULL, 250+(pr_koraxcommand()%numcommands),
-		NULL, 0, 0, 0, 0, false, false);
+	P_StartScript (self, NULL, 250+(pr_koraxcommand()%numcommands), NULL, NULL, 0, 0);
 }
 
 //============================================================================
@@ -324,33 +323,11 @@ void KoraxFire (AActor *actor, const PClass *type, int arm)
 //============================================================================
 //
 // A_KSpiritWeave
+// [BL] Was identical to CHolyWeave so lets just use that
 //
 //============================================================================
 
-DEFINE_ACTION_FUNCTION(AActor, A_KSpiritWeave)
-{
-	fixed_t newX, newY;
-	int weaveXY, weaveZ;
-	int angle;
-
-	weaveXY = self->special2>>16;
-	weaveZ = self->special2&0xFFFF;
-	angle = (self->angle+ANG90)>>ANGLETOFINESHIFT;
-	newX = self->x-FixedMul(finecosine[angle], 
-		FloatBobOffsets[weaveXY]<<2);
-	newY = self->y-FixedMul(finesine[angle],
-		FloatBobOffsets[weaveXY]<<2);
-	weaveXY = (weaveXY+(pr_kspiritweave()%5))&63;
-	newX += FixedMul(finecosine[angle], 
-		FloatBobOffsets[weaveXY]<<2);
-	newY += FixedMul(finesine[angle], 
-		FloatBobOffsets[weaveXY]<<2);
-	P_TryMove(self, newX, newY, true);
-	self->z -= FloatBobOffsets[weaveZ]<<1;
-	weaveZ = (weaveZ+(pr_kspiritweave()%5))&63;
-	self->z += FloatBobOffsets[weaveZ]<<1;	
-	self->special2 = weaveZ+(weaveXY<<16);
-}
+void CHolyWeave (AActor *actor, FRandom &pr_random);
 
 //============================================================================
 //
@@ -442,7 +419,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KSpiritRoam)
 			A_KSpiritSeeker (self, self->args[0]*ANGLE_1,
 							 self->args[0]*ANGLE_1*2);
 		}
-		CALL_ACTION(A_KSpiritWeave, self);
+		CHolyWeave(self, pr_kspiritweave);
 		if (pr_kspiritroam()<50)
 		{
 			S_Sound (self, CHAN_VOICE, "SpiritActive", 1, ATTN_NONE);

@@ -30,7 +30,6 @@
 #include "doomdef.h"
 
 // Include the refresh/render data structs.
-#include "r_data.h"
 
 //
 // Separate header file for each module.
@@ -38,7 +37,5 @@
 #include "r_main.h"
 #include "r_things.h"
 #include "r_draw.h"
-
-bool R_AlignFlat (int linenum, int side, int fc);
 
 #endif // __R_LOCAL_H__

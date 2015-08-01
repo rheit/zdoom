@@ -48,6 +48,7 @@
 #include "gi.h"
 #include "r_defs.h"
 #include "r_state.h"
+#include "r_data/r_translate.h"
 
 
 //=============================================================================
@@ -386,9 +387,33 @@ void FListMenuItemPlayerDisplay::UpdateRandomClass()
 		mPlayerState = GetDefaultByType (mPlayerClass->Type)->SeeState;
 		mPlayerTics = mPlayerState->GetTics();
 		mRandomTimer = 6;
+
+		// Since the newly displayed class may used a different translation
+		// range than the old one, we need to update the translation, too.
+		UpdateTranslation();
 	}
 }
 
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
+void FListMenuItemPlayerDisplay::UpdateTranslation()
+{
+	int PlayerColor = players[consoleplayer].userinfo.color;
+	int	PlayerSkin = players[consoleplayer].userinfo.skin;
+	int PlayerColorset = players[consoleplayer].userinfo.colorset;
+
+	if (mPlayerClass != NULL)
+	{
+		PlayerSkin = R_FindSkin (skins[PlayerSkin].name, int(mPlayerClass - &PlayerClasses[0]));
+		R_GetPlayerTranslation(PlayerColor,
+			P_GetPlayerColorSet(mPlayerClass->Type->TypeName, PlayerColorset),
+			&skins[PlayerSkin], translationtables[TRANSLATION_Players][MAXPLAYERS]);
+	}
+}
 
 //=============================================================================
 //
@@ -558,6 +583,7 @@ void FListMenuItemPlayerDisplay::Drawer(bool selected)
 				DTA_DestWidth, MulScale16 (tex->GetWidth() * CleanXfac, scaleX),
 				DTA_DestHeight, MulScale16 (tex->GetHeight() * CleanYfac, scaleY),
 				DTA_Translation, trans,
+				DTA_FlipX, sprframe->Flip & (1 << mRotation),
 				TAG_DONE);
 		}
 	}

@@ -46,7 +46,6 @@
 #include "w_wad.h"
 #include "templates.h"
 #include "r_defs.h"
-#include "r_draw.h"
 #include "a_pickups.h"
 #include "s_sound.h"
 #include "cmdlib.h"
@@ -146,6 +145,11 @@ FActorInfo *CreateNewActor(const FScriptPosition &sc, FName typeName, FName pare
 		ti = parent->CreateDerivedClass (typeName, parent->Size);
 		info = ti->ActorInfo;
 	}
+
+	// Copy class lists from parent
+	info->ForbiddenToPlayerClass = parent->ActorInfo->ForbiddenToPlayerClass;
+	info->RestrictedToPlayerClass = parent->ActorInfo->RestrictedToPlayerClass;
+	info->VisibleToPlayerClass = parent->ActorInfo->VisibleToPlayerClass;
 
 	if (parent->ActorInfo->DamageFactors != NULL)
 	{

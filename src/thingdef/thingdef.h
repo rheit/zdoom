@@ -26,6 +26,7 @@ struct FFlagDef
 
 FFlagDef *FindFlag (const PClass *type, const char *part1, const char *part2);
 void HandleDeprecatedFlags(AActor *defaults, FActorInfo *info, bool set, int index);
+bool CheckDeprecatedFlags(AActor *actor, FActorInfo *info, int index);
 const char *GetFlagName(int flagnum, int flagoffset);
 
 #define FLAG_NAME(flagnum, flagvar) GetFlagName(flagnum, myoffsetof(AActor, flagvar))
@@ -64,6 +65,7 @@ class FStateDefinitions
 {
 	TArray<FStateDefine> StateLabels;
 	FState *laststate;
+	FState *laststatebeforelabel;
 	intptr_t lastlabel;
 	TArray<FState> StateArray;
 
@@ -83,6 +85,7 @@ public:
 	FStateDefinitions()
 	{
 		laststate = NULL;
+		laststatebeforelabel = NULL;
 		lastlabel = -1;
 	}
 
@@ -367,6 +370,7 @@ struct StateCallData
 // Macros to handle action functions. These are here so that I don't have to
 // change every single use in case the parameters change.
 #define DECLARE_ACTION(name) void AF_##name(AActor *self, AActor *stateowner, FState *, int, StateCallData *);
+#define DECLARE_ACTION_PARAMS(name) void AFP_##name(AActor *self, AActor *stateowner, FState *, int, StateCallData *);
 
 // This distinction is here so that CALL_ACTION produces errors when trying to
 // access a function that requires parameters.
@@ -407,6 +411,8 @@ FName EvalExpressionName (DWORD x, AActor *self);
 	fixed_t var = EvalExpressionFix(ParameterIndex+i, self);
 #define ACTION_PARAM_FLOAT(var,i) \
 	float var = float(EvalExpressionF(ParameterIndex+i, self));
+#define ACTION_PARAM_DOUBLE(var,i) \
+	double var = EvalExpressionF(ParameterIndex+i, self);
 #define ACTION_PARAM_CLASS(var,i) \
 	const PClass *var = EvalExpressionClass(ParameterIndex+i, self);
 #define ACTION_PARAM_STATE(var,i) \

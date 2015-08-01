@@ -40,9 +40,8 @@
 #include "p_lnspec.h"
 #include "w_wad.h"
 #include "sc_man.h"
-#include "v_palette.h"
 #include "g_level.h"
-#include "r_sky.h"
+#include "r_data/colormaps.h"
 
 #ifdef _3DFLOORS
 
@@ -127,6 +126,7 @@ static void P_Add3DFloor(sector_t* sec, sector_t* sec2, line_t* master, int flag
 	ffloor->top.model = ffloor->bottom.model = ffloor->model = sec2;
 	ffloor->target = sec;
 	ffloor->ceilingclip = ffloor->floorclip = NULL;
+	ffloor->validcount = 0;
 
 	if (flags&FF_SKYHACK)
 	{
@@ -135,7 +135,7 @@ static void P_Add3DFloor(sector_t* sec, sector_t* sec2, line_t* master, int flag
 		ffloor->bottom.texheight = &sec->planes[sector_t::ceiling].TexZ;
 		ffloor->bottom.isceiling = sector_t::ceiling;
 	}
-	else if (!(flags&FF_THINFLOOR)) 
+	else if (!(flags&FF_THINFLOOR))
 	{
 		ffloor->bottom.plane = &sec2->floorplane;
 		ffloor->bottom.texture = &sec2->planes[sector_t::floor].Texture;
@@ -379,7 +379,7 @@ bool P_CheckFor3DFloorHit(AActor * mo)
 
 		if(rover->flags & FF_SOLID && rover->model->SecActTarget)
 		{
-			if(mo->z == rover->top.plane->ZatPoint(mo->x, mo->y)) 
+			if(mo->floorz == rover->top.plane->ZatPoint(mo->x, mo->y)) 
 			{
 				rover->model->SecActTarget->TriggerAction (mo, SECSPAC_HitFloor);
 				return true;
@@ -409,7 +409,7 @@ bool P_CheckFor3DCeilingHit(AActor * mo)
 
 		if(rover->flags & FF_SOLID && rover->model->SecActTarget)
 		{
-			if(mo->z+mo->height == rover->bottom.plane->ZatPoint(mo->x, mo->y)) 
+			if(mo->ceilingz == rover->bottom.plane->ZatPoint(mo->x, mo->y)) 
 			{
 				rover->model->SecActTarget->TriggerAction (mo, SECSPAC_HitCeiling);
 				return true;
@@ -492,7 +492,13 @@ void P_Recalculate3DFloors(sector_t * sector)
 
 			oldlist.Delete(pickindex);
 
-			if (pick->flags&(FF_SWIMMABLE|FF_TRANSLUCENT) && pick->flags&FF_EXISTS)
+			if (pick->flags & FF_THISINSIDE)
+			{
+				// These have the floor higher than the ceiling and cannot be processed
+				// by the clipping code below.
+				ffloors.Push(pick);
+			}
+			else if (pick->flags&(FF_SWIMMABLE|FF_TRANSLUCENT) && pick->flags&FF_EXISTS)
 			{
 				clipped=pick;
 				clipped_top=height;
@@ -703,7 +709,7 @@ lightlist_t * P_GetPlaneLight(sector_t * sector, secplane_t * plane, bool unders
 //==========================================================================
 
 void P_LineOpening_XFloors (FLineOpening &open, AActor * thing, const line_t *linedef, 
-							fixed_t x, fixed_t y, fixed_t refx, fixed_t refy)
+							fixed_t x, fixed_t y, fixed_t refx, fixed_t refy, bool restrict)
 {
     if(thing)
     {
@@ -749,7 +755,7 @@ void P_LineOpening_XFloors (FLineOpening &open, AActor * thing, const line_t *li
 						lowestceilingpic = *rover->bottom.texture;
 					}
 					
-					if(ff_top > highestfloor && delta1 < delta2)
+					if(ff_top > highestfloor && delta1 < delta2 && (!restrict || thing->z >= ff_top))
 					{
 						highestfloor = ff_top;
 						highestfloorpic = *rover->top.texture;

@@ -118,7 +118,7 @@ public:
 	};
 
 	void BeginPlay ();
-	void Die (AActor *source, AActor *inflictor);
+	void Die (AActor *source, AActor *inflictor, int dmgflags);
 
 	int			crouchsprite;
 	int			MaxHealth;
@@ -192,9 +192,7 @@ typedef enum
 	CF_TOTALLYFROZEN	= 1 << 12,		// [RH] All players can do is press +use
 	CF_PREDICTING		= 1 << 13,		// [RH] Player movement is being predicted
 	CF_WEAPONREADY		= 1 << 14,		// [RH] Weapon is in the ready state and can fire its primary attack
-	CF_TIMEFREEZE		= 1 << 15,		// Player has an active time freezer
 	CF_DRAIN			= 1 << 16,		// Player owns a drain powerup
-	CF_REGENERATION		= 1 << 17,		// Player owns a regeneration artifact
 	CF_HIGHJUMP			= 1 << 18,		// more Skulltag flags. Implementation not guaranteed though. ;)
 	CF_REFLECTION		= 1 << 19,
 	CF_PROSPERITY		= 1 << 20,
@@ -205,6 +203,8 @@ typedef enum
 	CF_WEAPONREADYALT	= 1 << 25,		// Weapon can fire its secondary attack
 	CF_WEAPONSWITCHOK	= 1 << 26,		// It is okay to switch away from this weapon
 	CF_BUDDHA			= 1 << 27,		// [SP] Buddha mode - take damage, but don't die
+	CF_WEAPONRELOADOK   = 1 << 28,      // [XA] Okay to reload this weapon.
+	CF_WEAPONZOOMOK     = 1 << 29,      // [XA] Okay to use weapon zoom function.
 } cheat_t;
 
 #define WPIECE1		1
@@ -256,6 +256,7 @@ public:
 
 	void SetLogNumber (int num);
 	void SetLogText (const char *text);
+	void SendPitchLimits() const;
 
 	APlayerPawn	*mo;
 	BYTE		playerstate;
@@ -282,6 +283,8 @@ public:
 
 	bool		centering;
 	BYTE		turnticks;
+
+
 	bool		attackdown;
 	bool		usedown;
 	DWORD		oldbuttons;
@@ -302,12 +305,15 @@ public:
 	AWeapon	   *PendingWeapon;			// WP_NOCHANGE if not changing
 
 	int			cheats;					// bit flags
+	int			timefreezer;			// Player has an active time freezer
 	short		refire;					// refired shots are less accurate
 	short		inconsistant;
 	int			killcount, itemcount, secretcount;		// for intermission
 	int			damagecount, bonuscount;// for screen flashing
 	int			hazardcount;			// for delayed Strife damage
 	int			poisoncount;			// screen flash for poison damage
+	FName		poisontype;				// type of poison damage to apply
+	FName		poisonpaintype;			// type of Pain state to enter for poison damage
 	TObjPtr<AActor>		poisoner;		// NULL for non-player actors
 	TObjPtr<AActor>		attacker;		// who did damage (NULL for floors)
 	int			extralight;				// so gun flashes light up areas
@@ -327,8 +333,6 @@ public:
 
 	int			air_finished;			// [RH] Time when you start drowning
 
-	WORD		accuracy, stamina;		// [RH] Strife stats
-
 	FName		LastDamageType;			// [RH] For damage-specific pain and death sounds
 
 	//Added by MC:
@@ -342,9 +346,9 @@ public:
 
 
 	TObjPtr<AActor>		enemy;		// The dead meat.
-	TObjPtr<AActor>		missile;	// A threathing missile that got to be avoided.
-	TObjPtr<AActor>		mate;		// Friend (used for grouping in templay or coop.
-	TObjPtr<AActor>		last_mate;	// If bots mate dissapeared (not if died) that mate is
+	TObjPtr<AActor>		missile;	// A threatening missile that needs to be avoided.
+	TObjPtr<AActor>		mate;		// Friend (used for grouping in teamplay or coop).
+	TObjPtr<AActor>		last_mate;	// If bots mate disappeared (not if died) that mate is
 							// pointed to by this. Allows bot to roam to it if
 							// necessary.
 
@@ -380,6 +384,9 @@ public:
 
 	FString		LogText;	// [RH] Log for Strife
 
+	int			MinPitch;	// Viewpitch limits (negative is up, positive is down)
+	int			MaxPitch;
+
 	SBYTE	crouching;
 	SBYTE	crouchdir;
 	fixed_t crouchfactor;
@@ -413,15 +420,26 @@ public:
 // Bookkeeping on players - state.
 extern player_t players[MAXPLAYERS];
 
-inline FArchive &operator<< (FArchive &arc, player_t *&p)
-{
-	return arc.SerializePointer (players, (BYTE **)&p, sizeof(*players));
-}
+FArchive &operator<< (FArchive &arc, player_t *&p);
 
 void P_CheckPlayerSprites();
 
+inline void AActor::SetFriendPlayer(player_t *player)
+{
+	if (player == NULL)
+	{
+		FriendPlayer = 0;
+	}
+	else
+	{
+		FriendPlayer = int(player - players) + 1;
+	}
+}
+
 
 #define CROUCHSPEED (FRACUNIT/12)
+
+bool P_IsPlayerTotallyFrozen(const player_t *player);
 
 // [GRB] Custom player classes
 enum

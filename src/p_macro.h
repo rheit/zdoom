@@ -13,7 +13,7 @@
 #include "g_level.h"
 #include "p_lnspec.h"
 #include "doomdata.h"
-#include "r_data.h"
+#include "r_defs.h"
 #include "m_swap.h"
 #include "p_spec.h"
 #include "p_local.h"
@@ -21,6 +21,7 @@
 #include "gi.h"
 #include "xlat/xlat.h"
 #include "tarray.h"
+#include "farchive.h"
 
 struct macro_t
 {

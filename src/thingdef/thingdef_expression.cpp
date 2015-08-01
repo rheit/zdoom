@@ -82,6 +82,8 @@ DEFINE_MEMBER_VARIABLE(scaleX, AActor)
 DEFINE_MEMBER_VARIABLE(scaleY, AActor)
 DEFINE_MEMBER_VARIABLE(Damage, AActor)
 DEFINE_MEMBER_VARIABLE(Score, AActor)
+DEFINE_MEMBER_VARIABLE(accuracy, AActor)
+DEFINE_MEMBER_VARIABLE(stamina, AActor)
 
 //==========================================================================
 //
@@ -1550,7 +1552,7 @@ FxExpression *FxAbs::Resolve(FCompileContext &ctx)
 	SAFE_RESOLVE(val, ctx);
 
 
-	if (!ValueType.isNumeric())
+	if (!val->ValueType.isNumeric())
 	{
 		ScriptPosition.Message(MSG_ERROR, "Numeric type expected");
 		delete this;
@@ -1696,6 +1698,7 @@ FxFRandom::FxFRandom(FRandom *r, FxExpression *mi, FxExpression *ma, const FScri
 		min = mi;
 		max = ma;
 	}
+	ValueType = VAL_Float;
 }
 
 //==========================================================================
@@ -1868,7 +1871,7 @@ FxExpression *FxIdentifier::Resolve(FCompileContext& ctx)
 		newex = new FxCVar(cv, ScriptPosition);
 	}
 	*/
-	// amd line specials
+	// and line specials
 	else if ((num = P_FindLineSpecial(Identifier, NULL, NULL)))
 	{
 		ScriptPosition.Message(MSG_DEBUGLOG, "Resolving name '%s' as line special %d\n", Identifier.GetChars(), num);
@@ -2277,25 +2280,18 @@ FxFunctionCall::~FxFunctionCall()
 
 FxExpression *FxFunctionCall::Resolve(FCompileContext& ctx)
 {
-	// There's currently only 2 global functions.
-	// This will have to change later!
-	if (MethodName == NAME_Sin || MethodName == NAME_Cos)
+	int min, max, special;
+	if (MethodName == NAME_ACS_NamedExecuteWithResult || MethodName == NAME_CallACS)
 	{
-		if (Self != NULL)
-		{
-			ScriptPosition.Message(MSG_ERROR, "Global variables cannot have a self pointer");
-			delete this;
-			return NULL;
-		}
-		FxExpression *x = new FxGlobalFunctionCall(MethodName, ArgList, ScriptPosition);
-		ArgList = NULL;
-		delete this;
-		return x->Resolve(ctx);
+		special = -ACS_ExecuteWithResult;
+		min = 1;
+		max = 5;
 	}
-
-	int min, max;
-	int special = P_FindLineSpecial(MethodName.GetChars(), &min, &max);
-	if (special > 0 && min >= 0)
+	else
+	{
+		special = P_FindLineSpecial(MethodName.GetChars(), &min, &max);
+	}
+	if (special != 0 && min >= 0)
 	{
 		int paramcount = ArgList? ArgList->Size() : 0;
 		if (paramcount < min)
@@ -2317,6 +2313,19 @@ FxExpression *FxFunctionCall::Resolve(FCompileContext& ctx)
 		delete this;
 		return x->Resolve(ctx);
 	}
+	else
+	{
+		if (Self != NULL)
+		{
+			ScriptPosition.Message(MSG_ERROR, "Global variables cannot have a self pointer");
+			delete this;
+			return NULL;
+		}
+		FxExpression *x = FxGlobalFunctionCall::StaticCreate(MethodName, ArgList, ScriptPosition);
+		ArgList = NULL;
+		delete this;
+		return x->Resolve(ctx);
+	}
 
 	ScriptPosition.Message(MSG_ERROR, "Call to unknown function '%s'", MethodName.GetChars());
 	delete this;
@@ -2326,7 +2335,10 @@ FxExpression *FxFunctionCall::Resolve(FCompileContext& ctx)
 
 //==========================================================================
 //
+// FxActionSpecialCall
 //
+// If special is negative, then the first argument will be treated as a
+// name for ACS_NamedExecuteWithResult.
 //
 //==========================================================================
 
@@ -2367,7 +2379,15 @@ FxExpression *FxActionSpecialCall::Resolve(FCompileContext& ctx)
 		{
 			(*ArgList)[i] = (*ArgList)[i]->Resolve(ctx);
 			if ((*ArgList)[i] == NULL) failed = true;
-			if ((*ArgList)[i]->ValueType != VAL_Int)
+			if (Special < 0 && i == 0)
+			{
+				if ((*ArgList)[i]->ValueType != VAL_Name)
+				{
+					ScriptPosition.Message(MSG_ERROR, "Name expected for parameter %d", i);
+					failed = true;
+				}
+			}
+			else if ((*ArgList)[i]->ValueType != VAL_Int)
 			{
 				if (ctx.lax && ((*ArgList)[i]->ValueType == VAL_Float))
 				{
@@ -2400,6 +2420,7 @@ FxExpression *FxActionSpecialCall::Resolve(FCompileContext& ctx)
 ExpVal FxActionSpecialCall::EvalExpression (AActor *self)
 {
 	int v[5] = {0,0,0,0,0};
+	int special = Special;
 
 	if (Self != NULL)
 	{
@@ -2410,12 +2431,20 @@ ExpVal FxActionSpecialCall::EvalExpression (AActor *self)
 	{
 		for(unsigned i = 0; i < ArgList->Size(); i++)
 		{
-			v[i] = (*ArgList)[i]->EvalExpression(self).GetInt();
+			if (special < 0)
+			{
+				special = -special;
+				v[i] = -(*ArgList)[i]->EvalExpression(self).GetName();
+			}
+			else
+			{
+				v[i] = (*ArgList)[i]->EvalExpression(self).GetInt();
+			}
 		}
 	}
 	ExpVal ret;
 	ret.Type = VAL_Int;
-	ret.Int = LineSpecials[Special](NULL, self, false, v[0], v[1], v[2], v[3], v[4]);
+	ret.Int = P_ExecuteSpecial(special, NULL, self, false, v[0], v[1], v[2], v[3], v[4]);
 	return ret;
 }
 
@@ -2441,60 +2470,6 @@ FxGlobalFunctionCall::FxGlobalFunctionCall(FName fname, FArgumentList *args, con
 FxGlobalFunctionCall::~FxGlobalFunctionCall()
 {
 	SAFE_DELETE(ArgList);
-}
-
-//==========================================================================
-//
-// // so far just a quick hack to handle sin and cos
-//
-//==========================================================================
-
-FxExpression *FxGlobalFunctionCall::Resolve(FCompileContext& ctx)
-{
-	CHECKRESOLVED();
-
-	if (ArgList == NULL || ArgList->Size() != 1)
-	{
-		ScriptPosition.Message(MSG_ERROR, "%s only has one parameter", Name.GetChars());
-		delete this;
-		return NULL;
-	}
-
-	(*ArgList)[0] = (*ArgList)[0]->Resolve(ctx);
-	if ((*ArgList)[0] == NULL)
-	{
-		delete this;
-		return NULL;
-	}
-
-	if (!(*ArgList)[0]->ValueType.isNumeric())
-	{
-		ScriptPosition.Message(MSG_ERROR, "numeric value expected for parameter");
-		delete this;
-		return NULL;
-	}
-	ValueType = VAL_Float;
-	return this;
-}
-
-
-//==========================================================================
-//
-// 
-//
-//==========================================================================
-
-ExpVal FxGlobalFunctionCall::EvalExpression (AActor *self)
-{
-	double v = (*ArgList)[0]->EvalExpression(self).GetFloat();
-	ExpVal ret;
-	ret.Type = VAL_Float;
-
-	// shall we use the CRT's sin and cos functions?
-	angle_t angle = angle_t(v * ANGLE_90/90.);
-	if (Name == NAME_Sin) ret.Float = FIXED2FLOAT (finesine[angle>>ANGLETOFINESHIFT]);
-	else ret.Float = FIXED2FLOAT (finecosine[angle>>ANGLETOFINESHIFT]);
-	return ret;
 }
 
 

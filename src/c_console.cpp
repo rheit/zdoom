@@ -53,8 +53,6 @@
 #include "v_video.h"
 #include "v_text.h"
 #include "w_wad.h"
-#include "r_main.h"
-#include "r_draw.h"
 #include "sbar.h"
 #include "s_sound.h"
 #include "s_sndseq.h"
@@ -65,6 +63,7 @@
 #include "d_net.h"
 #include "g_level.h"
 #include "d_event.h"
+#include "d_player.h"
 
 #include "gi.h"
 
@@ -769,7 +768,7 @@ void AddToConsole (int printlevel, const char *text)
 						// The line start is outside the buffer. 
 						// Make space for the newly inserted stuff.
 						size_t movesize = work-linestart;
-						memmove(work + movesize, work, strlen(work));
+						memmove(work + movesize, work, strlen(work)+1);
 						work_p += movesize;
 						linestart = work;
 					}

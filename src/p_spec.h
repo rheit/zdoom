@@ -27,6 +27,7 @@
 
 #include "dsectoreffect.h"
 #include "doomdata.h"
+#include "r_state.h"
 
 class FScanner;
 struct level_info_t;
@@ -94,15 +95,7 @@ private:
 
 // Factor to scale scrolling effect into mobj-carrying properties = 3/32.
 // (This is so scrolling floors and objects on them can move at same speed.)
-enum { CARRYFACTOR = ((fixed_t)(FRACUNIT*.09375)) };
-
-inline FArchive &operator<< (FArchive &arc, DScroller::EScrollType &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DScroller::EScrollType)val;
-	return arc;
-}
+enum { CARRYFACTOR = (3*FRACUNIT >> 5) };
 
 // phares 3/20/98: added new model of Pushers for push/pull effects
 
@@ -149,16 +142,14 @@ protected:
 
 bool PIT_PushThing (AActor *thing);
 
-inline FArchive &operator<< (FArchive &arc, DPusher::EPusher &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DPusher::EPusher)val;
-	return arc;
-}
-
 // Define values for map objects
 #define MO_TELEPORTMAN			14
+
+// Flags for P_SectorDamage
+#define DAMAGE_PLAYERS				1
+#define DAMAGE_NONPLAYERS			2
+#define DAMAGE_IN_AIR				4
+#define DAMAGE_SUBCLASSES_PROTECT	8
 
 
 // [RH] If a deathmatch game, checks to see if noexit is enabled.
@@ -179,7 +170,7 @@ bool	P_TestActivateLine (line_t *ld, AActor *mo, int side, int activationType);
 
 void 	P_PlayerInSpecialSector (player_t *player, sector_t * sector=NULL);
 void	P_PlayerOnSpecialFlat (player_t *player, int floorType);
-
+void	P_SectorDamage(int tag, int amount, FName type, const PClass *protectClass, int flags);
 void	P_SetSectorFriction (int tag, int amount, bool alterFlag);
 
 void P_GiveSecret(AActor *actor, bool printmessage, bool playsound);
@@ -501,21 +492,6 @@ bool EV_DoPlat (int tag, line_t *line, DPlat::EPlatType type,
 void EV_StopPlat (int tag);
 void P_ActivateInStasis (int tag);
 
-inline FArchive &operator<< (FArchive &arc, DPlat::EPlatType &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DPlat::EPlatType)val;
-	return arc;
-}
-inline FArchive &operator<< (FArchive &arc, DPlat::EPlatState &state)
-{
-	BYTE val = (BYTE)state;
-	arc << val;
-	state = (DPlat::EPlatState)val;
-	return arc;
-}
-
 //
 // [RH]
 // P_PILLAR
@@ -554,14 +530,6 @@ protected:
 private:
 	DPillar ();
 };
-
-inline FArchive &operator<< (FArchive &arc, DPillar::EPillar &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DPillar::EPillar)val;
-	return arc;
-}
 
 bool EV_DoPillar (DPillar::EPillar type, int tag, fixed_t speed, fixed_t height,
 				  fixed_t height2, int crush, bool hexencrush);
@@ -605,10 +573,11 @@ protected:
 
 	int			m_LightTag;
 
-	void DoorSound (bool raise) const;
+	void DoorSound (bool raise, class DSeqNode *curseq=NULL) const;
 
 	friend bool	EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
-						   int tag, int speed, int delay, int lock, int lightTag);
+						   int tag, int speed, int delay, int lock,
+						   int lightTag, bool boomgen);
 	friend void P_SpawnDoorCloseIn30 (sector_t *sec);
 	friend void P_SpawnDoorRaiseIn5Mins (sector_t *sec);
 
@@ -616,17 +585,10 @@ protected:
 };
 
 bool EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
-				int tag, int speed, int delay, int lock, int lightTag);
+				int tag, int speed, int delay, int lock,
+				int lightTag, bool boomgen = false);
 void P_SpawnDoorCloseIn30 (sector_t *sec);
 void P_SpawnDoorRaiseIn5Mins (sector_t *sec);
-
-inline FArchive &operator<< (FArchive &arc, DDoor::EVlDoor &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DDoor::EVlDoor)val;
-	return arc;
-}
 
 class DSplitDoor : public DDoor
 {
@@ -707,6 +669,7 @@ public:
 		ceilLowerInstant,
 		ceilRaiseInstant,
 		ceilCrushAndRaise,
+		ceilCrushAndRaiseDist,
 		ceilLowerAndCrush,
 		ceilLowerAndCrushDist,
 		ceilCrushRaiseAndStay,
@@ -774,13 +737,6 @@ bool EV_DoCeiling (DCeiling::ECeiling type, line_t *line,
 bool EV_CeilingCrushStop (int tag);
 void P_ActivateInStasisCeiling (int tag);
 
-inline FArchive &operator<< (FArchive &arc, DCeiling::ECeiling &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DCeiling::ECeiling)val;
-	return arc;
-}
 
 
 //
@@ -866,7 +822,7 @@ protected:
 		fixed_t stairsize, fixed_t speed, int delay, int reset, int igntxt,
 		int usespecials);
 	friend bool EV_DoFloor (DFloor::EFloor floortype, line_t *line, int tag,
-		fixed_t speed, fixed_t height, int crush, int change, bool hexencrush);
+		fixed_t speed, fixed_t height, int crush, int change, bool hexencrush, bool hereticlower=false);
 	friend bool EV_FloorCrushStop (int tag);
 	friend bool EV_DoDonut (int tag, line_t *line, fixed_t pillarspeed, fixed_t slimespeed);
 private:
@@ -877,17 +833,9 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 	fixed_t stairsize, fixed_t speed, int delay, int reset, int igntxt,
 	int usespecials);
 bool EV_DoFloor (DFloor::EFloor floortype, line_t *line, int tag,
-	fixed_t speed, fixed_t height, int crush, int change, bool hexencrush);
+	fixed_t speed, fixed_t height, int crush, int change, bool hexencrush, bool hereticlower);
 bool EV_FloorCrushStop (int tag);
 bool EV_DoDonut (int tag, line_t *line, fixed_t pillarspeed, fixed_t slimespeed);
-
-inline FArchive &operator<< (FArchive &arc, DFloor::EFloor &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DFloor::EFloor)val;
-	return arc;
-}
 
 class DElevator : public DMover
 {
@@ -929,14 +877,6 @@ private:
 
 bool EV_DoElevator (line_t *line, DElevator::EElevator type, fixed_t speed,
 	fixed_t height, int tag);
-
-inline FArchive &operator<< (FArchive &arc, DElevator::EElevator &type)
-{
-	BYTE val = (BYTE)type;
-	arc << val;
-	type = (DElevator::EElevator)val;
-	return arc;
-}
 
 class DWaggleBase : public DMover
 {
@@ -1003,8 +943,8 @@ bool EV_DoChange (line_t *line, EChange changetype, int tag);
 //
 // P_TELEPT
 //
-bool P_Teleport (AActor *thing, fixed_t x, fixed_t y, fixed_t z, angle_t angle, bool useFog, bool sourceFog, bool keepOrientation, bool haltVelocity = true);
-bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, bool fog, bool sourceFog, bool keepOrientation, bool haltVelocity = true);
+bool P_Teleport (AActor *thing, fixed_t x, fixed_t y, fixed_t z, angle_t angle, bool useFog, bool sourceFog, bool keepOrientation, bool haltVelocity = true, bool keepHeight = false);
+bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, bool fog, bool sourceFog, bool keepOrientation, bool haltVelocity = true, bool keepHeight = false);
 bool EV_SilentLineTeleport (line_t *line, int side, AActor *thing, int id, INTBOOL reverse);
 bool EV_TeleportOther (int other_tid, int dest_tid, bool fog);
 bool EV_TeleportGroup (int group_tid, AActor *victim, int source_tid, int dest_tid, bool moveSource, bool fog);
@@ -1015,8 +955,12 @@ bool EV_TeleportSector (int tag, int source_tid, int dest_tid, bool fog, int gro
 // [RH] ACS (see also p_acs.h)
 //
 
-int  P_StartScript (AActor *who, line_t *where, int script, char *map, bool backSide,
-					int arg0, int arg1, int arg2, int always, bool wantResultCode, bool net=false);
+#define ACS_BACKSIDE		1
+#define ACS_ALWAYS			2
+#define ACS_WANTRESULT		4
+#define ACS_NET				8
+
+int  P_StartScript (AActor *who, line_t *where, int script, const char *map, const int *args, int argcount, int flags);
 void P_SuspendScript (int script, char *map);
 void P_TerminateScript (int script, char *map);
 void P_DoDeferedScripts (void);

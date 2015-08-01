@@ -58,9 +58,9 @@
 #include "d_event.h"
 #include "m_argv.h"
 #include "p_lnspec.h"
-
-int P_StartScript (AActor *who, line_t *where, int script, char *map, bool backSide,
-					int arg0, int arg1, int arg2, int always, bool wantResultCode, bool net);
+#include "v_video.h"
+#include "p_spec.h"
+#include "intermission/intermission.h"
 
 EXTERN_CVAR (Int, disableautosave)
 EXTERN_CVAR (Int, autosavecount)
@@ -120,6 +120,7 @@ void G_BuildTiccmd (ticcmd_t *cmd);
 void D_DoAdvanceDemo (void);
 
 static void SendSetup (DWORD playersdetected[MAXNETNODES], BYTE gotsetup[MAXNETNODES], int len);
+static void RunScript(BYTE **stream, APlayerPawn *pawn, int snum, int argn, int always);
 
 int		reboundpacket;
 BYTE	reboundstore[MAX_MSGLEN];
@@ -591,13 +592,16 @@ void PlayerIsGone (int netnode, int netconsole)
 		Printf ("%s left the game\n", players[netconsole].userinfo.netname);
 	}
 
-	// [RH] Revert to your own view if spying through the player who left
-	if (players[consoleplayer].camera == players[netconsole].mo)
+	// [RH] Revert each player to their own view if spying through the player who left
+	for (int ii = 0; ii < MAXPLAYERS; ++ii)
 	{
-		players[consoleplayer].camera = players[consoleplayer].mo;
-		if (StatusBar != NULL)
+		if (playeringame[ii] && players[ii].camera == players[netconsole].mo)
 		{
-			StatusBar->AttachToPlayer (&players[consoleplayer]);
+			players[ii].camera = players[ii].mo;
+			if (ii == consoleplayer && StatusBar != NULL)
+			{
+				StatusBar->AttachToPlayer (&players[ii]);
+			}
 		}
 	}
 
@@ -608,6 +612,11 @@ void PlayerIsGone (int netnode, int netconsole)
 		P_DisconnectEffect (players[netconsole].mo);
 		players[netconsole].mo->player = NULL;
 		players[netconsole].mo->Destroy ();
+		if (!(players[netconsole].mo->ObjectFlags & OF_EuthanizeMe))
+		{ // We just destroyed a morphed player, so now the original player
+		  // has taken their place. Destroy that one too.
+			players[netconsole].mo->Destroy();
+		}
 		players[netconsole].mo = NULL;
 		players[netconsole].camera = NULL;
 	}
@@ -747,6 +756,7 @@ void GetPackets (void)
 		}
 
 		if (netbuffer[0] & NCMD_QUITTERS)
+
 		{
 			numplayers = netbuffer[k++];
 			for (int i = 0; i < numplayers; ++i)
@@ -1539,7 +1549,6 @@ static void SendSetup (DWORD playersdetected[MAXNETNODES], BYTE gotsetup[MAXNETN
 // D_CheckNetGame
 // Works out player numbers among the net participants
 //
-extern int viewangleoffset;
 
 void D_CheckNetGame (void)
 {
@@ -2058,10 +2067,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		break;
 
 	case DEM_CENTERVIEW:
-		if (players[player].mo != NULL)
-		{
-			players[player].mo->pitch = 0;
-		}
+		players[player].centering = true;
 		break;
 
 	case DEM_INVUSEALL:
@@ -2313,18 +2319,17 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		{
 			int snum = ReadWord (stream);
 			int argn = ReadByte (stream);
-			int arg[3] = { 0, 0, 0 };
-			
-			for (i = 0; i < argn; ++i)
-			{
-				int argval = ReadLong(stream);
-				if (i < countof(arg))
-				{
-					arg[i] = argval;
-				}
-			}
-			P_StartScript (players[player].mo, NULL, snum, level.mapname, false,
-				arg[0], arg[1], arg[2], type == DEM_RUNSCRIPT2, false, true);
+
+			RunScript(stream, players[player].mo, snum, argn, (type == DEM_RUNSCRIPT2) ? ACS_ALWAYS : 0);
+		}
+		break;
+
+	case DEM_RUNNAMEDSCRIPT:
+		{
+			char *sname = ReadString(stream);
+			int argn = ReadByte(stream);
+
+			RunScript(stream, players[player].mo, -FName(sname), argn & 127, (argn & 128) ? ACS_ALWAYS : 0);
 		}
 		break;
 
@@ -2337,23 +2342,24 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			for (i = 0; i < argn; ++i)
 			{
 				int argval = ReadLong(stream);
-				if (i < countof(arg))
+				if ((unsigned)i < countof(arg))
 				{
 					arg[i] = argval;
 				}
 			}
 			if (!CheckCheatmode(player == consoleplayer))
 			{
-				LineSpecials[snum](NULL, players[player].mo, false, arg[0], arg[1], arg[2], arg[3], arg[4]);
+				P_ExecuteSpecial(snum, NULL, players[player].mo, false, arg[0], arg[1], arg[2], arg[3], arg[4]);
 			}
 		}
 		break;
 
 	case DEM_CROUCH:
 		if (gamestate == GS_LEVEL && players[player].mo != NULL && 
-			players[player].health > 0 && !(players[player].oldbuttons & BT_JUMP))
+			players[player].health > 0 && !(players[player].oldbuttons & BT_JUMP) &&
+			!P_IsPlayerTotallyFrozen(&players[player]))
 		{
-			players[player].crouching = players[player].crouchdir<0? 1 : -1;
+			players[player].crouching = players[player].crouchdir < 0 ? 1 : -1;
 		}
 		break;
 
@@ -2419,17 +2425,27 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		break;
 
 	case DEM_SETSLOT:
+	case DEM_SETSLOTPNUM:
 		{
+			int pnum;
+			if (type == DEM_SETSLOTPNUM)
+			{
+				pnum = ReadByte(stream);
+			}
+			else
+			{
+				pnum = player;
+			}
 			unsigned int slot = ReadByte(stream);
 			int count = ReadByte(stream);
 			if (slot < NUM_WEAPON_SLOTS)
 			{
-				players[player].weapons.Slots[slot].Clear();
+				players[pnum].weapons.Slots[slot].Clear();
 			}
-			for(int i = 0; i < count; ++i)
+			for(i = 0; i < count; ++i)
 			{
 				const PClass *wpn = Net_ReadWeapon(stream);
-				players[player].weapons.AddSlot(slot, wpn, player == consoleplayer);
+				players[pnum].weapons.AddSlot(slot, wpn, pnum == consoleplayer);
 			}
 		}
 		break;
@@ -2450,6 +2466,19 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		}
 		break;
 
+	case DEM_SETPITCHLIMIT:
+		players[player].MinPitch = ReadByte(stream) * -ANGLE_1;		// up
+		players[player].MaxPitch = ReadByte(stream) *  ANGLE_1;		// down
+		break;
+
+	case DEM_ADVANCEINTER:
+		F_AdvanceIntermission();
+		break;
+
+	case DEM_REVERTCAMERA:
+		players[player].camera = players[player].mo;
+		break;
+
 	default:
 		I_Error ("Unknown net command: %d", type);
 		break;
@@ -2457,6 +2486,23 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 
 	if (s)
 		delete[] s;
+}
+
+// Used by DEM_RUNSCRIPT, DEM_RUNSCRIPT2, and DEM_RUNNAMEDSCRIPT
+static void RunScript(BYTE **stream, APlayerPawn *pawn, int snum, int argn, int always)
+{
+	int arg[4] = { 0, 0, 0, 0 };
+	int i;
+	
+	for (i = 0; i < argn; ++i)
+	{
+		int argval = ReadLong(stream);
+		if ((unsigned)i < countof(arg))
+		{
+			arg[i] = argval;
+		}
+	}
+	P_StartScript(pawn, NULL, snum, level.mapname, arg, MIN<int>(countof(arg), argn), ACS_NET | always);
 }
 
 void Net_SkipCommand (int type, BYTE **stream)
@@ -2547,6 +2593,11 @@ void Net_SkipCommand (int type, BYTE **stream)
 			skip = 3 + *(*stream + 2) * 4;
 			break;
 
+		case DEM_RUNNAMEDSCRIPT:
+			skip = strlen((char *)(*stream)) + 2;
+			skip += ((*(*stream + skip - 1)) & 127) * 4;
+			break;
+
 		case DEM_RUNSPECIAL:
 			skip = 2 + *(*stream + 1) * 4;
 			break;
@@ -2556,9 +2607,10 @@ void Net_SkipCommand (int type, BYTE **stream)
 			break;
 
 		case DEM_SETSLOT:
+		case DEM_SETSLOTPNUM:
 			{
-				skip = 2;
-				for(int numweapons = (*stream)[1]; numweapons > 0; numweapons--)
+				skip = 2 + (type == DEM_SETSLOTPNUM);
+				for(int numweapons = (*stream)[skip-1]; numweapons > 0; numweapons--)
 				{
 					skip += 1 + ((*stream)[skip] >> 7);
 				}
@@ -2570,6 +2622,9 @@ void Net_SkipCommand (int type, BYTE **stream)
 			skip = 2 + ((*stream)[1] >> 7);
 			break;
 
+		case DEM_SETPITCHLIMIT:
+			skip = 2;
+			break;
 
 		default:
 			return;

@@ -44,7 +44,7 @@ set( MINOR_VERSIONS "50" "49" "48" "47" "46" "45" "44" "43" "42" "41"
 	"27" "26" "25" "24" "23" "22" "21" "20" "21" "19" "18" "17" "16"
 	"15" "14" "13" "12" "11" "10" "09" "08" "07" "06" "05" "04" "03"
 	"02" "01" "00" )
-set( MAJOR_VERSIONS "30" "28" "26" "24" "22" "20" )
+set( MAJOR_VERSIONS "34" "28" "26" "24" "22" "20" )
 set( FMOD_DIR_VERSIONS ${FMOD_DIR_VERSIONS} "../fmod" )
 foreach( majver ${MAJOR_VERSIONS} )
 	foreach( minver ${MINOR_VERSIONS} )
@@ -166,6 +166,19 @@ else( WIN32 )
 				set( NO_GTK ON )
 			endif( GTK2_FOUND )
 		endif( NOT NO_GTK )
+
+		# Check for Xcursor library and header files
+		find_library( XCURSOR_LIB Xcursor )
+		if( XCURSOR_LIB )
+			find_file( XCURSOR_HEADER "X11/Xcursor/Xcursor.h" )
+			if( XCURSOR_HEADER )
+				add_definitions( -DUSE_XCURSOR=1 )
+				message( STATUS "Found Xcursor at ${XCURSOR_LIB}" )
+				set( ZDOOM_LIBS ${ZDOOM_LIBS} ${XCURSOR_LIB} )
+			else( XCURSOR_HEADER )
+				unset( XCURSOR_LIB )
+			endif( XCURSOR_HEADER )
+		endif( XCURSOR_LIB )
 	endif( APPLE )
 	set( NASM_NAMES nasm )
 	
@@ -244,7 +257,7 @@ endif( FMOD_LIBRARY )
 
 # Search for FluidSynth
 
-include( ../FindFluidSynth.cmake )
+find_package( FluidSynth )
 
 # Search for NASM
 
@@ -346,7 +359,7 @@ endif( NOT NO_ASM )
 set( SSE_MATTERS NO )
 
 # SSE only matters on 32-bit targets. We check compiler flags to know if we can do it.
-if( CMAKE_SIZEOF_VOID_P MATCHES "4" )
+if( CMAKE_SIZEOF_VOID_P MATCHES "4" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES ppc )
 	CHECK_CXX_COMPILER_FLAG( "-msse2 -mfpmath=sse" CAN_DO_MFPMATH )
 	CHECK_CXX_COMPILER_FLAG( -arch:SSE2 CAN_DO_ARCHSSE2 )
 	if( CAN_DO_MFPMATH )
@@ -358,7 +371,7 @@ if( CMAKE_SIZEOF_VOID_P MATCHES "4" )
 		set( SSE2_ENABLE -arch:SSE2 )
 		set( SSE_MATTERS YES )
 	endif( CAN_DO_MFPMATH )
-endif( CMAKE_SIZEOF_VOID_P MATCHES "4" )
+endif( CMAKE_SIZEOF_VOID_P MATCHES "4" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES ppc )
 
 if( SSE_MATTERS )
 	if( WIN32 )
@@ -390,17 +403,17 @@ if( CMAKE_COMPILER_IS_GNUCXX )
 	if( NOT PROFILE )
 		set( REL_CXX_FLAGS "${REL_CXX_FLAGS} -fomit-frame-pointer" )
 	endif( NOT PROFILE )
-	set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${REL_CXX_FLAGS}" )
-	set( CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} ${REL_CXX_FLAGS}" )
-	set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${REL_CXX_FLAGS}" )
+	set( CMAKE_CXX_FLAGS_RELEASE "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}" )
+	set( CMAKE_CXX_FLAGS_MINSIZEREL "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_MINSIZEREL}" )
+	set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" )
 
-	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused" )
+	set( CMAKE_CXX_FLAGS "-Wall -Wno-unused -Wextra -Wno-missing-field-initializers ${CMAKE_CXX_FLAGS}" )
 
 	# Remove extra warnings when using the official DirectX headers.
 	# Also, TDM-GCC 4.4.0 no longer accepts glibc-style printf formats as valid,
 	# which is a royal pain. The previous version I had been using was fine with them.
 	if( WIN32 )
-		set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas -Wno-comment -Wno-format" )
+		set( CMAKE_CXX_FLAGS "-Wno-unknown-pragmas -Wno-comment -Wno-format ${CMAKE_CXX_FLAGS}" )
 	endif( WIN32 )
 
 	if( NOT NO_STRIP )
@@ -430,13 +443,6 @@ CHECK_FUNCTION_EXISTS( strnicmp STRNICMP_EXISTS )
 if( NOT STRNICMP_EXISTS )
 	add_definitions( -Dstrnicmp=strncasecmp )
 endif( NOT STRNICMP_EXISTS )
-
-if( NOT WIN32 )
-	CHECK_FUNCTION_EXISTS( sigtimedwait SIGTIMEDWAIT_EXISTS )
-	if( SIGTIMEDWAIT_EXISTS )
-		add_definitions( -DHAVE_SIGTIMEDWAIT )
-	endif( SIGTIMEDWAIT_EXISTS )
-endif( NOT WIN32)
 
 if( NOT MSVC )
 	add_definitions( -D__forceinline=inline )
@@ -544,7 +550,7 @@ else( WIN32 )
 		sdl/sdlvideo.cpp
 		sdl/st_start.cpp )
 	if( APPLE )
-		set( SYSTEM_SOURCES ${SYSTEM_SOURCES} sdl/SDLMain.m sdl/iwadpicker_cocoa.mm )
+		set( SYSTEM_SOURCES ${SYSTEM_SOURCES} sdl/SDLMain.m sdl/iwadpicker_cocoa.mm sdl/i_system_cocoa.mm )
 	endif( APPLE )
 endif( WIN32 )
 
@@ -603,6 +609,7 @@ add_executable( zdoom WIN32
 	${SYSTEM_SOURCES}
 	${X86_SOURCES}
 	x86.cpp
+	actorptrselect.cpp
 	am_map.cpp
 	b_bot.cpp
 	b_func.cpp
@@ -709,19 +716,18 @@ add_executable( zdoom WIN32
 	p_xlat.cpp
 	parsecontext.cpp
 	po_man.cpp
+	r_swrenderer.cpp
+	r_utility.cpp
 	r_3dfloors.cpp
 	r_bsp.cpp
-	r_data.cpp
 	r_draw.cpp
 	r_drawt.cpp
-	r_interpolate.cpp
 	r_main.cpp
 	r_plane.cpp
 	r_polymost.cpp
 	r_segs.cpp
 	r_sky.cpp
 	r_things.cpp
-	r_translate.cpp
 	s_advsound.cpp
 	s_environment.cpp
 	s_playlist.cpp
@@ -736,6 +742,7 @@ add_executable( zdoom WIN32
 	tables.cpp
 	teaminfo.cpp
 	tempfiles.cpp
+	v_blend.cpp
 	v_collection.cpp
 	v_draw.cpp
 	v_font.cpp
@@ -868,6 +875,7 @@ add_executable( zdoom WIN32
 	thingdef/thingdef_data.cpp
 	thingdef/thingdef_exp.cpp
 	thingdef/thingdef_expression.cpp
+	thingdef/thingdef_function.cpp
 	thingdef/thingdef_parse.cpp
 	thingdef/thingdef_properties.cpp
 	thingdef/thingdef_states.cpp
@@ -891,6 +899,12 @@ add_executable( zdoom WIN32
 	fragglescript/t_spec.cpp
 	fragglescript/t_variable.cpp
 	fragglescript/t_cmd.cpp
+	r_data/colormaps.cpp
+	r_data/sprites.cpp
+	r_data/voxels.cpp
+	r_data/renderstyle.cpp
+	r_data/r_interpolate.cpp
+	r_data/r_translate.cpp
 	autozend.cpp
 )
 

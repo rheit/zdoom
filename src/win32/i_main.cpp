@@ -79,7 +79,7 @@
 #include "cmdlib.h"
 #include "g_level.h"
 #include "doomstat.h"
-#include "r_main.h"
+#include "r_utility.h"
 
 #include "stats.h"
 #include "st_start.h"
@@ -249,20 +249,6 @@ static void UnWTS (void)
 		FreeLibrary (hwtsapi32);
 		hwtsapi32 = 0;
 	}
-}
-
-//==========================================================================
-//
-// FinalGC
-//
-// If this doesn't free everything, the debug CRT will let us know.
-//
-//==========================================================================
-
-static void FinalGC()
-{
-	Args = NULL;
-	GC::FullGC();
 }
 
 //==========================================================================
@@ -827,7 +813,6 @@ void DoMain (HINSTANCE hInstance)
 #endif
 
 		Args = new DArgs(__argc, __argv);
-		atterm(FinalGC);
 
 		// Under XP, get our session ID so we can know when the user changes/locks sessions.
 		// Since we need to remain binary compatible with older versions of Windows, we
@@ -1300,7 +1285,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE nothing, LPSTR cmdline, int n
 	_CrtSetDbgFlag (_CrtSetDbgFlag(0) | _CRTDBG_LEAK_CHECK_DF);
 
 	// Use this to break at a specific allocation number.
-	//_crtBreakAlloc = 30055;
+	//_crtBreakAlloc = 77624;
 #endif
 
 	DoMain (hInstance);

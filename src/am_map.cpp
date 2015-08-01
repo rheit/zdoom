@@ -33,12 +33,13 @@
 #include "w_wad.h"
 #include "a_sharedglobal.h"
 #include "statnums.h"
-#include "r_translate.h"
+#include "r_data/r_translate.h"
 #include "d_event.h"
 #include "gi.h"
-#include "r_bsp.h"
 #include "p_setup.h"
 #include "c_bind.h"
+#include "farchive.h"
+#include "r_renderer.h"
 
 #include "m_cheat.h"
 #include "i_system.h"
@@ -63,6 +64,7 @@
 #include "a_artifacts.h"
 #include "po_man.h"
 #include "a_keys.h"
+#include "r_data/colormaps.h"
 
 //=============================================================================
 //
@@ -306,6 +308,7 @@ struct islope_t
 static TArray<mline_t> MapArrow;
 static TArray<mline_t> CheatMapArrow;
 static TArray<mline_t> CheatKey;
+static TArray<mline_t> EasyKey;
 
 #define R (MAPUNIT)
 // [RH] Avoid lots of warnings without compiler-specific #pragmas
@@ -534,10 +537,12 @@ void AM_StaticInit()
 	MapArrow.Clear();
 	CheatMapArrow.Clear();
 	CheatKey.Clear();
+	EasyKey.Clear();
 
 	if (gameinfo.mMapArrow.IsNotEmpty()) AM_ParseArrow(MapArrow, gameinfo.mMapArrow);
 	if (gameinfo.mCheatMapArrow.IsNotEmpty()) AM_ParseArrow(CheatMapArrow, gameinfo.mCheatMapArrow);
 	AM_ParseArrow(CheatKey, "maparrows/key.txt");
+	AM_ParseArrow(EasyKey, "maparrows/ravenkey.txt");
 	if (MapArrow.Size() == 0) I_FatalError("No automap arrow defined");
 
 	char namebuf[9];
@@ -1248,6 +1253,10 @@ void AM_changeWindowScale ()
 	{
 		mtof_zoommul = int(M_ZOOMOUT);
 	}
+	else
+	{
+		mtof_zoommul = MAPUNIT;
+	}
 	am_zoomdir = 0;
 
 	// Change the scaling multipliers
@@ -1457,28 +1466,28 @@ bool AM_clipMline (mline_t *ml, fline_t *fl)
 		{
 			dy = fl->a.y - fl->b.y;
 			dx = fl->b.x - fl->a.x;
-			tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
+			tmp.x = fl->a.x + Scale(dx, fl->a.y, dy);
 			tmp.y = 0;
 		}
 		else if (outside & BOTTOM)
 		{
 			dy = fl->a.y - fl->b.y;
 			dx = fl->b.x - fl->a.x;
-			tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
+			tmp.x = fl->a.x + Scale(dx, fl->a.y - f_h, dy);
 			tmp.y = f_h-1;
 		}
 		else if (outside & RIGHT)
 		{
 			dy = fl->b.y - fl->a.y;
 			dx = fl->b.x - fl->a.x;
-			tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
+			tmp.y = fl->a.y + Scale(dy, f_w-1 - fl->a.x, dx);
 			tmp.x = f_w-1;
 		}
 		else if (outside & LEFT)
 		{
 			dy = fl->b.y - fl->a.y;
 			dx = fl->b.x - fl->a.x;
-			tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
+			tmp.y = fl->a.y + Scale(dy, -fl->a.x, dx);
 			tmp.x = 0;
 		}
 
@@ -1628,8 +1637,7 @@ void AM_drawSubsectors()
 			points[j].Y = f_y + (f_h - (pt.y - m_y) * scale / float(1 << 24));
 		}
 		// For lighting and texture determination
-		sector_t *sec = R_FakeFlat (subsectors[i].render_sector, &tempsec, &floorlight,
-			&ceilinglight, false);
+		sector_t *sec = Renderer->FakeFlat (subsectors[i].render_sector, &tempsec, &floorlight,	&ceilinglight, false);
 		// Find texture origin.
 		mpoint_t originpt = { -sec->GetXOffset(sector_t::floor) >> FRACTOMAPBITS,
 							  sec->GetYOffset(sector_t::floor) >> FRACTOMAPBITS };
@@ -1665,6 +1673,7 @@ void AM_drawSubsectors()
 			// (Make the comparison in floating point to avoid overflows and improve performance.)
 			double secx;
 			double secy;
+			double seczb, seczt;
 			double cmpz = FIXED2DBL(viewz);
 
 			if (players[consoleplayer].camera && sec == players[consoleplayer].camera->Sector)
@@ -1678,6 +1687,8 @@ void AM_drawSubsectors()
 				secx = FIXED2DBL(sec->soundorg[0]);
 				secy = FIXED2DBL(sec->soundorg[1]);
 			}
+			seczb = floorplane->ZatPoint(secx, secy);
+			seczt = sec->ceilingplane.ZatPoint(secx, secy);
 			
 			for (unsigned int i = 0; i < sec->e->XFloor.ffloors.Size(); ++i)
 			{
@@ -1685,7 +1696,13 @@ void AM_drawSubsectors()
 				if (!(rover->flags & FF_EXISTS)) continue;
 				if (rover->flags & FF_FOG) continue;
 				if (rover->alpha == 0) continue;
-				if (rover->top.plane->ZatPoint(secx, secy) < cmpz)
+				double roverz = rover->top.plane->ZatPoint(secx, secy);
+				// Ignore 3D floors that are above or below the sector itself:
+				// they are hidden. Since 3D floors are sorted top to bottom,
+				// if we get below the sector floor, we can stop.
+				if (roverz > seczt) continue;
+				if (roverz < seczb) break;
+				if (roverz < cmpz)
 				{
 					maptex = *(rover->top.texture);
 					floorplane = rover->top.plane;
@@ -1714,15 +1731,19 @@ void AM_drawSubsectors()
 		}
 
 		// Draw the polygon.
-		screen->FillSimplePoly(TexMan(maptex),
-			&points[0], points.Size(),
-			originx, originy,
-			scale / (FIXED2FLOAT(sec->GetXScale(sector_t::floor)) * float(1 << MAPBITS)),
-			scale / (FIXED2FLOAT(sec->GetYScale(sector_t::floor)) * float(1 << MAPBITS)),
-			rotation,
-			colormap,
-			floorlight
-			);
+		FTexture *pic = TexMan(maptex);
+		if (pic != NULL && pic->UseType != FTexture::TEX_Null)
+		{
+			screen->FillSimplePoly(TexMan(maptex),
+				&points[0], points.Size(),
+				originx, originy,
+				scale / (FIXED2FLOAT(sec->GetXScale(sector_t::floor)) * float(1 << MAPBITS)),
+				scale / (FIXED2FLOAT(sec->GetYScale(sector_t::floor)) * float(1 << MAPBITS)),
+				rotation,
+				colormap,
+				floorlight
+				);
+		}
 	}
 }
 
@@ -1902,6 +1923,7 @@ void AM_drawWalls (bool allmap)
 {
 	int i;
 	static mline_t l;
+	int lock, color;
 
 	for (i = 0; i < numlines; i++)
 	{
@@ -1937,8 +1959,16 @@ void AM_drawWalls (bool allmap)
 					AM_drawMline(&l, SecretWallColor);
 			    else
 					AM_drawMline(&l, WallColor);
-			}
-			else if ((lines[i].special == Teleport ||
+			} else if (lines[i].locknumber > 0) { // [Dusk] specials w/ locknumbers
+				lock = lines[i].locknumber;
+				color = P_GetMapColorForLock(lock);
+				
+				AMColor c;
+				if (color >= 0)	c.FromRGB(RPART(color), GPART(color), BPART(color));
+				else c = LockedColor;
+				
+				AM_drawMline (&l, c);
+			} else if ((lines[i].special == Teleport ||
 				lines[i].special == Teleport_NoFog ||
 				lines[i].special == Teleport_ZombieChanger ||
 				lines[i].special == Teleport_Line) &&
@@ -1964,13 +1994,12 @@ void AM_drawWalls (bool allmap)
 				if (am_colorset == 0 || am_colorset == 3)	// Raven games show door colors
 				{
 					int P_GetMapColorForLock(int lock);
-					int lock;
 
 					if (lines[i].special==Door_LockedRaise || lines[i].special==Door_Animated)
 						lock=lines[i].args[3];
 					else lock=lines[i].args[4];
 
-					int color = P_GetMapColorForLock(lock);
+					color = P_GetMapColorForLock(lock);
 
 					AMColor c;
 
@@ -2235,6 +2264,49 @@ void AM_drawPlayers ()
 //
 //=============================================================================
 
+void AM_drawKeys ()
+{
+	AMColor color;
+	mpoint_t p;
+	angle_t	 angle;
+
+	TThinkerIterator<AKey> it;
+	AKey *key;
+
+	while ((key = it.Next()) != NULL)
+	{
+		p.x = key->x >> FRACTOMAPBITS;
+		p.y = key->y >> FRACTOMAPBITS;
+		angle = key->angle;
+
+		if (am_rotate == 1 || (am_rotate == 2 && viewactive))
+		{
+			AM_rotatePoint (&p.x, &p.y);
+			angle += ANG90 - players[consoleplayer].camera->angle;
+		}
+
+		color = ThingColor;
+		if (key->flags & MF_SPECIAL)
+		{
+			// Find the key's own color.
+			// Only works correctly if single-key locks have lower numbers than any-key locks.
+			// That is the case for all default keys, however.
+			int P_GetMapColorForKey (AInventory * key);
+			int c = P_GetMapColorForKey(key);
+
+			if (c >= 0)	color.FromRGB(RPART(c), GPART(c), BPART(c));
+			else color = ThingColor_CountItem;
+			AM_drawLineCharacter(&EasyKey[0], EasyKey.Size(), 0, 0, color, p.x, p.y);
+		}
+	}
+}
+
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
 void AM_drawThings ()
 {
 	AMColor color;
@@ -2273,7 +2345,12 @@ void AM_drawThings ()
 				// That is the case for all default keys, however.
 				if (t->IsKindOf(RUNTIME_CLASS(AKey)))
 				{
-					if (am_showkeys)
+					if (G_SkillProperty(SKILLP_EasyKey))
+					{
+						// Already drawn by AM_drawKeys(), so don't draw again
+						color.Index = -1;
+					}
+					else if (am_showkeys)
 					{
 						int P_GetMapColorForKey (AInventory * key);
 						int c = P_GetMapColorForKey(static_cast<AKey *>(t));
@@ -2495,6 +2572,8 @@ void AM_Drawer ()
 
 	AM_drawWalls(allmap);
 	AM_drawPlayers();
+	if (G_SkillProperty(SKILLP_EasyKey))
+		AM_drawKeys();
 	if (am_cheat >= 2 || allthings)
 		AM_drawThings();
 

@@ -32,6 +32,8 @@
 **
 */
 
+// #define NO_SWRENDER 	// set this if you want to exclude the software renderer. Without software renderer the base implementations of DrawTextureV and FillSimplePoly need to be disabled because they depend on it.
+
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -39,19 +41,25 @@
 #include "v_video.h"
 #include "m_swap.h"
 #include "r_defs.h"
+#include "r_utility.h"
+#ifndef NO_SWRENDER
 #include "r_draw.h"
 #include "r_main.h"
 #include "r_things.h"
-#include "r_translate.h"
+#endif
+#include "r_data/r_translate.h"
 #include "doomstat.h"
 #include "v_palette.h"
 #include "gi.h"
+#include "g_level.h"
+#include "st_stuff.h"
 
 #include "i_system.h"
 #include "i_video.h"
 #include "templates.h"
 #include "d_net.h"
 #include "colormatcher.h"
+#include "r_data/colormaps.h"
 
 // [RH] Stretch values to make a 320x200 image best fit the screen
 // without using fractional steppings
@@ -106,6 +114,7 @@ void STACK_ARGS DCanvas::DrawTexture (FTexture *img, double x, double y, int tag
 
 void STACK_ARGS DCanvas::DrawTextureV(FTexture *img, double x, double y, uint32 tag, va_list tags)
 {
+#ifndef NO_SWRENDER
 	FTexture::Span unmaskedSpan[2];
 	const FTexture::Span **spanptr, *spans;
 	static short bottomclipper[MAXWIDTH], topclipper[MAXWIDTH];
@@ -314,6 +323,7 @@ void STACK_ARGS DCanvas::DrawTextureV(FTexture *img, double x, double y, uint32 
 	{
 		NetUpdate();
 	}
+#endif
 }
 
 bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag, va_list tags, DrawParms *parms, bool hw) const
@@ -1076,6 +1086,15 @@ void DCanvas::Clear (int left, int top, int right, int bottom, int palcolor, uin
 	assert(left < right);
 	assert(top < bottom);
 
+	if (left >= Width || right <= 0 || top >= Height || bottom <= 0)
+	{
+		return;
+	}
+	left = MAX(0,left);
+	right = MIN(Width,right);
+	top = MAX(0,top);
+	bottom = MIN(Height,bottom);
+
 	if (palcolor < 0)
 	{
 		if (APART(color) != 255)
@@ -1115,6 +1134,7 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 	double originx, double originy, double scalex, double scaley, angle_t rotation,
 	FDynamicColormap *colormap, int lightlevel)
 {
+#ifndef NO_SWRENDER
 	// Use an equation similar to player sprites to determine shade
 	fixed_t shade = LIGHT2SHADE(lightlevel) - 12*FRACUNIT;
 	float topy, boty, leftx, rightx;
@@ -1160,6 +1180,9 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 	{
 		return;
 	}
+
+	scalex /= FIXED2FLOAT(tex->xScale);
+	scaley /= FIXED2FLOAT(tex->yScale);
 
 	cosrot = cos(rot);
 	sinrot = sin(rot);
@@ -1259,6 +1282,7 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 		pt1 = pt2;
 		pt2--;			if (pt2 < 0) pt2 = npoints;
 	} while (pt1 != botpt);
+#endif
 }
 
 
@@ -1384,3 +1408,142 @@ void V_DrawFrame (int left, int top, int width, int height)
 	screen->DrawTexture (TexMan[border->bl], left-offset, top+height, TAG_DONE);
 	screen->DrawTexture (TexMan[border->br], left+width, top+height, TAG_DONE);
 }
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+void V_DrawBorder (int x1, int y1, int x2, int y2)
+{
+	FTextureID picnum;
+
+	if (level.info != NULL && level.info->bordertexture[0] != 0)
+	{
+		picnum = TexMan.CheckForTexture (level.info->bordertexture, FTexture::TEX_Flat);
+	}
+	else
+	{
+		picnum = TexMan.CheckForTexture (gameinfo.borderFlat, FTexture::TEX_Flat);
+	}
+
+	if (picnum.isValid())
+	{
+		screen->FlatFill (x1, y1, x2, y2, TexMan(picnum));
+	}
+	else
+	{
+		screen->Clear (x1, y1, x2, y2, 0, 0);
+	}
+}
+
+//==========================================================================
+//
+// R_DrawViewBorder
+//
+// Draws the border around the view for different size windows
+//
+//==========================================================================
+
+int BorderNeedRefresh;
+
+
+static void V_DrawViewBorder (void)
+{
+	// [RH] Redraw the status bar if SCREENWIDTH > status bar width.
+	// Will draw borders around itself, too.
+	if (SCREENWIDTH > 320)
+	{
+		SB_state = screen->GetPageCount ();
+	}
+
+	if (viewwidth == SCREENWIDTH)
+	{
+		return;
+	}
+
+	V_DrawBorder (0, 0, SCREENWIDTH, viewwindowy);
+	V_DrawBorder (0, viewwindowy, viewwindowx, viewheight + viewwindowy);
+	V_DrawBorder (viewwindowx + viewwidth, viewwindowy, SCREENWIDTH, viewheight + viewwindowy);
+	V_DrawBorder (0, viewwindowy + viewheight, SCREENWIDTH, ST_Y);
+
+	V_DrawFrame (viewwindowx, viewwindowy, viewwidth, viewheight);
+	V_MarkRect (0, 0, SCREENWIDTH, ST_Y);
+}
+
+//==========================================================================
+//
+// R_DrawTopBorder
+//
+// Draws the top border around the view for different size windows
+//
+//==========================================================================
+
+static void V_DrawTopBorder ()
+{
+	FTexture *p;
+	int offset;
+
+	if (viewwidth == SCREENWIDTH)
+		return;
+
+	offset = gameinfo.border->offset;
+
+	if (viewwindowy < 34)
+	{
+		V_DrawBorder (0, 0, viewwindowx, 34);
+		V_DrawBorder (viewwindowx, 0, viewwindowx + viewwidth, viewwindowy);
+		V_DrawBorder (viewwindowx + viewwidth, 0, SCREENWIDTH, 34);
+		p = TexMan(gameinfo.border->t);
+		screen->FlatFill(viewwindowx, viewwindowy - p->GetHeight(),
+						 viewwindowx + viewwidth, viewwindowy, p, true);
+
+		p = TexMan(gameinfo.border->l);
+		screen->FlatFill(viewwindowx - p->GetWidth(), viewwindowy,
+						 viewwindowx, 35, p, true);
+		p = TexMan(gameinfo.border->r);
+		screen->FlatFill(viewwindowx + viewwidth, viewwindowy,
+						 viewwindowx + viewwidth + p->GetWidth(), 35, p, true);
+
+		p = TexMan(gameinfo.border->tl);
+		screen->DrawTexture (p, viewwindowx - offset, viewwindowy - offset, TAG_DONE);
+
+		p = TexMan(gameinfo.border->tr);
+		screen->DrawTexture (p, viewwindowx + viewwidth, viewwindowy - offset, TAG_DONE);
+	}
+	else
+	{
+		V_DrawBorder (0, 0, SCREENWIDTH, 34);
+	}
+}
+
+//==========================================================================
+//
+// R_RefreshViewBorder
+//
+// Draws the border around the player view, if needed.
+//
+//==========================================================================
+
+void V_RefreshViewBorder ()
+{
+	if (setblocks < 10)
+	{
+		if (BorderNeedRefresh)
+		{
+			BorderNeedRefresh--;
+			if (BorderTopRefresh)
+			{
+				BorderTopRefresh--;
+			}
+			V_DrawViewBorder();
+		}
+		else if (BorderTopRefresh)
+		{
+			BorderTopRefresh--;
+			V_DrawTopBorder();
+		}
+	}
+}
+

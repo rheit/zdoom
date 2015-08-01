@@ -41,7 +41,6 @@ struct sfxinfo_t
 	int 		lumpnum;				// lump number of sfx
 
 	unsigned int next, index;			// [RH] For hashing
-//	unsigned int frequency;				// [RH] Preferred playback rate
 	float		Volume;
 
 	BYTE		PitchMask;
@@ -65,6 +64,7 @@ struct sfxinfo_t
 	enum { NO_LINK = 0xffffffff };
 
 	FRolloffInfo	Rolloff;
+	float		Attenuation;			// Multiplies the attenuation passed to S_Sound.
 };
 
 // Rolloff types
@@ -312,6 +312,8 @@ bool S_ChangeMusic (const char *music_name, int order=0, bool looping=true, bool
 bool S_ChangeCDMusic (int track, unsigned int id=0, bool looping=true);
 
 void S_RestartMusic ();
+
+void S_MIDIDeviceChanged();
 
 int S_GetMusic (char **name);
 

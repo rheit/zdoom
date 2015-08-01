@@ -242,7 +242,7 @@ const PClass *PClass::FindClass (FName zaname)
 		}
 		else if (lexx == 0)
 		{
-			return cls->Size<0? NULL : cls;
+			return cls;
 		}
 		else
 		{
@@ -336,6 +336,7 @@ PClass *PClass::CreateDerivedClass (FName name, unsigned int size)
 		info->StateList = NULL;
 		info->DamageFactors = NULL;
 		info->PainChances = NULL;
+		info->PainFlashes = NULL;
 		info->ColorSets = NULL;
 		m_RuntimeActors.Push (type);
 	}
@@ -430,6 +431,7 @@ void PClass::InitializeActorInfo ()
 	info->StateList = NULL;
 	info->DamageFactors = NULL;
 	info->PainChances = NULL;
+	info->PainFlashes = NULL;
 	info->ColorSets = NULL;
 	m_RuntimeActors.Push (this);
 }
