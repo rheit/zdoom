@@ -66,6 +66,7 @@ F84AB4557464A383E93F37CD3A82AC48 // MM2 map03
 
 71C2E6D9CFA3D8750C6A9599FB2453BD // Hacx map03: There are some switches behind 
 96368EB950E33AF62EA6423434E3CEF7 // HacX map17: shootable covers in these levels
+BA530202AF0BA0C6CBAE6A0C7076FB72 // Requiem map04
 {
 	useblocking
 }
@@ -140,12 +141,16 @@ DCE862393CAAA6FF1294FB7056B53057 // UAC Ultra map07: Contains a scroller dependi
 }
 
 1D9E43988940CCD3555724E15DD8B1AB // Happy Time Circus map01 has bad teleporters
+040F83028FFA74456E335ED300BE2C33 // MAP17 (TownInfection.wad)
+156FA31F5FF72A87BF345B68029D3051 // MAP02 (nprject5.wad)
+AF40D0E49BD1B76D4B1AADD8212ADC46 // MAP01 (the wad that shall not be named =P)
 {
 	ignoreteleporttags
 }
 
 8FF30D57F6CE64F085A6567EC302842A // Enjay's test map for this flag
 9D7893D09FEE55C31B73C670DF850962 // Memento Mori II, map12
+91E173901E6F3800B81AB646976247CD // Claustrophobia 1024, map01
 {
 	badangles
 }
@@ -176,3 +181,162 @@ E2B5D1400279335811C1C1C0B437D9C8 // Deathknights of the Dark Citadel, map54
 {
 	floormove
 }
+
+// There is a special at the beginning of the level which relies on the Pain Elemental's lost soul limit.
+811A0C97777A198BC9B2BB558CB46E6A // Hell Revealed map19
+{
+	limitpain
+}
+
+// Daedalus: Fix SPAC_Push lines that aren't on lines you can actually push
+3ABB618A475BCBC531B457BAA6E4E70A // map04
+{
+	// forcefields
+	// the lines we're setting are already set for repeatable SPAC_Push
+	clearlinespecial 90
+	setlinespecial 3749 ACS_Execute 23 0 1 0 0
+	clearlinespecial 94
+	setlinespecial 3766 ACS_Execute 23 0 2 0 0
+	clearlinespecial 92
+	setlinespecial 3777 ACS_Execute 23 0 3 0 0
+	clearlinespecial 98
+	setlinespecial 3784 ACS_Execute 23 0 4 0 0
+}
+795FDE3CC1C97140F326D0152B3FCE2A // map24
+{
+	// doors
+	clearlinespecial 1512
+	setlinespecial 1505 Door_Raise 213 50 100 0 0
+	setlineflags 1505 0x200		// repeatable
+	setactivation 1505 16		// SPAC_Push
+	clearlinespecial 1514
+	setlinespecial 1508 Door_Raise 213 50 100 0 0
+	setlineflags 1508 0x200
+	setactivation 1508 16
+	
+	clearlinespecial 1525
+	setlinespecial 1522 Door_Raise 214 50 100 0 0
+	setlineflags 1522 0x200
+	setactivation 1522 16
+	clearlinespecial 1530
+	setlinespecial 1527 Door_Raise 214 50 100 0 0
+	setlineflags 1527 0x200
+	setactivation 1527 16
+	
+	clearlinespecial 5277
+	setlinespecial 5209 Door_Raise 24 20 255 0 0
+	setlineflags 5209 0x200
+	setactivation 5209 16
+	clearlinespecial 5714
+	setlinespecial 5267 Door_Raise 24 20 255 0 0
+	setlineflags 5267 0x200
+	setactivation 5267 16
+	
+	clearlinespecial 5715
+	setlinespecial 5229 Door_Raise 24 20 255 0 0
+	setlineflags 5229 0x200
+	setactivation 5229 16
+	clearlinespecial 5345
+	setlinespecial 5232 Door_Raise 24 20 255 0 0
+	setlineflags 5232 0x200
+	setactivation 5232 16
+	
+	// consoles?
+	clearlinespecial 3639
+	setlinespecial 3633 ACS_Execute 14 0 0 0 0
+	setlinespecial 3635 ACS_Execute 14 0 0 0 0
+	setlineflags 3633 0x200
+	setlineflags 3635 0x200
+	setactivation 3633 16
+	setactivation 3635 16
+
+	clearlinespecial 3647
+	setlinespecial 3644 ACS_Execute 14 0 0 0 0
+	setlinespecial 3641 ACS_Execute 14 0 0 0 0
+	setlineflags 3644 0x200
+	setlineflags 3641 0x200
+	setactivation 3644 16
+	setactivation 3641 16
+	
+	clearlinespecial 3659
+	clearlinespecial 3657
+	setlinespecial 3653 ACS_Execute 13 0 0 0 0
+	setlinespecial 3655 ACS_Execute 13 0 0 0 0
+	setlinespecial 3651 ACS_Execute 13 0 0 0 0
+	setlinespecial 3654 ACS_Execute 13 0 0 0 0
+	setlineflags 3653 0x200
+	setlineflags 3655 0x200
+	setlineflags 3651 0x200
+	setlineflags 3654 0x200
+	setactivation 3653 16
+	setactivation 3655 16
+	setactivation 3651 16
+	setactivation 3654 16
+}
+
+// Community Chest 3
+F481922F4881F74760F3C0437FD5EDD0 // map03
+{
+	// I have no idea how this conveyor belt setup manages to work under Boom.
+	// Set the sector the voodoo doll ends up standing on when sectors tagged
+	// 1 are raised so that the voodoo doll will be carried.
+	setlinespecial 3559 Sector_CopyScroller 17 6 0 0 0
+}
+
+7C1913DEE396BA26CFF22A0E9369B7D2 // Nuke Mine, e1m2
+{
+	clearlinespecial 1107
+	clearlinespecial 1108
+}
+
+5B862477519B21B30059A466F2FF6460 // Khorus, map08
+{
+	// This map uses a voodoo conveyor with slanted walls to shunt the
+	// voodoo doll into side areas. For some reason, this voodoo doll
+	// is unable to slide on them, because the slide calculation gets
+	// them slightly inside the walls and thinks they are stuck. I could
+	// not reproduce this with the real player, which is what has me
+	// stumped. So, help them out be attaching some ThrustThing specials
+	// to the walls.
+	setlinespecial 443 ThrustThing 96 4 0 0 0
+	setlineflags 443 0x200		// repeatable
+	setactivation 443 16		// SPAC_Push
+	setlinespecial 455 ThrustThing 96 4 0 0 0
+	setlineflags 455 0x200		// repeatable
+	setactivation 455 16		// SPAC_Push
+}
+
+6DC9F6CCEAE7A91AEC48EBE506F22BC4 // Void
+{
+	// Slightly squash the pillars in the starting room with "stimpacks"
+	// floating on them so that they can be obtained.
+	sectorflooroffset 62 -8
+	setwallyscale 286 front bot 1.090909
+	setwallyscale 287 front bot 1.090909
+	setwallyscale 288 front bot 1.090909
+	setwallyscale 289 front bot 1.090909
+	
+	sectorflooroffset 63 -8
+	setwallyscale 290 front bot 1.090909
+	setwallyscale 291 front bot 1.090909
+	setwallyscale 292 front bot 1.090909
+	setwallyscale 293 front bot 1.090909
+	
+	sectorflooroffset 118 -8
+	setwallyscale 710 front bot 1.090909
+	setwallyscale 711 front bot 1.090909
+	setwallyscale 712 front bot 1.090909
+	setwallyscale 713 front bot 1.090909
+	
+	sectorflooroffset 119 -8
+	setwallyscale 714 front bot 1.090909
+	setwallyscale 715 front bot 1.090909
+	setwallyscale 716 front bot 1.090909
+	setwallyscale 717 front bot 1.090909
+}
+
+65A1EB4C87386F290816660A52932FF1 // Master Levels, garrison.wad
+{
+	rebuildnodes
+}
+

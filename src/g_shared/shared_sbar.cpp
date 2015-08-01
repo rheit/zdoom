@@ -61,7 +61,9 @@
 #define POWERUPICONSIZE		32
 
 IMPLEMENT_POINTY_CLASS(DBaseStatusBar)
-	DECLARE_POINTER(Messages)
+	DECLARE_POINTER(Messages[0])
+	DECLARE_POINTER(Messages[1])
+	DECLARE_POINTER(Messages[2])
 END_POINTERS
 
 EXTERN_CVAR (Bool, am_showmonsters)
@@ -70,7 +72,6 @@ EXTERN_CVAR (Bool, am_showitems)
 EXTERN_CVAR (Bool, am_showtime)
 EXTERN_CVAR (Bool, am_showtotaltime)
 EXTERN_CVAR (Bool, noisedebug)
-EXTERN_CVAR (Bool, hud_scale)
 EXTERN_CVAR (Int, con_scaletext)
 
 DBaseStatusBar *StatusBar;
@@ -210,17 +211,29 @@ void ST_Clear()
 
 //---------------------------------------------------------------------------
 //
+// ST_SetNeedRefresh
+//
+//---------------------------------------------------------------------------
+
+void ST_SetNeedRefresh()
+{
+	SB_state = (StatusBar == NULL || screen == NULL) ? 0 : screen->GetPageCount();
+}
+
+//---------------------------------------------------------------------------
+//
 // Constructor
 //
 //---------------------------------------------------------------------------
 
 DBaseStatusBar::DBaseStatusBar (int reltop, int hres, int vres)
 {
+	CompleteBorder = false;
 	Centering = false;
 	FixedOrigin = false;
 	CrosshairSize = FRACUNIT;
 	RelTop = reltop;
-	Messages = NULL;
+	memset(Messages, 0, sizeof(Messages));
 	Displacement = 0;
 	CPlayer = NULL;
 	ShowLog = false;
@@ -238,16 +251,17 @@ DBaseStatusBar::DBaseStatusBar (int reltop, int hres, int vres)
 
 void DBaseStatusBar::Destroy ()
 {
-	DHUDMessage *msg;
-
-	msg = Messages;
-	while (msg)
+	for (unsigned int i = 0; i < countof(Messages); ++i)
 	{
-		DHUDMessage *next = msg->Next;
-		msg->Destroy();
-		msg = next;
+		DHUDMessage *msg = Messages[i];
+		while (msg)
+		{
+			DHUDMessage *next = msg->Next;
+			msg->Destroy();
+			msg = next;
+		}
+		Messages[i] = NULL;
 	}
-	Messages = NULL;
 	Super::Destroy();
 }
 
@@ -294,7 +308,7 @@ void DBaseStatusBar::SetScaled (bool scale, bool force)
 		Displacement = 0;
 	}
 	::ST_X = ST_X;
-	SB_state = screen->GetPageCount ();
+	ST_SetNeedRefresh();
 }
 
 //---------------------------------------------------------------------------
@@ -306,7 +320,7 @@ void DBaseStatusBar::SetScaled (bool scale, bool force)
 void DBaseStatusBar::AttachToPlayer (player_t *player)
 {
 	CPlayer = player;
-	SB_state = screen->GetPageCount ();
+	ST_SetNeedRefresh();
 }
 
 //---------------------------------------------------------------------------
@@ -328,7 +342,7 @@ int DBaseStatusBar::GetPlayer ()
 
 void DBaseStatusBar::MultiplayerChanged ()
 {
-	SB_state = screen->GetPageCount ();
+	ST_SetNeedRefresh();
 }
 
 //---------------------------------------------------------------------------
@@ -339,32 +353,35 @@ void DBaseStatusBar::MultiplayerChanged ()
 
 void DBaseStatusBar::Tick ()
 {
-	DHUDMessage *msg = Messages;
-	DHUDMessage **prev = &Messages;
-
-	while (msg)
+	for (unsigned int i = 0; i < countof(Messages); ++i)
 	{
-		DHUDMessage *next = msg->Next;
+		DHUDMessage *msg = Messages[i];
+		DHUDMessage **prev = &Messages[i];
 
-		if (msg->Tick ())
+		while (msg)
 		{
-			*prev = next;
-			msg->Destroy();
-		}
-		else
-		{
-			prev = &msg->Next;
-		}
-		msg = next;
-	}
+			DHUDMessage *next = msg->Next;
 
-	// If the crosshair has been enlarged, shrink it.
-	if (CrosshairSize > FRACUNIT)
-	{
-		CrosshairSize -= XHAIRSHRINKSIZE;
-		if (CrosshairSize < FRACUNIT)
+			if (msg->Tick ())
+			{
+				*prev = next;
+				msg->Destroy();
+			}
+			else
+			{
+				prev = &msg->Next;
+			}
+			msg = next;
+		}
+
+		// If the crosshair has been enlarged, shrink it.
+		if (CrosshairSize > FRACUNIT)
 		{
-			CrosshairSize = FRACUNIT;
+			CrosshairSize -= XHAIRSHRINKSIZE;
+			if (CrosshairSize < FRACUNIT)
+			{
+				CrosshairSize = FRACUNIT;
+			}
 		}
 	}
 }
@@ -375,7 +392,7 @@ void DBaseStatusBar::Tick ()
 //
 //---------------------------------------------------------------------------
 
-void DBaseStatusBar::AttachMessage (DHUDMessage *msg, DWORD id)
+void DBaseStatusBar::AttachMessage (DHUDMessage *msg, DWORD id, int layer)
 {
 	DHUDMessage *old = NULL;
 	DHUDMessage **prev;
@@ -387,7 +404,13 @@ void DBaseStatusBar::AttachMessage (DHUDMessage *msg, DWORD id)
 		old->Destroy();
 	}
 
-	prev = &Messages;
+	// Merge unknown layers into the default layer.
+	if ((size_t)layer >= countof(Messages))
+	{
+		layer = HUDMSGLayer_Default;
+	}
+
+	prev = &Messages[layer];
 
 	// The ID serves as a priority, where lower numbers appear in front of
 	// higher numbers. (i.e. The list is sorted in descending order, since
@@ -412,48 +435,56 @@ void DBaseStatusBar::AttachMessage (DHUDMessage *msg, DWORD id)
 
 DHUDMessage *DBaseStatusBar::DetachMessage (DHUDMessage *msg)
 {
-	DHUDMessage *probe = Messages;
-	DHUDMessage **prev = &Messages;
+	for (unsigned int i = 0; i < countof(Messages); ++i)
+	{
+		DHUDMessage *probe = Messages[i];
+		DHUDMessage **prev = &Messages[i];
 
-	while (probe && probe != msg)
-	{
-		prev = &probe->Next;
-		probe = probe->Next;
-	}
-	if (probe != NULL)
-	{
-		*prev = probe->Next;
-		probe->Next = NULL;
-		// Redraw the status bar in case it was covered
-		if (screen != NULL)
+		while (probe && probe != msg)
 		{
-			SB_state = screen->GetPageCount();
+			prev = &probe->Next;
+			probe = probe->Next;
+		}
+		if (probe != NULL)
+		{
+			*prev = probe->Next;
+			probe->Next = NULL;
+			// Redraw the status bar in case it was covered
+			if (screen != NULL)
+			{
+				ST_SetNeedRefresh();
+			}
+			return probe;
 		}
 	}
-	return probe;
+	return NULL;
 }
 
 DHUDMessage *DBaseStatusBar::DetachMessage (DWORD id)
 {
-	DHUDMessage *probe = Messages;
-	DHUDMessage **prev = &Messages;
+	for (unsigned int i = 0; i < countof(Messages); ++i)
+	{
+		DHUDMessage *probe = Messages[i];
+		DHUDMessage **prev = &Messages[i];
 
-	while (probe && probe->SBarID != id)
-	{
-		prev = &probe->Next;
-		probe = probe->Next;
-	}
-	if (probe != NULL)
-	{
-		*prev = probe->Next;
-		probe->Next = NULL;
-		// Redraw the status bar in case it was covered
-		if (screen != NULL)
+		while (probe && probe->SBarID != id)
 		{
-			SB_state = screen->GetPageCount();
+			prev = &probe->Next;
+			probe = probe->Next;
+		}
+		if (probe != NULL)
+		{
+			*prev = probe->Next;
+			probe->Next = NULL;
+			// Redraw the status bar in case it was covered
+			if (screen != NULL)
+			{
+				ST_SetNeedRefresh();
+			}
+			return probe;
 		}
 	}
-	return probe;
+	return NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -464,31 +495,18 @@ DHUDMessage *DBaseStatusBar::DetachMessage (DWORD id)
 
 void DBaseStatusBar::DetachAllMessages ()
 {
-	DHUDMessage *probe = Messages;
-
-	Messages = NULL;
-	while (probe != NULL)
+	for (unsigned int i = 0; i < countof(Messages); ++i)
 	{
-		DHUDMessage *next = probe->Next;
-		probe->Destroy();
-		probe = next;
-	}
-}
+		DHUDMessage *probe = Messages[i];
 
-//---------------------------------------------------------------------------
-//
-// PROC CheckMessage
-//
-//---------------------------------------------------------------------------
-
-bool DBaseStatusBar::CheckMessage (DHUDMessage *msg)
-{
-	DHUDMessage *probe = Messages;
-	while (probe && probe != msg)
-	{
-		probe = probe->Next;
+		Messages[i] = NULL;
+		while (probe != NULL)
+		{
+			DHUDMessage *next = probe->Next;
+			probe->Destroy();
+			probe = next;
+		}
 	}
-	return (probe == msg);
 }
 
 //---------------------------------------------------------------------------
@@ -502,7 +520,7 @@ void DBaseStatusBar::ShowPlayerName ()
 	EColorRange color;
 
 	color = (CPlayer == &players[consoleplayer]) ? CR_GOLD : CR_GREEN;
-	AttachMessage (new DHUDMessageFadeOut (SmallFont, CPlayer->userinfo.netname,
+	AttachMessage (new DHUDMessageFadeOut (SmallFont, CPlayer->userinfo.GetName(),
 		1.5f, 0.92f, 0, 0, color, 2.f, 0.35f), MAKE_ID('P','N','A','M'));
 }
 
@@ -1037,27 +1055,46 @@ void DBaseStatusBar::RefreshBackground () const
 {
 	int x, x2, y, ratio;
 
-	if (SCREENWIDTH > 320)
+	ratio = CheckRatio (SCREENWIDTH, SCREENHEIGHT);
+	x = (!(ratio & 3) || !Scaled) ? ST_X : SCREENWIDTH*(48-BaseRatioSizes[ratio][3])/(48*2);
+	y = x == ST_X && x > 0 ? ST_Y : ::ST_Y;
+
+	if(!CompleteBorder)
 	{
-		ratio = CheckRatio (SCREENWIDTH, SCREENHEIGHT);
-		x = (!(ratio & 3) || !Scaled) ? ST_X : SCREENWIDTH*(48-BaseRatioSizes[ratio][3])/(48*2);
-		if (x > 0)
+		if(y < SCREENHEIGHT)
 		{
-			y = x == ST_X ? ST_Y : ::ST_Y;
+			V_DrawBorder (x+1, y, SCREENWIDTH, y+1);
+			V_DrawBorder (x+1, SCREENHEIGHT-1, SCREENWIDTH, SCREENHEIGHT);
+		}
+	}
+	else
+	{
+		x = SCREENWIDTH;
+	}
+
+	if (x > 0)
+	{
+		if(!CompleteBorder)
+		{
 			x2 = !(ratio & 3) || !Scaled ? ST_X+HorizontalResolution :
 				SCREENWIDTH - (SCREENWIDTH*(48-BaseRatioSizes[ratio][3])+48*2-1)/(48*2);
-			V_DrawBorder (0, y, x, SCREENHEIGHT);
-			V_DrawBorder (x2, y, SCREENWIDTH, SCREENHEIGHT);
+		}
+		else
+		{
+			x2 = SCREENWIDTH;
+		}
 
-			if (setblocks >= 10)
-			{
-				const gameborder_t *border = gameinfo.border;
-				FTexture *p;
+		V_DrawBorder (0, y, x+1, SCREENHEIGHT);
+		V_DrawBorder (x2-1, y, SCREENWIDTH, SCREENHEIGHT);
 
-				p = TexMan[border->b];
-				screen->FlatFill(0, y, x, y + p->GetHeight(), p, true);
-				screen->FlatFill(x2, y, SCREENWIDTH, y + p->GetHeight(), p, true);
-			}
+		if (setblocks >= 10)
+		{
+			const gameborder_t *border = gameinfo.border;
+			FTexture *p;
+
+			p = TexMan[border->b];
+			screen->FlatFill(0, y, x, y + p->GetHeight(), p, true);
+			screen->FlatFill(x2, y, SCREENWIDTH, y + p->GetHeight(), p, true);
 		}
 	}
 }
@@ -1172,13 +1209,23 @@ void DBaseStatusBar::FlashCrosshair ()
 //
 //---------------------------------------------------------------------------
 
-void DBaseStatusBar::DrawMessages (int bottom)
+void DBaseStatusBar::DrawMessages (int layer, int bottom)
 {
-	DHUDMessage *msg = Messages;
+	DHUDMessage *msg = Messages[layer];
+	int visibility = 0;
+
+	if (viewactive)
+	{
+		visibility |= HUDMSG_NotWith3DView;
+	}
+	if (automapactive)
+	{
+		visibility |= viewactive ? HUDMSG_NotWithOverlayMap : HUDMSG_NotWithFullMap;
+	}
 	while (msg)
 	{
 		DHUDMessage *next = msg->Next;
-		msg->Draw (bottom);
+		msg->Draw (bottom, visibility);
 		msg = next;
 	}
 }
@@ -1191,6 +1238,10 @@ void DBaseStatusBar::DrawMessages (int bottom)
 
 void DBaseStatusBar::Draw (EHudState state)
 {
+	// HUD_AltHud state is for popups only
+	if (state == HUD_AltHud)
+		return;
+
 	char line[64+10];
 
 	if ((SB_state != 0 || BorderNeedRefresh) && state == HUD_StatusBar)
@@ -1241,7 +1292,7 @@ void DBaseStatusBar::Draw (EHudState state)
 				DTA_KeepRatio, true,
 				DTA_VirtualWidth, vwidth, DTA_VirtualHeight, vheight, 				
 				TAG_DONE);
-			BorderNeedRefresh = screen->GetPageCount();
+			V_SetBorderNeedRefresh();
 		}
 	}
 
@@ -1428,6 +1479,17 @@ void DBaseStatusBar::SetMugShotState(const char *stateName, bool waitTillDone, b
 
 //---------------------------------------------------------------------------
 //
+// DrawBottomStuff
+//
+//---------------------------------------------------------------------------
+
+void DBaseStatusBar::DrawBottomStuff (EHudState state)
+{
+	DrawMessages (HUDMSGLayer_UnderHUD, (state == HUD_StatusBar) ? ::ST_Y : SCREENHEIGHT);
+}
+
+//---------------------------------------------------------------------------
+//
 // DrawTopStuff
 //
 //---------------------------------------------------------------------------
@@ -1443,17 +1505,13 @@ void DBaseStatusBar::DrawTopStuff (EHudState state)
 	}
 
 	DrawPowerups ();
-
-	if (state == HUD_StatusBar)
+	if (automapactive && !viewactive)
 	{
-		DrawMessages (::ST_Y);
+		DrawMessages (HUDMSGLayer_OverMap, (state == HUD_StatusBar) ? ::ST_Y : SCREENHEIGHT);
 	}
-	else
-	{
-		DrawMessages (SCREENHEIGHT);
-	}
-
+	DrawMessages (HUDMSGLayer_OverHUD, (state == HUD_StatusBar) ? ::ST_Y : SCREENHEIGHT);
 	DrawConsistancy ();
+	DrawWaiting ();
 	if (ShowLog && MustDrawLog(state)) DrawLog ();
 
 	if (noisedebug)
@@ -1555,6 +1613,39 @@ void DBaseStatusBar::DrawConsistancy () const
 	}
 }
 
+void DBaseStatusBar::DrawWaiting () const
+{
+	int i;
+	char conbuff[64], *buff_p;
+
+	if (!netgame)
+		return;
+
+	buff_p = NULL;
+	for (i = 0; i < MAXPLAYERS; i++)
+	{
+		if (playeringame[i] && players[i].waiting)
+		{
+			if (buff_p == NULL)
+			{
+				strcpy (conbuff, "Waiting for:");
+				buff_p = conbuff + 12;
+			}
+			*buff_p++ = ' ';
+			*buff_p++ = '1' + i;
+			*buff_p = 0;
+		}
+	}
+
+	if (buff_p != NULL)
+	{
+		screen->DrawText (SmallFont, CR_ORANGE, 
+			(screen->GetWidth() - SmallFont->StringWidth (conbuff)*CleanXfac) / 2,
+			SmallFont->GetHeight()*CleanYfac, conbuff, DTA_CleanNoMove, true, TAG_DONE);
+		BorderTopRefresh = screen->GetPageCount ();
+	}
+}
+
 void DBaseStatusBar::FlashItem (const PClass *itemtype)
 {
 }
@@ -1578,19 +1669,33 @@ void DBaseStatusBar::ReceivedWeapon (AWeapon *weapon)
 
 void DBaseStatusBar::Serialize (FArchive &arc)
 {
-	arc << Messages;
+	if (SaveVersion < 3821)
+	{
+		memset(Messages, 0, sizeof(Messages));
+		arc << Messages[HUDMSGLayer_Default];
+	}
+	else
+	{
+		for (unsigned int i = 0; i < countof(Messages); ++i)
+		{
+			arc << Messages[i];
+		}
+	}
 }
 
 void DBaseStatusBar::ScreenSizeChanged ()
 {
 	st_scale.Callback ();
-	SB_state = screen->GetPageCount ();
+	ST_SetNeedRefresh();
 
-	DHUDMessage *message = Messages;
-	while (message != NULL)
+	for (unsigned int i = 0; i < countof(Messages); ++i)
 	{
-		message->ScreenSizeChanged ();
-		message = message->Next;
+		DHUDMessage *message = Messages[i];
+		while (message != NULL)
+		{
+			message->ScreenSizeChanged ();
+			message = message->Next;
+		}
 	}
 }
 

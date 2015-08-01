@@ -71,13 +71,14 @@ TDeletingArray<FVoxelDef *> VoxelDefs;
 struct VoxelOptions
 {
 	VoxelOptions()
-	: DroppedSpin(0), PlacedSpin(0), Scale(FRACUNIT), AngleOffset(0)
+	: DroppedSpin(0), PlacedSpin(0), Scale(FRACUNIT), AngleOffset(ANGLE_90), OverridePalette(false)
 	{}
 
 	int			DroppedSpin;
 	int			PlacedSpin;
 	fixed_t		Scale;
 	angle_t		AngleOffset;
+	bool		OverridePalette;
 };
 
 //==========================================================================
@@ -296,6 +297,14 @@ FVoxel *R_LoadKVX(int lumpnum)
 	}
 	voxel->NumMips = mip;
 
+	// Fix pivot data for submips, since some tools seem to like to just center these.
+	for (i = 1; i < mip; ++i)
+	{
+		voxel->Mips[i].PivotX = voxel->Mips[0].PivotX >> i;
+		voxel->Mips[i].PivotY = voxel->Mips[0].PivotY >> i;
+		voxel->Mips[i].PivotZ = voxel->Mips[0].PivotZ >> i;
+	}
+
 	for (i = 0; i < mip; ++i)
 	{
 		if (!CopyVoxelSlabs((kvxslab_t *)voxel->Mips[i].SlabData, slabs[i], voxel->Mips[i].OffsetX[voxel->Mips[i].SizeX]))
@@ -332,7 +341,7 @@ FVoxelDef *R_LoadVoxelDef(int lumpnum, int spin)
 		voxdef->Voxel = vox;
 		voxdef->Scale = FRACUNIT;
 		voxdef->DroppedSpin = voxdef->PlacedSpin = spin;
-		voxdef->AngleOffset = 0;
+		voxdef->AngleOffset = ANGLE_90;
 
 		Voxels.Push(vox);
 		VoxelDefs.Push(voxdef);
@@ -400,6 +409,20 @@ void FVoxel::Remap()
 		{
 			RemapVoxelSlabs((kvxslab_t *)Mips[i].SlabData, Mips[i].OffsetX[Mips[i].SizeX], remap);
 		}
+		RemovePalette();
+	}
+}
+
+//==========================================================================
+//
+// Delete the voxel's built-in palette
+//
+//==========================================================================
+
+void FVoxel::RemovePalette()
+{
+	if (Palette != NULL)
+	{
 		delete [] Palette;
 		Palette = NULL;
 	}
@@ -508,7 +531,11 @@ static void VOX_ReadOptions(FScanner &sc, VoxelOptions &opts)
 			{
 				sc.TokenMustBe(TK_FloatConst);
 			}
-			opts.AngleOffset = angle_t(sc.Float * ANGLE_180 / 180.0);
+			opts.AngleOffset = ANGLE_90 + angle_t(sc.Float * ANGLE_180 / 180.0);
+		}
+		else if (sc.Compare("overridepalette"))
+		{
+			opts.OverridePalette = true;
 		}
 		else
 		{
@@ -595,6 +622,10 @@ void R_InitVoxels()
 			sc.SetCMode(false);
 			if (voxeldata != NULL && vsprites.Size() != 0)
 			{
+				if (opts.OverridePalette)
+				{
+					voxeldata->RemovePalette();
+				}
 				FVoxelDef *def = new FVoxelDef;
 
 				def->Voxel = voxeldata;

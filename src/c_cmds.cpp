@@ -175,6 +175,15 @@ CCMD (noclip)
 	Net_WriteByte (CHT_NOCLIP);
 }
 
+CCMD (noclip2)
+{
+	if (CheckCheatmode())
+		return;
+
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_NOCLIP2);
+}
+
 CCMD (powerup)
 {
 	if (CheckCheatmode ())
@@ -245,7 +254,7 @@ CCMD (chase)
 	else
 	{
 		// Check if we're allowed to use chasecam.
-		if (gamestate != GS_LEVEL || (!(dmflags2 & DF2_CHASECAM) && CheckCheatmode ()))
+		if (gamestate != GS_LEVEL || (!(dmflags2 & DF2_CHASECAM) && deathmatch && CheckCheatmode ()))
 			return;
 
 		Net_WriteByte (DEM_GENERICCHEAT);
@@ -320,7 +329,7 @@ CCMD (hxvisit)
 
 CCMD (changemap)
 {
-	if (who == NULL)
+	if (who == NULL || !usergame)
 	{
 		Printf ("Use the map command when not in a game.\n");
 		return;
@@ -386,7 +395,7 @@ CCMD (take)
 
 CCMD (gameversion)
 {
-	Printf ("%s : " __DATE__ "\n", DOTVERSIONSTR);
+	Printf ("%s @ %s\nCommit %s", GetVersionString(), GetGitTime(), GetGitHash());
 }
 
 CCMD (print)
@@ -949,9 +958,16 @@ CCMD(thaw)
 //-----------------------------------------------------------------------------
 CCMD(nextmap)
 {
-	char * next=NULL;
+	if (netgame)
+	{
+		Printf ("Use "TEXTCOLOR_BOLD"changemap"TEXTCOLOR_NORMAL" instead. "TEXTCOLOR_BOLD"Nextmap"
+				TEXTCOLOR_NORMAL" is for single-player only.\n");
+		return;
+	}
+	char *next = NULL;
 	
-	if (*level.nextmap) next = level.nextmap;
+	if (*level.nextmap)
+		next = level.nextmap;
 
 	if (next != NULL && strncmp(next, "enDSeQ", 6))
 	{
@@ -970,9 +986,16 @@ CCMD(nextmap)
 //-----------------------------------------------------------------------------
 CCMD(nextsecret)
 {
-	char * next=NULL;
+	if (netgame)
+	{
+		Printf ("Use "TEXTCOLOR_BOLD"changemap"TEXTCOLOR_NORMAL" instead. "TEXTCOLOR_BOLD"Nextsecret"
+				TEXTCOLOR_NORMAL" is for single-player only.\n");
+		return;
+	}
+	char *next = NULL;
 	
-	if (*level.secretmap) next = level.secretmap;
+	if (*level.secretmap)
+		next = level.secretmap;
 
 	if (next != NULL && strncmp(next, "enDSeQ", 6))
 	{

@@ -441,15 +441,7 @@ void HandleActorFlag(FScanner &sc, Baggage &bag, const char *part1, const char *
 		}
 		else
 		{
-			DWORD * flagvar = (DWORD*) ((char*)defaults + fd->structoffset);
-			if (mod == '+')
-			{
-				*flagvar |= fd->flagbit;
-			}
-			else
-			{
-				*flagvar &= ~fd->flagbit;
-			}
+			ModActorFlag(defaults, fd, mod == '+');
 		}
 	}
 	else
@@ -1122,7 +1114,7 @@ static FActorInfo *ParseActorHeader(FScanner &sc, Baggage *bag)
 		info->DoomEdNum = DoomEdNum > 0? DoomEdNum : -1;
 		info->Class->Meta.SetMetaString (ACMETA_Lump, Wads.GetLumpFullPath(sc.LumpNum));
 
-		SetReplacement(info, replaceName);
+		SetReplacement(sc, info, replaceName);
 
 		ResetBaggage (bag, info->Class->ParentClass);
 		bag->Info = info;

@@ -65,6 +65,23 @@ void AWeapon::Serialize (FArchive &arc)
 		}
 	arc << FOVScale
 		<< Crosshair;
+	if (SaveVersion >= 4203)
+	{
+		arc << MinSelAmmo1 << MinSelAmmo2;
+	}
+}
+
+//===========================================================================
+//
+// AWeapon :: MarkPrecacheSounds
+//
+//===========================================================================
+
+void AWeapon::MarkPrecacheSounds() const
+{
+	Super::MarkPrecacheSounds();
+	UpSound.MarkUsed();
+	ReadySound.MarkUsed();
 }
 
 //===========================================================================
@@ -297,7 +314,7 @@ void AWeapon::AttachToOwner (AActor *other)
 	SisterWeapon = AddWeapon (SisterWeaponType);
 	if (Owner->player != NULL)
 	{
-		if (!Owner->player->userinfo.neverswitch && !(WeaponFlags & WIF_NO_AUTO_SWITCH))
+		if (!Owner->player->userinfo.GetNeverSwitch() && !(WeaponFlags & WIF_NO_AUTO_SWITCH))
 		{
 			Owner->player->PendingWeapon = this;
 		}
@@ -688,15 +705,16 @@ FState *AWeapon::GetZoomState ()
 
 /* Weapon giver ***********************************************************/
 
-class AWeaponGiver : public AWeapon
-{
-	DECLARE_CLASS(AWeaponGiver, AWeapon)
-
-public:
-	bool TryPickup(AActor *&toucher);
-};
-
 IMPLEMENT_CLASS(AWeaponGiver)
+
+void AWeaponGiver::Serialize(FArchive &arc)
+{
+	Super::Serialize(arc);
+	if (SaveVersion >= 4246)
+	{
+		arc << DropAmmoFactor;
+	}
+}
 
 bool AWeaponGiver::TryPickup(AActor *&toucher)
 {
@@ -714,8 +732,18 @@ bool AWeaponGiver::TryPickup(AActor *&toucher)
 				if (weap != NULL)
 				{
 					weap->ItemFlags &= ~IF_ALWAYSPICKUP;	// use the flag of this item only.
+					weap->flags = (weap->flags & ~MF_DROPPED) | (this->flags & MF_DROPPED);
+
+					// If our ammo gives are non-negative, transfer them to the real weapon.
 					if (AmmoGive1 >= 0) weap->AmmoGive1 = AmmoGive1;
 					if (AmmoGive2 >= 0) weap->AmmoGive2 = AmmoGive2;
+
+					// If DropAmmoFactor is non-negative, modify the given ammo amounts.
+					if (DropAmmoFactor > 0)
+					{
+						weap->AmmoGive1 = FixedMul(weap->AmmoGive1, DropAmmoFactor);
+						weap->AmmoGive2 = FixedMul(weap->AmmoGive2, DropAmmoFactor);
+					}
 					weap->BecomeItem();
 				}
 				else return false;
@@ -723,7 +751,11 @@ bool AWeaponGiver::TryPickup(AActor *&toucher)
 
 			weap = barrier_cast<AWeapon*>(master);
 			bool res = weap->CallTryPickup(toucher);
-			if (res) GoAwayAndDie();
+			if (res)
+			{
+				GoAwayAndDie();
+				master = NULL;
+			}
 			return res;
 		}
 	}

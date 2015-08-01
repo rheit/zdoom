@@ -472,11 +472,25 @@ enum EMapThingFlags
 	D64TF_NOTMULTI		= 0x0800,
 };
 
+// A simplified mapthing for player starts
+struct FPlayerStart
+{
+	fixed_t x, y, z;
+	short angle, type;
+
+	FPlayerStart() { }
+	FPlayerStart(const FMapThing *mthing)
+	: x(mthing->x), y(mthing->y), z(mthing->z),
+	  angle(mthing->angle),
+	  type(mthing->type)
+	{ }
+};
 // Player spawn spots for deathmatch.
-extern TArray<FMapThing> deathmatchstarts;
+extern TArray<FPlayerStart> deathmatchstarts;
 
 // Player spawn spots.
-extern	FMapThing		playerstarts[MAXPLAYERS];
+extern FPlayerStart playerstarts[MAXPLAYERS];
+extern TArray<FPlayerStart> AllPlayerStarts;
 
 // Doom 64 Lights
 struct maplight_t

@@ -84,6 +84,11 @@ DEFINE_MEMBER_VARIABLE(Damage, AActor)
 DEFINE_MEMBER_VARIABLE(Score, AActor)
 DEFINE_MEMBER_VARIABLE(accuracy, AActor)
 DEFINE_MEMBER_VARIABLE(stamina, AActor)
+DEFINE_MEMBER_VARIABLE(height, AActor)
+DEFINE_MEMBER_VARIABLE(radius, AActor)
+DEFINE_MEMBER_VARIABLE(reactiontime, AActor)
+DEFINE_MEMBER_VARIABLE(meleerange, AActor)
+
 
 //==========================================================================
 //
@@ -1032,7 +1037,7 @@ FxCompareRel::FxCompareRel(int o, FxExpression *l, FxExpression *r)
 FxExpression *FxCompareRel::Resolve(FCompileContext& ctx)
 {
 	CHECKRESOLVED();
-	if (!ResolveLR(ctx, true)) return false;
+	if (!ResolveLR(ctx, true)) return NULL;
 
 	if (!ValueType.isNumeric())
 	{
@@ -1126,7 +1131,7 @@ FxExpression *FxCompareEq::Resolve(FCompileContext& ctx)
 {
 	CHECKRESOLVED();
 
-	if (!ResolveLR(ctx, true)) return false;
+	if (!ResolveLR(ctx, true)) return NULL;
 
 	if (!left || !right)
 	{
@@ -1229,7 +1234,7 @@ FxBinaryInt::FxBinaryInt(int o, FxExpression *l, FxExpression *r)
 FxExpression *FxBinaryInt::Resolve(FCompileContext& ctx)
 {
 	CHECKRESOLVED();
-	if (!ResolveLR(ctx, false)) return false;
+	if (!ResolveLR(ctx, false)) return NULL;
 
 	if (ctx.lax && ValueType == VAL_Float)
 	{
@@ -1242,7 +1247,7 @@ FxExpression *FxBinaryInt::Resolve(FCompileContext& ctx)
 		if (right->ValueType != VAL_Int)
 		{
 			right = new FxIntCast(right);
-			right = left->Resolve(ctx);
+			right = right->Resolve(ctx);
 		}
 		if (left == NULL || right == NULL)
 		{
@@ -2520,9 +2525,9 @@ FxExpression *FxClassTypeCast::Resolve(FCompileContext &ctx)
 		FName clsname = basex->EvalExpression(NULL).GetName();
 		const PClass *cls = NULL;
 
-		if (clsname != NAME_None || !ctx.isconst)
+		if (clsname != NAME_None)
 		{
-			cls= PClass::FindClass(clsname);
+			cls = PClass::FindClass(clsname);
 			if (cls == NULL)
 			{
 				if (!ctx.lax)

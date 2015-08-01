@@ -53,7 +53,7 @@ void P_DaggerAlert (AActor *target, AActor *emitter)
 	emitter->flags4 |= MF4_INCOMBAT;
 
 	emitter->target = target;
-	FState * painstate = emitter->FindState(NAME_Pain);
+	FState *painstate = emitter->FindState(NAME_Pain, NAME_Dagger);
 	if (painstate != NULL)
 	{
 		emitter->SetState (painstate);
@@ -538,7 +538,7 @@ AActor *P_SpawnSubMissile (AActor *source, const PClass *type, AActor *target)
 		}
 	}
 
-	if (P_CheckMissileSpawn (other))
+	if (P_CheckMissileSpawn (other, source->radius))
 	{
 		angle_t pitch = P_AimLineAttack (source, source->angle, 1024*FRACUNIT);
 		other->velz = FixedMul (-finesine[pitch>>ANGLETOFINESHIFT], other->Speed);
@@ -567,7 +567,7 @@ int APhosphorousFire::DoSpecialDamage (AActor *target, int damage, FName damaget
 
 DEFINE_ACTION_FUNCTION(AActor, A_BurnArea)
 {
-	P_RadiusAttack (self, self->target, 128, 128, self->DamageType, true);
+	P_RadiusAttack (self, self->target, 128, 128, self->DamageType, RADF_HURTSOURCE);
 }
 
 DEFINE_ACTION_FUNCTION(AActor, A_Burnination)

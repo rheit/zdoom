@@ -87,6 +87,7 @@
 
 
 static FRandom pr_dmspawn ("DMSpawn");
+static FRandom pr_pspawn ("PlayerSpawn");
 
 const int SAVEPICWIDTH = 216;
 const int SAVEPICHEIGHT = 162;
@@ -160,10 +161,9 @@ int 			consoleplayer;			// player taking events
 int 			gametic;
 
 CVAR(Bool, demo_compress, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
-char			demoname[256];
+FString			demoname;
 bool 			demorecording;
 bool 			demoplayback;
-bool 			netdemo;
 bool			demonew;				// [RH] Only used around G_InitNew for demos
 int				demover;
 BYTE*			demobuffer;
@@ -414,7 +414,7 @@ CCMD (invuseall)
 
 CCMD (invuse)
 {
-	if (players[consoleplayer].inventorytics == 0 || gameinfo.gametype == GAME_Strife)
+	if (players[consoleplayer].inventorytics == 0)
 	{
 		if (players[consoleplayer].mo) SendItemUse = players[consoleplayer].mo->InvSel;
 	}
@@ -1127,10 +1127,10 @@ void G_Ticker ()
 			if (cmd->ucmd.forwardmove > TURBOTHRESHOLD &&
 				!(gametic&31) && ((gametic>>5)&(MAXPLAYERS-1)) == i )
 			{
-				Printf ("%s is turbo!\n", players[i].userinfo.netname);
+				Printf ("%s is turbo!\n", players[i].userinfo.GetName());
 			}
 
-			if (netgame && !players[i].isbot && !netdemo && (gametic%ticdup) == 0)
+			if (netgame && !players[i].isbot && !demoplayback && (gametic%ticdup) == 0)
 			{
 				//players[i].inconsistant = 0;
 				if (gametic > BACKUPTICS*ticdup && consistancy[i][buf] != cmd->consistancy)
@@ -1312,7 +1312,7 @@ void G_PlayerReborn (int player)
 	int			chasecam;
 	BYTE		currclass;
 	userinfo_t  userinfo;	// [RH] Save userinfo
-	botskill_t  b_skill;//Added by MC:
+	botskill_t  b_skill;	//Added by MC:
 	APlayerPawn *actor;
 	const PClass *cls;
 	FString		log;
@@ -1326,7 +1326,7 @@ void G_PlayerReborn (int player)
 	secretcount = p->secretcount;
 	currclass = p->CurrentPlayerClass;
     b_skill = p->skill;    //Added by MC:
-	memcpy (&userinfo, &p->userinfo, sizeof(userinfo));
+	userinfo.TransferFrom(p->userinfo);
 	actor = p->mo;
 	cls = p->cls;
 	log = p->LogText;
@@ -1342,7 +1342,7 @@ void G_PlayerReborn (int player)
 	p->itemcount = itemcount;
 	p->secretcount = secretcount;
 	p->CurrentPlayerClass = currclass;
-	memcpy (&p->userinfo, &userinfo, sizeof(userinfo));
+	p->userinfo.TransferFrom(userinfo);
 	p->mo = actor;
 	p->cls = cls;
 	p->LogText = log;
@@ -1374,7 +1374,7 @@ void G_PlayerReborn (int player)
 // because something is occupying it 
 //
 
-bool G_CheckSpot (int playernum, FMapThing *mthing)
+bool G_CheckSpot (int playernum, FPlayerStart *mthing)
 {
 	fixed_t x;
 	fixed_t y;
@@ -1385,6 +1385,10 @@ bool G_CheckSpot (int playernum, FMapThing *mthing)
 	y = mthing->y;
 	z = mthing->z;
 
+	if (!(level.flags & LEVEL_USEPLAYERSTARTZ))
+	{
+		z = 0;
+	}
 	z += P_PointInSector (x, y)->floorplane.ZatPoint (x, y);
 
 	if (!players[playernum].mo)
@@ -1423,7 +1427,7 @@ bool G_CheckSpot (int playernum, FMapThing *mthing)
 //
 
 // [RH] Returns the distance of the closest player to the given mapthing
-static fixed_t PlayersRangeFromSpot (FMapThing *spot)
+static fixed_t PlayersRangeFromSpot (FPlayerStart *spot)
 {
 	fixed_t closest = INT_MAX;
 	fixed_t distance;
@@ -1445,10 +1449,10 @@ static fixed_t PlayersRangeFromSpot (FMapThing *spot)
 }
 
 // [RH] Select the deathmatch spawn spot farthest from everyone.
-static FMapThing *SelectFarthestDeathmatchSpot (size_t selections)
+static FPlayerStart *SelectFarthestDeathmatchSpot (size_t selections)
 {
 	fixed_t bestdistance = 0;
-	FMapThing *bestspot = NULL;
+	FPlayerStart *bestspot = NULL;
 	unsigned int i;
 
 	for (i = 0; i < selections; i++)
@@ -1466,7 +1470,7 @@ static FMapThing *SelectFarthestDeathmatchSpot (size_t selections)
 }
 
 // [RH] Select a deathmatch spawn spot at random (original mechanism)
-static FMapThing *SelectRandomDeathmatchSpot (int playernum, unsigned int selections)
+static FPlayerStart *SelectRandomDeathmatchSpot (int playernum, unsigned int selections)
 {
 	unsigned int i, j;
 
@@ -1486,7 +1490,7 @@ static FMapThing *SelectRandomDeathmatchSpot (int playernum, unsigned int select
 void G_DeathMatchSpawnPlayer (int playernum)
 {
 	unsigned int selections;
-	FMapThing *spot;
+	FPlayerStart *spot;
 
 	selections = deathmatchstarts.Size ();
 	// [RH] We can get by with just 1 deathmatch start
@@ -1505,8 +1509,8 @@ void G_DeathMatchSpawnPlayer (int playernum)
 	{ // No good spot, so the player will probably get stuck.
 	  // We were probably using select farthest above, and all
 	  // the spots were taken.
-		spot = &playerstarts[playernum];
-		if (spot == NULL || spot->type == 0)
+		spot = G_PickPlayerStart(playernum, PPS_FORCERANDOM);
+		if (!G_CheckSpot(playernum, spot))
 		{ // This map doesn't have enough coop spots for this player
 		  // to use one.
 			spot = SelectRandomDeathmatchSpot(playernum, selections);
@@ -1520,14 +1524,39 @@ void G_DeathMatchSpawnPlayer (int playernum)
 			}
 		}
 	}
-
-	if (playernum < 4)
-		spot->type = playernum+1;
-	else 
-		spot->type = playernum + gameinfo.player5start - 4;
-
-	AActor *mo = P_SpawnPlayer (spot);
+	AActor *mo = P_SpawnPlayer(spot, playernum);
 	if (mo != NULL) P_PlayerStartStomp(mo);
+}
+
+//
+// G_PickPlayerStart
+//
+FPlayerStart *G_PickPlayerStart(int playernum, int flags)
+{
+	if ((level.flags2 & LEVEL2_RANDOMPLAYERSTARTS) || (flags & PPS_FORCERANDOM))
+	{
+		if (!(flags & PPS_NOBLOCKINGCHECK))
+		{
+			TArray<FPlayerStart *> good_starts;
+			unsigned int i;
+
+			// Find all unblocked player starts.
+			for (i = 0; i < AllPlayerStarts.Size(); ++i)
+			{
+				if (G_CheckSpot(playernum, &AllPlayerStarts[i]))
+				{
+					good_starts.Push(&AllPlayerStarts[i]);
+				}
+			}
+			if (good_starts.Size() > 0)
+			{ // Pick an open spot at random.
+				return good_starts[pr_pspawn(good_starts.Size())];
+			}
+	}
+		// Pick a spot at random, whether it's open or not.
+		return &AllPlayerStarts[pr_pspawn(AllPlayerStarts.Size())];
+	}
+	return &playerstarts[playernum];
 }
 
 //
@@ -1581,8 +1610,6 @@ void G_DoReborn (int playernum, bool freshbot)
 	else
 	{
 		// respawn at the start
-		int i;
-
 		// first disassociate the corpse
 		if (players[playernum].mo)
 		{
@@ -1590,46 +1617,23 @@ void G_DoReborn (int playernum, bool freshbot)
 			players[playernum].mo->player = NULL;
 		}
 
-		// spawn at random spot if in death match
+		// spawn at random spot if in deathmatch
 		if (deathmatch)
 		{
 			G_DeathMatchSpawnPlayer (playernum);
 			return;
 		}
 
-		if (G_CheckSpot (playernum, &playerstarts[playernum]) )
+		if (!(level.flags2 & LEVEL2_RANDOMPLAYERSTARTS) &&
+			G_CheckSpot (playernum, &playerstarts[playernum]))
 		{
-			AActor *mo = P_SpawnPlayer (&playerstarts[playernum]);
+			AActor *mo = P_SpawnPlayer(&playerstarts[playernum], playernum);
 			if (mo != NULL) P_PlayerStartStomp(mo);
 		}
 		else
-		{
-			// try to spawn at one of the other players' spots
-			for (i = 0; i < MAXPLAYERS; i++)
-			{
-				if (G_CheckSpot (playernum, &playerstarts[i]) )
-				{
-					int oldtype = playerstarts[i].type;
-
-					// fake as other player
-					// [RH] These numbers should be common across all games. Or better yet, not
-					// used at all outside P_SpawnMapThing().
-					if (playernum < 4)
-					{
-						playerstarts[i].type = playernum + 1;
-					}
-					else
-					{
-						playerstarts[i].type = playernum + gameinfo.player5start - 4;
-					}
-					AActor *mo = P_SpawnPlayer (&playerstarts[i]);
-					if (mo != NULL) P_PlayerStartStomp(mo);
-					playerstarts[i].type = oldtype; 			// restore 
-					return;
-				}
-				// he's going to be inside something.  Too bad.
-			}
-			AActor *mo = P_SpawnPlayer (&playerstarts[playernum]);
+		{ // try to spawn at any random player's spot
+			FPlayerStart *start = G_PickPlayerStart(playernum, PPS_FORCERANDOM);
+			AActor *mo = P_SpawnPlayer(start, playernum);
 			if (mo != NULL) P_PlayerStartStomp(mo);
 		}
 	}
@@ -1640,8 +1644,6 @@ void G_ScreenShot (char *filename)
 	shotfile = filename;
 	gameaction = ga_screenshot;
 }
-
-
 
 
 
@@ -2050,13 +2052,14 @@ static void PutSavePic (FILE *file, int width, int height)
 	}
 	else
 	{
-		P_CheckPlayerSprites();
 		Renderer->WriteSavePic(&players[consoleplayer], file, width, height);
 	}
 }
 
 void G_DoSaveGame (bool okForQuicksave, FString filename, const char *description)
 {
+	char buf[100];
+
 	// Do not even try, if we're not in a level. (Can happen after
 	// a demo finishes playback.)
 	if (lines == NULL || sectors == NULL)
@@ -2083,7 +2086,8 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 
 	SaveVersion = SAVEVER;
 	PutSavePic (stdfile, SAVEPICWIDTH, SAVEPICHEIGHT);
-	M_AppendPNGText (stdfile, "Software", "ZDoom " DOTVERSIONSTR);
+	mysnprintf(buf, countof(buf), GAMENAME " %s", GetVersionString());
+	M_AppendPNGText (stdfile, "Software", buf);
 	M_AppendPNGText (stdfile, "Engine", GAMESIG);
 	M_AppendPNGText (stdfile, "ZDoom Save Version", SAVESIG);
 	M_AppendPNGText (stdfile, "Title", description);
@@ -2095,16 +2099,13 @@ void G_DoSaveGame (bool okForQuicksave, FString filename, const char *descriptio
 	G_WriteHubInfo(stdfile);
 
 	{
-		BYTE vars[4096], *vars_p;
-		vars_p = vars;
-		C_WriteCVars (&vars_p, CVAR_SERVERINFO);
-		*vars_p = 0;
-		M_AppendPNGText (stdfile, "Important CVARs", (char *)vars);
+		FString vars = C_GetMassCVarString(CVAR_SERVERINFO);
+		M_AppendPNGText (stdfile, "Important CVARs", vars.GetChars());
 	}
 
 	if (level.time != 0 || level.maptime != 0)
 	{
-		DWORD time[2] = { BigLong(TICRATE), BigLong(level.time) };
+		DWORD time[2] = { DWORD(BigLong(TICRATE)), DWORD(BigLong(level.time)) };
 		M_AppendPNGChunk (stdfile, MAKE_ID('p','t','I','c'), (BYTE *)&time, 8);
 	}
 
@@ -2272,7 +2273,7 @@ void G_WriteDemoTiccmd (ticcmd_t *cmd, int player, int buf)
 void G_RecordDemo (const char* name)
 {
 	usergame = false;
-	strcpy (demoname, name);
+	demoname = name;
 	FixPathSeperator (demoname);
 	DefaultExtension (demoname, ".lmp");
 	maxdemosize = 0x20000;
@@ -2505,7 +2506,7 @@ bool G_ProcessIFFDemo (char *mapname)
 	}
 
 	if (numPlayers > 1)
-		multiplayer = netgame = netdemo = true;
+		multiplayer = netgame = true;
 
 	if (uncompSize > 0)
 	{
@@ -2643,7 +2644,6 @@ bool G_CheckDemoStatus (void)
 
 		P_SetupWeapons_ntohton();
 		demoplayback = false;
-		netdemo = false;
 		netgame = false;
 		multiplayer = false;
 		singletics = false;
@@ -2711,11 +2711,18 @@ bool G_CheckDemoStatus (void)
 		formlen = demobuffer + 4;
 		WriteLong (int(demo_p - demobuffer - 8), &formlen);
 
-		M_WriteFile (demoname, demobuffer, int(demo_p - demobuffer)); 
+		bool saved = M_WriteFile (demoname, demobuffer, int(demo_p - demobuffer)); 
 		M_Free (demobuffer); 
 		demorecording = false;
 		stoprecording = false;
-		Printf ("Demo %s recorded\n", demoname); 
+		if (saved)
+		{
+			Printf ("Demo %s recorded\n", demoname.GetChars()); 
+		}
+		else
+		{
+			Printf ("Demo %s could not be saved\n", demoname.GetChars());
+		}
 	}
 
 	return false; 

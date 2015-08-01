@@ -1134,7 +1134,7 @@ void C_DrawConsole (bool hw2d)
 		(viewwindowx || viewwindowy) &&
 		viewactive)
 	{
-		BorderNeedRefresh = screen->GetPageCount ();
+		V_SetBorderNeedRefresh();
 	}
 
 	oldbottom = ConBottom;
@@ -1167,9 +1167,9 @@ void C_DrawConsole (bool hw2d)
 		if (ConBottom >= 12)
 		{
 			screen->DrawText (ConFont, CR_ORANGE, SCREENWIDTH - 8 -
-				ConFont->StringWidth ("v" DOTVERSIONSTR),
+				ConFont->StringWidth (GetVersionString()),
 				ConBottom - ConFont->GetHeight() - 4,
-				"v" DOTVERSIONSTR, TAG_DONE);
+				GetVersionString(), TAG_DONE);
 			if (TickerMax)
 			{
 				char tickstr[256];
@@ -1224,8 +1224,8 @@ void C_DrawConsole (bool hw2d)
 			{
 				screen->Dim (PalEntry ((unsigned char)(player->BlendR*255), (unsigned char)(player->BlendG*255), (unsigned char)(player->BlendB*255)),
 					player->BlendA, 0, ConBottom, screen->GetWidth(), screen->GetHeight() - ConBottom);
-				SB_state = screen->GetPageCount ();
-				BorderNeedRefresh = screen->GetPageCount ();
+				ST_SetNeedRefresh();
+				V_SetBorderNeedRefresh();
 			}
 		}
 	}

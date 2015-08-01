@@ -19,15 +19,18 @@ class FScanner;
 
 struct FFlagDef
 {
-	int flagbit;
+	unsigned int flagbit;
 	const char *name;
 	int structoffset;
+	int fieldsize;
 };
 
 FFlagDef *FindFlag (const PClass *type, const char *part1, const char *part2);
 void HandleDeprecatedFlags(AActor *defaults, FActorInfo *info, bool set, int index);
-bool CheckDeprecatedFlags(AActor *actor, FActorInfo *info, int index);
-const char *GetFlagName(int flagnum, int flagoffset);
+bool CheckDeprecatedFlags(const AActor *actor, FActorInfo *info, int index);
+const char *GetFlagName(unsigned int flagnum, int flagoffset);
+void ModActorFlag(AActor *actor, FFlagDef *fd, bool set);
+INTBOOL CheckActorFlag(const AActor *actor, FFlagDef *fd);
 
 #define FLAG_NAME(flagnum, flagvar) GetFlagName(flagnum, myoffsetof(AActor, flagvar))
 
@@ -91,6 +94,7 @@ public:
 
 	void SetStateLabel (const char * statename, FState * state, BYTE defflags = SDF_STATE);
 	void AddStateLabel (const char * statename);
+	int GetStateLabelIndex (FName statename);
 	void InstallStates(FActorInfo *info, AActor *defaults);
 	int FinishStates (FActorInfo *actor, AActor *defaults);
 
@@ -199,7 +203,7 @@ PSymbolActionFunction *FindGlobalActionFunction(const char *name);
 //==========================================================================
 
 FActorInfo *CreateNewActor(const FScriptPosition &sc, FName typeName, FName parentName, bool native);
-void SetReplacement(FActorInfo *info, FName replaceName);
+void SetReplacement(FScanner &sc, FActorInfo *info, FName replaceName);
 
 void HandleActorFlag(FScanner &sc, Baggage &bag, const char *part1, const char *part2, int mod);
 void FinishActor(const FScriptPosition &sc, FActorInfo *info, Baggage &bag);
@@ -363,7 +367,6 @@ int MatchString (const char *in, const char **strings);
 struct StateCallData
 {
 	FState *State;
-	AActor *Item;
 	bool Result;
 };
 

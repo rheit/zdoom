@@ -30,9 +30,7 @@
 #include "dthinker.h"
 
 
-// States are tied to finite states are
-//	tied to animation frames.
-// Needs precompiled tables/data structures.
+// States are tied to finite states are tied to animation frames.
 #include "info.h"
 
 #include "doomdef.h"
@@ -40,6 +38,7 @@
 #include "r_data/renderstyle.h"
 #include "s_sound.h"
 #include "memarena.h"
+#include "g_level.h"
 
 struct subsector_t;
 //
@@ -415,6 +414,7 @@ enum EBounceFlags
 	// for them that are not present in ZDoom, so it is necessary to identify it properly.
 	BOUNCE_MBF = 1<<12,			// This in itself is not a valid mode, but replaces MBF's MF_BOUNCE flag.
 	BOUNCE_AutoOffFloorOnly = 1<<13,		// like BOUNCE_AutoOff, but only on floors
+	BOUNCE_UseBounceState = 1<<14,	// Use Bounce[.*] states
 
 	BOUNCE_TypeMask = BOUNCE_Walls | BOUNCE_Floors | BOUNCE_Ceilings | BOUNCE_Actors | BOUNCE_AutoOff | BOUNCE_HereticType | BOUNCE_MBF,
 
@@ -584,15 +584,14 @@ public:
 	bool AdjustReflectionAngle (AActor *thing, angle_t &angle);
 
 	// Returns true if this actor is within melee range of its target
-	bool CheckMeleeRange ();
+	bool CheckMeleeRange();
 
-	// BeginPlay: Called just after the actor is created
-	virtual void BeginPlay ();
-	virtual void PostBeginPlay ();
-	// LevelSpawned: Called after BeginPlay if this actor was spawned by the world
-	virtual void LevelSpawned ();
-	// Translates SpawnFlags into in-game flags.
-	virtual void HandleSpawnFlags ();
+	virtual void BeginPlay();			// Called immediately after the actor is created
+	virtual void PostBeginPlay();		// Called immediately before the actor's first tick
+	virtual void LevelSpawned();		// Called after BeginPlay if this actor was spawned by the world
+	virtual void HandleSpawnFlags();	// Translates SpawnFlags into in-game flags.
+
+	virtual void MarkPrecacheSounds() const;	// Marks sounds used by this actor for precaching.
 
 	virtual void Activate (AActor *activator);
 	virtual void Deactivate (AActor *activator);
@@ -706,7 +705,7 @@ public:
 	virtual bool Massacre ();
 
 	// Transforms the actor into a finely-ground paste
-	bool Grind(bool items);
+	virtual bool Grind(bool items);
 
 	// Is the other actor on my team?
 	bool IsTeammate (AActor *other);
@@ -717,9 +716,20 @@ public:
 	// Do I hate the other actor?
 	bool IsHostile (AActor *other);
 
+	inline bool IsNoClip2() const;
+
 	// What species am I?
 	virtual FName GetSpecies();
-	
+
+	fixed_t GetBobOffset(fixed_t ticfrac=0) const
+	{
+		 if (!(flags2 & MF2_FLOATBOB))
+		 {
+			 return 0;
+		 }
+		 return finesine[MulScale22(((FloatBobPhase + level.maptime) << FRACBITS) + ticfrac, FINEANGLES) & FINEMASK] * 8;
+	}
+
 	// Enter the crash state
 	void Crash();
 
@@ -972,6 +982,7 @@ private:
 	static FSharedStringArena mStringPropertyData;
 
 	friend class FActorIterator;
+	friend bool P_IsTIDUsed(int tid);
 
 	sector_t *LinkToWorldForMapThing ();
 
@@ -998,6 +1009,11 @@ public:
 	{
 		FName names[] = { label, sublabel };
 		return GetClass()->ActorInfo->FindState(2, names, exact);
+	}
+
+	FState *FindState(int numnames, FName *names, bool exact = false) const
+	{
+		return GetClass()->ActorInfo->FindState(numnames, names, exact);
 	}
 
 	bool HasSpecialDeathStates () const;
@@ -1065,6 +1081,9 @@ public:
 		return actor;
 	}
 };
+
+bool P_IsTIDUsed(int tid);
+int P_FindUniqueTID(int start_tid, int limit);
 
 inline AActor *Spawn (const PClass *type, fixed_t x, fixed_t y, fixed_t z, replace_t allowreplacement)
 {

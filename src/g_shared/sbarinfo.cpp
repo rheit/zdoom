@@ -149,6 +149,8 @@ class SBarInfoCommand
 		virtual void	Reset() {}
 		virtual void	Tick(const SBarInfoMainBlock *block, const DSBarInfo *statusBar, bool hudChanged) {}
 
+		SBarInfo *GetScript() { return script; }
+
 	protected:
 		void		GetCoordinates(FScanner &sc, bool fullScreenOffsets, SBarInfoCoordinate &x, SBarInfoCoordinate &y)
 		{
@@ -798,6 +800,8 @@ void SBarInfo::Init()
 	spacingAlignment = ALIGN_CENTER;
 	resW = 320;
 	resH = 200;
+	cleanX = -1;
+	cleanY = -1;
 
 	for(unsigned int i = 0;i < NUMHUDS;i++)
 		huds[i] = new SBarInfoMainBlock(this);
@@ -978,6 +982,8 @@ public:
 		}
 		invBarOffset = script->Images.Size();
 		Images.Init(&patchnames[0], patchnames.Size());
+
+		CompleteBorder = script->completeBorder;
 	}
 
 	~DSBarInfo ()
@@ -985,19 +991,22 @@ public:
 		Images.Uninit();
 	}
 
+	void ScreenSizeChanged()
+	{
+		Super::ScreenSizeChanged();
+		V_CalcCleanFacs(script->resW, script->resH, SCREENWIDTH, SCREENHEIGHT, &script->cleanX, &script->cleanY);
+	}
+
 	void Draw (EHudState state)
 	{
 		DBaseStatusBar::Draw(state);
+		if (script->cleanX <= 0)
+		{ // Calculate cleanX and cleanY
+			ScreenSizeChanged();
+		}
 		int hud = STBAR_NORMAL;
 		if(state == HUD_StatusBar)
 		{
-			if(script->completeBorder) //Fill the statusbar with the border before we draw.
-			{
-				FTexture *b = TexMan[gameinfo.border->b];
-				V_DrawBorder(viewwindowx, viewwindowy + viewheight + b->GetHeight(), viewwindowx + viewwidth, SCREENHEIGHT);
-				if(screenblocks == 10)
-					screen->FlatFill(viewwindowx, viewwindowy + viewheight, viewwindowx + viewwidth, viewwindowy + viewheight + b->GetHeight(), b, true);
-			}
 			if(script->automapbar && automapactive)
 			{
 				hud = STBAR_AUTOMAP;
@@ -1031,37 +1040,41 @@ public:
 		//prepare ammo counts
 		GetCurrentAmmo(ammo1, ammo2, ammocount1, ammocount2);
 		armor = CPlayer->mo->FindInventory<ABasicArmor>();
-		if(hud != lastHud)
-		{
-			script->huds[hud]->Tick(NULL, this, true);
 
-			// Restore scaling if need be.
-			if(scalingWasForced)
+		if(state != HUD_AltHud)
+		{
+			if(hud != lastHud)
 			{
-				scalingWasForced = false;
-				SetScaled(false);
-				setsizeneeded = true;
+				script->huds[hud]->Tick(NULL, this, true);
+
+				// Restore scaling if need be.
+				if(scalingWasForced)
+				{
+					scalingWasForced = false;
+					SetScaled(false);
+					setsizeneeded = true;
+				}
 			}
-		}
 
-		if(currentPopup != POP_None && !script->huds[hud]->FullScreenOffsets())
-			script->huds[hud]->Draw(NULL, this, script->popups[currentPopup-1].getXDisplacement(), script->popups[currentPopup-1].getYDisplacement(), FRACUNIT);
-		else
-			script->huds[hud]->Draw(NULL, this, 0, 0, FRACUNIT);
-		lastHud = hud;
-
-		// Handle inventory bar drawing
-		if(CPlayer->inventorytics > 0 && !(level.flags & LEVEL_NOINVENTORYBAR) && (state == HUD_StatusBar || state == HUD_Fullscreen))
-		{
-			SBarInfoMainBlock *inventoryBar = state == HUD_StatusBar ? script->huds[STBAR_INVENTORY] : script->huds[STBAR_INVENTORYFULLSCREEN];
-			if(inventoryBar != lastInventoryBar)
-				inventoryBar->Tick(NULL, this, true);
-	
-			// No overlay?  Lets cancel it.
-			if(inventoryBar->NumCommands() == 0)
-				CPlayer->inventorytics = 0;
+			if(currentPopup != POP_None && !script->huds[hud]->FullScreenOffsets())
+				script->huds[hud]->Draw(NULL, this, script->popups[currentPopup-1].getXDisplacement(), script->popups[currentPopup-1].getYDisplacement(), FRACUNIT);
 			else
-				inventoryBar->DrawAux(NULL, this, 0, 0, FRACUNIT);
+				script->huds[hud]->Draw(NULL, this, 0, 0, FRACUNIT);
+			lastHud = hud;
+
+			// Handle inventory bar drawing
+			if(CPlayer->inventorytics > 0 && !(level.flags & LEVEL_NOINVENTORYBAR) && (state == HUD_StatusBar || state == HUD_Fullscreen))
+			{
+				SBarInfoMainBlock *inventoryBar = state == HUD_StatusBar ? script->huds[STBAR_INVENTORY] : script->huds[STBAR_INVENTORYFULLSCREEN];
+				if(inventoryBar != lastInventoryBar)
+					inventoryBar->Tick(NULL, this, true);
+		
+				// No overlay?  Lets cancel it.
+				if(inventoryBar->NumCommands() == 0)
+					CPlayer->inventorytics = 0;
+				else
+					inventoryBar->DrawAux(NULL, this, 0, 0, FRACUNIT);
+			}
 		}
 
 		// Handle popups
@@ -1190,8 +1203,8 @@ public:
 			h = forceHeight < 0 ? texture->GetScaledHeightDouble() : forceHeight;
 			double dcx = cx == 0 ? 0 : dx + ((double) cx / FRACUNIT) - texture->GetScaledLeftOffsetDouble();
 			double dcy = cy == 0 ? 0 : dy + ((double) cy / FRACUNIT) - texture->GetScaledTopOffsetDouble();
-			double dcr = cr == 0 ? INT_MAX : dx + w - ((double) cr / FRACUNIT);
-			double dcb = cb == 0 ? INT_MAX : dy + h - ((double) cb / FRACUNIT);
+			double dcr = cr == 0 ? INT_MAX : dx + w - ((double) cr / FRACUNIT) - texture->GetScaledLeftOffsetDouble();
+			double dcb = cb == 0 ? INT_MAX : dy + h - ((double) cb / FRACUNIT) - texture->GetScaledTopOffsetDouble();
 
 			if(Scaled)
 			{
@@ -1250,8 +1263,8 @@ public:
 		{
 			double rx, ry, rcx=0, rcy=0, rcr=INT_MAX, rcb=INT_MAX;
 
-			double xScale = !hud_scale ? 1.0 : (double) CleanXfac*320.0/(double) script->resW;//(double) SCREENWIDTH/(double) script->resW;
-			double yScale = !hud_scale ? 1.0 : (double) CleanYfac*200.0/(double) script->resH;//(double) SCREENHEIGHT/(double) script->resH;
+			double xScale = !hud_scale ? 1 : script->cleanX;
+			double yScale = !hud_scale ? 1 : script->cleanY;
 
 			adjustRelCenter(x.RelCenter(), y.RelCenter(), dx, dy, rx, ry, xScale, yScale);
 
@@ -1279,38 +1292,10 @@ public:
 			// Check for clipping
 			if(cx != 0 || cy != 0 || cr != 0 || cb != 0)
 			{
-				rcx = cx == 0 ? 0 : rx+(((double) cx/FRACUNIT)*xScale);
-				rcy = cy == 0 ? 0 : ry+(((double) cy/FRACUNIT)*yScale);
-				rcr = cr == 0 ? INT_MAX : rx+w-(((double) cr/FRACUNIT)*xScale);
-				rcb = cb == 0 ? INT_MAX : ry+h-(((double) cb/FRACUNIT)*yScale);
-
-				// Fix the clipping for fullscreenoffsets.
-				/*if(ry < 0)
-				{
-					if(rcy != 0)
-						rcy = hud_scale ? SCREENHEIGHT + (int) (rcy*CleanYfac*200.0/script->resH) : SCREENHEIGHT + rcy;
-					if(rcb != INT_MAX)
-						rcb = hud_scale ? SCREENHEIGHT + (int) (rcb*CleanYfac*200.0/script->resH) : SCREENHEIGHT + rcb;
-				}
-				else if(hud_scale)
-				{
-					rcy *= (int) (CleanYfac*200.0/script->resH);
-					if(rcb != INT_MAX)
-						rcb *= (int) (CleanYfac*200.0/script->resH);
-				}
-				if(rx < 0)
-				{
-					if(rcx != 0)
-						rcx = hud_scale ? SCREENWIDTH + (int) (rcx*CleanXfac*320.0/script->resW) : SCREENWIDTH + rcx;
-					if(rcr != INT_MAX)
-						rcr = hud_scale ? SCREENWIDTH + (int) (rcr*CleanXfac*320.0/script->resW) : SCREENWIDTH + rcr;
-				}
-				else if(hud_scale)
-				{
-					rcx *= (int) (CleanXfac*320.0/script->resW);
-					if(rcr != INT_MAX)
-						rcr *= (int) (CleanXfac*320.0/script->resW);
-				}*/
+				rcx = cx == 0 ? 0 : rx+((((double) cx/FRACUNIT) - texture->GetScaledLeftOffsetDouble())*xScale);
+				rcy = cy == 0 ? 0 : ry+((((double) cy/FRACUNIT) - texture->GetScaledTopOffsetDouble())*yScale);
+				rcr = cr == 0 ? INT_MAX : rx+w-((((double) cr/FRACUNIT) + texture->GetScaledLeftOffsetDouble())*xScale);
+				rcb = cb == 0 ? INT_MAX : ry+h-((((double) cb/FRACUNIT) + texture->GetScaledTopOffsetDouble())*yScale);
 			}
 
 			if(clearDontDraw)
@@ -1370,8 +1355,8 @@ public:
 		{
 			if(hud_scale)
 			{
-				xScale = (double) CleanXfac*320.0/(double) script->resW;//(double) SCREENWIDTH/(double) script->resW;
-				yScale = (double) CleanYfac*200.0/(double) script->resH;//(double) SCREENWIDTH/(double) script->resW;
+				xScale = script->cleanX;
+				yScale = script->cleanY;
 			}
 			adjustRelCenter(x.RelCenter(), y.RelCenter(), *x, *y, ax, ay, xScale, yScale);
 		}

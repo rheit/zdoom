@@ -558,7 +558,7 @@ int FMultiPatchTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rota
 		return Parts[0].Texture->CopyTrueColorPixels(bmp, x, y, rotate, inf);
 	}
 
-	if (rotate != 0 || (inf != NULL && inf->op != OP_OVERWRITE && inf->op != OP_COPY))
+	if (rotate != 0 || (inf != NULL && ((inf->op != OP_OVERWRITE && inf->op != OP_COPY) || inf->blend != BLEND_NONE)))
 	{ // We are doing some sort of fancy stuff to the destination bitmap, so composite to
 	  // a temporary bitmap, and copy that.
 		FBitmap tbmp;
@@ -608,10 +608,11 @@ int FMultiPatchTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rota
 			}
 			else
 			{
-				info.blendcolor[3] = b.a * FRACUNIT / 255;
-				info.blendcolor[0] = b.r * (FRACUNIT-info.blendcolor[3]);
-				info.blendcolor[1] = b.g * (FRACUNIT-info.blendcolor[3]);
-				info.blendcolor[2] = b.b * (FRACUNIT-info.blendcolor[3]);
+				fixed_t blendalpha = b.a * FRACUNIT / 255;
+				info.blendcolor[0] = b.r * blendalpha;
+				info.blendcolor[1] = b.g * blendalpha;
+				info.blendcolor[2] = b.b * blendalpha;
+				info.blendcolor[3] = FRACUNIT - blendalpha;
 				info.blend = BLEND_OVERLAY;
 			}
 		}

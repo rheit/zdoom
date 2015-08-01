@@ -45,6 +45,7 @@
 #include "doomdef.h"
 
 #include "m_fixed.h"
+#include "m_random.h"
 
 struct Baggage;
 class FScanner;
@@ -61,18 +62,20 @@ enum
 
 struct FState
 {
+	FState		*NextState;
+	actionf_p	ActionFunc;
 	WORD		sprite;
 	SWORD		Tics;
-	int			Misc1;			// Was changed to SBYTE, reverted to long for MBF compat
-	int			Misc2;			// Was changed to BYTE, reverted to long for MBF compat
+	WORD		TicRange;
 	BYTE		Frame;
 	BYTE		DefineFlags;	// Unused byte so let's use it during state creation.
+	int			Misc1;			// Was changed to SBYTE, reverted to long for MBF compat
+	int			Misc2;			// Was changed to BYTE, reverted to long for MBF compat
 	short		Light;
 	BYTE		Fullbright:1;	// State is fullbright
 	BYTE		SameFrame:1;	// Ignore Frame (except when spawning actor)
 	BYTE		Fast:1;
-	FState		*NextState;
-	actionf_p	ActionFunc;
+	BYTE		NoDelay:1;		// Spawn states executes its action normally
 	int			ParameterIndex;
 
 	inline int GetFrame() const
@@ -89,7 +92,11 @@ struct FState
 	}
 	inline int GetTics() const
 	{
-		return Tics;
+		if (TicRange == 0)
+		{
+			return Tics;
+		}
+		return Tics + pr_statetics.GenRand32() % (TicRange + 1);
 	}
 	inline int GetMisc1() const
 	{
@@ -102,6 +109,10 @@ struct FState
 	inline FState *GetNextState() const
 	{
 		return NextState;
+	}
+	inline bool GetNoDelay() const
+	{
+		return NoDelay;
 	}
 	inline void SetFrame(BYTE frame)
 	{
@@ -134,6 +145,7 @@ struct FState
 	}
 	static const PClass *StaticFindStateOwner (const FState *state);
 	static const PClass *StaticFindStateOwner (const FState *state, const FActorInfo *info);
+	static FRandom pr_statetics;
 };
 
 struct FStateLabels;
@@ -224,6 +236,7 @@ struct FActorInfo
 	void SetDamageFactor(FName type, fixed_t factor);
 	void SetPainChance(FName type, int chance);
 	void SetPainFlash(FName type, PalEntry color);
+	bool GetPainFlash(FName type, PalEntry *color) const;
 	void SetColorSet(int index, const FPlayerColorSet *set);
 
 	FState *FindState (int numnames, FName *names, bool exact=false) const;

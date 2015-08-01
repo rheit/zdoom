@@ -137,7 +137,7 @@ bool AArtiPoisonBag3::Use (bool pickup)
 
 		mo->target = Owner;
 		mo->tics -= pr_poisonbag()&3;
-		P_CheckMissileSpawn(mo);
+		P_CheckMissileSpawn(mo, Owner->radius);
 		return true;
 	}
 	return false;
@@ -420,10 +420,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_PoisonBagDamage)
 {
 	int bobIndex;
 	
-	P_RadiusAttack (self, self->target, 4, 40, self->DamageType, true);
+	P_RadiusAttack (self, self->target, 4, 40, self->DamageType, RADF_HURTSOURCE);
 	bobIndex = self->special2;
-	self->z += FloatBobOffsets[bobIndex]>>4;
-	self->special2 = (bobIndex+1)&63;
+	self->z += finesine[bobIndex << BOBTOFINESHIFT] >> 1;
+	self->special2 = (bobIndex + 1) & 63;
 }
 
 //===========================================================================

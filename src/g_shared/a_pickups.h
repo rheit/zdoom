@@ -131,6 +131,9 @@ enum
 	IF_INITEFFECTFAILED	= 1<<16,	// CreateCopy tried to activate a powerup and activation failed (can happen with PowerMorph)
 	IF_NOATTENPICKUPSOUND = 1<<17,	// Play pickup sound with ATTN_NONE
 	IF_PERSISTENTPOWER	= 1<<18,	// Powerup is kept when travelling between levels
+	IF_RESTRICTABSOLUTELY = 1<<19,	// RestrictedTo and ForbiddenTo do not allow pickup in any form by other classes
+	IF_NEVERRESPAWN		= 1<<20,	// Never, ever respawns
+	IF_NOSCREENFLASH	= 1<<21,	// No pickup flash on the player's screen
 };
 
 
@@ -142,6 +145,7 @@ public:
 	virtual void Touch (AActor *toucher);
 	virtual void Serialize (FArchive &arc);
 
+	virtual void MarkPrecacheSounds() const;
 	virtual void BeginPlay ();
 	virtual void Destroy ();
 	virtual void Tick ();
@@ -153,6 +157,7 @@ public:
 	virtual bool SpecialDropAction (AActor *dropper);
 	virtual bool DrawPowerup (int x, int y);
 	virtual void DoEffect ();
+	virtual bool Grind(bool items);
 
 	virtual const char *PickupMessage ();
 	virtual void PlayPickupSound (AActor *toucher);
@@ -260,6 +265,7 @@ public:
 	const PClass *ProjectileType;			// Projectile used by primary attack
 	const PClass *AltProjectileType;		// Projectile used by alternate attack
 	int SelectionOrder;						// Lower-numbered weapons get picked first
+	int MinSelAmmo1, MinSelAmmo2;			// Ignore in BestWeapon() if inadequate ammo
 	fixed_t MoveCombatDist;					// Used by bots, but do they *really* need it?
 	int ReloadCounter;						// For A_CheckForReload
 	int BobStyle;							// [XA] Bobbing style. Defines type of bobbing (e.g. Normal, Alpha)
@@ -275,6 +281,7 @@ public:
 
 	bool bAltFire;	// Set when this weapon's alternate fire is used.
 
+	virtual void MarkPrecacheSounds() const;
 	virtual void Serialize (FArchive &arc);
 	virtual bool ShouldStay ();
 	virtual void AttachToOwner (AActor *other);
@@ -343,7 +350,6 @@ enum
 	WIF_MELEEWEAPON =		0x00008000,	// melee weapon. Used by bots and monster AI.
 	WIF_DEHAMMO	=			0x00010000,	// Uses Doom's original amount of ammo for the respective attack functions so that old DEHACKED patches work as intended.
 										// AmmoUse1 will be set to the first attack's ammo use so that checking for empty weapons still works
-
 	WIF_CHEATNOTWEAPON	=	0x08000000,	// Give cheat considers this not a weapon (used by Sigil)
 
 	// Flags used only by bot AI:
@@ -353,7 +359,17 @@ enum
 	WIF_BOT_BFG =			1<<28,		// this is a BFG
 };
 
-#define S_LIGHTDONE 0
+class AWeaponGiver : public AWeapon
+{
+	DECLARE_CLASS(AWeaponGiver, AWeapon)
+
+public:
+	bool TryPickup(AActor *&toucher);
+	void Serialize(FArchive &arc);
+
+	fixed_t DropAmmoFactor;
+};
+
 
 // Health is some item that gives the player health when picked up.
 class AHealth : public AInventory

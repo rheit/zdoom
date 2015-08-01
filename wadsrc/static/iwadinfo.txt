@@ -12,6 +12,16 @@ IWad
 
 IWad
 {
+	Name = "Hacx 2.0"
+	Game = "Doom"
+	Config = "Hacx"
+	Mapinfo = "mapinfo/hacxharm.txt"
+	MustContain = "MAP01", "HACX-E"
+	BannerColors = "ff ff ff", "00 88 22"
+}
+
+IWad
+{
 	Name = "Hacx: Twitch'n Kill"
 	Game = "Doom"
 	Config = "Hacx"
@@ -223,6 +233,21 @@ IWad
 	
 IWad
 {
+	Name = "DOOM 1: BFG Edition"
+	Autoname = "Doom1"
+	Game = "Doom"
+	Config = "Doom"
+	Mapinfo = "mapinfo/ultdoom.txt"
+	Compatibility = "Shorttex"
+	MustContain = "E1M1","E2M1","E2M2","E2M3","E2M4","E2M5","E2M6","E2M7","E2M8","E2M9",
+		          "E3M1","E3M2","E3M3","E3M4","E3M5","E3M6","E3M7","E3M8","E3M9",
+		          "DPHOOF","BFGGA0","HEADA1","CYBRA1","SPIDA1D1", "E4M2",
+		          "DMENUPIC", "M_ACPT", "M_CAN", "M_EXITO", "M_CHG"
+	BannerColors = "54 54 54", "a8 a8 a8"
+}
+
+IWad
+{
 	Name = "The Ultimate DOOM"
 	Autoname = "Doom1"
 	Game = "Doom"
@@ -284,6 +309,19 @@ IWad
 	BannerColors = "a8 00 00", "a8 a8 a8"
 }
 
+IWad
+{
+	Name = "DOOM 2: BFG Edition"
+	Autoname = "Doom2BFG"
+	Game = "Doom"
+	Config = "Doom"
+	Mapinfo = "mapinfo/doom2bfg.txt"
+	Compatibility = "Shorttex"
+	MustContain = "MAP01", "DMENUPIC", "M_ACPT", "M_CAN", "M_EXITO", "M_CHG"
+	BannerColors = "a8 00 00", "a8 a8 a8"
+	Load = "nerve.wad"
+}
+
 // Doom 2 must be last to be checked becaude MAP01 is its only requirement
 IWad
 {
@@ -301,10 +339,14 @@ IWad
 
 Names
 {	
+	"bfgdoom2.wad"
+	"doom2bfg.wad"
 	"doom2f.wad"
 	"doom2.wad"
 	"plutonia.wad"
 	"tnt.wad"
+	"bfgdoom.wad"
+	"doombfg.wad"
 	"doomu.wad"
 	"doom.wad"
 	"doom1.wad"
@@ -316,6 +358,7 @@ Names
 	"hexdemo.wad"
 	"strife1.wad"
 	"strife0.wad"
+	"strife.wad"
 	"freedoom.wad"
 	"freedoom1.wad"
 	"freedoomu.wad"
@@ -327,5 +370,6 @@ Names
 	"action2.wad"
 	"harm1.wad"
 	"hacx.wad"
+	"hacx2.wad"
 	"doom64.wad"
 }

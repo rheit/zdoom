@@ -62,10 +62,11 @@
 static FRandom pr_obituary ("Obituary");
 static FRandom pr_botrespawn ("BotRespawn");
 static FRandom pr_killmobj ("ActorDie");
-static FRandom pr_damagemobj ("ActorTakeDamage");
+FRandom pr_damagemobj ("ActorTakeDamage");
 static FRandom pr_lightning ("LightningDamage");
 static FRandom pr_poison ("PoisonDamage");
 static FRandom pr_switcher ("SwitchTarget");
+static FRandom pr_kickbackdir ("KickbackDir");
 
 CVAR (Bool, cl_showsprees, true, CVAR_ARCHIVE)
 CVAR (Bool, cl_showmultikills, true, CVAR_ARCHIVE)
@@ -86,7 +87,9 @@ void P_TouchSpecialThing (AActor *special, AActor *toucher)
 {
 	fixed_t delta = special->z - toucher->z;
 
-	if (delta > toucher->height || delta < -32*FRACUNIT)
+	// The pickup is at or above the toucher's feet OR
+	// The pickup is below the toucher.
+	if (delta > toucher->height || delta < MIN(-32*FRACUNIT, -special->height))
 	{ // out of reach
 		return;
 	}
@@ -189,7 +192,7 @@ void ClientObituary (AActor *self, AActor *inflictor, AActor *attacker, int dmgf
 	if (self->player == NULL || self->player->mo != self || !show_obituaries)
 		return;
 
-	gender = self->player->userinfo.gender;
+	gender = self->player->userinfo.GetGender();
 
 	// Treat voodoo dolls as unknown deaths
 	if (inflictor && inflictor->player && inflictor->player->mo != inflictor)
@@ -271,7 +274,7 @@ void ClientObituary (AActor *self, AActor *inflictor, AActor *attacker, int dmgf
 			attacker->player->fragcount -= 2;
 			attacker->player->frags[attacker->player - players]++;
 			self = attacker;
-			gender = self->player->userinfo.gender;
+			gender = self->player->userinfo.GetGender();
 			mysnprintf (gendermessage, countof(gendermessage), "OB_FRIENDLY%c", '1' + (pr_obituary() & 3));
 			message = GStrings(gendermessage);
 		}
@@ -318,7 +321,7 @@ void ClientObituary (AActor *self, AActor *inflictor, AActor *attacker, int dmgf
 	}
 
 	SexMessage (message, gendermessage, gender,
-		self->player->userinfo.netname, attacker->player->userinfo.netname);
+		self->player->userinfo.GetName(), attacker->player->userinfo.GetName());
 	Printf (PRINT_MEDIUM, "%s\n", gendermessage);
 }
 
@@ -345,7 +348,7 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 				int realgibhealth = realthis->GibHealth();
 				if (realthis->health >= realgibhealth)
 				{
-					realthis->health = realgibhealth -1; // if morphed was gibbed, so must original be (where allowed)
+					realthis->health = realgibhealth -1; // if morphed was gibbed, so must original be (where allowed)l
 				}
 			}
 			realthis->Die(source, inflictor, dmgflags);
@@ -454,8 +457,8 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 				if (deathmatch && player->spreecount >= 5 && cl_showsprees)
 				{
 					SexMessage (GStrings("SPREEKILLSELF"), buff,
-						player->userinfo.gender, player->userinfo.netname,
-						player->userinfo.netname);
+						player->userinfo.GetGender(), player->userinfo.GetName(),
+						player->userinfo.GetName());
 					StatusBar->AttachMessage (new DHUDMessageFadeOut (SmallFont, buff,
 							1.5f, 0.2f, 0, 0, CR_WHITE, 3.f, 0.5f), MAKE_ID('K','S','P','R'));
 				}
@@ -502,8 +505,8 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 					{
 						if (!AnnounceSpreeLoss (this))
 						{
-							SexMessage (GStrings("SPREEOVER"), buff, player->userinfo.gender,
-								player->userinfo.netname, source->player->userinfo.netname);
+							SexMessage (GStrings("SPREEOVER"), buff, player->userinfo.GetGender(),
+								player->userinfo.GetName(), source->player->userinfo.GetName());
 							StatusBar->AttachMessage (new DHUDMessageFadeOut (SmallFont, buff,
 								1.5f, 0.2f, 0, 0, CR_WHITE, 3.f, 0.5f), MAKE_ID('K','S','P','R'));
 						}
@@ -512,8 +515,8 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 					{
 						if (!AnnounceSpree (source))
 						{
-							SexMessage (spreemsg, buff, player->userinfo.gender,
-								player->userinfo.netname, source->player->userinfo.netname);
+							SexMessage (spreemsg, buff, player->userinfo.GetGender(),
+								player->userinfo.GetName(), source->player->userinfo.GetName());
 							StatusBar->AttachMessage (new DHUDMessageFadeOut (SmallFont, buff,
 								1.5f, 0.2f, 0, 0, CR_WHITE, 3.f, 0.5f), MAKE_ID('K','S','P','R'));
 						}
@@ -562,8 +565,8 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 
 							if (!AnnounceMultikill (source))
 							{
-								SexMessage (multimsg, buff, player->userinfo.gender,
-									player->userinfo.netname, source->player->userinfo.netname);
+								SexMessage (multimsg, buff, player->userinfo.GetGender(),
+									player->userinfo.GetName(), source->player->userinfo.GetName());
 								StatusBar->AttachMessage (new DHUDMessageFadeOut (SmallFont, buff,
 									1.5f, 0.8f, 0, 0, CR_RED, 3.f, 0.5f), MAKE_ID('M','K','I','L'));
 							}
@@ -886,7 +889,9 @@ static inline bool MustForcePain(AActor *target, AActor *inflictor)
 }
 
 
-void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage, FName mod, int flags)
+// Returns the amount of damage actually inflicted upon the target, or -1 if
+// the damage was cancelled.
+int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage, FName mod, int flags)
 {
 	unsigned ang;
 	player_t *player = NULL;
@@ -899,7 +904,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 
 	if (target == NULL || !((target->flags & MF_SHOOTABLE) || (target->flags6 & MF6_VULNERABLE)))
 	{ // Shouldn't happen
-		return;
+		return -1;
 	}
 
 	// Spectral targets only take damage from spectral projectiles.
@@ -907,14 +912,14 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 	{
 		if (inflictor == NULL || !(inflictor->flags4 & MF4_SPECTRAL))
 		{
-			return;
+			return -1;
 		}
 	}
 	if (target->health <= 0)
 	{
 		if (inflictor && mod == NAME_Ice)
 		{
-			return;
+			return -1;
 		}
 		else if (target->flags & MF_ICECORPSE) // frozen
 		{
@@ -922,7 +927,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 			target->flags6 |= MF6_SHATTERING;
 			target->velx = target->vely = target->velz = 0;
 		}
-		return;
+		return -1;
 	}
 	if ((target->flags2 & MF2_INVULNERABLE) && damage < TELEFRAG_DAMAGE && !(flags & DMG_FORCED))
 	{ // actor is invulnerable
@@ -930,7 +935,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 		{
 			if (inflictor == NULL || !(inflictor->flags3 & MF3_FOILINVUL))
 			{
-				return;
+				return -1;
 			}
 		}
 		else
@@ -938,7 +943,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 			// Players are optionally excluded from getting thrust by damage.
 			if (static_cast<APlayerPawn *>(target)->PlayerFlags & PPF_NOTHRUSTWHENINVUL)
 			{
-				return;
+				return -1;
 			}
 		}
 		
@@ -966,7 +971,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 		if (target->flags2 & MF2_DORMANT)
 		{
 			// Invulnerable, and won't wake up
-			return;
+			return -1;
 		}
 		player = target->player;
 		if (player && damage > 1 && damage < TELEFRAG_DAMAGE)
@@ -982,19 +987,19 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 				if (player != NULL)
 				{
 					if (!deathmatch && inflictor->FriendPlayer > 0)
-						return;
+						return -1;
 				}
 				else if (target->flags4 & MF4_SPECTRAL)
 				{
 					if (inflictor->FriendPlayer == 0 && !target->IsHostile(inflictor))
-						return;
+						return -1;
 				}
 			}
 
 			damage = inflictor->DoSpecialDamage (target, damage, mod);
 			if (damage == -1)
 			{
-				return;
+				return -1;
 			}
 		}
 		// Handle active damage modifiers (e.g. PowerDamage)
@@ -1008,7 +1013,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 				{
 					goto dopain;
 				}
-				return;
+				return -1;
 			}
 		}
 		// Handle passive damage modifiers (e.g. PowerProtection)
@@ -1022,7 +1027,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 				{
 					goto dopain;
 				}
-				return;
+				return -1;
 			}
 		}
 
@@ -1039,7 +1044,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 				{
 					goto dopain;
 				}
-				return;
+				return -1;
 			}
 		}
 
@@ -1047,7 +1052,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 	}
 	if (damage == -1)
 	{
-		return;
+		return -1;
 	}
 	// Push the target unless the source's weapon's kickback is 0.
 	// (i.e. Gauntlets/Chainsaw)
@@ -1069,9 +1074,18 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 		if (kickback)
 		{
 			AActor *origin = (source && (flags & DMG_INFLICTOR_IS_PUFF))? source : inflictor;
-			
-			ang = R_PointToAngle2 (origin->x, origin->y,
-				target->x, target->y);
+
+			// If the origin and target are in exactly the same spot, choose a random direction.
+			// (Most likely cause is from telefragging somebody during spawning because they
+			// haven't moved from their spawn spot at all.)
+			if (origin->x == target->x && origin->y == target->y)
+			{
+				ang = pr_kickbackdir.GenRand32();
+			}
+			else
+			{
+				ang = R_PointToAngle2 (origin->x, origin->y, target->x, target->y);
+			}
 
 			// Calculate this as float to avoid overflows so that the
 			// clamping that had to be done here can be removed.
@@ -1131,7 +1145,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 		{ // Still allow telefragging :-(
 			damage = (int)((float)damage * level.teamdamage);
 			if (damage <= 0)
-				return;
+				return damage;
 		}
 	}
 
@@ -1160,7 +1174,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 			if (damage < TELEFRAG_DAMAGE && ((player->mo->flags2 & MF2_INVULNERABLE) ||
 				(player->cheats & CF_GODMODE)))
 			{ // player is invulnerable, so don't hurt him
-				return;
+				return -1;
 			}
 
 			if (!(flags & DMG_NO_ARMOR) && player->mo->Inventory != NULL)
@@ -1171,12 +1185,12 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 				if (damage <= 0)
 				{
 					// If MF6_FORCEPAIN is set, make the player enter the pain state.
-				if (!(target->flags5 & MF5_NOPAIN) && inflictor != NULL &&
-					(inflictor->flags6 & MF6_FORCEPAIN) && !(inflictor->flags5 & MF5_PAINLESS))
-				{
-					goto dopain;
-				}
-					return;
+					if (!(target->flags5 & MF5_NOPAIN) && inflictor != NULL &&
+						(inflictor->flags6 & MF6_FORCEPAIN) && !(inflictor->flags5 & MF5_PAINLESS))
+					{
+						goto dopain;
+					}
+					return damage;
 				}
 			}
 			
@@ -1235,7 +1249,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 			damage = newdam;
 			if (damage <= 0)
 			{
-				return;
+				return damage;
 			}
 		}
 	
@@ -1294,7 +1308,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 			}
 		}
 		target->Die (source, inflictor, flags);
-		return;
+		return damage;
 	}
 
 	woundstate = target->FindState(NAME_Wound, mod);
@@ -1305,7 +1319,7 @@ void P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage
 		if (target->health <= woundhealth)
 		{
 			target->SetState (woundstate);
-			return;
+			return damage;
 		}
 	}
 
@@ -1399,6 +1413,8 @@ dopain:
 	// killough 11/98: Don't attack a friend, unless hit by that friend.
 	if (justhit && (target->target == source || !target->target || !target->IsFriend(target->target)))
 		target->flags |= MF_JUSTHIT;    // fight back!
+
+	return damage;
 }
 
 void P_PoisonMobj (AActor *target, AActor *inflictor, AActor *source, int damage, int duration, int period, FName type)
@@ -1505,6 +1521,10 @@ bool AActor::OkayToSwitchTarget (AActor *other)
 //
 // P_PoisonPlayer - Sets up all data concerning poisoning
 //
+// poisoner is the object directly responsible for poisoning the player,
+// such as a missile. source is the actor responsible for creating the
+// poisoner.
+//
 //==========================================================================
 
 bool P_PoisonPlayer (player_t *player, AActor *poisoner, AActor *source, int poison)
@@ -1520,7 +1540,7 @@ bool P_PoisonPlayer (player_t *player, AActor *poisoner, AActor *source, int poi
 	if (poison > 0)
 	{
 		player->poisoncount += poison;
-		player->poisoner = poisoner;
+		player->poisoner = source;
 		if (poisoner == NULL)
 		{
 			player->poisontype = player->poisonpaintype = NAME_None;
@@ -1550,6 +1570,10 @@ void P_PoisonDamage (player_t *player, AActor *source, int damage,
 	AActor *target;
 	AActor *inflictor;
 
+	if (player == NULL)
+	{
+		return;
+	}
 	target = player->mo;
 	inflictor = source;
 	if (target->health <= 0)
@@ -1561,11 +1585,8 @@ void P_PoisonDamage (player_t *player, AActor *source, int damage,
 	{ // target is invulnerable
 		return;
 	}
-	if (player)
-	{
-		// Take half damage in trainer mode
-		damage = FixedMul(damage, G_SkillProperty(SKILLP_DamageFactor));
-	}
+	// Take half damage in trainer mode
+	damage = FixedMul(damage, G_SkillProperty(SKILLP_DamageFactor));
 	// Handle passive damage modifiers (e.g. PowerProtection)
 	if (target->Inventory != NULL)
 	{

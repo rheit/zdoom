@@ -550,6 +550,15 @@ bool P_Move (AActor *actor)
 			{
 				actor->z = savedz;
 			}
+			else
+			{ // The monster just hit the floor, so trigger any actions.
+				if (actor->floorsector->SecActTarget != NULL &&
+					actor->floorz == actor->floorsector->floorplane.ZatPoint(actor->x, actor->y))
+				{
+					actor->floorsector->SecActTarget->TriggerAction(actor, SECSPAC_HitFloor);
+				}
+				P_CheckFor3DFloorHit(actor);
+			}
 		}
 	}
 
@@ -1670,7 +1679,7 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 
 		// [RC] Well, let's let special monsters with this flag active be able to see
 		// the player then, eh?
-		if(!(actor->flags & MF6_SEEINVISIBLE)) 
+		if(!(actor->flags6 & MF6_SEEINVISIBLE)) 
 		{
 			if ((player->mo->flags & MF_SHADOW && !(i_compatflags & COMPATF_INVISIBILITY)) ||
 				player->mo->flags3 & MF3_GHOST)
@@ -1864,7 +1873,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 	{
 		if (!(flags & LOF_NOSOUNDCHECK))
 		{
-			targ = (self->flags & MF_NOSECTOR)? self->Sector->SoundTarget : self->LastHeard;
+			targ = (i_compatflags & COMPATF_SOUNDTARGET || self->flags & MF_NOSECTOR)?
+				self->Sector->SoundTarget : self->LastHeard;
 			if (targ != NULL)
 			{
 				// [RH] If the soundtarget is dead, don't chase it
@@ -2780,9 +2790,18 @@ void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch)
 	{
 		// [DH] Don't need to do proper fixed->double conversion, since the
 		// result is only used in a ratio.
-		double dist_x = self->target->x - self->x;
-		double dist_y = self->target->y - self->y;
-		double dist_z = self->target->z - self->z;
+		double dist_x = other->x - self->x;
+		double dist_y = other->y - self->y;
+		// Positioning ala missile spawning, 32 units above foot level
+		fixed_t source_z = self->z + 32*FRACUNIT + self->GetBobOffset();
+		fixed_t target_z = other->z + 32*FRACUNIT + other->GetBobOffset();
+		// If the target z is above the target's head, reposition to the middle of
+		// its body.
+		if (target_z >= other->z + other->height)
+		{
+			target_z = other->z + other->height / 2;
+		}
+		double dist_z = target_z - source_z;
 		double dist = sqrt(dist_x*dist_x + dist_y*dist_y + dist_z*dist_z);
 
 		int other_pitch = (int)rad2bam(asin(dist_z / dist));
@@ -3004,14 +3023,19 @@ void ModifyDropAmount(AInventory *inv, int dropamount)
 	{
 		// Half ammo when dropped by bad guys.
 		inv->Amount = inv->GetClass()->Meta.GetMetaInt (AIMETA_DropAmount, MAX(1, FixedMul(inv->Amount, dropammofactor)));
-		inv->ItemFlags|=flagmask;
+		inv->ItemFlags |= flagmask;
+	}
+	else if (inv->IsKindOf (RUNTIME_CLASS(AWeaponGiver)))
+	{
+		static_cast<AWeaponGiver *>(inv)->DropAmmoFactor = dropammofactor;
+		inv->ItemFlags |= flagmask;
 	}
 	else if (inv->IsKindOf (RUNTIME_CLASS(AWeapon)))
 	{
 		// The same goes for ammo from a weapon.
 		static_cast<AWeapon *>(inv)->AmmoGive1 = FixedMul(static_cast<AWeapon *>(inv)->AmmoGive1, dropammofactor);
 		static_cast<AWeapon *>(inv)->AmmoGive2 = FixedMul(static_cast<AWeapon *>(inv)->AmmoGive2, dropammofactor);
-		inv->ItemFlags|=flagmask;
+		inv->ItemFlags |= flagmask;
 	}			
 	else if (inv->IsKindOf (RUNTIME_CLASS(ADehackedPickup)))
 	{
@@ -3065,6 +3089,8 @@ AInventory *P_DropItem (AActor *source, const PClass *type, int dropamount, int 
 				ModifyDropAmount(inv, dropamount);
 				if (inv->SpecialDropAction (source))
 				{
+					// The special action indicates that the item should not spawn
+					inv->Destroy();
 					return NULL;
 				}
 				return inv;
@@ -3161,7 +3187,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Die)
 DEFINE_ACTION_FUNCTION(AActor, A_Detonate)
 {
 	int damage = self->GetMissileDamage (0, 1);
-	P_RadiusAttack (self, self->target, damage, damage, self->DamageType, true);
+	P_RadiusAttack (self, self->target, damage, damage, self->DamageType, RADF_HURTSOURCE);
 	P_CheckSplash(self, damage<<FRACBITS);
 }
 

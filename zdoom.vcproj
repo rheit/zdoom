@@ -28,8 +28,8 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				Description="Checking svnrevision.h..."
-				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/svnrevision.h"
+				Description="Checking gitinfo.h..."
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -151,7 +151,8 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="$(OutDir)\updaterevision.exe src src/svnrevision.h"
+				Description="Checking gitinfo.h..."
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -263,8 +264,8 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				Description="Checking svnrevision.h..."
-				CommandLine="$(OutDir)\updaterevision.exe src src/svnrevision.h"
+				Description="Checking gitinfo.h..."
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -370,7 +371,8 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="$(OutDir)\updaterevision.exe src src/svnrevision.h"
+				Description="Checking gitinfo.h..."
+				CommandLine="&quot;$(OutDir)\updaterevision.exe&quot; src src/gitinfo.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -650,6 +652,10 @@
 			</File>
 			<File
 				RelativePath=".\src\gi.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\gitinfo.cpp"
 				>
 			</File>
 			<File
@@ -2036,46 +2042,6 @@
 				RelativePath=".\src\win32\win32video.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\src\win32\wrappers.asm"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Assembling $(InputPath)..."
-						CommandLine="nasm -o &quot;$(IntDir)\$(InputName).obj&quot; -d OBJ_FORMAT_win32 -f win32 &quot;$(InputPath)&quot;&#x0D;&#x0A;"
-						Outputs="$(IntDir)\$(InputName).obj"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Assembling $(InputPath)..."
-						CommandLine="nasm -g -o &quot;$(IntDir)\$(InputName).obj&quot; -d OBJ_FORMAT_win32 -f win32 &quot;$(InputPath)&quot;&#x0D;&#x0A;"
-						Outputs="$(IntDir)\$(InputName).obj"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|x64"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
-			</File>
 		</Filter>
 		<Filter
 			Name="Shared Game"
@@ -2651,10 +2617,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath=".\src\oplsynth\fmopl.h"
-					>
-				</File>
-				<File
 					RelativePath=".\src\oplsynth\mlopl.cpp"
 					>
 				</File>
@@ -2667,6 +2629,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\src\oplsynth\opl.h"
+					>
+				</File>
+				<File
+					RelativePath=".\src\oplsynth\OPL3.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\src\oplsynth\opl_mus_player.cpp"
 					>
 				</File>
@@ -2674,6 +2644,18 @@
 					RelativePath=".\src\oplsynth\opl_mus_player.h"
 					>
 				</File>
+				<Filter
+					Name="DOSBox"
+					>
+					<File
+						RelativePath=".\src\oplsynth\dosbox\opl.cpp"
+						>
+					</File>
+					<File
+						RelativePath=".\src\oplsynth\dosbox\opl.h"
+						>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="Timidity"
@@ -6032,42 +6014,6 @@
 				</File>
 				<File
 					RelativePath=".\src\g_strife\a_loremaster.cpp"
-					>
-					<FileConfiguration
-						Name="Release|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|x64"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug|x64"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\src\g_strife\a_macil.cpp"
 					>
 					<FileConfiguration
 						Name="Release|Win32"

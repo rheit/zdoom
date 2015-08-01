@@ -53,6 +53,7 @@
 #include "gi.h"
 #include "g_level.h"
 #include "st_stuff.h"
+#include "sbar.h"
 
 #include "i_system.h"
 #include "i_video.h"
@@ -837,10 +838,10 @@ void DCanvas::FillBorder (FTexture *img)
 	}
 	else
 	{
-		Clear (0, 0, Width, bordtop, 0, 0);										// Top
-		Clear (0, bordtop, bordleft, Height - bordbottom, 0, 0);				// Left
-		Clear (Width - bordright, bordtop, Width, Height - bordbottom, 0, 0);	// Right
-		Clear (0, Height - bordbottom, Width, Height, 0, 0);					// Bottom
+		Clear (0, 0, Width, bordtop, GPalette.BlackIndex, 0);									// Top
+		Clear (0, bordtop, bordleft, Height - bordbottom, GPalette.BlackIndex, 0);				// Left
+		Clear (Width - bordright, bordtop, Width, Height - bordbottom, GPalette.BlackIndex, 0);	// Right
+		Clear (0, Height - bordbottom, Width, Height, GPalette.BlackIndex, 0);					// Bottom
 	}
 }
 
@@ -1377,8 +1378,32 @@ bool DCanvas::ClipBox (int &x, int &y, int &w, int &h, const BYTE *&src, const i
 	return false;
 }
 
+//==========================================================================
+//
+// V_SetBorderNeedRefresh
+//
+// Flag the border as in need of updating. (Probably because something that
+// was on top of it has changed.
+//
+//==========================================================================
+
+void V_SetBorderNeedRefresh()
+{
+	if (screen != NULL)
+	{
+		BorderNeedRefresh = screen->GetPageCount();
+	}
+}
+
+//==========================================================================
+//
+// V_DrawFrame
+//
 // Draw a frame around the specified area using the view border
 // frame graphics. The border is drawn outside the area, not in it.
+//
+//==========================================================================
+
 void V_DrawFrame (int left, int top, int width, int height)
 {
 	FTexture *p;
@@ -1411,7 +1436,7 @@ void V_DrawFrame (int left, int top, int width, int height)
 
 //==========================================================================
 //
-//
+// V_DrawBorder
 //
 //==========================================================================
 
@@ -1455,7 +1480,7 @@ static void V_DrawViewBorder (void)
 	// Will draw borders around itself, too.
 	if (SCREENWIDTH > 320)
 	{
-		SB_state = screen->GetPageCount ();
+		ST_SetNeedRefresh();
 	}
 
 	if (viewwidth == SCREENWIDTH)

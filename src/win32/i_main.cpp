@@ -95,8 +95,6 @@
 #define X64 ""
 #endif
 
-#define WINDOW_TITLE GAMESIG " " DOTVERSIONSTR X64 " (" __DATE__ ")"
-
 // The maximum number of functions that can be registered with atterm.
 #define MAX_TERMS	64
 
@@ -714,7 +712,9 @@ void ShowErrorPane(const char *text)
 	}
 	if (text != NULL)
 	{
-		SetWindowText (Window, "Fatal Error - " WINDOW_TITLE);
+		char caption[100];
+		mysnprintf(caption, countof(caption), "Fatal Error - "GAMESIG" %s "X64" (%s)", GetVersionString(), GetGitTime());
+		SetWindowText (Window, caption);
 		ErrorIcon = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_OWNERDRAW, 0, 0, 0, 0, Window, NULL, g_hInst, NULL);
 		if (ErrorIcon != NULL)
 		{
@@ -945,10 +945,12 @@ void DoMain (HINSTANCE hInstance)
 			I_FatalError ("Could not register window class");
 		
 		/* create window */
+		char caption[100];
+		mysnprintf(caption, countof(caption), ""GAMESIG" %s "X64" (%s)", GetVersionString(), GetGitTime());
 		Window = CreateWindowEx(
 				WS_EX_APPWINDOW,
 				(LPCTSTR)WinClassName,
-				(LPCTSTR)WINDOW_TITLE,
+				(LPCTSTR)caption,
 				WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN,
 				x, y, width, height,
 				(HWND)   NULL,
@@ -1045,7 +1047,7 @@ void DoomSpecificInfo (char *buffer, size_t bufflen)
 	char *const buffend = buffer + bufflen - 2;	// -2 for CRLF at end
 	int i;
 
-	buffer += mysnprintf (buffer, buffend - buffer, "ZDoom version " DOTVERSIONSTR " (" __DATE__ ")\r\n");
+	buffer += mysnprintf (buffer, buffend - buffer, GAMENAME " version %s (%s)", GetVersionString(), GetGitHash());
 	buffer += mysnprintf (buffer, buffend - buffer, "\r\nCommand line: %s\r\n", GetCommandLine());
 
 	for (i = 0; (arg = Wads.GetWadName (i)) != NULL; ++i)
@@ -1224,14 +1226,14 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE nothing, LPSTR cmdline, int n
 
 	InitCommonControls ();			// Load some needed controls and be pretty under XP
 
+	// We need to load riched20.dll so that we can create the control.
 	if (NULL == LoadLibrary ("riched20.dll"))
 	{
-		// Technically, it isn't really Internet Explorer that is needed, but this
-		// is an example of a specific program that will provide riched20.dll.
-		// But considering how much extra stuff needs to be installed to make Windows 95
-		// useable with pretty much any recent software, the chances are high that
-		// the user already has riched20.dll installed.
-		I_FatalError ("Sorry, you need to install Internet Explorer 3 or higher to play ZDoom on Windows 95.");
+		// This should only happen on basic Windows 95 installations, but since we
+		// don't support Windows 95, we have no obligation to provide assistance in
+		// getting it installed.
+		MessageBoxA(NULL, "Could not load riched20.dll", "ZDoom Error", MB_OK | MB_ICONSTOP);
+		exit(0);
 	}
 
 #if !defined(__GNUC__) && defined(_DEBUG)
