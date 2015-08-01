@@ -2149,11 +2149,13 @@ void P_LoadThingsDoom64 (MapData * map)
 		mti[i].flags = (short)((flags & 0xf) | 0x7e0);
 		mti[i].thingid = LittleShort(mth[i].thingid);
 		mti[i].ClassFilter = 0xffff; // No classes in Doom 64 either.
+		mti[i].RenderStyle = STYLE_Count;
+		mti[i].alpha = -1;
+		mti[i].health = 1;
 
 		if (flags & D64TF_NOTSINGLE)		mti[i].flags &= ~MTF_SINGLE;
 		if (flags & D64TF_NOTDEATHMATCH)	mti[i].flags &= ~MTF_DEATHMATCH;
 		if (flags & D64TF_NOTMULTI)			mti[i].flags &= ~(MTF_DEATHMATCH|MTF_COOPERATIVE);
-		if (flags & D64TF_DONTSPAWN)		mti[i].flags |= MTF_DONTSPAWN;
 		if (flags & D64TF_SECRET)			mti[i].flags |= MTF_SECRET, level.total_secrets++;
 		if (flags & D64TF_NOINFIGHTING)		mti[i].flags |= MTF_NOINFIGHTING;
 		if (flags & D64TF_DONTSPAWN)		mti[i].flags |= MTF_DONTSPAWN;

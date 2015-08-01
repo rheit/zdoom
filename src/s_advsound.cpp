@@ -1380,12 +1380,6 @@ static void S_AddSNDINFO (int lump)
 
 			case SI_IfDoom: //also Chex
 			case SI_IfDoom64:
-				if (gameinfo.gametype != GAME_Doom64)
-				{
-					skipToEndIf = true;
-				}
-				break;
-
 			case SI_IfStrife:
 			case SI_IfHeretic:
 			case SI_IfHexen:
