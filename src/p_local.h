@@ -198,6 +198,9 @@ enum WARPF
 	WARPF_MOVEPTR          = 0x1000,
 	WARPF_USEPTR           = 0x2000,
 	WARPF_USETID           = 0x2000,
+	WARPF_QTR				= 0x00004000,
+	WARPF_MID				= 0x00008000,
+	WARPF_TOP				= 0x00010000,		
 };
 
 
