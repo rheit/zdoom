@@ -692,6 +692,23 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 	fixed_t	oldx = caller->x;
 	fixed_t	oldy = caller->y;
 	fixed_t	oldz = caller->z;
+	fixed_t newz = 0;
+
+	if ((flags & WARPF_QTR) && (flags & WARPF_MID))
+	{
+		newz = reference->height - (reference->height / 4);
+	}
+	else
+	{
+		if (flags & WARPF_MID)
+			newz = reference->height / 2;
+		else if (flags & WARPF_QTR)
+			newz = reference->height / 4;
+	}
+	if (flags & WARPF_TOP)
+	{
+		newz = reference->height;
+	}
 
 	if (!(flags & WARPF_ABSOLUTEANGLE))
 	{
@@ -719,7 +736,7 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 			caller->SetOrigin(
 				reference->x + xofs,
 				reference->y + yofs,
-				reference->z);
+				reference->z + newz);
 
 			// now the caller's floorz should be appropriate for the assigned xy-position
 			// assigning position again with
@@ -730,14 +747,14 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 				caller->SetOrigin(
 					caller->x,
 					caller->y,
-					caller->floorz + zofs);
+					caller->floorz + zofs + newz);
 			}
 			else
 			{
 				// if there is no offset, there should be no ill effect from moving down to the already defined floor
 
 				// A_Teleport does the same thing anyway
-				caller->z = caller->floorz;
+				caller->z = caller->floorz + newz;
 			}
 		}
 		else
@@ -745,18 +762,18 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 			caller->SetOrigin(
 				reference->x + xofs,
 				reference->y + yofs,
-				reference->z + zofs);
+				reference->z + zofs + newz);
 		}
 	}
 	else // [MC] The idea behind "absolute" is meant to be "absolute". Override everything, just like A_SpawnItemEx's.
 	{
 		if (flags & WARPF_TOFLOOR)
 		{
-			caller->SetOrigin(xofs, yofs, caller->floorz + zofs);
+			caller->SetOrigin(xofs, yofs, caller->floorz + zofs + newz);
 		}
 		else
 		{
-			caller->SetOrigin(xofs, yofs, zofs);
+			caller->SetOrigin(xofs, yofs, zofs + newz);
 		}
 	}
 
