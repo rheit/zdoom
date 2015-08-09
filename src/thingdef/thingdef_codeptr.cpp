@@ -2019,15 +2019,18 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 
 	if (flags & SIXF_ISTARGET)
 	{
-		self->target = mo;
+		if (originator)	originator->target = mo;
+		else			self->target = mo;
 	}
 	if (flags & SIXF_ISMASTER)
 	{
-		self->master = mo;
+		if (originator)	originator->master = mo;
+		else			self->master = mo;
 	}
 	if (flags & SIXF_ISTRACER)
 	{
-		self->tracer = mo;
+		if (originator)	originator->tracer = mo;
+		else			self->tracer = mo;
 	}
 	return true;
 }
