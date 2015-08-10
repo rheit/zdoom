@@ -73,6 +73,7 @@
 #include "p_setup.h"
 #include "gstrings.h"
 
+AActor *SingleActorFromTID (int tid, AActor *defactor);
 
 static FRandom pr_camissile ("CustomActorfire");
 static FRandom pr_camelee ("CustomMelee");
@@ -1612,7 +1613,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 	if (linetarget == NULL && aim)
 	{
 		// We probably won't hit the target, but aim at it anyway so we don't look stupid.
-		FVector2 xydiff(self->target->x - self->x, self->target->y - self->y);
+		TVector2<double> xydiff(self->target->x - self->x, self->target->y - self->y);
 		double zdiff = (self->target->z + (self->target->height>>1)) -
 						(self->z + (self->height>>1) - self->floorclip);
 		self->pitch = int(atan2(zdiff, xydiff.Length()) * ANGLE_180 / -M_PI);
@@ -1856,6 +1857,9 @@ enum SIX_Flags
 	SIXF_ORIGINATOR				= 0x00800000,
 	SIXF_TRANSFERSPRITEFRAME	= 0x01000000,
 	SIXF_TRANSFERROLL			= 0x02000000,
+	SIXF_ISTARGET				= 0x04000000,
+	SIXF_ISMASTER				= 0x08000000,
+	SIXF_ISTRACER				= 0x10000000,
 };
 
 static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
@@ -2013,6 +2017,18 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 		mo->roll = self->roll;
 	}
 
+	if (flags & SIXF_ISTARGET)
+	{
+		self->target = mo;
+	}
+	if (flags & SIXF_ISMASTER)
+	{
+		self->master = mo;
+	}
+	if (flags & SIXF_ISTRACER)
+	{
+		self->tracer = mo;
+	}
 	return true;
 }
 
@@ -3989,23 +4005,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPitch)
 		return;
 	}
 
-	if (ref->player != NULL || (flags & SPF_FORCECLAMP))
-	{ // clamp the pitch we set
-		int min, max;
-
-		if (ref->player != NULL)
-		{
-			min = ref->player->MinPitch;
-			max = ref->player->MaxPitch;
-		}
-		else
-		{
-			min = -ANGLE_90 + (1 << ANGLETOFINESHIFT);
-			max = ANGLE_90 - (1 << ANGLETOFINESHIFT);
-		}
-		pitch = clamp<int>(pitch, min, max);
-	}
-	ref->SetPitch(pitch, !!(flags & SPF_INTERPOLATE));
+	ref->SetPitch(pitch, !!(flags & SPF_INTERPOLATE), !!(flags & SPF_FORCECLAMP));
 }
 
 //===========================================================================
@@ -4055,7 +4055,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ScaleVelocity)
 		return;
 	}
 
-	INTBOOL was_moving = self->velx | self->vely | self->velz;
+	INTBOOL was_moving = ref->velx | ref->vely | ref->velz;
 
 	ref->velx = FixedMul(ref->velx, scale);
 	ref->vely = FixedMul(ref->vely, scale);
@@ -4077,7 +4077,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ScaleVelocity)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeVelocity)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(5);
 	ACTION_PARAM_FIXED(x, 0);
 	ACTION_PARAM_FIXED(y, 1);
 	ACTION_PARAM_FIXED(z, 2);
@@ -4118,7 +4118,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeVelocity)
 
 	if (was_moving)
 	{
-		CheckStopped(self);
+		CheckStopped(ref);
 	}
 }
 
@@ -4669,26 +4669,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_WolfAttack)
 //
 //==========================================================================
 
-enum WARPF
-{
-	WARPF_ABSOLUTEOFFSET = 0x1,
-	WARPF_ABSOLUTEANGLE = 0x2,
-	WARPF_USECALLERANGLE = 0x4,
-
-	WARPF_NOCHECKPOSITION = 0x8,
-
-	WARPF_INTERPOLATE = 0x10,
-	WARPF_WARPINTERPOLATION = 0x20,
-	WARPF_COPYINTERPOLATION = 0x40,
-
-	WARPF_STOP = 0x80,
-	WARPF_TOFLOOR = 0x100,
-	WARPF_TESTONLY = 0x200,
-	WARPF_ABSOLUTEPOSITION = 0x400,
-	WARPF_BOB				= 0x800,
-	WARPF_MOVEPTR = 0x1000,
-};
-
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 {
 	ACTION_PARAM_START(7);
@@ -4700,8 +4680,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 	ACTION_PARAM_ANGLE(angle, 4);
 	ACTION_PARAM_INT(flags, 5);
 	ACTION_PARAM_STATE(success_state, 6);
-
-	AActor *reference = COPY_AAPTR(self, destination_selector);
+	
+	AActor *reference;
+	
+	if((flags & WARPF_USETID))
+	{
+		reference = SingleActorFromTID(destination_selector, self);
+	}
+	else
+	{
+		reference = COPY_AAPTR(self, destination_selector);
+	}
 
 	//If there is no actor to warp to, fail.
 	if (!reference)
@@ -4710,130 +4699,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 		return;
 	}
 
-	AActor *caller = self;
-
-	if (flags & WARPF_MOVEPTR)
+	if (P_Thing_Warp(self, reference, xofs, yofs, zofs, angle, flags))
 	{
-		AActor *temp = reference;
-		reference = caller;
-		caller = temp;
-	}
-
-	fixed_t	oldx = caller->x;
-	fixed_t	oldy = caller->y;
-	fixed_t	oldz = caller->z;
-
-	if (!(flags & WARPF_ABSOLUTEANGLE))
-	{
-		angle += (flags & WARPF_USECALLERANGLE) ? caller->angle : reference->angle;
-	}
-	if (!(flags & WARPF_ABSOLUTEPOSITION))
-	{
-		if (!(flags & WARPF_ABSOLUTEOFFSET))
-		{
-			angle_t fineangle = angle >> ANGLETOFINESHIFT;
-			fixed_t xofs1 = xofs;
-
-			// (borrowed from A_SpawnItemEx, assumed workable)
-			// in relative mode negative y values mean 'left' and positive ones mean 'right'
-			// This is the inverse orientation of the absolute mode!
-
-			xofs = FixedMul(xofs1, finecosine[fineangle]) + FixedMul(yofs, finesine[fineangle]);
-			yofs = FixedMul(xofs1, finesine[fineangle]) - FixedMul(yofs, finecosine[fineangle]);
-		}
-
-		if (flags & WARPF_TOFLOOR)
-		{
-			// set correct xy
-
-			caller->SetOrigin(
-				reference->x + xofs,
-				reference->y + yofs,
-				reference->z);
-
-			// now the caller's floorz should be appropriate for the assigned xy-position
-			// assigning position again with
-
-			if (zofs)
-			{
-				// extra unlink, link and environment calculation
-				caller->SetOrigin(
-					caller->x,
-					caller->y,
-					caller->floorz + zofs);
-			}
-			else
-			{
-				// if there is no offset, there should be no ill effect from moving down to the
-				// already identified floor
-
-				// A_Teleport does the same thing anyway
-				caller->z = caller->floorz;
-			}
-		}
-		else
-		{
-			caller->SetOrigin(
-				reference->x + xofs,
-				reference->y + yofs,
-				reference->z + zofs);
-		}
-	}
-	else //[MC] The idea behind "absolute" is meant to be "absolute". Override everything, just like A_SpawnItemEx's.
-	{
-		if (flags & WARPF_TOFLOOR)
-		{
-			caller->SetOrigin(xofs, yofs, caller->floorz + zofs);
-		}
-		else
-		{
-			caller->SetOrigin(xofs, yofs, zofs);
-		}
-	}
-	
-	if ((flags & WARPF_NOCHECKPOSITION) || P_TestMobjLocation(caller))
-	{
-		if (flags & WARPF_TESTONLY)
-		{
-			caller->SetOrigin(oldx, oldy, oldz);
-		}
-		else
-		{
-			caller->angle = angle;
-
-			if (flags & WARPF_STOP)
-			{
-				caller->velx = 0;
-				caller->vely = 0;
-				caller->velz = 0;
-			}
-
-			if (flags & WARPF_WARPINTERPOLATION)
-			{
-				caller->PrevX += caller->x - oldx;
-				caller->PrevY += caller->y - oldy;
-				caller->PrevZ += caller->z - oldz;
-			}
-			else if (flags & WARPF_COPYINTERPOLATION)
-			{
-				caller->PrevX = caller->x + reference->PrevX - reference->x;
-				caller->PrevY = caller->y + reference->PrevY - reference->y;
-				caller->PrevZ = caller->z + reference->PrevZ - reference->z;
-			}
-			else if (!(flags & WARPF_INTERPOLATE))
-			{
-				caller->PrevX = caller->x;
-				caller->PrevY = caller->y;
-				caller->PrevZ = caller->z;
-			}
-
-			if ((flags & WARPF_BOB) && (reference->flags2 & MF2_FLOATBOB))
-			{
-				caller->z += reference->GetBobOffset();
-			}
-		}
-
-
 		if (success_state)
 		{
 			ACTION_SET_RESULT(false);	// Jumps should never set the result for inventory state chains!
@@ -4846,7 +4713,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 	}
 	else
 	{
-		caller->SetOrigin(oldx, oldy, oldz);
 		ACTION_SET_RESULT(false);
 	}
 
@@ -4964,12 +4830,25 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedTerminate)
 }
 
 
+static bool DoCheckSpecies(AActor *mo, FName filterSpecies, bool exclude)
+{
+	FName actorSpecies = mo->GetSpecies();
+	if (filterSpecies == NAME_None) return true;
+	return exclude ? (actorSpecies != filterSpecies) : (actorSpecies == filterSpecies);
+}
+
+static bool DoCheckClass(AActor *mo, const PClass *filterClass, bool exclude)
+{
+	const PClass *actorClass = mo->GetClass();
+	if (filterClass == NULL) return true;
+	return exclude ? (actorClass != filterClass) : (actorClass == filterClass);
+}
 //==========================================================================
 //
-// A_RadiusGive
+// A_RadiusGive(item, distance, flags, amount, filter, species)
 //
 // Uses code roughly similar to A_Explode (but without all the compatibility
-// baggage and damage computation code to give an item to all eligible mobjs
+// baggage and damage computation code) to give an item to all eligible mobjs
 // in range.
 //
 //==========================================================================
@@ -4988,21 +4867,30 @@ enum RadiusGiveFlags
 	RGF_CUBE		=	1 << 9,
 	RGF_NOSIGHT		=	1 << 10,
 	RGF_MISSILES	=	1 << 11,
+	RGF_INCLUSIVE	=	1 << 12,
+	RGF_ITEMS		=	1 << 13,
+	RGF_KILLED		=	1 << 14,
+	RGF_EXFILTER	=	1 << 15,
+	RGF_EXSPECIES	=	1 << 16,
+	RGF_EITHER		=	1 << 17,
 };
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 {
-	ACTION_PARAM_START(7);
+	ACTION_PARAM_START(6);
 	ACTION_PARAM_CLASS(item, 0);
 	ACTION_PARAM_FIXED(distance, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_INT(amount, 3);
+	ACTION_PARAM_CLASS(filter, 4);
+	ACTION_PARAM_NAME(species, 5);
 
 	// We need a valid item, valid targets, and a valid range
-	if (item == NULL || (flags & RGF_MASK) == 0 || distance <= 0)
+	if (item == NULL || (flags & RGF_MASK) == 0 || !flags || distance <= 0)
 	{
 		return;
 	}
+	
 	if (amount == 0)
 	{
 		amount = 1;
@@ -5013,108 +4901,107 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 	AActor *thing;
 	while ((thing = it.Next()))
 	{
-		// Don't give to inventory items
-		if (thing->flags & MF_SPECIAL)
+		//[MC] Check for a filter, species, and the related exfilter/expecies/either flag(s).
+		bool filterpass = DoCheckClass(thing, filter, !!(flags & RGF_EXFILTER)),
+			speciespass = DoCheckSpecies(thing, species, !!(flags & RGF_EXSPECIES));
+
+		if ((flags & RGF_EITHER) ? (!(filterpass || speciespass)) : (!(filterpass && speciespass)))
 		{
-			continue;
-		}
-		// Avoid giving to self unless requested
-		if (thing == self && !(flags & RGF_GIVESELF))
-		{
-			continue;
-		}
-		// Avoiding special pointers if requested
-		if (((thing == self->target) && (flags & RGF_NOTARGET)) ||
-			((thing == self->tracer) && (flags & RGF_NOTRACER)) ||
-			((thing == self->master) && (flags & RGF_NOMASTER)))
-		{
-			continue;
-		}
-		// Don't give to dead thing unless requested
-		if (thing->flags & MF_CORPSE)
-		{
-			if (!(flags & RGF_CORPSES))
-			{
+			if (thing != self)	//Don't let filter and species obstruct RGF_GIVESELF.
 				continue;
-			}
-		}
-		else if (thing->health <= 0 || thing->flags6 & MF6_KILLED)
-		{
-			continue;
-		}
-		// Players, monsters, and other shootable objects
-		if (thing->player)
-		{
-			if ((thing->player->mo == thing) && !(flags & RGF_PLAYERS))
-			{
-				continue;
-			}
-			if ((thing->player->mo != thing) && !(flags & RGF_VOODOO))
-			{
-				continue;
-			}
-		}
-		else if (thing->flags3 & MF3_ISMONSTER)
-		{
-			if (!(flags & RGF_MONSTERS))
-			{
-				continue;
-			}
-		}
-		else if (thing->flags & MF_SHOOTABLE || thing->flags6 & MF6_VULNERABLE)
-		{
-			if (!(flags & RGF_OBJECTS))
-			{
-				continue;
-			}
-		}
-		else if (thing->flags & MF_MISSILE)
-		{
-			if (!(flags & RGF_MISSILES))
-			{
-				continue;
-			}
-		}
-		else
-		{
-			continue;
 		}
 
-		if (flags & RGF_CUBE)
-		{ // check if inside a cube
-			if (fabs((double)thing->x - self->x) > (double)distance ||
-				fabs((double)thing->y - self->y) > (double)distance ||
-				fabs((double)(thing->z + thing->height/2) - (self->z + self->height/2)) > (double)distance)
-			{
+		if (thing == self)
+		{
+			if (!(flags & RGF_GIVESELF))
 				continue;
-			}
 		}
-		else
-		{ // check if inside a sphere
-			TVector3<double> tpos(thing->x, thing->y, thing->z + thing->height/2);
-			TVector3<double> spos(self->x, self->y, self->z + self->height/2);
-			if ((tpos - spos).LengthSquared() > distsquared)
-			{
+
+		//Check for target, master, and tracer flagging.
+		bool targetPass = true;
+		bool masterPass = true;
+		bool tracerPass = true;
+		bool ptrPass = false;
+		if ((thing != self) && (flags & (RGF_NOTARGET | RGF_NOMASTER | RGF_NOTRACER)))
+		{
+			if ((thing == self->target) && (flags & RGF_NOTARGET))
+				targetPass = false;
+			if ((thing == self->master) && (flags & RGF_NOMASTER))
+				masterPass = false;
+			if ((thing == self->tracer) && (flags & RGF_NOTRACER))
+				tracerPass = false;
+
+			ptrPass = (flags & RGF_INCLUSIVE) ? (targetPass || masterPass || tracerPass) : (targetPass && masterPass && tracerPass);
+
+			//We should not care about what the actor is here. It's safe to abort this actor.
+			if (!ptrPass)
 				continue;
+		}
+
+		//Next, actor flag checking. 
+		bool selfPass = !!((flags & RGF_GIVESELF) && thing == self);
+		bool corpsePass = !!((flags & RGF_CORPSES) && thing->flags & MF_CORPSE);
+		bool killedPass = !!((flags & RGF_KILLED) && thing->flags6 & MF6_KILLED);
+		bool monsterPass = !!((flags & RGF_MONSTERS) && thing->flags3 & MF3_ISMONSTER);
+		bool objectPass = !!((flags & RGF_OBJECTS) && ((thing->flags & MF_SHOOTABLE) || (thing->flags6 & MF6_VULNERABLE)));
+		bool playerPass = !!((flags & RGF_PLAYERS) && (thing->player != NULL) && (thing->player->mo == thing));
+		bool voodooPass = !!((flags & RGF_VOODOO) && (thing->player != NULL) && (thing->player->mo != thing));
+		//Self calls priority over the rest of this.
+		if (!selfPass)
+		{
+			//If it's specifically a monster/object/player/voodoo... Can be either or...
+			if (monsterPass || objectPass || playerPass || voodooPass)
+			{
+				//...and is dead, without desire to give to the dead...
+				if (((thing->health <= 0) && !(corpsePass || killedPass)))
+				{
+					//Skip!
+					continue;
+				}
 			}
 		}
 
-		if ((flags & RGF_NOSIGHT) || P_CheckSight (thing, self, SF_IGNOREVISIBILITY|SF_IGNOREWATERBOUNDARY))
-		{ // OK to give; target is in direct path, or the monster doesn't care about it being in line of sight.
-			AInventory *gift = static_cast<AInventory *>(Spawn (item, 0, 0, 0, NO_REPLACE));
-			if (gift->IsKindOf(RUNTIME_CLASS(AHealth)))
-			{
-				gift->Amount *= amount;
+		bool itemPass = !!((flags & RGF_ITEMS) && thing->IsKindOf(RUNTIME_CLASS(AInventory)));
+		bool missilePass = !!((flags & RGF_MISSILES) && thing->flags & MF_MISSILE);
+
+		if (selfPass || monsterPass || corpsePass || killedPass || itemPass || objectPass || missilePass || playerPass || voodooPass)
+		{
+			if (flags & RGF_CUBE)
+			{ // check if inside a cube
+				if (fabs((double)thing->x - self->x) > (double)distance ||
+					fabs((double)thing->y - self->y) > (double)distance ||
+					fabs((double)(thing->z + thing->height / 2) - (self->z + self->height / 2)) > (double)distance)
+				{
+					continue;
+				}
 			}
 			else
-			{
-				gift->Amount = amount;
+			{ // check if inside a sphere
+				TVector3<double> tpos(thing->x, thing->y, thing->z + thing->height / 2);
+				TVector3<double> spos(self->x, self->y, self->z + self->height / 2);
+				if ((tpos - spos).LengthSquared() > distsquared)
+				{
+					continue;
+				}
 			}
-			gift->flags |= MF_DROPPED;
-			gift->ClearCounters();
-			if (!gift->CallTryPickup (thing))
-			{
-				gift->Destroy ();
+
+			if ((flags & RGF_NOSIGHT) || P_CheckSight(thing, self, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
+			{ // OK to give; target is in direct path, or the monster doesn't care about it being in line of sight.
+				AInventory *gift = static_cast<AInventory *>(Spawn(item, 0, 0, 0, NO_REPLACE));
+				if (gift->IsKindOf(RUNTIME_CLASS(AHealth)))
+				{
+					gift->Amount *= amount;
+				}
+				else
+				{
+					gift->Amount = amount;
+				}
+				gift->flags |= MF_DROPPED;
+				gift->ClearCounters();
+				if (!gift->CallTryPickup(thing))
+				{
+					gift->Destroy();
+				}
 			}
 		}
 	}
@@ -5198,20 +5085,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpeed)
 	}
 	
 	ref->Speed = speed;
-}
-
-static bool DoCheckSpecies(AActor *mo, FName filterSpecies, bool exclude)
-{
-	FName actorSpecies = mo->GetSpecies();
-	if (filterSpecies == NAME_None) return true;
-	return exclude ? (actorSpecies != filterSpecies) : (actorSpecies == filterSpecies);
-}
-
-static bool DoCheckClass(AActor *mo, const PClass *filterClass, bool exclude)
-{
-	const PClass *actorClass = mo->GetClass();
-	if (filterClass == NULL) return true;
-	return exclude ? (actorClass != filterClass) : (actorClass == filterClass);
 }
 
 //===========================================================================
