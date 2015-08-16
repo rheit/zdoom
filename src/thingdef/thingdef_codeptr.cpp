@@ -5764,6 +5764,36 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
 		ACTION_JUMP(low);
 }
 
+//===========================================================================
+// A_SetThrustFactor(amount, damagetype, pointer)
+//
+// Sets the thrust factor of an actor('s pointer). Thrust Factor can be set
+// for damagetypes, so it allows the actor to take more/less of a thrust based
+// upon a certain damagetype that's hurting it. Itt multiplies the 
+// thrust amount after mass calculations, and doesn't rely upon damage
+// factored out. It uses the raw damage instead, if thrust by actual damage.
+//===========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetThrustFactor)
+{
+	ACTION_PARAM_START(3);
+	ACTION_PARAM_FIXED(amount, 0);
+	ACTION_PARAM_NAME(dmgtype, 1);
+	ACTION_PARAM_INT(ptr, 2);
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return;
+	}
+
+	if (!dmgtype || dmgtype == NAME_None || !stricmp("none", dmgtype))
+		mobj->ThrustFactor = amount;
+	else
+		mobj->SetThrustFactor(dmgtype, amount);
+}
 
 //===========================================================================
 //
