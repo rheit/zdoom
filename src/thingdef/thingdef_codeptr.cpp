@@ -5764,6 +5764,88 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
 		ACTION_JUMP(low);
 }
 
+//===========================================================================
+//
+// A_CheckBlocking(state block, state noblock, int ptr, int flags)
+//
+// Checks the blocking of the calling actor('s pointer) and jumps if anything
+// is blocking the pointer. Flags determine what the function should care
+// about and not assume they do(n't) have.
+//===========================================================================
+enum CBF_flags
+{
+	CBF_SOLID			= 1,
+	CBF_NOCLIP			= 1 << 1,
+	CBF_NOBLOCKMAP		= 1 << 2,
+	CBF_THRUACTORS		= 1 << 3,
+	CBF_THRUSPECIES		= 1 << 4,
+	CBF_THRUGHOST		= 1 << 5,
+	CBF_NOINTERACTION	= 1 << 6,
+};
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlocking)
+{
+	ACTION_PARAM_START(4);
+	ACTION_PARAM_STATE(block, 0);
+	ACTION_PARAM_STATE(noblock, 1);
+	ACTION_PARAM_INT(ptr, 2);
+	ACTION_PARAM_INT(flags, 3);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	//Save the trouble of processing if there is no states to jump to, or the pointer is null.
+	if (!mobj || !(block || noblock))
+	{
+		return;
+	}
+	ACTION_SET_RESULT(false); //No inventory chain jumps please.
+
+	//Keep track of the flags.
+	bool solid = !!(mobj->flags & MF_SOLID);
+	bool noclip = !!(mobj->flags & MF_NOCLIP);
+	bool noblockmap = !!(mobj->flags & MF_NOBLOCKMAP);
+	bool thruactors = !!(mobj->flags2 & MF2_THRUACTORS);
+	bool thrughost = !!(mobj->flags2 & MF2_THRUGHOST);
+	bool nointer = !!(mobj->flags5 & MF5_NOINTERACTION);
+	bool thruspecies = !!(mobj->flags6 & MF6_THRUSPECIES);
+
+	//Check to see if there is anything that wants to be respected.
+	//Specifying a flag targetting a particular actor flag will prevent
+	//the function from assuming they do(n't, depending on flag) have it.
+	//So far, solid is the only one to be assumed present, while the rest
+	//are assumed absent unless specified otherwise.
+	if (!(flags & CBF_SOLID))			mobj->flags |= MF_SOLID;
+	if (!(flags & CBF_NOCLIP))			mobj->flags &= ~MF_NOCLIP;
+	if (!(flags & CBF_NOBLOCKMAP))		mobj->flags &= ~MF_NOBLOCKMAP;
+	if (!(flags & CBF_THRUACTORS))		mobj->flags2 &= ~MF2_THRUACTORS;
+	if (!(flags & CBF_THRUGHOST))		mobj->flags2 &= ~MF2_THRUGHOST;
+	if (!(flags & CBF_NOINTERACTION))	mobj->flags5 &= ~MF5_NOINTERACTION;
+	if (!(flags & CBF_THRUSPECIES))		mobj->flags6 &= ~MF6_THRUSPECIES;
+	
+	//Perform the test.
+	bool notblocked = P_TestMobjLocation(mobj);
+
+	//Restore the flags after the initial test is done.
+
+	if (!solid)			mobj->flags &= ~MF_SOLID;
+	if (noclip)			mobj->flags |= MF_NOCLIP;
+	if (noblockmap)		mobj->flags |= MF_NOBLOCKMAP;
+	if (thruactors)		mobj->flags2 |= MF2_THRUACTORS;
+	if (thrughost)		mobj->flags2 |= MF2_THRUGHOST;
+	if (nointer)		mobj->flags5 |= MF5_NOINTERACTION;
+	if (thruspecies)	mobj->flags6 |= MF6_THRUSPECIES;
+
+	//If we have a state to jump to and something is clipping into this actor, jump to the specified state.
+	//Otherwise, jump to the 'all clear' state if it has one.
+	if (block && !(notblocked)) 
+	{
+		ACTION_JUMP(block);
+	}
+	else if (noblock && notblocked)
+	{
+		ACTION_JUMP(noblock);
+	}
+}
+
 
 //===========================================================================
 //
