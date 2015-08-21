@@ -54,6 +54,9 @@ gameinfo
 	statscreen_mapnamefont = "BigFont"
 	statscreen_finishedpatch = "WIF"
 	statscreen_enteringpatch = "WIENTER"
+	RipperLevel = 0
+	RipLevelMin = 0
+	RipLevelMax = 0
 }
 
 include "mapinfo/common.txt"

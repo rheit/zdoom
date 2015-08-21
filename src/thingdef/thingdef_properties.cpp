@@ -1428,11 +1428,23 @@ DEFINE_PROPERTY(telefogdesttype, S, Actor)
 DEFINE_PROPERTY(ripperlevel, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	if (id < 0)
+	if (id < -1)
 	{
 		I_Error ("RipperLevel must not be negative");
 	}
-	defaults->RipperLevel = id;
+	else if (gameinfo.RipperLevel < 0)
+	{
+		I_Error("MAPINFO's RipperLevel must not be negative");
+	}
+	else
+	{
+
+		if (id == -1)
+			defaults->RipperLevel = gameinfo.RipperLevel;
+		else
+			defaults->RipperLevel = id;
+
+	}
 }
 
 //==========================================================================
@@ -1441,11 +1453,22 @@ DEFINE_PROPERTY(ripperlevel, I, Actor)
 DEFINE_PROPERTY(riplevelmin, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	if (id < 0)
+	if (id < -1)
 	{
-		I_Error ("RipLevelMin must not be negative");
+		I_Error("RipLevelMin must not be negative");
 	}
-	defaults->RipLevelMin = id;
+	else if (gameinfo.RipLevelMin < 0)
+	{
+		I_Error("MAPINFO's RipLevelMin must not be negative");
+	}
+	else
+	{
+		if (id == -1)
+			defaults->RipLevelMin = gameinfo.RipLevelMin;
+		else
+			defaults->RipLevelMin = id;
+	}
+	
 }
 
 //==========================================================================
@@ -1454,11 +1477,49 @@ DEFINE_PROPERTY(riplevelmin, I, Actor)
 DEFINE_PROPERTY(riplevelmax, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	if (id < 0)
+	if (id < -1)
 	{
-		I_Error ("RipLevelMax must not be negative");
+		I_Error("RipLevelMax must not be negative");
 	}
-	defaults->RipLevelMax = id;
+	else if (gameinfo.RipLevelMax < 0)
+	{
+		I_Error("MAPINFO's RipLevelMax must not be negative");
+	}
+	else
+	{
+		if (id == -1)
+			defaults->RipLevelMax = gameinfo.RipLevelMax;
+		else
+			defaults->RipLevelMax = id;
+	}
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(riptype, S, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	defaults->RipType = str;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(denyrip, S, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	defaults->SetRipDenial(str, true);
+}
+
+//==========================================================================
+// Use this to override the global DenyRipType <name>; feature on specific 
+// actors.
+//==========================================================================
+DEFINE_PROPERTY(allowrip, S, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	defaults->SetRipDenial(str, false);
 }
 
 //==========================================================================

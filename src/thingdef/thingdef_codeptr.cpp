@@ -5766,40 +5766,101 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
 
 
 //===========================================================================
+// A_SetRipperLevel(int level, ptr)
 //
-// A_SetRipperLevel(int level)
-//
-// Sets the ripper level of the calling actor.
+// Sets the ripper level of the calling actor('s pointer).
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(level, 0);
-	self->RipperLevel = level;
+	ACTION_PARAM_INT(ptr, 1);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj) 
+	{
+		return;
+	}
+	mobj->RipperLevel = level;
 }
 
 //===========================================================================
+// A_SetRipMin(int min, ptr)
 //
-// A_SetRipMin(int min)
-//
-// Sets the minimum level a ripper must be in order to rip through this actor.
+// Sets the minimum level a ripper must be in order to rip through 
+// this actor('s pointer).
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(min, 0);
-	self->RipLevelMin = min; 
+	ACTION_PARAM_INT(ptr, 1);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		return;
+	}
+	mobj->RipLevelMin = min;
 }
 
 //===========================================================================
+// A_SetRipMax(int max, ptr)
 //
-// A_SetRipMax(int max)
-//
-// Sets the minimum level a ripper must be in order to rip through this actor.
+// Sets the minimum level a ripper must be in order to rip through 
+// this actor('s pointer).
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 {
-	ACTION_PARAM_START(1);
+	ACTION_PARAM_START(2);
 	ACTION_PARAM_INT(max, 0);
-	self->RipLevelMax = max;
+	ACTION_PARAM_INT(ptr, 1);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		return;
+	}
+	mobj->RipLevelMax = max;
+}
+
+//===========================================================================
+// A_SetRipType(name, ptr)
+//
+// Sets the ripper type of this actor('s pointer). 
+// This function is only useful for projectiles.
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipType)
+{
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_NAME(type, 0);
+	ACTION_PARAM_INT(ptr, 1);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj)
+	{
+		return;
+	}
+	mobj->RipType = type;
+}
+
+//===========================================================================
+// A_SetRipTypeStatus(name, bool deny, ptr)
+//
+// Sets the ripper type can rip through this actor('s pointer) or not. 
+// This function is only useful for shootables.
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipTypeStatus)
+{
+	ACTION_PARAM_START(3);
+	ACTION_PARAM_NAME(type, 0);
+	ACTION_PARAM_BOOL(deny, 1);
+	ACTION_PARAM_INT(ptr, 2);
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (!mobj || type == NAME_None)
+	{
+		return;
+	}
+	mobj->SetRipDenial(type, deny);
 }

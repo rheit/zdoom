@@ -610,8 +610,7 @@ extern FDropItemPtrArray DropItemList;
 
 void FreeDropItemChain(FDropItem *chain);
 int StoreDropItemChain(FDropItem *chain);
-
-
+typedef TMap<FName, bool> RipList;
 
 // Map Object definition.
 class AActor : public DThinker
@@ -869,6 +868,8 @@ public:
 	// Triggers SECSPAC_Exit/SECSPAC_Enter and related events if oldsec != current sector
 	void CheckSectorTransition(sector_t *oldsec);
 
+	void SetRipDenial(FName type, bool deny);
+
 // info for drawing
 // NOTE: The first member variable *must* be x.
 	fixed_t	 		x,y,z;
@@ -1031,6 +1032,8 @@ public:
 	int RipperLevel;
 	int RipLevelMin;
 	int RipLevelMax;
+	FNameNoInit RipType;	
+	RipList *DeniedRips;
 
 	FState *SpawnState;
 	FState *SeeState;
@@ -1160,6 +1163,23 @@ public:
 		} while (actor && !actor->IsKindOf (type));
 		return actor;
 	}
+};
+
+struct RipperDenyDefinition
+{
+public:
+	RipperDenyDefinition() { Clear(); }
+
+	bool DenyRipperType;
+
+	void Apply(FName const type);
+	void Clear()
+	{
+		DenyRipperType = false;
+	}
+
+	static RipperDenyDefinition *Get(FName const type);
+	static bool IsTypeDeniedRip(FName const type, RipList * list);
 };
 
 bool P_IsTIDUsed(int tid);

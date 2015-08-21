@@ -920,8 +920,15 @@ bool PIT_CheckLine(line_t *ld, const FBoundingBox &box, FCheckPosition &tm)
 
 static bool CheckRipLevel(AActor *victim, AActor *projectile)
 {
-	if (victim->RipLevelMin > 0 && projectile->RipperLevel < victim->RipLevelMin) return false;
-	if (victim->RipLevelMax > 0 && projectile->RipperLevel > victim->RipLevelMax) return false;
+	RipList *v = victim->DeniedRips;
+	FName prtype = projectile->RipType;
+	bool denied = false;
+
+	denied = !!(RipperDenyDefinition::IsTypeDeniedRip(prtype, v)); //If there's no type denial, check the ripper levels next.
+
+	if (denied) return false;
+	if ((victim->RipLevelMin > 0) && (projectile->RipperLevel < victim->RipLevelMin)) return false;
+	if ((victim->RipLevelMax > 0) && (projectile->RipperLevel > victim->RipLevelMax)) return false;
 	return true;
 }
 

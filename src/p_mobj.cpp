@@ -344,6 +344,10 @@ void AActor::Serialize (FArchive &arc)
 			<< RipLevelMin
 			<< RipLevelMax;
 	}
+	if (SaveVersion >= 4524)
+	{
+		arc << RipType;
+	}
 
 	{
 		FString tagstr;
@@ -3163,6 +3167,53 @@ void AActor::SetRoll(angle_t r, bool interpolate)
 	}
 }
 
+void AActor::SetRipDenial(FName type, bool deny)
+{
+	if (DeniedRips == NULL)
+	{
+		DeniedRips = new RipList;
+	}
+	// Now modify the custom one.
+	DeniedRips->Insert(type, deny);
+}
+
+TMap <FName, RipperDenyDefinition> GlobalDeniedRippers;
+
+void RipperDenyDefinition::Apply(FName const type)
+{
+	GlobalDeniedRippers[type] = *this;
+}
+
+RipperDenyDefinition *RipperDenyDefinition::Get(FName const type)
+{
+	return GlobalDeniedRippers.CheckKey(type);
+}
+
+bool RipperDenyDefinition::IsTypeDeniedRip(FName const type, RipList * list)
+{
+	if (list)
+	{
+		//If the actor has a specific named type, look for that factor.
+		bool *pdf = list->CheckKey(type);
+		if (pdf)	return *pdf;
+
+		//If it was non-specific, don't fall back to non-specific search.
+		if (type == NAME_None)
+			return false;
+	}
+	else if (type == NAME_None)
+	{
+		//Allow this to pass. RipperLevels will be the next thing to check, then.
+		return false;
+	}
+	else
+	{
+		RipperDenyDefinition *rdd = Get(type);
+		return !!(rdd);
+	}
+	return false;
+}
+
 //
 // P_MobjThinker
 //
@@ -4292,6 +4343,12 @@ void AActor::Deactivate (AActor *activator)
 
 void AActor::Destroy ()
 {
+	if (DeniedRips && DeniedRips != GetDefault()->DeniedRips)
+	{
+		delete DeniedRips;
+		DeniedRips = NULL;
+	}
+
 	// [RH] Destroy any inventory this actor is carrying
 	DestroyAllInventory ();
 

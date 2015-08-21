@@ -28,9 +28,9 @@ ACTOR Actor native //: Thinker
 	DeathType Normal
 	TeleFogSourceType "TeleportFog"
 	TeleFogDestType "TeleportFog"
-	RipperLevel 0
-	RipLevelMin 0
-	RipLevelMax 0
+	RipperLevel -1	//[MC] -1 causes the game to look towards the gameinfo part of MAPINFO. 
+	RipLevelMin -1	//It was the only way I could get it to work.
+	RipLevelMax -1
 
 	// Variables for the expression evaluator
 	// NOTE: fixed_t and angle_t are only used here to ensure proper conversion
@@ -331,9 +331,11 @@ ACTOR Actor native //: Thinker
 	action native A_SetHealth(int health, int ptr = AAPTR_DEFAULT);
 	action native A_ResetHealth(int ptr = AAPTR_DEFAULT);
 	action native A_JumpIfHigherOrLower(state high, state low, float offsethigh = 0, float offsetlow = 0, bool includeHeight = true, int ptr = AAPTR_TARGET);
-	action native A_SetRipperLevel(int level);
-	action native A_SetRipMin(int min);
-	action native A_SetRipMax(int max);
+	action native A_SetRipperLevel(int level, int ptr = AAPTR_DEFAULT);
+	action native A_SetRipMin(int min, int ptr = AAPTR_DEFAULT);
+	action native A_SetRipMax(int max, int ptr = AAPTR_DEFAULT);
+	action native A_SetRipType(name type, int ptr = AAPTR_DEFAULT);
+	action native A_SetRipTypeStatus(name type, bool deny, int ptr = AAPTR_DEFAULT);
 
 	action native A_CheckSightOrRange(float distance, state label, bool two_dimension = false);
 	action native A_CheckRange(float distance, state label, bool two_dimension = false);
