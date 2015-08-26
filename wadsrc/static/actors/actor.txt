@@ -31,6 +31,14 @@ ACTOR Actor native //: Thinker
 	RipperLevel 0
 	RipLevelMin 0
 	RipLevelMax 0
+	SeeSoundChannel 4        // CHAN_BODY
+	AttackSoundChannel 1     // CHAN_WEAPON
+	PainSoundChannel 2       // CHAN_VOICE
+	CrushPainSoundChannel 2  // CHAN_VOICE
+	DeathSoundChannel 2      // CHAN_VOICE
+	ActiveSoundChannel 2     // CHAN_VOICE
+	BounceSoundChannel 2     // CHAN_VOICE
+	WallBounceSoundChannel 2 // CHAN_VOICE
 
 	// Variables for the expression evaluator
 	// NOTE: fixed_t and angle_t are only used here to ensure proper conversion

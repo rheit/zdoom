@@ -451,7 +451,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_GetHurt)
 	self->flags4 |= MF4_INCOMBAT;
 	if ((pr_gethurt() % 5) == 0)
 	{
-		S_Sound (self, CHAN_VOICE, self->PainSound, 1, ATTN_NORM);
+		S_Sound (self, self->PainSoundChannel, self->PainSound, 1, ATTN_NORM);
 		self->health--;
 	}
 	if (self->health <= 0)

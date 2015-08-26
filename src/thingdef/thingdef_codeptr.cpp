@@ -529,7 +529,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BulletAttack)
 
 	slope = P_AimLineAttack (self, bangle, MISSILERANGE);
 
-	S_Sound (self, CHAN_WEAPON, self->AttackSound, 1, ATTN_NORM);
+	S_Sound (self, self->AttackSoundChannel, self->AttackSound, 1, ATTN_NORM);
 	for (i = self->GetMissileDamage (0, 1); i > 0; --i)
     {
 		int angle = bangle + (pr_cabullet.Random2() << 20);
@@ -1092,7 +1092,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 
 		if (!(Flags & CBAF_NOPITCH)) bslope = P_AimLineAttack (self, bangle, MISSILERANGE);
 
-		S_Sound (self, CHAN_WEAPON, self->AttackSound, 1, ATTN_NORM);
+		S_Sound (self, self->AttackSoundChannel, self->AttackSound, 1, ATTN_NORM);
 		for (i=0 ; i<NumBullets ; i++)
 		{
 			int angle = bangle;
@@ -1269,7 +1269,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireBullets)
 
 	if (weapon != NULL)
 	{
-		S_Sound (self, CHAN_WEAPON, weapon->AttackSound, 1, ATTN_NORM);
+		S_Sound (self, weapon->AttackSoundChannel, weapon->AttackSound, 1, ATTN_NORM);
 	}
 
 	if ((NumberOfBullets==1 && !player->refire) || NumberOfBullets==0)
@@ -1471,7 +1471,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomPunch)
 
 		if (weapon != NULL)
 		{
-			S_Sound (self, CHAN_WEAPON, weapon->AttackSound, 1, ATTN_NORM);
+			S_Sound (self, weapon->AttackSoundChannel, weapon->AttackSound, 1, ATTN_NORM);
 		}
 
 		if (!(flags & CPF_NOTURN))

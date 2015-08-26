@@ -186,6 +186,9 @@ public:
 
 	FSoundIDNoInit PickupSound;
 
+	// [ZK] Property sound channels
+	int PickupSoundChannel;
+
 	virtual void BecomeItem ();
 	virtual void BecomePickup ();
 	virtual void AttachToOwner (AActor *other);

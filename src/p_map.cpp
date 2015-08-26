@@ -5121,7 +5121,7 @@ void P_DoCrunch(AActor *thing, FChangePosition *cpos)
 			}
 			if (thing->CrushPainSound != 0 && !S_GetSoundPlayingInfo(thing, thing->CrushPainSound))
 			{
-				S_Sound(thing, CHAN_VOICE, thing->CrushPainSound, 1.f, ATTN_NORM);
+				S_Sound(thing, thing->CrushPainSoundChannel, thing->CrushPainSound, 1.f, ATTN_NORM);
 			}
 		}
 	}
