@@ -31,7 +31,7 @@ ACTOR Actor native //: Thinker
 	RipperLevel 0
 	RipLevelMin 0
 	RipLevelMax 0
-	SeeSoundChannel 4        // CHAN_BODY
+	SeeSoundChannel 2        // CHAN_VOICE
 	AttackSoundChannel 1     // CHAN_WEAPON
 	PainSoundChannel 2       // CHAN_VOICE
 	CrushPainSoundChannel 2  // CHAN_VOICE

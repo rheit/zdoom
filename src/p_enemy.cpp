@@ -2012,11 +2012,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 	{
 		if (flags & LOF_FULLVOLSEESOUND)
 		{ // full volume
-			S_Sound (self, CHAN_VOICE, self->SeeSound, 1, ATTN_NONE);
+			S_Sound (self, self->SeeSoundChannel, self->SeeSound, 1, ATTN_NONE);
 		}
 		else
 		{
-			S_Sound (self, CHAN_VOICE, self->SeeSound, 1, ATTN_NORM);
+			S_Sound (self, self->SeeSoundChannel, self->SeeSound, 1, ATTN_NORM);
 		}
 	}
 
