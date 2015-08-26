@@ -680,7 +680,7 @@ void InitSpawnablesFromMapinfo()
 }
 
 
-int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, fixed_t zofs, angle_t angle, int flags, fixed_t heightoffset)
+int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, fixed_t zofs, angle_t angle, int flags, fixed_t heightoffset, fixed_t radiusoffset)
 {
 	if (flags & WARPF_MOVEPTR)
 	{
@@ -692,7 +692,7 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 	fixed_t	oldx = caller->x;
 	fixed_t	oldy = caller->y;
 	fixed_t	oldz = caller->z;
-
+	fixed_t rad = FixedMul(radiusoffset, reference->radius);
 	zofs += FixedMul(reference->height, heightoffset);
 
 
@@ -710,9 +710,9 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 			// (borrowed from A_SpawnItemEx, assumed workable)
 			// in relative mode negative y values mean 'left' and positive ones mean 'right'
 			// This is the inverse orientation of the absolute mode!
-
-			xofs = FixedMul(xofs1, finecosine[fineangle]) + FixedMul(yofs, finesine[fineangle]);
-			yofs = FixedMul(xofs1, finesine[fineangle]) - FixedMul(yofs, finecosine[fineangle]);
+			
+			xofs = (FixedMul(xofs1, finecosine[fineangle]) + FixedMul(yofs, finesine[fineangle])) + FixedMul(rad, finecosine[fineangle]);
+			yofs = (FixedMul(xofs1, finesine[fineangle]) - FixedMul(yofs, finecosine[fineangle])) + FixedMul(rad, finesine[fineangle]);
 		}
 
 		if (flags & WARPF_TOFLOOR)
