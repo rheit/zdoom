@@ -461,6 +461,10 @@ bool AActor::SetState (FState *newstate, bool nofunction)
 {
 	if (debugfile && player && (player->cheats & CF_PREDICTING))
 		fprintf (debugfile, "for pl %td: SetState while predicting!\n", player-players);
+
+	SDWORD prevtics = 0;
+	size_t loopcount = 0;
+
 	do
 	{
 		if (newstate == NULL)
@@ -481,6 +485,21 @@ bool AActor::SetState (FState *newstate, bool nofunction)
 		}
 		state = newstate;
 		tics = GetTics(newstate);
+
+		if (tics == prevtics)
+		{
+			if (++loopcount > 1000000)
+			{
+				I_Error("Endless state loop detected in actor of type '%s'",
+					GetClass()->TypeName.GetChars());
+			}
+		}
+		else
+		{
+			prevtics = tics;
+			loopcount = 0;
+		}
+		
 		renderflags = (renderflags & ~RF_FULLBRIGHT) | ActorRenderFlags::FromInt (newstate->GetFullbright());
 		newsprite = newstate->sprite;
 		if (newsprite != SPR_FIXED)
