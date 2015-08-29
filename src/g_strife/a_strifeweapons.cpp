@@ -250,7 +250,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireArrow)
 		return;
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -306,7 +306,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireAssaultGun)
 	if (self->player != NULL)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL)
+		if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 		{
 			if (!weapon->DepleteAmmo (weapon->bAltFire))
 				return;
@@ -339,7 +339,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMiniMissile)
 		return;
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -398,7 +398,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireFlamer)
 	if (player != NULL)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL)
+		if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 		{
 			if (!weapon->DepleteAmmo (weapon->bAltFire))
 				return;
@@ -430,7 +430,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMauler1)
 	if (self->player != NULL)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL)
+		if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 		{
 			if (!weapon->DepleteAmmo (weapon->bAltFire))
 				return;
@@ -490,7 +490,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMauler2)
 	if (self->player != NULL)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL)
+		if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 		{
 			if (!weapon->DepleteAmmo (weapon->bAltFire))
 				return;
@@ -673,7 +673,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireGrenade)
 	if ((weapon = player->ReadyWeapon) == NULL)
 		return;
 
-	if (!weapon->DepleteAmmo (weapon->bAltFire))
+	if (ACTION_CALL_FROM_WEAPON() && !weapon->DepleteAmmo (weapon->bAltFire))
 		return;
 
 	P_SetPsprite (player, ps_flash, flash);

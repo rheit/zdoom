@@ -111,7 +111,7 @@ DEFINE_ACTION_FUNCTION_PARAMS (AActor, A_Blast)
 	if (self->player && (blastflags & BF_USEAMMO))
 	{
 		AWeapon * weapon = self->player->ReadyWeapon;
-		if (!weapon->DepleteAmmo(weapon->bAltFire))
+		if (ACTION_CALL_FROM_WEAPON() && weapon && !weapon->DepleteAmmo(weapon->bAltFire))
 			return;
 	}
 

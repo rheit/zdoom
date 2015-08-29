@@ -89,7 +89,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffCheck)
 						if (newstate != NULL) P_SetPsprite(player, ps_weapon, newstate);
 					}
 				}
-				if (weapon != NULL)
+				if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 				{
 					weapon->DepleteAmmo (weapon->bAltFire, false);
 				}
@@ -111,7 +111,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffCheck)
 					pmo->health = player->health = newLife;
 					P_SetPsprite (player, ps_weapon, weapon->FindState ("Drain"));
 				}
-				if (weapon != NULL)
+				if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 				{
 					weapon->DepleteAmmo (weapon->bAltFire, false);
 				}
@@ -138,7 +138,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CStaffAttack)
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;

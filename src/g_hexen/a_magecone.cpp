@@ -66,7 +66,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireConePL1)
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;

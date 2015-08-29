@@ -1253,7 +1253,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireBullets)
 	int bslope = 0;
 	int laflags = (Flags & FBF_NORANDOMPUFFZ)? LAF_NORANDOMPUFFZ : 0;
 
-	if ((Flags & FBF_USEAMMO) && weapon)
+	if ((Flags & FBF_USEAMMO) && ACTION_CALL_FROM_WEAPON() && weapon)
 	{
 		if (!weapon->DepleteAmmo(weapon->bAltFire, true)) return;	// out of ammo
 	}
@@ -1339,7 +1339,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireCustomMissile)
 	AWeapon * weapon=player->ReadyWeapon;
 	AActor *linetarget;
 
-		// Only use ammo if called from a weapon
+	// Only use ammo if called from a weapon
 	if (UseAmmo && ACTION_CALL_FROM_WEAPON() && weapon)
 	{
 		if (!weapon->DepleteAmmo(weapon->bAltFire, true)) return;	// out of ammo
@@ -1430,7 +1430,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomPunch)
 	pitch = P_AimLineAttack (self, angle, Range, &linetarget);
 
 	// only use ammo when actually hitting something!
-	if ((flags & CPF_USEAMMO) && linetarget && weapon)
+	if ((flags & CPF_USEAMMO) && ACTION_CALL_FROM_WEAPON() && linetarget && weapon)
 	{
 		if (!weapon->DepleteAmmo(weapon->bAltFire, true)) return;	// out of ammo
 	}
@@ -1523,7 +1523,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RailAttack)
 	AWeapon * weapon=self->player->ReadyWeapon;
 
 	// only use ammo when actually hitting something!
-	if (UseAmmo)
+	if (UseAmmo && ACTION_CALL_FROM_WEAPON() && weapon)
 	{
 		if (!weapon->DepleteAmmo(weapon->bAltFire, true)) return;	// out of ammo
 	}

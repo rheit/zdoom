@@ -285,7 +285,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_MLightningAttack)
 	if (self->player != NULL)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL)
+		if (ACTION_CALL_FROM_WEAPON() && weapon != NULL)
 		{
 			weapon->DepleteAmmo (weapon->bAltFire);
 		}
