@@ -1854,6 +1854,11 @@ void P_MovePlayer (player_t *player)
 		mo->angle += cmd->ucmd.yaw << 16;
 	}
 
+	if (cmd->ucmd.roll)
+	{
+		mo->roll += cmd->ucmd.roll << 16;
+	}
+
 	player->onground = (mo->z <= mo->floorz) || (mo->flags2 & MF2_ONMOBJ) || (mo->BounceFlags & BOUNCE_MBF) || (player->cheats & CF_NOCLIP2);
 
 	// killough 10/98:
@@ -2425,7 +2430,7 @@ void P_PlayerThink (player_t *player)
 	}
 	if (player->centering)
 	{
-		if (abs(player->mo->pitch) > 2*ANGLE_1)
+		if (abs(player->mo->pitch) > 2 * ANGLE_1)
 		{
 			player->mo->pitch = FixedMul(player->mo->pitch, FRACUNIT*2/3);
 		}

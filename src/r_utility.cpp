@@ -128,6 +128,7 @@ bool			r_showviewer;
 
 angle_t			LocalViewAngle;
 int				LocalViewPitch;
+int				LocalViewRoll;
 bool			LocalKeyboardTurner;
 
 float			LastFOV;

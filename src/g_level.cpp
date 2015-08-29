@@ -981,6 +981,7 @@ void G_DoLoadLevel (int position, bool autosave)
 	sendpause = sendsave = sendturn180 = SendLand = false;
 	LocalViewAngle = 0;
 	LocalViewPitch = 0;
+	LocalViewRoll = 0;
 	paused = 0;
 
 	//Added by MC: Initialize bots.

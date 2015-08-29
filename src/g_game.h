@@ -89,6 +89,8 @@ void G_AddViewPitch (int look);
 // Adds to consoleplayer's viewangle if allowed
 void G_AddViewAngle (int yaw);
 
+void G_AddViewRoll (int roll);
+
 #define BODYQUESIZE 	32
 class AActor;
 extern AActor *bodyque[BODYQUESIZE]; 

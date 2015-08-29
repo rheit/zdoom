@@ -114,6 +114,8 @@ typedef enum
 	BT_USER2		= 1<<22,
 	BT_USER3		= 1<<23,
 	BT_USER4		= 1<<24,
+	BT_ROLLLEFT		= 1<<25,
+	BT_ROLLRIGHT	= 1<<26,
 } buttoncode_t;
 
 // Called by IO functions when input is detected.

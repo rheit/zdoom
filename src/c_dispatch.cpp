@@ -122,7 +122,8 @@ FButtonStatus Button_Mlook, Button_Klook, Button_Use, Button_AltAttack,
 	Button_Zoom, Button_Reload,
 	Button_User1, Button_User2, Button_User3, Button_User4,
 	Button_AM_PanLeft, Button_AM_PanRight, Button_AM_PanDown, Button_AM_PanUp,
-	Button_AM_ZoomIn, Button_AM_ZoomOut;
+	Button_AM_ZoomIn, Button_AM_ZoomOut,
+	Button_RollLeft, Button_RollRight;
 
 bool ParsingKeyConf;
 
@@ -134,6 +135,7 @@ bool ParsingKeyConf;
 
 FActionMap ActionMaps[] =
 {
+	{ &Button_RollLeft,		0x0759d6a8,	"rollleft"},
 	{ &Button_AM_PanLeft,	0x0d52d67b, "am_panleft"},
 	{ &Button_User2,		0x125f5226, "user2" },
 	{ &Button_Jump,			0x1eefa611, "jump" },
@@ -157,6 +159,7 @@ FActionMap ActionMaps[] =
 	{ &Button_AM_PanUp,		0x8d89955e, "am_panup"} ,
 	{ &Button_Mlook,		0xa2b62d8b, "mlook" },
 	{ &Button_Crouch,		0xab2c3e71, "crouch" },
+	{ &Button_RollRight,	0xaf2fb130,	"rollright"},
 	{ &Button_Left,			0xb000b483, "left" },
 	{ &Button_LookUp,		0xb62b1e49, "lookup" },
 	{ &Button_User3,		0xb6f8fe92, "user3" },
