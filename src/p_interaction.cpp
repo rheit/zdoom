@@ -1170,11 +1170,16 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 			// Calculate this as float to avoid overflows so that the
 			// clamping that had to be done here can be removed.
             double fltthrust;
+			double thrustmul = FIXED2DBL(target->GetThrustFactor(mod));
 
             fltthrust = mod == NAME_MDK ? 10 : 32;
             if (target->Mass > 0)
             {
-                fltthrust = clamp((damage * 0.125 * kickback) / target->Mass, 0., fltthrust);
+				bool thrustExists = target->CheckThrustType(mod);
+				if (thrustExists) //Use the raw damage instead, so modders can have finer control over it.
+					fltthrust = clamp(((rawdamage * 0.125 * kickback) / target->Mass) * thrustmul, 0., fltthrust);
+				else //...but only if it exists.
+					fltthrust = clamp(((damage * 0.125 * kickback) / target->Mass) * thrustmul, 0., fltthrust);
             }
 
 			thrust = FLOAT2FIXED(fltthrust);

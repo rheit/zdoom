@@ -1179,6 +1179,28 @@ DEFINE_PROPERTY(damagefactor, ZF, Actor)
 //==========================================================================
 //
 //==========================================================================
+DEFINE_PROPERTY(thrustfactor, ZF, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	PROP_FIXED_PARM(id, 1);
+
+	if (str == NULL)
+	{
+		defaults->ThrustFactor = id;
+	}
+	else
+	{
+		FName thrustType;
+		if (!stricmp(str, "Normal")) thrustType = NAME_None;
+		else thrustType = str;
+
+		defaults->SetThrustFactor(thrustType, id);
+	}
+}
+
+//==========================================================================
+//
+//==========================================================================
 DEFINE_PROPERTY(decal, S, Actor)
 {
 	PROP_STRING_PARM(str, 0);

@@ -139,6 +139,11 @@ void PClass::StaticFreeData (PClass *type)
 {
 	if (type->Defaults != NULL)
 	{
+		if (((AActor*)(type->Defaults))->ThrustFactors)
+		{
+			delete ((AActor*)(type->Defaults))->ThrustFactors;
+			((AActor*)(type->Defaults))->ThrustFactors = NULL;
+		}
 		M_Free(type->Defaults);
 		type->Defaults = NULL;
 	}
