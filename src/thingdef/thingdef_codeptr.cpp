@@ -5926,20 +5926,23 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 		}
 	}
 	// [MC]Next, check for blocking lines. Pointless if the actor has noclip though, but respect CBF_CLIP.
-	if (!nocheckline || (!(mobj->flags & MF_NOCLIP) || (flags & CBF_CLIP)))
+	if (!nocheckline) 
 	{
-		//[MC] This is only being done because I want to skip actor checking and go straight for lines. 
-		//I see no harm in doing it, so obey CBF_CLIP if present, and temporarily give it thruactors to 
-		//check lines.
-		ActorFlags temp = mobj->flags;
-		ActorFlags2 t2 = mobj->flags2;
-		mobj->flags &= ~MF_NOCLIP;
-		mobj->flags2 |= MF2_THRUACTORS;
-		//Test it.
-		notBlockingLine = P_TestMobjLocation(mobj);
-		//Restore once finished.
-		mobj->flags = temp;
-		mobj->flags2 = t2;
+		if (!(mobj->flags & MF_NOCLIP) || (flags & CBF_CLIP))
+		{
+			//[MC] This is only being done because I want to skip actor checking and go straight for lines. 
+			//I see no harm in doing it, so obey CBF_CLIP if present, and temporarily give it thruactors to 
+			//check lines.
+			ActorFlags temp = mobj->flags;
+			ActorFlags2 t2 = mobj->flags2;
+			mobj->flags &= ~MF_NOCLIP;
+			mobj->flags2 |= MF2_THRUACTORS;
+			//Test it.
+			notBlockingLine = P_TestMobjLocation(mobj);
+			//Restore once finished.
+			mobj->flags = temp;
+			mobj->flags2 = t2;
+		}
 	}
 
 	
