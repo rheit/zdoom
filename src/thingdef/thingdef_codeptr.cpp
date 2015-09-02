@@ -5862,10 +5862,10 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 
 	AActor *mobj = COPY_AAPTR(self, ptr);
 	
+	ACTION_SET_RESULT(false);
 	//Needs at least one state jump to work. 
 	if (!mobj || !(blockline || blockactor || noblock))
 	{
-		ACTION_SET_RESULT(false);
 		return;
 	}
 	bool nocheckline = !!(flags & CBF_NOLINES), nocheckactor = !!(flags & CBF_NOACTORS);
