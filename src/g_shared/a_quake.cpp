@@ -35,7 +35,7 @@ DEarthquake::DEarthquake()
 
 DEarthquake::DEarthquake (AActor *center, int intensityX, int intensityY, int intensityZ, int duration,
 						  int damrad, int tremrad, FSoundID quakesound, int flags, 
-						  double waveSpeedX, double waveSpeedY, double waveSpeedZ)
+						  double waveSpeedX, double waveSpeedY, double waveSpeedZ, int falloff)
 						  : DThinker(STAT_EARTHQUAKE)
 {
 	m_QuakeSFX = quakesound;
@@ -52,6 +52,7 @@ DEarthquake::DEarthquake (AActor *center, int intensityX, int intensityY, int in
 	m_WaveSpeedX = (float)waveSpeedX;
 	m_WaveSpeedY = (float)waveSpeedY;
 	m_WaveSpeedZ = (float)waveSpeedZ;
+	m_Falloff = falloff << FRACBITS;
 }
 
 //==========================================================================
@@ -95,6 +96,14 @@ void DEarthquake::Serialize (FArchive &arc)
 	{
 		arc << m_WaveSpeedX << m_WaveSpeedY << m_WaveSpeedZ;
 	}
+	if (SaveVersion < 4525)
+	{
+		m_Falloff <<= FRACBITS;
+	}
+	else
+	{
+		arc << m_Falloff;
+	}
 }
 
 //==========================================================================
@@ -120,6 +129,7 @@ void DEarthquake::Tick ()
 	{
 		S_Sound (m_Spot, CHAN_BODY | CHAN_LOOP, m_QuakeSFX, 1, ATTN_NORM);
 	}
+
 	if (m_DamageRadius > 0)
 	{
 		for (i = 0; i < MAXPLAYERS; i++)
@@ -187,6 +197,7 @@ fixed_t DEarthquake::GetModWave(double waveMultiplier) const
 fixed_t DEarthquake::GetModIntensity(fixed_t intensity) const
 {
 	assert(m_CountdownStart >= m_Countdown);
+
 	intensity += intensity;		// always doubled
 
 	if (m_Flags & (QF_SCALEDOWN | QF_SCALEUP))
@@ -214,6 +225,40 @@ fixed_t DEarthquake::GetModIntensity(fixed_t intensity) const
 		intensity = Scale(intensity, scalar, m_CountdownStart);
 	}
 	return intensity;
+}
+
+//==========================================================================
+//
+// DEarthquake :: GetFalloff
+//
+// Given the distance of the player from the quake, find the multiplier.
+// Process everything as doubles, and output again as fixed_t (mainly
+// because fixed_t was misbehaving here...)
+//
+//==========================================================================
+
+fixed_t DEarthquake::GetFalloff(fixed_t dist) const
+{
+	double falloff;
+	double tremorradius = FIXED2DBL(m_TremorRadius);
+	double fall = FIXED2DBL(m_Falloff);
+	double dis = FIXED2DBL(dist);
+	if ((dist < m_Falloff) || (m_Falloff >= m_TremorRadius) || (m_Falloff <= 0) || (m_TremorRadius - m_Falloff <= 0))
+	{ //Player inside the minimum falloff range, or safety check kicked in.
+		falloff = 1.f;
+	}
+	else if ((dist > m_Falloff) && (dist < m_TremorRadius))
+	{ //Player inside the radius, and outside the min distance for falloff.
+		double tremorsize = tremorradius - fall;
+		double tremordist = dis - fall;
+		assert(tremorsize > 0);
+		falloff = (1.f - (1.f * tremordist) / tremorsize);
+	}
+	else 
+	{ //Shouldn't happen.
+		falloff = 1.f;
+	}
+	return FLOAT2FIXED(falloff);
 }
 
 //==========================================================================
@@ -246,12 +291,16 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim, FQuakeJiggers &jigger
 				victim->y - quake->m_Spot->y);
 			if (dist < quake->m_TremorRadius)
 			{
+				fixed_t falloff = quake->GetFalloff(dist);
 				++count;
 				fixed_t x = quake->GetModIntensity(quake->m_IntensityX);
 				fixed_t y = quake->GetModIntensity(quake->m_IntensityY);
 				fixed_t z = quake->GetModIntensity(quake->m_IntensityZ);
+				
+
 				if (!(quake->m_Flags & QF_WAVE))
 				{
+					jiggers.Falloff = MAX(falloff, jiggers.Falloff);
 					if (quake->m_Flags & QF_RELATIVE)
 					{
 						jiggers.RelIntensityX = MAX(x, jiggers.RelIntensityX);
@@ -267,6 +316,7 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim, FQuakeJiggers &jigger
 				}
 				else
 				{
+					jiggers.WFalloff = MAX(falloff, jiggers.WFalloff);
 					fixed_t mx = FixedMul(x, quake->GetModWave(quake->m_WaveSpeedX));
 					fixed_t my = FixedMul(y, quake->GetModWave(quake->m_WaveSpeedY));
 					fixed_t mz = FixedMul(z, quake->GetModWave(quake->m_WaveSpeedZ));
@@ -303,7 +353,7 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim, FQuakeJiggers &jigger
 
 bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY, int intensityZ, int duration,
 	int damrad, int tremrad, FSoundID quakesfx, int flags,
-	double waveSpeedX, double waveSpeedY, double waveSpeedZ)
+	double waveSpeedX, double waveSpeedY, double waveSpeedZ, int falloff)
 {
 	AActor *center;
 	bool res = false;
@@ -317,7 +367,7 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 		if (activator != NULL)
 		{
 			new DEarthquake(activator, intensityX, intensityY, intensityZ, duration, damrad, tremrad,
-				quakesfx, flags, waveSpeedX, waveSpeedY, waveSpeedZ);
+				quakesfx, flags, waveSpeedX, waveSpeedY, waveSpeedZ, falloff);
 			return true;
 		}
 	}
@@ -328,7 +378,7 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 		{
 			res = true;
 			new DEarthquake(center, intensityX, intensityY, intensityZ, duration, damrad, tremrad,
-				quakesfx, flags, waveSpeedX, waveSpeedY, waveSpeedZ);
+				quakesfx, flags, waveSpeedX, waveSpeedY, waveSpeedZ, falloff);
 		}
 	}
 	
@@ -336,6 +386,6 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 }
 
 bool P_StartQuake(AActor *activator, int tid, int intensity, int duration, int damrad, int tremrad, FSoundID quakesfx)
-{	//Maintains original behavior by passing 0 to intensityZ, and flags.
-	return P_StartQuakeXYZ(activator, tid, intensity, intensity, 0, duration, damrad, tremrad, quakesfx, 0, 0, 0, 0);
+{	//Maintains original behavior by passing 0 to intensityZ, flags, and everything else after QSFX.
+	return P_StartQuakeXYZ(activator, tid, intensity, intensity, 0, duration, damrad, tremrad, quakesfx, 0, 0, 0, 0, 0);
 }
