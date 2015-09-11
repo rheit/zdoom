@@ -770,7 +770,6 @@ bool R_GetViewInterpolationStatus()
 static fixed_t QuakePower(fixed_t factor, fixed_t intensity, fixed_t offset, fixed_t falloff, fixed_t wfalloff)
 { 
 	fixed_t randumb;
-	int divisor = 1;
 	if (intensity == 0)
 	{
 		randumb = 0;
@@ -779,7 +778,6 @@ static fixed_t QuakePower(fixed_t factor, fixed_t intensity, fixed_t offset, fix
 	{
 		randumb = pr_torchflicker(intensity * 2) - intensity;
 	}
-	fixed_t rn1 = FixedMul(offset + randumb, factor);
 	fixed_t rn2 = (FixedMul(wfalloff,offset) + FixedMul(falloff, randumb));
 	return FixedMul(factor, rn2);
 }
