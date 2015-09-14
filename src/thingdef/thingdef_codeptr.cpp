@@ -5918,9 +5918,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 				}
 
 				notBlockingActor = false;
-				if (flags & CBF_SETTARGET)	mobj->target = th;
-				if (flags & CBF_SETMASTER)	mobj->master = th;
-				if (flags & CBF_SETTRACER)	mobj->tracer = th;
+				if (flags & CBF_SETTARGET)	self->target = th;
+				if (flags & CBF_SETMASTER)	self->master = th;
+				if (flags & CBF_SETTRACER)	self->tracer = th;
 				break;
 			}
 		}
