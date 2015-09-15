@@ -4946,7 +4946,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 		bool corpsePass = !!((flags & RGF_CORPSES) && thing->flags & MF_CORPSE);
 		bool killedPass = !!((flags & RGF_KILLED) && thing->flags6 & MF6_KILLED);
 		bool monsterPass = !!((flags & RGF_MONSTERS) && thing->flags3 & MF3_ISMONSTER);
-		bool objectPass = !!((flags & RGF_OBJECTS) && (thing->player == NULL) && ((thing->flags & MF_SHOOTABLE) || (thing->flags6 & MF6_VULNERABLE)));
+		bool objectPass = !!((flags & RGF_OBJECTS) && (thing->player == NULL) && (!(thing->flags3 & MF3_ISMONSTER)) 
+							&& ((thing->flags & MF_SHOOTABLE) || (thing->flags6 & MF6_VULNERABLE)));
 		bool playerPass = !!((flags & RGF_PLAYERS) && (thing->player != NULL) && (thing->player->mo == thing));
 		bool voodooPass = !!((flags & RGF_VOODOO) && (thing->player != NULL) && (thing->player->mo != thing));
 		//Self calls priority over the rest of this.
