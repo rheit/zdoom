@@ -68,6 +68,7 @@
 #include "po_man.h"
 #include "r_renderer.h"
 #include "r_data/colormaps.h"
+#include "portal.h"
 
 #include "fragglescript/t_fs.h"
 
@@ -1960,6 +1961,11 @@ void P_SetLineID (int i, line_t *ld)
 		case Static_Init:
 			if (ld->args[1] == Init_SectorLink) setid = ld->args[0];
 			break;
+
+		case Line_SetPortal:
+		case Line_SetVisualPortal:
+			setid = ld->args[1]; // 0 = target id, 1 = this id, 2 = plane anchor
+			break;
 		}
 		if (setid != -1)
 		{
@@ -2169,6 +2175,11 @@ void P_LoadLineDefs (MapData * map)
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
 		if (level.flags2 & LEVEL2_CHECKSWITCHRANGE) ld->flags |= ML_CHECKSWITCHRANGE;
 	}
+
+	// [ZZ] check initial portal link
+	for (int i = 0; i < numlines; i++)
+		P_CheckPortal(&lines[i]);
+
 	delete[] mldf;
 }
 
