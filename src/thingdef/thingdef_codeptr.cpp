@@ -5892,20 +5892,19 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 	}
 	bool nocheckline = !!(flags & CBF_NOLINES), nocheckactor = !!(flags & CBF_NOACTORS);
 	bool notBlockingLine = true, notBlockingActor = true;
-
 	bool clipCheck = (!(flags & CBF_CLIP) && (mobj->flags & MF_NOCLIP));
-	bool solidCheck = (!(flags & CBF_SOLID) && !(mobj->flags & MF_SOLID));
-	bool thruactorsCheck = (!(flags & CBF_NOTHRUACTORS) && (mobj->flags2 & MF2_THRUACTORS));
-	bool thruspeciesCheck = (!(flags & CBF_NOTHRUSPECIES) && (mobj->flags6 & MF6_THRUSPECIES));
-
-
+	
 	// [MC]Perform a check for actors inside this actor's radius.
 	// Copied from P_CheckPosition since that code appears to be highly fragile, plus 
 	// I do not want to interfere with missile rippers or pass flags needlessly if I can
 	// just do it here instead.
 	// Flags only affect the pointed actor in the function, not the intruder (th).
-	if (!nocheckactor)
+
+	if (!nocheckactor && !clipCheck)
 	{
+		bool solidCheck = (!(flags & CBF_SOLID) && !(mobj->flags & MF_SOLID));
+		bool thruactorsCheck = (!(flags & CBF_NOTHRUACTORS) && (mobj->flags2 & MF2_THRUACTORS));
+		bool thruspeciesCheck = (!(flags & CBF_NOTHRUSPECIES) && (mobj->flags6 & MF6_THRUSPECIES));
 		FBoundingBox box(mobj->x, mobj->y, mobj->radius);
 		{
 
@@ -5929,7 +5928,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 				// Now ensure the pointed actor has all the pretending it needs.
 
 				// Is it noclipping?
-				if ((th->flags & MF_NOCLIP) || clipCheck)
+				if (th->flags & MF_NOCLIP)
 					continue;
 
 				// Is it solid?
