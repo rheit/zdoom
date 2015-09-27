@@ -5893,6 +5893,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 	bool nocheckline = !!(flags & CBF_NOLINES), nocheckactor = !!(flags & CBF_NOACTORS);
 	bool notBlockingLine = true, notBlockingActor = true;
 	bool clipCheck = (!(flags & CBF_CLIP) && (mobj->flags & MF_NOCLIP));
+	bool solidCheck = (!(flags & CBF_SOLID) && !(mobj->flags & MF_SOLID));
+	bool thruactorsCheck = (!(flags & CBF_NOTHRUACTORS) && (mobj->flags2 & MF2_THRUACTORS));
+	bool thruspeciesCheck = (!(flags & CBF_NOTHRUSPECIES) && (mobj->flags6 & MF6_THRUSPECIES));
 	
 	// [MC]Perform a check for actors inside this actor's radius.
 	// Copied from P_CheckPosition since that code appears to be highly fragile, plus 
@@ -5900,11 +5903,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 	// just do it here instead.
 	// Flags only affect the pointed actor in the function, not the intruder (th).
 
-	if (!nocheckactor && !clipCheck)
+	if (!nocheckactor && !clipCheck && !solidCheck && !thruactorsCheck)
 	{
-		bool solidCheck = (!(flags & CBF_SOLID) && !(mobj->flags & MF_SOLID));
-		bool thruactorsCheck = (!(flags & CBF_NOTHRUACTORS) && (mobj->flags2 & MF2_THRUACTORS));
-		bool thruspeciesCheck = (!(flags & CBF_NOTHRUSPECIES) && (mobj->flags6 & MF6_THRUSPECIES));
+
 		FBoundingBox box(mobj->x, mobj->y, mobj->radius);
 		{
 
@@ -5932,17 +5933,14 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 					continue;
 
 				// Is it solid?
-				if (!(th->flags & MF_SOLID) || solidCheck)
+				if (!(th->flags & MF_SOLID))
 					continue;
 
-				if ((th->flags2 & MF2_THRUACTORS) || thruactorsCheck)
+				if (th->flags2 & MF2_THRUACTORS)
 					continue;
 
-				if (th->GetSpecies() == mobj->GetSpecies())
-				{
-					if ((th->flags6 & MF6_THRUSPECIES) || thruspeciesCheck)
-						continue;
-				}
+				if (th->GetSpecies() == mobj->GetSpecies() && (th->flags6 & MF6_THRUSPECIES))
+					continue;
 
 				notBlockingActor = false;
 				if (flags & CBF_SETTARGET)	self->target = th;
