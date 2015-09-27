@@ -264,6 +264,124 @@ GLOBALFUNCTION_ADDER(CheckClass);
 
 //==========================================================================
 //
+// Function: checkspecies
+//
+//==========================================================================
+
+class FxGlobalFunctionCall_CheckSpecies : public FxGlobalFunctionCall
+{
+public:
+	GLOBALFUNCTION_DEFINE(CheckSpecies);
+
+	FxExpression *Resolve(FCompileContext& ctx)
+	{
+		CHECKRESOLVED();
+
+		if (!ResolveArgs(ctx, 1, 2, false))
+			return NULL;
+
+		switch (ArgList->Size())
+		{
+		case 2:
+			if (!(*ArgList)[1]->ValueType.isNumeric())
+			{
+				ScriptPosition.Message(MSG_ERROR, "Actor pointer expected for second parameter.");
+				delete this;
+				return NULL;
+			}
+		default:
+			if ((*ArgList)[0]->ValueType.Type != VAL_Name)
+			{
+				ScriptPosition.Message(MSG_ERROR, "String expected for first parameter.");
+				delete this;
+				return NULL;
+			}
+		}
+		ValueType = VAL_Float;
+		return this;
+	}
+
+	ExpVal EvalExpression(AActor *self)
+	{
+		ExpVal ret;
+		ret.Type = VAL_Int;
+		AActor *ptr;
+		int pick_pointer = AAPTR_DEFAULT;
+
+		if (ArgList->Size() > 1)
+		{
+			pick_pointer = (*ArgList)[1]->EvalExpression(self).GetInt();
+		}
+
+		ptr = COPY_AAPTR(self, pick_pointer);
+		if (!ptr)
+		{ 
+			ret.Int = 0; return ret; 
+		}
+
+		FName checkspecies;
+		{
+			ExpVal v = (*ArgList)[0]->EvalExpression(self);
+			checkspecies = v.GetName();
+		}
+
+		ret.Int = !!(ptr->GetSpecies() == checkspecies);
+		return ret;
+	}
+};
+
+GLOBALFUNCTION_ADDER(CheckSpecies);
+
+//==========================================================================
+//
+// Function: IsSpeciesEqual
+//
+//==========================================================================
+
+class FxGlobalFunctionCall_IsSpeciesEqual : public FxGlobalFunctionCall
+{
+public:
+	GLOBALFUNCTION_DEFINE(IsSpeciesEqual);
+
+	FxExpression *Resolve(FCompileContext& ctx)
+	{
+		CHECKRESOLVED();
+
+		if (!ResolveArgs(ctx, 2, 2, true))
+			return NULL;
+
+		ValueType = VAL_Int;
+		return this;
+	}
+
+	ExpVal EvalExpression(AActor *self)
+	{
+		ExpVal ret;
+		ret.Type = VAL_Int;
+		int p1 = (*ArgList)[0]->EvalExpression(self).GetInt(), p2 = (*ArgList)[1]->EvalExpression(self).GetInt();
+		if ((p1 == AAPTR_NULL) || (p2 == AAPTR_NULL))
+		{
+			ret.Int = 0; return ret;
+		}
+		
+		AActor	*ptr1 = COPY_AAPTR(self, p1),
+				*ptr2 = COPY_AAPTR(self, p2);
+
+		if (!ptr1 || !ptr2)
+		{	
+			ret.Int = 0; return ret;
+		}
+
+		ret.Int = !!(ptr1->GetSpecies() == ptr2->GetSpecies());
+		return ret;
+	}
+};
+
+GLOBALFUNCTION_ADDER(IsSpeciesEqual);
+
+
+//==========================================================================
+//
 // Function: ispointerequal
 //
 //==========================================================================
