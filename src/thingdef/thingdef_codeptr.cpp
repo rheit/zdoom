@@ -5903,7 +5903,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 	// just do it here instead.
 	// Flags only affect the pointed actor in the function, not the intruder (th).
 
-	if (!nocheckactor && !clipCheck && !solidCheck && !thruactorsCheck)
+	if (!nocheckactor && !clipCheck && !solidCheck && !thruactorsCheck && !thruspeciesCheck)
 	{
 
 		FBoundingBox box(mobj->x, mobj->y, mobj->radius);
