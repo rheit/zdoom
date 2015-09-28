@@ -482,5 +482,23 @@ enum
 	QF_WAVE =			1 << 5,
 };
 
+// Flags for A_CheckBlock
+// These flags only affect the calling actor('s pointer), not the ones being searched.
+enum 
+{
+	CBF_CLIP			= 1,		//Ignore noclip flag. Can be used for lines and actors.
+	CBF_NOTHRUACTORS	= 1 << 1,	//Ignore thruactors flag. Actors only.
+	CBF_NOTHRUSPECIES	= 1 << 2,	//Ignore thruspecies flag. Actors only.
+	CBF_SOLID			= 1 << 3,	//Pretend it's solid. Actors only.
+	CBF_NOACTORS		= 1 << 4,	//Don't check actors.
+	CBF_NOLINES			= 1 << 5,	//Don't check lines.
+	CBF_SETTARGET		= 1 << 6,	//Sets the caller/pointer's target to the actor blocking it. Actors only.
+	CBF_SETMASTER		= 1 << 7,	//^ but with master.
+	CBF_SETTRACER		= 1 << 8,	//^ but with tracer.
+
+	CBF_FULLBLOCKING	= CBF_CLIP|CBF_NOTHRUACTORS|CBF_NOTHRUSPECIES|CBF_SOLID,
+};
+
 // This is only here to provide one global variable for testing.
 native int testglobalvar;
+

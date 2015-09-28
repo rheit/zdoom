@@ -5846,3 +5846,142 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 	self->RipLevelMax = max;
 }
 
+/*===========================================================================
+A_CheckBlock
+(state noblock, state blockactor, state blockline, int flags, int ptr)
+
+Checks if something is blocking the actor('s pointer) 'ptr' with customizable
+'what-if' flags. Jumps to one of three states:
+-noblock if it's not blocked
+-blockactor if an actor would block it in the conditions specified by flags
+-blockline if the actor would otherwise be stuck in a wall
+
+At least one state needs to be defined. To disable a state, use "".
+The flags only affect the caller('s pointer), not the intruding actor.
+===========================================================================*/
+enum CBF
+{
+	CBF_CLIP			= 1,		//Ignore noclip flag. Can be used for lines and actors.
+	CBF_NOTHRUACTORS	= 1 << 1,	//Ignore thruactors flag. Actors only.
+	CBF_NOTHRUSPECIES	= 1 << 2,	//Ignore thruspecies flag. Actors only.
+	CBF_SOLID			= 1 << 3,	//Pretend it's solid. Actors only.
+	CBF_NOACTORS		= 1 << 4,	//Don't check actors.
+	CBF_NOLINES			= 1 << 5,	//Don't check lines.
+	CBF_SETTARGET		= 1 << 6,	//Sets the caller/pointer's target to the actor blocking it. Actors only.
+	CBF_SETMASTER		= 1 << 7,	//^ but with master.
+	CBF_SETTRACER		= 1 << 8,	//^ but with tracer.
+};
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
+{
+	ACTION_PARAM_START(5);
+	ACTION_PARAM_STATE(noblock, 0);
+	ACTION_PARAM_STATE(blockactor, 1);
+	ACTION_PARAM_STATE(blockline, 2);
+	ACTION_PARAM_INT(flags, 3);
+	ACTION_PARAM_INT(ptr, 4);
+
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	ACTION_SET_RESULT(false);
+	//Needs at least one state jump to work. 
+	if (!mobj || !(blockline || blockactor || noblock))
+	{
+		return;
+	}
+	bool nocheckline = !!(flags & CBF_NOLINES), nocheckactor = !!(flags & CBF_NOACTORS);
+	bool notBlockingLine = true, notBlockingActor = true;
+	bool clipCheck = (!(flags & CBF_CLIP) && (mobj->flags & MF_NOCLIP));
+	bool solidCheck = (!(flags & CBF_SOLID) && !(mobj->flags & MF_SOLID));
+	bool thruactorsCheck = (!(flags & CBF_NOTHRUACTORS) && (mobj->flags2 & MF2_THRUACTORS));
+	
+	// [MC]Perform a check for actors inside this actor's radius.
+	// Copied from P_CheckPosition since that code appears to be highly fragile, plus 
+	// I do not want to interfere with missile rippers or pass flags needlessly if I can
+	// just do it here instead.
+	// Flags only affect the pointed actor in the function, not the intruder (th).
+
+	if (!nocheckactor && !clipCheck && !solidCheck && !thruactorsCheck)
+	{
+		bool thruspeciesCheck = (!(flags & CBF_NOTHRUSPECIES) && (mobj->flags6 & MF6_THRUSPECIES));
+		FBoundingBox box(mobj->x, mobj->y, mobj->radius);
+		{
+
+			FBlockThingsIterator it2(box);
+			AActor *th;
+			while ((th = it2.Next()))
+			{
+
+				//Skip self or null actors.
+				if (!th || th == mobj)
+					continue;
+
+				//Make sure not to include anything outside of our 'box'.
+				fixed_t blockdist = mobj->radius + th->radius;
+				if (abs(mobj->x - th->x) >= blockdist || abs(mobj->y - th->y) >= blockdist)
+					continue; //Outside of radius.
+
+				if ((mobj->z > (th->z + th->height)) || ((mobj->z + mobj->height) < th->z))
+					continue; //Not intersecting above or below it.
+
+				// Now ensure the pointed actor has all the pretending it needs.
+
+				// Is it noclipping?
+				if (th->flags & MF_NOCLIP)
+					continue;
+
+				// Is it solid?
+				if (!(th->flags & MF_SOLID))
+					continue;
+
+				if (th->flags2 & MF2_THRUACTORS)
+					continue;
+
+				if (th->GetSpecies() == mobj->GetSpecies())
+				{
+					if ((th->flags6 & MF6_THRUSPECIES) || thruspeciesCheck)
+					continue;
+				}
+
+				notBlockingActor = false;
+				if (flags & CBF_SETTARGET)	self->target = th;
+				if (flags & CBF_SETMASTER)	self->master = th;
+				if (flags & CBF_SETTRACER)	self->tracer = th;
+				break;
+			}
+		}
+	}
+	// [MC]Next, check for blocking lines. Pointless if the actor has noclip though, but respect CBF_CLIP.
+	if (!nocheckline && !clipCheck)
+	{
+		//[MC] This is only being done because I want to skip actor checking and go straight for lines. 
+		//I see no harm in doing it, so obey CBF_CLIP if present, and temporarily give it thruactors to 
+		//check lines.
+		ActorFlags temp = mobj->flags;
+		ActorFlags2 t2 = mobj->flags2;
+		mobj->flags &= ~MF_NOCLIP;
+		mobj->flags2 |= MF2_THRUACTORS;
+		//Test it.
+		notBlockingLine = P_TestMobjLocation(mobj);
+		//Restore once finished.
+		mobj->flags = temp;
+		mobj->flags2 = t2;
+	
+	}
+
+
+	//Line blocking has higher priority I believe.
+	if (!(notBlockingLine) && blockline)
+	{
+		ACTION_JUMP(blockline);
+	}
+	else if (!(notBlockingActor) && blockactor)
+	{
+		ACTION_JUMP(blockactor);
+	}
+	else if (noblock && notBlockingActor && notBlockingLine)
+	{
+		ACTION_JUMP(noblock);
+	}
+}
