@@ -695,7 +695,7 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 	zofs += FixedMul(reference->height, heightoffset);
 	
 	const fixed_t rad = FixedMul(radiusoffset, reference->radius);
-	
+	const angle_t fineangle = angle >> ANGLETOFINESHIFT;
 
 	if (!(flags & WARPF_ABSOLUTEANGLE))
 	{
@@ -706,7 +706,7 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 	{
 		if (!(flags & WARPF_ABSOLUTEOFFSET))
 		{
-			const angle_t fineangle = angle >> ANGLETOFINESHIFT;
+			
 			fixed_t xofs1 = xofs;			
 			// (borrowed from A_SpawnItemEx, assumed workable)
 			// in relative mode negative y values mean 'left' and positive ones mean 'right'
