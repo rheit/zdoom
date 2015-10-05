@@ -408,7 +408,6 @@ enum ActorRenderFlag
 	RF_FORCEYBILLBOARD		= 0x10000,	// [BB] OpenGL only: draw with y axis billboard, i.e. anchored to the floor (overrides gl_billboard_mode setting)
 	RF_FORCEXYBILLBOARD		= 0x20000,	// [BB] OpenGL only: draw with xy axis billboard, i.e. unanchored (overrides gl_billboard_mode setting)
 	RF_ROLLSPRITE			= 0x40000,	// [marrub] roll the sprite billboard
-	RF_STICKTOPLANE			= 0x50000,	// [fgsfds] stick rendered floor/ceiling sprite to the floor/ceiling of the current sector
 };
 
 #define TRANSLUC25			(FRACUNIT/4)
