@@ -45,6 +45,7 @@
 #include "thingdef_exp.h"
 #include "actor.h"
 #include "actorptrselect.h"
+#include "a_pickups.h"
 
 static TMap<FName, FxGlobalFunctionCall::Creator> CreatorMap;
 
@@ -294,3 +295,85 @@ class FxGlobalFunctionCall_IsPointerEqual : public FxGlobalFunctionCall
 };
 
 GLOBALFUNCTION_ADDER(IsPointerEqual);
+
+//==========================================================================
+//
+// Function: InvCount
+//
+//==========================================================================
+
+class FxGlobalFunctionCall_InvCount : public FxGlobalFunctionCall
+{
+public:
+	GLOBALFUNCTION_DEFINE(InvCount);
+
+	FxExpression *Resolve(FCompileContext& ctx)
+	{
+		CHECKRESOLVED();
+
+		if (!ResolveArgs(ctx, 1, 2, false))
+			return NULL;
+
+		//Make sure we have a pointer here if specified.
+		if (ArgList->Size() > 1)
+		{
+			if (!(*ArgList)[1]->ValueType.isNumeric())
+			{
+				ScriptPosition.Message(MSG_ERROR, "InvCount expects a pointer for second parameter.");
+				delete this;
+				return NULL;
+			}
+		}
+
+		switch ((*ArgList)[0]->ValueType.Type)
+		{
+		case VAL_Class: case VAL_Name:	break;
+		default:
+			ScriptPosition.Message(MSG_ERROR, "InvCount expects an actor class for first parameter.");
+			delete this;
+			return NULL;
+		}
+		ValueType = VAL_Float;
+		return this;
+	}
+
+	ExpVal EvalExpression(AActor *self)
+	{
+		ExpVal ret;
+		ret.Type = VAL_Int;	
+
+		AInventory *item;
+		const PClass  * checkclass;
+		{
+			ExpVal v = (*ArgList)[0]->EvalExpression(self);
+			checkclass = v.GetClass();
+			if (!checkclass)
+			{
+				checkclass = PClass::FindClass(v.GetName());
+				if (!checkclass) { ret.Int = 0; return ret; }
+			}
+		}
+
+		AActor *ref; 
+		//We cannot be guaranteed that everyone will use more than one parameter, so check the size of the arglist.
+		switch (ArgList->Size())
+		{
+			case 2: 
+				ref = COPY_AAPTR(self, (*ArgList)[1]->EvalExpression(self).GetInt());
+				break;
+			default: 
+				ref = self;
+				break;
+		}
+		if (!ref)
+		{
+			ret.Int = NULL;
+			return ret;
+		}
+		item = ref->FindInventory(checkclass);
+		ret.Int = item ? item->Amount : 0;
+		return ret;
+	}
+};
+
+GLOBALFUNCTION_ADDER(InvCount);
