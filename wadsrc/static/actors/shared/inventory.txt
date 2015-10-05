@@ -4,7 +4,9 @@ ACTOR Inventory native
 	Inventory.MaxAmount 1
 	Inventory.InterHubAmount 1
 	Inventory.UseSound "misc/invuse"
+	Inventory.UseSoundChannel 3 // CHAN_ITEM
 	Inventory.PickupSound "misc/i_pkup"
+	Inventory.PickupSoundChannel 3 // CHAN_ITEM
 	Inventory.PickupMessage "$TXT_DEFAULTPICKUPMSG"
 	
 	action native A_JumpIfNoAmmo(state label);

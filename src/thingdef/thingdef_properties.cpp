@@ -744,6 +744,78 @@ DEFINE_PROPERTY(crushpainsound, S, Actor)
 }
 
 //==========================================================================
+// [ZK] Property sound channels
+//==========================================================================
+DEFINE_PROPERTY(seesoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->SeeSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(attacksoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->AttackSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(bouncesoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->BounceSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(wallbouncesoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->WallBounceSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(painsoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->PainSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(deathsoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->DeathSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(activesoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->ActiveSoundChannel = chan;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(crushpainsoundchannel, I, Actor)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->CrushPainSoundChannel = chan;
+}
+
+//==========================================================================
 //
 //==========================================================================
 DEFINE_PROPERTY(dropitem, S_i_i, Actor)
@@ -1730,6 +1802,15 @@ DEFINE_CLASS_PROPERTY(pickupsound, S, Inventory)
 }
 
 //==========================================================================
+// [ZK] Property sound channels
+//==========================================================================
+DEFINE_CLASS_PROPERTY(pickupsoundchannel, I, Inventory)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->PickupSoundChannel = chan;
+}
+
+//==========================================================================
 // Dummy for Skulltag compatibility...
 //==========================================================================
 DEFINE_CLASS_PROPERTY(pickupannouncerentry, S, Inventory)
@@ -1752,6 +1833,15 @@ DEFINE_CLASS_PROPERTY(usesound, S, Inventory)
 {
 	PROP_STRING_PARM(str, 0);
 	defaults->UseSound = str;
+}
+
+//==========================================================================
+// [ZK] Property sound channels
+//==========================================================================
+DEFINE_CLASS_PROPERTY(usesoundchannel, I, Inventory)
+{
+	PROP_INT_PARM(chan, 0);
+	defaults->UseSoundChannel = chan;
 }
 
 //==========================================================================

@@ -4288,7 +4288,7 @@ void FParser::SF_SpawnShot2(void)
 		AActor *mo = Spawn (PClass, source->x, source->y, source->z+z, ALLOW_REPLACE);
 		if (mo) 
 		{
-			S_Sound (mo, CHAN_VOICE, mo->SeeSound, 1, ATTN_NORM);
+			S_Sound (mo, mo->SeeSoundChannel, mo->SeeSound, 1, ATTN_NORM);
 			mo->target = source;
 			P_ThrustMobj(mo, mo->angle = source->angle, mo->Speed);
 			if (!P_CheckMissileSpawn(mo, source->radius)) mo = NULL;

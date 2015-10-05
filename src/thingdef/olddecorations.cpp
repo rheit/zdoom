@@ -554,6 +554,23 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 			sc.MustGetString ();
 			defaults->SeeSound = sc.String;
 		}
+		// [ZK] Property sound channels
+		else if ((def == DEF_BreakableDecoration || def == DEF_Projectile) &&
+			sc.Compare("DeathSoundChannel"))
+		{
+			sc.MustGetNumber();
+			defaults->DeathSoundChannel = sc.Number;
+		}
+		else if (def == DEF_BreakableDecoration && sc.Compare("BurnDeathSoundChannel"))
+		{
+			sc.MustGetNumber();
+			defaults->ActiveSoundChannel = sc.Number;
+		}
+		else if (def == DEF_Projectile && sc.Compare("SpawnSoundChannel"))
+		{
+			sc.MustGetNumber();
+			defaults->SeeSoundChannel = sc.Number;
+		}
 		else if (def == DEF_Projectile && sc.Compare ("DoomBounce"))
 		{
 			defaults->BounceFlags = BOUNCE_DoomCompat;
@@ -570,6 +587,12 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 		{
 			sc.MustGetString ();
 			inv->PickupSound = sc.String;
+		}
+		// [ZK] Property sound channels
+		else if (def == DEF_Pickup && sc.Compare("PickupSoundChannel"))
+		{
+			sc.MustGetNumber();
+			inv->PickupSoundChannel = sc.Number;
 		}
 		else if (def == DEF_Pickup && sc.Compare ("PickupMessage"))
 		{

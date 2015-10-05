@@ -813,7 +813,7 @@ bool APlayerPawn::UseInventory (AInventory *item)
 	}
 	if (player == &players[consoleplayer])
 	{
-		S_Sound (this, CHAN_ITEM, item->UseSound, 1, ATTN_NORM);
+		S_Sound (this, item->UseSoundChannel, item->UseSound, 1, ATTN_NORM);
 		StatusBar->FlashItem (itemtype);
 	}
 	return true;

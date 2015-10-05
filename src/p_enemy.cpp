@@ -2012,11 +2012,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 	{
 		if (flags & LOF_FULLVOLSEESOUND)
 		{ // full volume
-			S_Sound (self, CHAN_VOICE, self->SeeSound, 1, ATTN_NONE);
+			S_Sound (self, self->SeeSoundChannel, self->SeeSound, 1, ATTN_NONE);
 		}
 		else
 		{
-			S_Sound (self, CHAN_VOICE, self->SeeSound, 1, ATTN_NORM);
+			S_Sound (self, self->SeeSoundChannel, self->SeeSound, 1, ATTN_NORM);
 		}
 	}
 
@@ -3188,11 +3188,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_Pain)
 			sfx_id = pain_amount;
 		}
 
-		S_Sound (self, CHAN_VOICE, sfx_id, 1, ATTN_NORM);
+		S_Sound (self, self->PainSoundChannel, sfx_id, 1, ATTN_NORM);
 	}
 	else if (self->PainSound)
 	{
-		S_Sound (self, CHAN_VOICE, self->PainSound, 1, ATTN_NORM);
+		S_Sound (self, self->PainSoundChannel, self->PainSound, 1, ATTN_NORM);
 	}
 }
 

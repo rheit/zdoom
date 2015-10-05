@@ -1346,7 +1346,7 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 	// play the sound before changing the state, so that AActor::Destroy can call S_RelinkSounds on it and the death state can override it.
 	if (mo->DeathSound)
 	{
-		S_Sound (mo, CHAN_VOICE, mo->DeathSound, 1,
+		S_Sound (mo, mo->DeathSoundChannel, mo->DeathSound, 1,
 			(mo->flags3 & MF3_FULLVOLDEATH) ? ATTN_NONE : ATTN_NORM);
 	}
 
@@ -1401,15 +1401,15 @@ void AActor::PlayBounceSound(bool onfloor)
 	{
 		if (BounceFlags & BOUNCE_UseSeeSound)
 		{
-			S_Sound (this, CHAN_VOICE, SeeSound, 1, ATTN_IDLE);
+			S_Sound (this, SeeSoundChannel, SeeSound, 1, ATTN_IDLE);
 		}
 		else if (onfloor || WallBounceSound <= 0)
 		{
-			S_Sound (this, CHAN_VOICE, BounceSound, 1, ATTN_IDLE);
+			S_Sound (this, BounceSoundChannel, BounceSound, 1, ATTN_IDLE);
 		}
 		else
 		{
-			S_Sound (this, CHAN_VOICE, WallBounceSound, 1, ATTN_IDLE);
+			S_Sound (this, WallBounceSoundChannel, WallBounceSound, 1, ATTN_IDLE);
 		}
 	}
 }
@@ -3035,9 +3035,9 @@ bool AActor::AdjustReflectionAngle (AActor *thing, angle_t &angle)
 
 void AActor::PlayActiveSound ()
 {
-	if (ActiveSound && !S_IsActorPlayingSomething (this, CHAN_VOICE, -1))
+	if (ActiveSound && !S_IsActorPlayingSomething (this, ActiveSoundChannel, -1))
 	{
-		S_Sound (this, CHAN_VOICE, ActiveSound, 1,
+		S_Sound (this, ActiveSoundChannel, ActiveSound, 1,
 			(flags3 & MF3_FULLVOLACTIVE) ? ATTN_NONE : ATTN_IDLE);
 	}
 }
@@ -5060,11 +5060,11 @@ AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t 
 
 		if ((flags & PF_HITTHING) && puff->SeeSound)
 		{ // Hit thing sound
-			S_Sound (puff, CHAN_BODY, puff->SeeSound, 1, ATTN_NORM);
+			S_Sound (puff, puff->SeeSoundChannel, puff->SeeSound, 1, ATTN_NORM);
 		}
 		else if (puff->AttackSound)
 		{
-			S_Sound (puff, CHAN_BODY, puff->AttackSound, 1, ATTN_NORM);
+			S_Sound (puff, puff->AttackSoundChannel, puff->AttackSound, 1, ATTN_NORM);
 		}
 	}
 
@@ -5631,18 +5631,18 @@ void P_PlaySpawnSound(AActor *missile, AActor *spawner)
 	{
 		if (!(missile->flags & MF_SPAWNSOUNDSOURCE))
 		{
-			S_Sound (missile, CHAN_VOICE, missile->SeeSound, 1, ATTN_NORM);
+			S_Sound (missile, missile->SeeSoundChannel, missile->SeeSound, 1, ATTN_NORM);
 		}
 		else if (spawner != NULL)
 		{
-			S_Sound (spawner, CHAN_WEAPON, missile->SeeSound, 1, ATTN_NORM);
+			S_Sound (spawner, spawner->SeeSoundChannel, missile->SeeSound, 1, ATTN_NORM);
 		}
 		else
 		{
 			// If there is no spawner use the spawn position.
 			// But not in a silenced sector.
 			if (!(missile->Sector->Flags & SECF_SILENT))
-				S_Sound (missile->x, missile->y, missile->z, CHAN_WEAPON, missile->SeeSound, 1, ATTN_NORM);
+				S_Sound (missile->x, missile->y, missile->z, missile->SeeSoundChannel, missile->SeeSound, 1, ATTN_NORM);
 		}
 	}
 }

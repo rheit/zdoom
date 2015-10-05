@@ -611,8 +611,6 @@ extern FDropItemPtrArray DropItemList;
 void FreeDropItemChain(FDropItem *chain);
 int StoreDropItemChain(FDropItem *chain);
 
-
-
 // Map Object definition.
 class AActor : public DThinker
 {
@@ -1012,6 +1010,17 @@ public:
 	FSoundIDNoInit BounceSound;
 	FSoundIDNoInit WallBounceSound;
 	FSoundIDNoInit CrushPainSound;
+
+	// [ZK] Property sound channels
+	int SeeSoundChannel;
+	int AttackSoundChannel;
+	int PainSoundChannel;
+	int DeathSoundChannel;
+	int ActiveSoundChannel;
+	int UseSoundChannel;
+	int BounceSoundChannel;
+	int WallBounceSoundChannel;
+	int CrushPainSoundChannel;
 
 	fixed_t Speed;
 	fixed_t FloatSpeed;
