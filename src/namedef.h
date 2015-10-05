@@ -299,6 +299,8 @@ xx(ACS_NamedExecuteWithResult)
 xx(CallACS)
 xx(Sqrt)
 xx(CheckClass)
+xx(CheckSpecies)
+xx(IsSpeciesEqual)
 xx(IsPointerEqual)
 xx(Pick)
 
