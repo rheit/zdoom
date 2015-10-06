@@ -4446,7 +4446,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Quake)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_QuakeEx)
 {
-	ACTION_PARAM_START(12);
+	ACTION_PARAM_START(13);
 	ACTION_PARAM_INT(intensityX, 0);
 	ACTION_PARAM_INT(intensityY, 1);
 	ACTION_PARAM_INT(intensityZ, 2);
@@ -4459,7 +4459,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_QuakeEx)
 	ACTION_PARAM_DOUBLE(mulWaveY, 9);
 	ACTION_PARAM_DOUBLE(mulWaveZ, 10);
 	ACTION_PARAM_INT(falloff, 11);
-	P_StartQuakeXYZ(self, 0, intensityX, intensityY, intensityZ, duration, damrad, tremrad, sound, flags, mulWaveX, mulWaveY, mulWaveZ, falloff);
+	ACTION_PARAM_INT(highpoint, 12);
+	P_StartQuakeXYZ(self, 0, intensityX, intensityY, intensityZ, duration, damrad, tremrad, sound, flags, mulWaveX, mulWaveY, mulWaveZ, falloff, highpoint);
 }
 
 //===========================================================================
