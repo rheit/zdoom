@@ -344,6 +344,10 @@ void AActor::Serialize (FArchive &arc)
 			<< RipLevelMin
 			<< RipLevelMax;
 	}
+	if (SaveVersion >= 4524)
+	{
+		arc << ThrustFactor;
+	}
 
 	{
 		FString tagstr;
@@ -3163,6 +3167,53 @@ void AActor::SetRoll(angle_t r, bool interpolate)
 	}
 }
 
+void AActor::SetThrustFactor(FName dmgtype, fixed_t amount)
+{
+	if (!dmgtype || dmgtype == NAME_None || !stricmp("none", dmgtype) || !stricmp("normal", dmgtype))
+		ThrustFactor = amount;
+	else
+	{
+		if (!ThrustFactors)
+		{
+			ThrustFactors = new ThrustFactorList;
+		}
+		ThrustFactors->Insert(dmgtype, amount);
+	}
+}
+
+bool AActor::CheckThrustType(FName dmgtype)
+{
+	if (!dmgtype)
+		return false;
+
+	ThrustFactorList *tf = ThrustFactors;
+	if (tf)
+	{
+		fixed_t *thrCheck = tf->CheckKey(dmgtype);
+		if (thrCheck != NULL)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+fixed_t AActor::GetThrustFactor(FName dmgtype)
+{
+	ThrustFactorList *tf = ThrustFactors;
+	fixed_t thrustmul = ThrustFactor;
+		
+	if (tf)
+	{
+		fixed_t *thrCheck = tf->CheckKey(dmgtype);
+		if (thrCheck != NULL)
+		{
+			thrustmul = *thrCheck;
+		}
+	}
+	return thrustmul;
+};
+
 //
 // P_MobjThinker
 //
@@ -4292,6 +4343,12 @@ void AActor::Deactivate (AActor *activator)
 
 void AActor::Destroy ()
 {
+	if (ThrustFactors && ThrustFactors != GetDefault()->ThrustFactors)
+	{
+		delete ThrustFactors;
+		ThrustFactors = NULL;
+	}
+
 	// [RH] Destroy any inventory this actor is carrying
 	DestroyAllInventory ();
 
