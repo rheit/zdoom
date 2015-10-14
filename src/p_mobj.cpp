@@ -3169,7 +3169,7 @@ void AActor::SetRoll(angle_t r, bool interpolate)
 
 void AActor::SetThrustFactor(FName dmgtype, fixed_t amount)
 {
-	if (!dmgtype || dmgtype == NAME_None || !stricmp("none", dmgtype) || !stricmp("normal", dmgtype))
+	if (!dmgtype || dmgtype == NAME_None || dmgtype == NAME_Normal)
 		ThrustFactor = amount;
 	else
 	{
