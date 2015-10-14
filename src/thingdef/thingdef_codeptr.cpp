@@ -5955,8 +5955,5 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetThrustFactor)
 		return;
 	}
 
-	if (!dmgtype || dmgtype == NAME_None)
-		mobj->ThrustFactor = amount;
-	else
-		mobj->SetThrustFactor(dmgtype, amount);
+	mobj->SetThrustFactor(dmgtype, amount);
 }

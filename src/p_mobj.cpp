@@ -3183,7 +3183,7 @@ void AActor::SetThrustFactor(FName dmgtype, fixed_t amount)
 
 bool AActor::CheckThrustType(FName dmgtype)
 {
-	if (!dmgtype)
+	if (!dmgtype || dmgtype == NAME_None || dmgtype == NAME_Normal)
 		return false;
 
 	ThrustFactorList *tf = ThrustFactors;
@@ -3200,9 +3200,11 @@ bool AActor::CheckThrustType(FName dmgtype)
 
 fixed_t AActor::GetThrustFactor(FName dmgtype)
 {
-	ThrustFactorList *tf = ThrustFactors;
+	if (!dmgtype || dmgtype == NAME_None || dmgtype == NAME_Normal)
+		return ThrustFactor;
+
 	fixed_t thrustmul = ThrustFactor;
-		
+	ThrustFactorList *tf = ThrustFactors;
 	if (tf)
 	{
 		fixed_t *thrCheck = tf->CheckKey(dmgtype);
