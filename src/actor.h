@@ -375,6 +375,7 @@ enum ActorFlag7
 	MF7_LAXTELEFRAGDMG	= 0x00100000,	// [MC] Telefrag damage can be reduced.
 	MF7_ICESHATTER		= 0x00200000,	// [MC] Shatters ice corpses regardless of damagetype.
 	MF7_NOIMPACTDMG		= 0x00400000,	// [MC] Actor cannot give or receive impact damage from being blasted.
+	MF7_THRUSTRAWDMG	= 0x00800000,	// [MC] Actor uses the damage instead of raw damage.
 };
 
 // --- mobj.renderflags ---

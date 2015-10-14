@@ -947,7 +947,7 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 	bool forcedPain = false;
 	int fakeDamage = 0;
 	int holdDamage = 0;
-	int rawdamage = damage; 
+	const int rawdamage = damage; 
 	
 	if (damage < 0) damage = 0;
 
@@ -1175,10 +1175,10 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
             fltthrust = mod == NAME_MDK ? 10 : 32;
             if (target->Mass > 0)
             {
-				bool thrustExists = target->CheckThrustType(mod);
-				if (thrustExists) //Use the raw damage instead, so modders can have finer control over it.
+				//Allow thrusting with raw damage if either the projectile or the target has it.
+				if (target->flags7 & MF7_THRUSTRAWDMG || inflictor->flags7 & MF7_THRUSTRAWDMG)
 					fltthrust = clamp(((rawdamage * 0.125 * kickback) / target->Mass) * thrustmul, 0., fltthrust);
-				else //...but only if it exists.
+				else 
 					fltthrust = clamp(((damage * 0.125 * kickback) / target->Mass) * thrustmul, 0., fltthrust);
             }
 
