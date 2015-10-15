@@ -5164,7 +5164,7 @@ enum DMSS
 	DMSS_EITHER				= 1 << 8,	//Allow either type or species to be affected.
 };
 
-static void DoDamage(AActor *self, AActor *dmgtarget, AActor *inflictor, AActor *source, int amount, FName DamageType, int flags, const PClass *filter, FName species)
+static void DoDamage(AActor *dmgtarget, AActor *inflictor, AActor *source, int amount, FName DamageType, int flags, const PClass *filter, FName species)
 {
 	bool filterpass = DoCheckClass(dmgtarget, filter, !!(flags & DMSS_EXFILTER)),
 		speciespass = DoCheckSpecies(dmgtarget, species, !!(flags & DMSS_EXSPECIES));
@@ -5219,7 +5219,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 	if (!inflictor)
 		inflictor = self;
 
-	DoDamage(self, self, inflictor, source, amount, DamageType, flags, filter, species);
+	DoDamage(self, inflictor, source, amount, DamageType, flags, filter, species);
 }
 
 //===========================================================================
@@ -5248,7 +5248,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 
 	if (self->target != NULL)
 	{
-		DoDamage(self, self->target, inflictor, source, amount, DamageType, flags, filter, species);
+		DoDamage(self->target, inflictor, source, amount, DamageType, flags, filter, species);
 	}
 }
 
@@ -5278,7 +5278,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 
 	if (self->tracer != NULL)
 	{
-		DoDamage(self, self->tracer, inflictor, source, amount, DamageType, flags, filter, species);
+		DoDamage(self->tracer, inflictor, source, amount, DamageType, flags, filter, species);
 	}
 }
 
@@ -5308,7 +5308,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 
 	if (self->master != NULL)
 	{
-		DoDamage(self, self->master, inflictor, source, amount, DamageType, flags, filter, species);
+		DoDamage(self->master, inflictor, source, amount, DamageType, flags, filter, species);
 	}
 }
 
@@ -5343,7 +5343,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 	{
 		if (mo->master == self)
 		{
-			DoDamage(self, mo, inflictor, source, amount, DamageType, flags, filter, species);
+			DoDamage(mo, inflictor, source, amount, DamageType, flags, filter, species);
 		}
 	}
 }
@@ -5381,7 +5381,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 		{
 			if (mo->master == self->master && mo != self)
 			{
-				DoDamage(self, mo, inflictor, source, amount, DamageType, flags, filter, species);
+				DoDamage(mo, inflictor, source, amount, DamageType, flags, filter, species);
 			}
 		}
 	}
@@ -5404,7 +5404,7 @@ enum KILS
 	KILS_EITHER			= 1 << 6,
 };
 
-static void DoKill(AActor *self, AActor *killtarget, AActor *inflictor, AActor *source, FName damagetype, int flags, const PClass *filter, FName species)
+static void DoKill(AActor *killtarget, AActor *inflictor, AActor *source, FName damagetype, int flags, const PClass *filter, FName species)
 {
 	bool filterpass = DoCheckClass(killtarget, filter, !!(flags & KILS_EXFILTER)),
 		speciespass = DoCheckSpecies(killtarget, species, !!(flags & KILS_EXSPECIES));
@@ -5463,7 +5463,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
 
 	if (self->target != NULL)
 	{
-		DoKill(self, self->target, inflictor, source, damagetype, flags, filter, species);
+		DoKill(self->target, inflictor, source, damagetype, flags, filter, species);
 	}
 }
 
@@ -5492,7 +5492,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
 
 	if (self->tracer != NULL)
 	{
-		DoKill(self, self->tracer, inflictor, source, damagetype, flags, filter, species);
+		DoKill(self->tracer, inflictor, source, damagetype, flags, filter, species);
 	}
 }
 
@@ -5521,7 +5521,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 
 	if (self->master != NULL)
 	{
-		DoKill(self, self->master, inflictor, source, damagetype, flags, filter, species);
+		DoKill(self->master, inflictor, source, damagetype, flags, filter, species);
 	}
 }
 
@@ -5555,7 +5555,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 	{
 		if (mo->master == self) 
 		{
-			DoKill(self, mo, inflictor, source, damagetype, flags, filter, species);
+			DoKill(mo, inflictor, source, damagetype, flags, filter, species);
 		}
 	}
 }
@@ -5592,7 +5592,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 		{
 			if (mo->master == self->master && mo != self)
 			{ 
-				DoKill(self, mo, inflictor, source, damagetype, flags, filter, species);
+				DoKill(mo, inflictor, source, damagetype, flags, filter, species);
 			}
 		}
 	}
