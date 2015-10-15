@@ -4847,10 +4847,10 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 									velz *= 0.8f;
 								}
 								angle_t ang = R_PointToAngle2(bombspot->x, bombspot->y, thing->x, thing->y) >> ANGLETOFINESHIFT;
-								thing->velx += fixed_t(finecosine[ang] * thrust) * thrustmul;
-								thing->vely += fixed_t(finesine[ang] * thrust) * thrustmul;
+								thing->velx += FixedMul(fixed_t(finecosine[ang] * thrust), thrustmul);
+								thing->vely += FixedMul(fixed_t(finesine[ang] * thrust), thrustmul);
 								if (!(flags & RADF_NODAMAGE))
-									thing->velz += (fixed_t)velz * thrustmul;	// this really doesn't work well
+									thing->velz += FixedMul((fixed_t)velz, thrustmul);	// this really doesn't work well
 							}
 						}
 					}

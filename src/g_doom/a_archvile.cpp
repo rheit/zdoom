@@ -154,6 +154,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_VileAttack)
 		P_RadiusAttack (fire, self, blastdmg, blastrad, dmgtype, 0);
 	}
 	if (!(target->flags7 & MF7_DONTTHRUST))
-		target->velz = Scale(thrust, 1000, target->Mass) * thrustmul;
+		target->velz = FixedMul(Scale(thrust, 1000, target->Mass), thrustmul);
 
 }
