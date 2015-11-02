@@ -100,19 +100,11 @@ void DEarthquake::Serialize (FArchive &arc)
 	}
 	if (SaveVersion < 4525)
 	{
-		m_Falloff <<= FRACBITS;
+		m_Falloff = m_Highpoint = m_MiniCount = 0;
 	}
 	else
 	{
-		arc << m_Falloff;
-	}
-	if (SaveVersion < 4526)
-	{
-		m_Highpoint = m_MiniCount = 0;
-	}
-	else
-	{
-		arc << m_Highpoint << m_MiniCount;
+		arc << m_Falloff << m_Highpoint << m_MiniCount;
 	}
 }
 
