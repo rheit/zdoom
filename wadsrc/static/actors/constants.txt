@@ -87,6 +87,7 @@ const int CHF_DONTMOVE = 16;
 const int CHF_NORANDOMTURN = 32;
 const int CHF_DONTANGLE = 64;
 const int CHF_NOPOSTATTACKTURN = 128;
+const int CHF_STOPIFBLOCKED = 256;
 
 // Flags for A_LookEx
 const int LOF_NOSIGHTCHECK = 1;

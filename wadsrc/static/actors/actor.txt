@@ -81,7 +81,7 @@ ACTOR Actor native //: Thinker
 	action native A_NoBlocking();
 	action native A_XScream();
 	action native A_Look();
-	action native A_Chase(state melee = "*", state missile = "none", int flags = 0);
+	action native A_Chase(state melee = "*", state missile = "None", int flags = 0, state block = "None");
 	action native A_FaceTarget(float max_turn = 0, float max_pitch = 270, float ang_offset = 0, float pitch_offset = 0, int flags = 0);
 	action native A_FaceTracer(float max_turn = 0, float max_pitch = 270, float ang_offset = 0, float pitch_offset = 0, int flags = 0);
 	action native A_FaceMaster(float max_turn = 0, float max_pitch = 270, float ang_offset = 0, float pitch_offset = 0, int flags = 0);

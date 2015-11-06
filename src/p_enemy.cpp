@@ -2040,6 +2040,42 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 
 //==========================================================================
 //
+// Copied from thingdef_codeptr.cpp.
+//
+//==========================================================================
+static void DoJump(AActor * self, FState * CallingState, FState *jumpto, StateCallData *statecall)
+{
+	if (jumpto == NULL) return;
+
+	if (statecall != NULL)
+	{
+		statecall->State = jumpto;
+	}
+	else if (self->player != NULL && CallingState == self->player->psprites[ps_weapon].state)
+	{
+		P_SetPsprite(self->player, ps_weapon, jumpto);
+	}
+	else if (self->player != NULL && CallingState == self->player->psprites[ps_flash].state)
+	{
+		P_SetPsprite(self->player, ps_flash, jumpto);
+	}
+	else if (CallingState == self->state)
+	{
+		self->SetState(jumpto);
+	}
+	else
+	{
+		// something went very wrong. This should never happen.
+		assert(false);
+	}
+}
+
+// This is just to avoid having to directly reference the internally defined
+// CallingState and statecall parameters in the code below.
+#define ACTION_JUMP(offset) DoJump(self, CallingState, offset, statecall)
+
+//==========================================================================
+//
 // A_ClearLastHeard
 //
 //==========================================================================
@@ -2187,26 +2223,27 @@ nosee:
 
 enum ChaseFlags
 {
-	CHF_FASTCHASE = 1,
-	CHF_NOPLAYACTIVE = 2,
-	CHF_NIGHTMAREFAST = 4,
-	CHF_RESURRECT = 8,
-	CHF_DONTMOVE = 16,
-	CHF_NORANDOMTURN = 32,
-	CHF_DONTANGLE = 64,
-	CHF_NOPOSTATTACKTURN = 128,
+	CHF_FASTCHASE			= 1,
+	CHF_NOPLAYACTIVE		= 2,
+	CHF_NIGHTMAREFAST		= 4,
+	CHF_RESURRECT			= 8,
+	CHF_DONTMOVE			= 16,
+	CHF_NORANDOMTURN		= 32,
+	CHF_DONTANGLE			= 64,
+	CHF_NOPOSTATTACKTURN	= 128,
+	CHF_STOPIFBLOCKED		= 256,
 };
 
-void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missilestate, bool playactive, bool nightmarefast, bool dontmove, int flags)
+bool A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missilestate, bool playactive, bool nightmarefast, bool dontmove, int flags)
 {
 	int delta;
 
 	if (actor->flags5 & MF5_INCONVERSATION)
-		return;
+		return true;
 
 	if (actor->flags & MF_INCHASE)
 	{
-		return;
+		return true;
 	}
 	actor->flags |= MF_INCHASE;
 
@@ -2322,7 +2359,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 		if (P_LookForPlayers (actor, true, NULL) && actor->target != actor->goal)
 		{ // got a new target
 			actor->flags &= ~MF_INCHASE;
-			return;
+			return true;
 		}
 		if (actor->target == NULL)
 		{
@@ -2333,14 +2370,14 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 				{
 					if (!dontmove) A_Wander(actor);
 					actor->flags &= ~MF_INCHASE;
-					return;
+					return true;
 				}
 			}
 			else
 			{
 				actor->SetIdle();
 				actor->flags &= ~MF_INCHASE;
-				return;
+				return true;
 			}
 		}
 	}
@@ -2349,12 +2386,17 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 	if (actor->flags & MF_JUSTATTACKED)
 	{
 		actor->flags &= ~MF_JUSTATTACKED;
-		if (!actor->isFast() && !dontmove && !(flags & CHF_NOPOSTATTACKTURN))
+		if (!actor->isFast() && !dontmove && !(flags & CHF_NOPOSTATTACKTURN) && !(flags & CHF_STOPIFBLOCKED))
 		{
 			P_NewChaseDir (actor);
 		}
+		//Because P_TryWalk would never be reached if the actor is stopped by a blocking object,
+		//need to make sure the movecount is reset, otherwise they will just keep attacking
+		//over and over again.
+		if (flags & CHF_STOPIFBLOCKED)
+			actor->movecount = pr_trywalk() & 15;
 		actor->flags &= ~MF_INCHASE;
-		return;
+		return true;
 	}
 	
 	// [RH] Don't attack if just moving toward goal
@@ -2403,7 +2445,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 			}
 			actor->flags &= ~MF_INCHASE;
 			actor->goal = newgoal;
-			return;
+			return true;
 		}
 		if (actor->goal == actor->target) goto nomissile;
 	}
@@ -2455,7 +2497,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 
 			actor->SetState (meleestate);
 			actor->flags &= ~MF_INCHASE;
-			return;
+			return true;
 		}
 		
 		// check for missile attack
@@ -2473,7 +2515,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 			actor->flags |= MF_JUSTATTACKED;
 			actor->flags4 |= MF4_INCOMBAT;
 			actor->flags &= ~MF_INCHASE;
-			return;
+			return true;
 		}
 	}
 
@@ -2499,7 +2541,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 		if (gotNew && actor->target != oldtarget)
 		{
 			actor->flags &= ~MF_INCHASE;
-			return; 	// got a new target
+			return true; 	// got a new target
 		}
 	}
 
@@ -2509,7 +2551,8 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 
 	if (actor->strafecount)
 		actor->strafecount--;
-
+	
+	bool good = true;
 	// class bosses don't do this when strafing
 	if ((!fastchase || !actor->FastChaseStrafeCount) && !dontmove)
 	{
@@ -2521,24 +2564,36 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 		// chase towards player
 		if (actor->movecount >= 0)
 			actor->movecount--;
-		if (((!(flags & CHF_NORANDOMTURN)) && (actor->movecount < 0)) || !P_Move(actor))
+
+		bool movecheck = P_Move(actor);
+
+		if (!(flags & CHF_STOPIFBLOCKED))
 		{
-			P_NewChaseDir (actor);
+			if ((!(flags & CHF_NORANDOMTURN) && (actor->movecount < 0)) || !movecheck)
+				P_NewChaseDir(actor);
 		}
-		
+		else if (!movecheck)
+			good = false;
 		// if the move was illegal, reset it 
 		// (copied from A_SerpentChase - it applies to everything with CANTLEAVEFLOORPIC!)
 		if (actor->flags2&MF2_CANTLEAVEFLOORPIC && actor->floorpic != oldFloor )
 		{
-			if (P_TryMove (actor, oldX, oldY, false))
+			if (!(flags & CHF_STOPIFBLOCKED))
 			{
-				if (nomonsterinterpolation)
+				if (P_TryMove(actor, oldX, oldY, false))
 				{
-					actor->PrevX = oldX;
-					actor->PrevY = oldY;
+					if (nomonsterinterpolation)
+					{
+						actor->PrevX = oldX;
+						actor->PrevY = oldY;
+					}
 				}
+				P_NewChaseDir(actor);
 			}
-			P_NewChaseDir (actor);
+			else
+			{
+				good = false;
+			}
 		}
 	}
 	else if (dontmove && actor->movecount > 0) actor->movecount--;
@@ -2550,6 +2605,11 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 	}
 
 	actor->flags &= ~MF_INCHASE;
+	
+	if (dontmove)
+		return true;
+	else
+		return good;
 }
 
 
@@ -2700,22 +2760,32 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Chase)
 {
-	ACTION_PARAM_START(3);
+	ACTION_PARAM_START(4);
 	ACTION_PARAM_STATE(melee, 0);
 	ACTION_PARAM_STATE(missile, 1);
 	ACTION_PARAM_INT(flags, 2);
+	ACTION_PARAM_STATE(block, 3);
+
+	ACTION_SET_RESULT(false); //No inventory chain state jumps please.
 
 	if (melee != (FState*)-1)
 	{
 		if (flags & CHF_RESURRECT && P_CheckForResurrection(self, false)) return;
 		
-		A_DoChase(self, !!(flags&CHF_FASTCHASE), melee, missile, !(flags&CHF_NOPLAYACTIVE), 
-					!!(flags&CHF_NIGHTMAREFAST), !!(flags&CHF_DONTMOVE), flags);
+		if (A_DoChase(self, !!(flags&CHF_FASTCHASE), melee, missile, !(flags&CHF_NOPLAYACTIVE),
+			!!(flags&CHF_NIGHTMAREFAST), !!(flags&CHF_DONTMOVE), flags))
+			return;
+			
 	}
 	else // this is the old default A_Chase
 	{
-		A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false, flags);
+		if (A_DoChase(self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false, flags))
+			return;
+			
 	}
+	
+	if (block)
+		ACTION_JUMP(block); //I figured it'd be a little too dangerous to be relying on SetState when this will be allowing offsets.
 }
 
 DEFINE_ACTION_FUNCTION(AActor, A_FastChase)
