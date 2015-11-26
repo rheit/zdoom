@@ -5151,6 +5151,72 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPainThreshold)
 	ref->PainThreshold = threshold;
 }
 
+//==========================================================================
+//
+// A_CheckChildCount(state jump, actor name, int numchild, int flags)
+//
+// Counts the number of children, specific types or not, and jumps if
+// the number of children satisfy the function.
+//==========================================================================
+enum CCFlags
+{
+	CCCF_LESSOREQUAL =		1,
+	CCCF_EXACT =			1 << 1,
+	CCCF_ALIVEONLY =		1 << 2,
+	CCCF_DEADONLY =			1 << 3,
+};
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckChildCount)
+{
+	ACTION_PARAM_START(4);
+	ACTION_PARAM_STATE(jump, 0);
+	ACTION_PARAM_CLASS(entity, 1);
+	ACTION_PARAM_INT(numchild, 2);
+	ACTION_PARAM_INT(flags, 3);
+
+	ACTION_SET_RESULT(false);
+
+	//There's no point if there's no state jump, or if someone mistakenly uses 
+	//both alive and dead only
+	if (!jump || ((flags & CCCF_ALIVEONLY) && (flags & CCCF_DEADONLY)))
+		return;
+
+	const bool exact = !!(flags & CCCF_EXACT);
+	const bool anyClass = (!entity);
+	const bool lessOrEqual = !!(flags & CCCF_LESSOREQUAL);
+
+	TThinkerIterator<AActor> it;
+	AActor * mo;
+
+	int count = 0;
+
+	while ((mo = it.Next()))
+	{
+		if (mo->master == self && (anyClass || (mo->GetClass() == entity)))
+		{
+			//[MC] Just because something has no health doesn't mean it's dead. 
+			//I've seen mods using -1 for health on decorations that are meant to bleed
+			//whenever shot at.
+			if ((flags & CCCF_ALIVEONLY) && (mo->flags6 & MF6_KILLED)) 
+				continue;
+			if ((flags & CCCF_DEADONLY) && (!(mo->flags6 & MF6_KILLED)))
+				continue;
+
+			// We don't want to jump if we have less than or equal, or exact numbers. So abort it.
+			if (((++count) > numchild) && (exact || lessOrEqual))
+				return;
+		}
+		if (count > numchild)
+			break;
+	}
+
+	if (count == numchild ||
+		(lessOrEqual && !exact && (count < numchild)) ||
+		(!lessOrEqual && !exact && (count > numchild)))
+	{
+		ACTION_JUMP(jump);
+	}
+}
+
 //===========================================================================
 //
 // Common A_Damage handler
