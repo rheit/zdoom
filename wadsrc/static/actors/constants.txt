@@ -473,6 +473,17 @@ enum
 	FAF_NODISTFACTOR = 8,
 };
 
+// A_CheckProximity flags
+enum
+{
+	CPXF_ANCESTOR			= 1,
+	CPXF_LESSOREQUAL		= 1 << 1,
+	CPXF_NOZ				= 1 << 2,
+	CPXF_COUNTDEAD			= 1 << 3,
+	CPXF_DEADONLY			= 1 << 4,
+	CPXF_EXACT				= 1 << 5,
+};
+
 // Flags for A_QuakeEx
 enum
 {
