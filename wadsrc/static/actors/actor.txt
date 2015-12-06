@@ -20,6 +20,7 @@ ACTOR Actor native //: Thinker
 	Gravity 1
 	Friction 1
 	DamageFactor 1.0
+	ThrustFactor 1.0
 	PushFactor 0.25
 	WeaveIndexXY 0
 	WeaveIndexZ 16
@@ -340,6 +341,7 @@ ACTOR Actor native //: Thinker
 	action native A_CheckBlock(state block, int flags = 0, int ptr = AAPTR_DEFAULT);
 	action native A_CheckSightOrRange(float distance, state label, bool two_dimension = false);
 	action native A_CheckRange(float distance, state label, bool two_dimension = false);
+	action native A_SetThrustFactor(float amount, name dmgtype = None, int ptr = AAPTR_DEFAULT);
 
 	action native A_RearrangePointers(int newtarget, int newmaster = AAPTR_DEFAULT, int newtracer = AAPTR_DEFAULT, int flags=0);
 	action native A_TransferPointer(int ptr_source, int ptr_recepient, int sourcefield, int recepientfield=AAPTR_DEFAULT, int flags=0);

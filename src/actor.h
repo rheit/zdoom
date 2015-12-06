@@ -374,6 +374,8 @@ enum ActorFlag7
 	MF7_FORCEDECAL		= 0x00080000,	// [ZK] Forces puff's decal to override the weapon's.
 	MF7_LAXTELEFRAGDMG	= 0x00100000,	// [MC] Telefrag damage can be reduced.
 	MF7_ICESHATTER		= 0x00200000,	// [MC] Shatters ice corpses regardless of damagetype.
+	MF7_NOIMPACTDMG		= 0x00400000,	// [MC] Actor cannot give or receive impact damage from being blasted.
+	MF7_THRUSTRAWDMG	= 0x00800000,	// [MC] Actor uses the raw damage instead of filtered damage.
 };
 
 // --- mobj.renderflags ---
@@ -612,7 +614,7 @@ extern FDropItemPtrArray DropItemList;
 void FreeDropItemChain(FDropItem *chain);
 int StoreDropItemChain(FDropItem *chain);
 
-
+typedef TMap<FName, fixed_t> ThrustFactorList;
 
 // Map Object definition.
 class AActor : public DThinker
@@ -828,6 +830,9 @@ public:
 	void SetPitch(int p, bool interpolate, bool forceclamp = false);
 	void SetAngle(angle_t ang, bool interpolate);
 	void SetRoll(angle_t roll, bool interpolate);
+	void SetThrustFactor(FName dmgtype, fixed_t amount);
+	fixed_t GetThrustFactor(FName dmgtype = NAME_None);
+	bool CheckThrustType(FName dmgtype);
 
 	const PClass *GetBloodType(int type = 0) const
 	{
@@ -1032,6 +1037,9 @@ public:
 	int RipperLevel;
 	int RipLevelMin;
 	int RipLevelMax;
+
+	fixed_t ThrustFactor;
+	ThrustFactorList *ThrustFactors;
 
 	FState *SpawnState;
 	FState *SeeState;
