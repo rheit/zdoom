@@ -504,7 +504,8 @@ enum
 	CPXF_MISSILES =		1 << 14,
 	CPXF_OBJECTS =		1 << 15,
 	CPXF_CORPSES =		1 << 16,
-	CPXF_CHECKSIGHT =	1 << 17
+	CPXF_CHECKSIGHT =	1 << 17,
+	CPXF_NOCOUNTMASK =	1 << 18,
 };
 
 // Flags for A_CheckBlock
