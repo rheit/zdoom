@@ -5902,12 +5902,24 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 //==========================================================================
 enum CPXFflags
 {
-	CPXF_ANCESTOR =			1,
-	CPXF_LESSOREQUAL =		1 << 1,
-	CPXF_NOZ =				1 << 2,
-	CPXF_COUNTDEAD =		1 << 3,
-	CPXF_DEADONLY =			1 << 4,
-	CPXF_EXACT =			1 << 5,
+	CPXF_ANCESTOR =		1,
+	CPXF_LESSOREQUAL =	1 << 1,
+	CPXF_NOZ =			1 << 2,
+	CPXF_COUNTDEAD =	1 << 3,
+	CPXF_DEADONLY =		1 << 4,
+	CPXF_EXACT =		1 << 5,
+	CPXF_SETTARGET =	1 << 6,
+	CPXF_SETMASTER =	1 << 7,
+	CPXF_SETTRACER =	1 << 8,
+	CPXF_FARTHEST =		1 << 9,
+	CPXF_CLOSEST =		1 << 10,
+	CPXF_SETONPTR =		1 << 11,
+	CPXF_NODISTANCE =	1 << 12,
+	CPXF_MONSTERS =		1 << 13,
+	CPXF_MISSILES =		1 << 14,
+	CPXF_OBJECTS =		1 << 15,
+	CPXF_CORPSES =		1 << 16,
+	CPXF_CHECKSIGHT =	1 << 17,
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 {
@@ -5922,15 +5934,24 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 	ACTION_SET_RESULT(false); //No inventory chain results please.
 	AActor *ref = COPY_AAPTR(self, ptr);
 
+	if (!jump)
+	{
+		if (!(flags & (CPXF_SETTARGET | CPXF_SETMASTER | CPXF_SETTRACER)))
+			return;
+	}
+
 	//We need these to check out.
-	if (!ref || !jump || !classname || distance <= 0)
+	bool checkmask = !!(flags & (CPXF_MONSTERS | CPXF_MISSILES | CPXF_OBJECTS | CPXF_CORPSES));
+	if (!ref || !(classname || checkmask) || ((distance <= 0) && !(flags & CPXF_NODISTANCE)))
 		return;
 
 	int counter = 0;
 	bool result = false;
 
 	TThinkerIterator<AActor> it;
-	AActor * mo;
+	AActor *mo, *classtarget = NULL, *nonclasstarget = NULL, *dist = NULL;
+	const double distsquared = double(distance) * double(distance);
+	double closer = distsquared, farther = 0, current = 0;
 
 	//[MC] Process of elimination, I think, will get through this as quickly and 
 	//efficiently as possible. 
@@ -5939,50 +5960,131 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 		if (mo == ref) //Don't count self.
 			continue;
 
-		//Check inheritance for the classname. Taken partly from CheckClass DECORATE function.
-		if (flags & CPXF_ANCESTOR)
+		//Check for death first.
+		if (mo->flags & MF_CORPSE)
 		{
-			if (!(mo->GetClass()->IsAncestorOf(classname)))
+			if (!(flags & CPXF_CORPSES))
 				continue;
 		}
-		//Otherwise, just check for the regular class name.
-		else if (classname != mo->GetClass())
+		else if (mo->flags6 & MF6_KILLED)
+		{
+			if (!(flags & (CPXF_COUNTDEAD | CPXF_DEADONLY)))
+				continue;
+		}
+		else
+		{
+			if (flags & CPXF_DEADONLY)
+				continue;
+		}
+
+		if ((flags & CPXF_CHECKSIGHT) && !(P_CheckSight(mo, ref, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY)))
 			continue;
 
-		//Make sure it's in range and respect the desire for Z or not.
-		if (P_AproxDistance(ref->x - mo->x, ref->y - mo->y) < distance &&
-			((flags & CPXF_NOZ) ||
-			((ref->z > mo->z && ref->z - (mo->z + mo->height) < distance) ||
-			(ref->z <= mo->z && mo->z - (ref->z + ref->height) < distance))))
+		//Check for name, and/or inheritance. If neither, check for a masking flag.
+		//The function has to track them independently from actors that qualify for mask, 
+		//but not the classname so it can override the targeting system appropriately.
+		if ((classname && (classname == mo->GetClass()) ||
+			((flags & CPXF_ANCESTOR) && classname && (mo->GetClass()->IsAncestorOf(classname)))))
 		{
-			if (mo->flags6 & MF6_KILLED)
+			classtarget = mo;
+		}
+		else if (checkmask)
+		{
+			//The only part where process of elimination will hinder the search,
+			//so rule IN instead of OUT.
+
+			const bool corpsePass = !!((flags & CPXF_CORPSES) && mo->flags & MF_CORPSE);
+			const bool monsterPass = !!((flags & CPXF_MONSTERS) && mo->flags3 & MF3_ISMONSTER);
+			const bool objectPass = !!((flags & CPXF_OBJECTS) && (mo->player == NULL) && (!(mo->flags3 & MF3_ISMONSTER))
+				&& ((mo->flags & MF_SHOOTABLE) || (mo->flags6 & MF6_VULNERABLE)));
+			const bool missilePass = !!((flags & CPXF_MISSILES) && mo->flags & MF_MISSILE);
+
+			if (!(corpsePass || monsterPass || objectPass || missilePass))
+				continue;
+			nonclasstarget = mo;
+		}
+		else
+		{
+			continue;
+		}
+
+		//[MC]Make sure it's in range and respect the desire for Z or not. The function forces it to use
+		//Z later for ensuring CLOSEST and FARTHEST flags are respected perfectly.
+		//Ripped from sphere checking in A_RadiusGive (along with a number of things).
+		TVector3<double> spos(ref->x, ref->y, ((flags & CPXF_NOZ) ? 0 : (ref->z + ref->height / 2)));
+		TVector3<double> tpos(mo->x, mo->y, ((flags & CPXF_NOZ) ? 0 : (mo->z + mo->height / 2)));
+		
+		if ((flags & CPXF_NODISTANCE) || (tpos - spos).LengthSquared() <= distsquared)
+		{
+			counter++;
+
+			//[MC] We have succeeded in finding a viable actor. Now...
+			//Set the closest if the flag is specified as the target/master/tracer.
+			//Or vice versa if farthest.
+			//If neither, get the first and don't bother with the rest.
+			//Also, if we have a specified classname with a monster found, prioritize it
+			//over non-matching class names.
+
+			spos.Z = ref->z + ref->height / 2; //This one cannot have NOZ checking.
+			tpos.Z = mo->z + mo->height / 2;
+			current = (tpos - spos).LengthSquared();
+			if ((flags & CPXF_CLOSEST) && ((current < closer) || !closer))
 			{
-				if (!(flags & (CPXF_COUNTDEAD | CPXF_DEADONLY)))
-					continue;
-				counter++;
+				if (classtarget != NULL)
+					dist = classtarget;
+				else
+					dist = nonclasstarget;
+				closer = current;
 			}
-			else
+			else if ((flags & CPXF_FARTHEST) && (current > farther))
 			{
-				if (flags & CPXF_DEADONLY)
-					continue;
-				counter++;
+				if (classtarget != NULL)
+					dist = classtarget;
+				else
+					dist = nonclasstarget;
+				farther = current;
 			}
 
 			//Abort if the number of matching classes nearby is greater, we have obviously succeeded in our goal.
 			if (counter > count)
 			{
 				result = (flags & (CPXF_LESSOREQUAL | CPXF_EXACT)) ? false : true;
-				break;
+
+				//Keep going until we can find the truly closest entity. 
+				if (!(flags & (CPXF_CLOSEST | CPXF_FARTHEST)))
+					break;
 			}
 		}
 	}
+
+	if (!dist && !classtarget && !nonclasstarget && !jump)
+		return;
+
+	AActor *selected = dist ? dist : (classtarget ? classtarget : nonclasstarget);
+
+	if (selected != NULL)
+	{
+		if (flags & CPXF_SETONPTR)
+		{
+			if (flags & CPXF_SETTARGET)	ref->target = selected;
+			if (flags & CPXF_SETMASTER)	ref->master = selected;
+			if (flags & CPXF_SETTRACER)	ref->tracer = selected;
+		}
+		else
+		{
+			if (flags & CPXF_SETTARGET)	self->target = selected;
+			if (flags & CPXF_SETMASTER)	self->master = selected;
+			if (flags & CPXF_SETTRACER)	self->tracer = selected;
+		}
+	}
+
+	if (!jump)
+		return;
 
 	if (counter == count)
 		result = true;
 	else if (counter < count)
 		result = !!((flags & CPXF_LESSOREQUAL) && !(flags & CPXF_EXACT));
-
-
 
 	if (result)
 	{
