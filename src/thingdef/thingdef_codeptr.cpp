@@ -5951,7 +5951,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 	TThinkerIterator<AActor> it;
 	AActor *mo, *classtarget = NULL, *nonclasstarget = NULL, *dist = NULL;
 	const double distsquared = double(distance) * double(distance);
-	double closer = distsquared, farther = 0, current = 0;
+	double closer = 0, farther = 0, current = 0;
 
 	//[MC] Process of elimination, I think, will get through this as quickly and 
 	//efficiently as possible. 
