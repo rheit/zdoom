@@ -124,4 +124,8 @@ xx(TK_SizeOf,				"'sizeof'")
 xx(TK_AlignOf,				"'alignof'")
 xx(TK_RandomPick,			"'randompick'")
 xx(TK_FRandomPick,			"'frandompick'")
+xx(TK_IMin,					"'imin'")
+xx(TK_IMax,					"'imax'")
+xx(TK_FMin,					"'fmin'")
+xx(TK_FMax,					"'fmax'")
 #undef xx

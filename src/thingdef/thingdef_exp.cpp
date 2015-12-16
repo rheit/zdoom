@@ -401,6 +401,46 @@ static FxExpression *ParseExpression0 (FScanner &sc, const PClass *cls)
 		}
 		return new FxRandomPick(rng, list, floaty, sc);
 	}
+	else if (sc.CheckToken(TK_IMin) || sc.CheckToken(TK_FMin))
+	{
+		bool floaty = (sc.CheckToken(TK_FMin));
+
+		TArray<FxExpression*> list;
+		list.Clear();
+		int index = 0;
+
+		sc.MustGetToken('(');
+
+		for (;;)
+		{
+			FxExpression *expr = ParseExpressionM(sc, cls);
+			list.Push(expr);
+			if (sc.CheckToken(')'))
+				break;
+			sc.MustGetToken(',');
+		}
+		return new FxMin(list, floaty, sc);
+	}
+	else if (sc.CheckToken(TK_IMax) || sc.CheckToken(TK_FMax))
+	{
+		bool floaty = (sc.CheckToken(TK_FMax));
+
+		TArray<FxExpression*> list;
+		list.Clear();
+		int index = 0;
+
+		sc.MustGetToken('(');
+
+		for (;;)
+		{
+			FxExpression *expr = ParseExpressionM(sc, cls);
+			list.Push(expr);
+			if (sc.CheckToken(')'))
+				break;
+			sc.MustGetToken(',');
+		}
+		return new FxMax(list, floaty, sc);
+	}
 	else if (sc.CheckToken(TK_FRandom))
 	{
 		FRandom *rng;
