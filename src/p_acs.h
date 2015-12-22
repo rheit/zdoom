@@ -976,4 +976,7 @@ struct acsdefered_t
 
 FArchive &operator<< (FArchive &arc, acsdefered_t *&defer);
 
+// [zombie] custom action limit
+EXTERN_CVAR(Int, sv_action_limit);
+
 #endif //__P_ACS_H__

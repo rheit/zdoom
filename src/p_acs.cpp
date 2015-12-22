@@ -5978,6 +5978,9 @@ static bool CharArrayParms(int &capacity, int &offset, int &a, int *Stack, int &
 	return true;
 }
 
+// [zombie] custom action limit
+CVAR(Int, sv_action_limit, 2000000, CVAR_SERVERINFO);
+
 int DLevelScript::RunScript ()
 {
 	DACSThinker *controller = DACSThinker::ActiveThinker;
@@ -6068,7 +6071,8 @@ int DLevelScript::RunScript ()
 
 	while (state == SCRIPT_Running)
 	{
-		if (++runaway > 2000000)
+		// [zombie] custom action limit
+		if (++runaway > sv_action_limit && sv_action_limit != -1)
 		{
 			Printf ("Runaway %s terminated\n", ScriptPresentation(script).GetChars());
 			state = SCRIPT_PleaseRemove;
