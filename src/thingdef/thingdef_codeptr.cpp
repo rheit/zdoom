@@ -4441,12 +4441,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Quake)
 // A_QuakeEx
 //
 // Extended version of A_Quake. Takes individual axis into account and can
-// take a flag.
+// take flags.
 //===========================================================================
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_QuakeEx)
 {
-	ACTION_PARAM_START(11);
+	ACTION_PARAM_START(13);
 	ACTION_PARAM_INT(intensityX, 0);
 	ACTION_PARAM_INT(intensityY, 1);
 	ACTION_PARAM_INT(intensityZ, 2);
@@ -4458,7 +4458,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_QuakeEx)
 	ACTION_PARAM_DOUBLE(mulWaveX, 8);
 	ACTION_PARAM_DOUBLE(mulWaveY, 9);
 	ACTION_PARAM_DOUBLE(mulWaveZ, 10);
-	P_StartQuakeXYZ(self, 0, intensityX, intensityY, intensityZ, duration, damrad, tremrad, sound, flags, mulWaveX, mulWaveY, mulWaveZ);
+	ACTION_PARAM_INT(falloff, 11);
+	ACTION_PARAM_INT(highpoint, 12);
+	P_StartQuakeXYZ(self, 0, intensityX, intensityY, intensityZ, duration, damrad, tremrad, sound, flags, mulWaveX, mulWaveY, mulWaveZ, falloff, highpoint);
 }
 
 //===========================================================================
