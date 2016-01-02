@@ -281,26 +281,21 @@ fixed_t DEarthquake::GetModIntensity(fixed_t intensity) const
 
 fixed_t DEarthquake::GetFalloff(fixed_t dist) const
 {
-	double falloff;
-	double tremorradius = FIXED2DBL(m_TremorRadius);
-	double fall = FIXED2DBL(m_Falloff);
-	double dis = FIXED2DBL(dist);
 	if ((dist < m_Falloff) || (m_Falloff >= m_TremorRadius) || (m_Falloff <= 0) || (m_TremorRadius - m_Falloff <= 0))
 	{ //Player inside the minimum falloff range, or safety check kicked in.
-		falloff = 1.f;
+		return FRACUNIT;
 	}
 	else if ((dist > m_Falloff) && (dist < m_TremorRadius))
 	{ //Player inside the radius, and outside the min distance for falloff.
-		double tremorsize = tremorradius - fall;
-		double tremordist = dis - fall;
+		fixed_t tremorsize = m_TremorRadius - m_Falloff;
+		fixed_t tremordist = dist - m_Falloff;
 		assert(tremorsize > 0);
-		falloff = (1.f - (1.f * tremordist) / tremorsize);
+		return (FRACUNIT - FixedMul(FRACUNIT,tremordist) / tremorsize);
 	}
 	else 
 	{ //Shouldn't happen.
-		falloff = 1.f;
+		return FRACUNIT;
 	}
-	return FLOAT2FIXED(falloff);
 }
 
 //==========================================================================
