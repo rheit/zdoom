@@ -5001,7 +5001,7 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 // P_SpawnPuff
 //
 
-AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t y, fixed_t z, angle_t dir, int updown, int flags, AActor *vict)
+AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t y, fixed_t z, angle_t dir, int updown, int flags, AActor *vict, int pufftid)
 {
 	AActor *puff;
 	
@@ -5010,6 +5010,11 @@ AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t 
 
 	puff = Spawn (pufftype, x, y, z, ALLOW_REPLACE);
 	if (puff == NULL) return NULL;
+	if (pufftid != 0)
+	{
+		puff->tid = pufftid;
+		puff->AddToHash();
+	}
 
 	if ((puff->flags4 & MF4_RANDOMIZE) && puff->tics > 0)
 	{
