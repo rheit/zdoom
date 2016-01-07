@@ -491,12 +491,25 @@ enum
 // A_CheckProximity flags
 enum
 {
-	CPXF_ANCESTOR			= 1,
-	CPXF_LESSOREQUAL		= 1 << 1,
-	CPXF_NOZ				= 1 << 2,
-	CPXF_COUNTDEAD			= 1 << 3,
-	CPXF_DEADONLY			= 1 << 4,
-	CPXF_EXACT				= 1 << 5,
+	CPXF_ANCESTOR =		1,
+	CPXF_LESSOREQUAL =	1 << 1,
+	CPXF_NOZ =			1 << 2,
+	CPXF_COUNTDEAD =	1 << 3,
+	CPXF_DEADONLY =		1 << 4,
+	CPXF_EXACT =		1 << 5,
+	CPXF_SETTARGET =	1 << 6,
+	CPXF_SETMASTER =	1 << 7,
+	CPXF_SETTRACER =	1 << 8,
+	CPXF_FARTHEST =		1 << 9,
+	CPXF_CLOSEST =		1 << 10,
+	CPXF_SETONPTR =		1 << 11,
+	CPXF_NODISTANCE =	1 << 12,
+	CPXF_MONSTERS =		1 << 13,
+	CPXF_MISSILES =		1 << 14,
+	CPXF_OBJECTS =		1 << 15,
+	CPXF_CORPSES =		1 << 16,
+	CPXF_CHECKSIGHT =	1 << 17,
+	CPXF_NOCOUNTMASK =	1 << 18,
 };
 
 // Flags for A_CheckBlock
