@@ -257,6 +257,14 @@ struct FActorInfo
 		return state >= OwnedStates && state < OwnedStates + NumOwnedStates;
 	}
 
+	bool CheckCollisionType(const FName &type)
+	{
+		if (CollisionGroup.Size() < 1)
+			return false;
+
+		return CollisionGroup.Find(type) != CollisionGroup.Size();
+	}
+
 	FActorInfo *GetReplacement (bool lookskill=true);
 	FActorInfo *GetReplacee (bool lookskill=true);
 
@@ -277,6 +285,8 @@ struct FActorInfo
 	TArray<const PClass *> VisibleToPlayerClass;
 	TArray<const PClass *> RestrictedToPlayerClass;
 	TArray<const PClass *> ForbiddenToPlayerClass;
+	TArray<FName> CollisionGroup;
+	FName CollisionType;
 };
 
 struct FDoomEdEntry
