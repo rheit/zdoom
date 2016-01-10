@@ -26,7 +26,6 @@ struct PortalDrawseg
 
 extern PortalDrawseg* CurrentPortal;
 extern int CurrentPortalUniq;
-extern bool CurrentPortalInSkybox;
 
 /* code ported from prototype */
 bool P_ClipLineToPortal(line_t* line, line_t* portal, fixed_t viewx, fixed_t viewy, bool partial = true, bool samebehind = true);

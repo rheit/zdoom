@@ -322,10 +322,6 @@ nextpost:
 //
 static inline bool R_ClipSpriteColumnWithPortals (fixed_t x, fixed_t y, vissprite_t* spr)
 {
-	// [ZZ] 10.01.2016: don't clip sprites from the root of a skybox.
-	if (CurrentPortalInSkybox)
-		return false;
-
 	for (drawseg_t* seg = ds_p; seg-- > firstdrawseg; ) // copied code from killough below
 	{
 		// ignore segs from other portals
@@ -721,7 +717,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 
 	// [ZZ] Or less definitely not visible (hue)
 	// [ZZ] 10.01.2016: don't try to clip stuff inside a skybox against the current portal.
-	if (!CurrentPortalInSkybox && CurrentPortal && !!P_PointOnLineSide(thing->x, thing->y, CurrentPortal->dst))
+	if (CurrentPortal && !!P_PointOnLineSide(thing->x, thing->y, CurrentPortal->dst))
 		return;
 
 	// [RH] Interpolate the sprite's position to make it look smooth
