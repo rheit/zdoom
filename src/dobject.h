@@ -297,6 +297,16 @@ namespace GC
 		return obj = NULL;
 	}
 
+	// Handles a read barrier when assigning to obj is not permitted
+	template<class T> inline T *ReadBarrier(T * const &obj)
+	{
+		if (obj == NULL || !(obj->ObjectFlags & OF_EuthanizeMe))
+		{
+			return obj;
+		}
+		return NULL;
+	}
+
 	// Check if it's time to collect, and do a collection step if it is.
 	static inline void CheckGC()
 	{
@@ -366,6 +376,10 @@ public:
 		// The caller must now perform a write barrier.
 	}
 	operator T*() throw()
+	{
+		return GC::ReadBarrier(p);
+	}
+	operator T*() const throw()
 	{
 		return GC::ReadBarrier(p);
 	}

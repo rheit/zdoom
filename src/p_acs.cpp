@@ -3689,6 +3689,8 @@ enum
 	APROP_StencilColor	= 41,
 	APROP_Friction		= 42,
 	APROP_DamageMultiplier=43,
+	APROP_VisibleFilter	= 44,
+	APROP_FilterHides	= 45,
 };
 
 // These are needed for ACS's APROP_RenderStyle
@@ -3938,6 +3940,22 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 
 	case APROP_Friction:
 		actor->Friction = value;
+		break;
+
+	case APROP_VisibleFilter:
+		actor->VisibleFilter = value;
+		break;
+
+	case APROP_FilterHides:
+		if (value)
+		{
+			actor->flags7 |= MF7_FILTERHIDES;
+		}
+		else
+		{
+			actor->flags7 &= ~MF7_FILTERHIDES;
+		}
+		break;
 
 	default:
 		// do nothing.
@@ -4039,6 +4057,8 @@ int DLevelScript::GetActorProperty (int tid, int property, const SDWORD *stack, 
 	case APROP_NameTag:		return GlobalACSStrings.AddString(actor->GetTag(), stack, stackdepth);
 	case APROP_StencilColor:return actor->fillcolor;
 	case APROP_Friction:	return actor->Friction;
+	case APROP_VisibleFilter:return actor->VisibleFilter;
+	case APROP_FilterHides:	return !!(actor->flags7 & MF7_FILTERHIDES);
 
 	default:				return 0;
 	}
@@ -4086,6 +4106,7 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_ViewHeight:
 		case APROP_AttackZOffset:
 		case APROP_StencilColor:
+		case APROP_VisibleFilter:
 			return (GetActorProperty(tid, property, NULL, 0) == value);
 
 		// Boolean values need to compare to a binary version of value
@@ -4098,6 +4119,7 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_Notarget:
 		case APROP_Notrigger:
 		case APROP_Dormant:
+		case APROP_FilterHides:
 			return (GetActorProperty(tid, property, NULL, 0) == (!!value));
 
 		// Strings are covered by GetActorProperty, but they're fairly
