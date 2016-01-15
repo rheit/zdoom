@@ -1037,9 +1037,8 @@ bool AActor::IsVisibleToPlayer() const
 	// [FDARI] Passed all checks but the filter
 	if (VisibleFilter)
 	{
-		if (AAPTR_FILTER((AActor *)this, pPlayer->mo, VisibleFilter))
-			return !(pPlayer->mo->flags7 & MF7_FILTERHIDES);
-		return !!(pPlayer->mo->flags7 & MF7_FILTERHIDES);
+		bool visible = AAPTR_FILTER((AActor *)this, pPlayer->mo, VisibleFilter);
+		return (flags7 & MF7_FILTERHIDES) ? !visible : visible;
 	}
 
 	// [BB] Passed all checks.

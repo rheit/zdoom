@@ -232,14 +232,12 @@ bool AAPTR_FILTER(AActor *context, AActor *target, int aaptr_filter)
 			}
 		}
 
-		if ((aaptr_filter & AAPTR_PLAYER1) && AAPTR_RESOLVE_PLAYERNUM(0) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER2) && AAPTR_RESOLVE_PLAYERNUM(1) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER3) && AAPTR_RESOLVE_PLAYERNUM(2) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER4) && AAPTR_RESOLVE_PLAYERNUM(3) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER5) && AAPTR_RESOLVE_PLAYERNUM(4) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER6) && AAPTR_RESOLVE_PLAYERNUM(5) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER7) && AAPTR_RESOLVE_PLAYERNUM(6) == target) return true;
-		if ((aaptr_filter & AAPTR_PLAYER8) && AAPTR_RESOLVE_PLAYERNUM(7) == target) return true;
+		// [zombie] support any amount of players
+		for (int i = 0; i < MAXPLAYERS; i++)
+		{
+			if ((aaptr_filter & (AAPTR_PLAYER1 << i)) && AAPTR_RESOLVE_PLAYERNUM(i) == target)
+				return true;
+		}
 
 		return false;
 	}
