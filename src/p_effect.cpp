@@ -672,7 +672,7 @@ void P_DrawRailTrail(AActor *source, const TVector3<double> &start, const TVecto
 	step = dir * 3;
 
 	// Create the outer spiral.
-	if (color1 != -1 && (!r_rail_smartspiral || color2 == -1) && r_rail_spiralsparsity > 0)
+	if (color1 != -1 && (!r_rail_smartspiral || color2 == -1) && spawnclass == NULL && r_rail_spiralsparsity > 0)
 	{
 		TVector3<double> spiral_step = step * r_rail_spiralsparsity * sparsity;
 		int spiral_steps = (int)(steps * r_rail_spiralsparsity / sparsity);
