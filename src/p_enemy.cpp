@@ -1790,7 +1790,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Look)
 			}
 			else
 			{
-				CALL_ACTION(A_Wander, self);
+				A_Wander(self);
 			}
 		}
 		else
@@ -1947,7 +1947,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
                         }
                         else
                         {
-                            CALL_ACTION(A_Wander, self);
+                            A_Wander(self);
                         }
                     }
                 }
@@ -2029,6 +2029,42 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 
 //==========================================================================
 //
+// Copied from thingdef_codeptr.cpp.
+//
+//==========================================================================
+static void DoJump(AActor * self, FState * CallingState, FState *jumpto, StateCallData *statecall)
+{
+	if (jumpto == NULL) return;
+
+	if (statecall != NULL)
+	{
+		statecall->State = jumpto;
+	}
+	else if (self->player != NULL && CallingState == self->player->psprites[ps_weapon].state)
+	{
+		P_SetPsprite(self->player, ps_weapon, jumpto);
+	}
+	else if (self->player != NULL && CallingState == self->player->psprites[ps_flash].state)
+	{
+		P_SetPsprite(self->player, ps_flash, jumpto);
+	}
+	else if (CallingState == self->state)
+	{
+		self->SetState(jumpto);
+	}
+	else
+	{
+		// something went very wrong. This should never happen.
+		assert(false);
+	}
+}
+
+// This is just to avoid having to directly reference the internally defined
+// CallingState and statecall parameters in the code below.
+#define ACTION_JUMP(offset) DoJump(self, CallingState, offset, statecall)
+
+//==========================================================================
+//
 // A_ClearLastHeard
 //
 //==========================================================================
@@ -2043,7 +2079,27 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearLastHeard)
 // A_Wander
 //
 //==========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_Wander)
+enum WFFlags
+{
+	WF_NORANDOMTURN	=	1,
+	WF_DONTANGLE =		2,
+};
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Wander)
+{
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_INT(flags, 0);
+	
+	A_Wander(self, flags);
+}
+
+// [MC] I had to move this out from within A_Wander in order to allow flags to 
+// pass into it. That meant replacing the CALL_ACTION(A_Wander) functions with
+// just straight up defining A_Wander in order to compile. Looking around though,
+// actors from the games themselves just do a straight A_Chase call itself so
+// I saw no harm in it.
+
+void A_Wander(AActor *self, int flags)
 {
 	// [RH] Strife probably clears this flag somewhere, but I couldn't find where.
 	// This seems as good a place as any.
@@ -2062,27 +2118,29 @@ DEFINE_ACTION_FUNCTION(AActor, A_Wander)
 	}
 
 	// turn towards movement direction if not there yet
-	if (self->movedir < DI_NODIR)
+	if (!(flags & WF_DONTANGLE) && (self->movedir < DI_NODIR))
 	{
-		self->angle &= (angle_t)(7<<29);
+		self->angle &= (angle_t)(7 << 29);
 		int delta = self->angle - (self->movedir << 29);
 		if (delta > 0)
 		{
-			self->angle -= ANG90/2;
+			self->angle -= ANG90 / 2;
 		}
 		else if (delta < 0)
 		{
-			self->angle += ANG90/2;
+			self->angle += ANG90 / 2;
 		}
 	}
 
-	if (--self->movecount < 0 || !P_Move (self))
+	if (self->movecount >= 0)
+		self->movecount--;
+
+	if ((!(flags & WF_NORANDOMTURN) && self->movecount < 0) || !P_Move(self))
 	{
-		P_RandomChaseDir (self);
+		P_RandomChaseDir(self);
 		self->movecount += 5;
 	}
 }
-
 
 //==========================================================================
 //
@@ -2152,16 +2210,29 @@ nosee:
 //=============================================================================
 #define CLASS_BOSS_STRAFE_RANGE	64*10*FRACUNIT
 
-void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missilestate, bool playactive, bool nightmarefast, bool dontmove)
+enum ChaseFlags
+{
+	CHF_FASTCHASE			= 1,
+	CHF_NOPLAYACTIVE		= 2,
+	CHF_NIGHTMAREFAST		= 4,
+	CHF_RESURRECT			= 8,
+	CHF_DONTMOVE			= 16,
+	CHF_NORANDOMTURN		= 32,
+	CHF_DONTANGLE			= 64,
+	CHF_NOPOSTATTACKTURN	= 128,
+	CHF_STOPIFBLOCKED		= 256,
+};
+
+bool A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missilestate, bool playactive, bool nightmarefast, bool dontmove, int flags)
 {
 	int delta;
 
 	if (actor->flags5 & MF5_INCONVERSATION)
-		return;
+		return true;
 
 	if (actor->flags & MF_INCHASE)
 	{
-		return;
+		return true;
 	}
 	actor->flags |= MF_INCHASE;
 
@@ -2214,7 +2285,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 	{
 		A_FaceTarget(actor);
 	}
-	else if (actor->movedir < 8)
+	else if (!(flags & CHF_DONTANGLE) && actor->movedir < 8)
 	{
 		actor->angle &= (angle_t)(7<<29);
 		delta = actor->angle - (actor->movedir << 29);
@@ -2277,7 +2348,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 		if (P_LookForPlayers (actor, true, NULL) && actor->target != actor->goal)
 		{ // got a new target
 			actor->flags &= ~MF_INCHASE;
-			return;
+			return true;
 		}
 		if (actor->target == NULL)
 		{
@@ -2286,16 +2357,16 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 				//CALL_ACTION(A_Look, actor);
 				if (actor->target == NULL)
 				{
-					if (!dontmove) CALL_ACTION(A_Wander, actor);
+					if (!dontmove) A_Wander(actor);
 					actor->flags &= ~MF_INCHASE;
-					return;
+					return true;
 				}
 			}
 			else
 			{
 				actor->SetIdle();
 				actor->flags &= ~MF_INCHASE;
-				return;
+				return true;
 			}
 		}
 	}
@@ -2304,12 +2375,17 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 	if (actor->flags & MF_JUSTATTACKED)
 	{
 		actor->flags &= ~MF_JUSTATTACKED;
-		if (!actor->isFast() && !dontmove)
+		if (!actor->isFast() && !dontmove && !(flags & CHF_NOPOSTATTACKTURN) && !(flags & CHF_STOPIFBLOCKED))
 		{
 			P_NewChaseDir (actor);
 		}
+		//Because P_TryWalk would never be reached if the actor is stopped by a blocking object,
+		//need to make sure the movecount is reset, otherwise they will just keep attacking
+		//over and over again.
+		if (flags & CHF_STOPIFBLOCKED)
+			actor->movecount = pr_trywalk() & 15;
 		actor->flags &= ~MF_INCHASE;
-		return;
+		return true;
 	}
 	
 	// [RH] Don't attack if just moving toward goal
@@ -2358,7 +2434,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 			}
 			actor->flags &= ~MF_INCHASE;
 			actor->goal = newgoal;
-			return;
+			return true;
 		}
 		if (actor->goal == actor->target) goto nomissile;
 	}
@@ -2410,7 +2486,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 
 			actor->SetState (meleestate);
 			actor->flags &= ~MF_INCHASE;
-			return;
+			return true;
 		}
 		
 		// check for missile attack
@@ -2428,7 +2504,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 			actor->flags |= MF_JUSTATTACKED;
 			actor->flags4 |= MF4_INCOMBAT;
 			actor->flags &= ~MF_INCHASE;
-			return;
+			return true;
 		}
 	}
 
@@ -2454,7 +2530,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 		if (gotNew && actor->target != oldtarget)
 		{
 			actor->flags &= ~MF_INCHASE;
-			return; 	// got a new target
+			return true; 	// got a new target
 		}
 	}
 
@@ -2464,7 +2540,8 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 
 	if (actor->strafecount)
 		actor->strafecount--;
-
+	
+	bool good = true;
 	// class bosses don't do this when strafing
 	if ((!fastchase || !actor->FastChaseStrafeCount) && !dontmove)
 	{
@@ -2474,24 +2551,38 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 		FTextureID oldFloor = actor->floorpic;
 
 		// chase towards player
-		if (--actor->movecount < 0 || !P_Move (actor))
+		if (actor->movecount >= 0)
+			actor->movecount--;
+
+		bool movecheck = P_Move(actor);
+
+		if (!(flags & CHF_STOPIFBLOCKED))
 		{
-			P_NewChaseDir (actor);
+			if ((!(flags & CHF_NORANDOMTURN) && (actor->movecount < 0)) || !movecheck)
+				P_NewChaseDir(actor);
 		}
-		
+		else if (!movecheck)
+			good = false;
 		// if the move was illegal, reset it 
 		// (copied from A_SerpentChase - it applies to everything with CANTLEAVEFLOORPIC!)
 		if (actor->flags2&MF2_CANTLEAVEFLOORPIC && actor->floorpic != oldFloor )
 		{
-			if (P_TryMove (actor, oldX, oldY, false))
+			if (!(flags & CHF_STOPIFBLOCKED))
 			{
-				if (nomonsterinterpolation)
+				if (P_TryMove(actor, oldX, oldY, false))
 				{
-					actor->PrevX = oldX;
-					actor->PrevY = oldY;
+					if (nomonsterinterpolation)
+					{
+						actor->PrevX = oldX;
+						actor->PrevY = oldY;
+					}
 				}
+				P_NewChaseDir(actor);
 			}
-			P_NewChaseDir (actor);
+			else
+			{
+				good = false;
+			}
 		}
 	}
 	else if (dontmove && actor->movecount > 0) actor->movecount--;
@@ -2503,6 +2594,11 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 	}
 
 	actor->flags &= ~MF_INCHASE;
+	
+	if (dontmove)
+		return true;
+	else
+		return good;
 }
 
 
@@ -2652,44 +2748,45 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 //
 //==========================================================================
 
-enum ChaseFlags
-{
-	CHF_FASTCHASE = 1,
-	CHF_NOPLAYACTIVE = 2,
-	CHF_NIGHTMAREFAST = 4,
-	CHF_RESURRECT = 8,
-	CHF_DONTMOVE = 16,
-};
-
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Chase)
 {
-	ACTION_PARAM_START(3);
+	ACTION_PARAM_START(4);
 	ACTION_PARAM_STATE(melee, 0);
 	ACTION_PARAM_STATE(missile, 1);
 	ACTION_PARAM_INT(flags, 2);
+	ACTION_PARAM_STATE(block, 3);
+
+	ACTION_SET_RESULT(false); //No inventory chain state jumps please.
 
 	if (melee != (FState*)-1)
 	{
 		if (flags & CHF_RESURRECT && P_CheckForResurrection(self, false)) return;
 		
-		A_DoChase(self, !!(flags&CHF_FASTCHASE), melee, missile, !(flags&CHF_NOPLAYACTIVE), 
-					!!(flags&CHF_NIGHTMAREFAST), !!(flags&CHF_DONTMOVE));
+		if (A_DoChase(self, !!(flags&CHF_FASTCHASE), melee, missile, !(flags&CHF_NOPLAYACTIVE),
+			!!(flags&CHF_NIGHTMAREFAST), !!(flags&CHF_DONTMOVE), flags))
+			return;
+			
 	}
 	else // this is the old default A_Chase
 	{
-		A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false);
+		if (A_DoChase(self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false, flags))
+			return;
+			
 	}
+	
+	if (block)
+		ACTION_JUMP(block); //I figured it'd be a little too dangerous to be relying on SetState when this will be allowing offsets.
 }
 
 DEFINE_ACTION_FUNCTION(AActor, A_FastChase)
 {
-	A_DoChase (self, true, self->MeleeState, self->MissileState, true, true, false);
+	A_DoChase (self, true, self->MeleeState, self->MissileState, true, true, false, 0);
 }
 
 DEFINE_ACTION_FUNCTION(AActor, A_VileChase)
 {
 	if (!P_CheckForResurrection(self, true))
-		A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false);
+		A_DoChase(self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false, 0);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ExtChase)
@@ -2703,13 +2800,13 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ExtChase)
 	// Now that A_Chase can handle state label parameters, this function has become rather useless...
 	A_DoChase(self, false,
 		domelee ? self->MeleeState:NULL, domissile ? self->MissileState:NULL,
-		playactive, nightmarefast, false);
+		playactive, nightmarefast, false, 0);
 }
 
 // for internal use
 void A_Chase(AActor *self)
 {
-	A_DoChase (self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false);
+	A_DoChase(self, false, self->MeleeState, self->MissileState, true, gameinfo.nightmarefast, false, 0);
 }
 
 //=============================================================================
