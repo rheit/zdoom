@@ -3599,8 +3599,11 @@ fixed_t P_AimLineAttack(AActor *t1, angle_t angle, fixed_t distance, AActor **pL
 struct Origin
 {
 	AActor *Caller;
+	FNameNoInit PuffSpecies;
 	bool hitGhosts;
-	bool hitSameSpecies;
+	bool MThruSpecies;
+	bool ThruSpecies;
+	bool ThruActors;
 };
 
 static ETraceStatus CheckForActor(FTraceResults &res, void *userdata)
@@ -3613,16 +3616,10 @@ static ETraceStatus CheckForActor(FTraceResults &res, void *userdata)
 	Origin *data = (Origin *)userdata;
 
 	// check for physical attacks on spectrals
-	if (res.Actor->flags4 & MF4_SPECTRAL)
-	{
-		return TRACE_Skip;
-	}
-
-	if (data->hitSameSpecies && res.Actor->GetSpecies() == data->Caller->GetSpecies()) 
-	{
-		return TRACE_Skip;
-	}
-	if (data->hitGhosts && res.Actor->flags3 & MF3_GHOST)
+	if ((data->ThruActors) || (res.Actor->flags4 & MF4_SPECTRAL) || 
+		(data->MThruSpecies && res.Actor->GetSpecies() == data->Caller->GetSpecies()) ||
+		(data->ThruSpecies && res.Actor->GetSpecies() == data->PuffSpecies) ||
+		(data->hitGhosts && res.Actor->flags3 & MF3_GHOST))
 	{
 		return TRACE_Skip;
 	}
@@ -3688,13 +3685,27 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 
 	// We need to check the defaults of the replacement here
 	AActor *puffDefaults = GetDefaultByType(pufftype->GetReplacement());
-
+	AActor *tempuff = NULL;
 	TData.hitGhosts = (t1->player != NULL &&
 		t1->player->ReadyWeapon != NULL &&
 		(t1->player->ReadyWeapon->flags2 & MF2_THRUGHOST)) ||
 		(puffDefaults && (puffDefaults->flags2 & MF2_THRUGHOST));
 
-	TData.hitSameSpecies = (puffDefaults && (puffDefaults->flags6 & MF6_MTHRUSPECIES));
+	TData.MThruSpecies = (puffDefaults && (puffDefaults->flags6 & MF6_MTHRUSPECIES));
+	TData.ThruSpecies = (puffDefaults && (puffDefaults->flags6 & MF6_THRUSPECIES));
+	TData.ThruActors = (puffDefaults && (puffDefaults->flags2 & MF2_THRUACTORS));
+	// [MC] Because this is a one-hit trace event, we need to spawn the puff, get the species
+	// and destroy it. Assume there is no species unless tempuff isn't NULL. We cannot get
+	// a proper species the same way as puffDefaults flags it appears...
+	TData.PuffSpecies = NAME_None;
+
+	if (pufftype != NULL)
+		tempuff = Spawn(pufftype, t1->x, t1->y, t1->z, ALLOW_REPLACE);
+	if (tempuff != NULL)
+	{
+		TData.PuffSpecies = tempuff->GetSpecies();
+		tempuff->Destroy();
+	}
 
 	// if the puff uses a non-standard damage type, this will override default, hitscan and melee damage type.
 	// All other explicitly passed damage types (currenty only MDK) will be preserved.
@@ -4124,10 +4135,14 @@ struct SRailHit
 struct RailData
 {
 	AActor *Caller;
+	FNameNoInit PuffSpecies;
 	TArray<SRailHit> RailHits;
 	bool StopAtOne;
 	bool StopAtInvul;
+	bool ThruGhosts;
 	bool ThruSpecies;
+	bool MThruSpecies;
+	bool ThruActors;
 };
 
 static ETraceStatus ProcessRailHit(FTraceResults &res, void *userdata)
@@ -4144,8 +4159,15 @@ static ETraceStatus ProcessRailHit(FTraceResults &res, void *userdata)
 		return TRACE_Stop;
 	}
 
-	// Skip actors with the same species if the puff has MTHRUSPECIES.
-	if (data->ThruSpecies && res.Actor->GetSpecies() == data->Caller->GetSpecies())
+	// Skip actors if the puff has:
+	// 1. THRUACTORS
+	// 2. MTHRUSPECIES on puff and the shooter has same species as the hit actor
+	// 3. THRUSPECIES on puff and the puff has same species as the hit actor
+	// 4. THRUGHOST on puff and the GHOST flag on the hit actor
+	if ((data->ThruActors) || 
+		(data->MThruSpecies && res.Actor->GetSpecies() == data->Caller->GetSpecies()) ||
+		(data->ThruSpecies && res.Actor->GetSpecies() == data->PuffSpecies) || 
+		(data->ThruGhosts && res.Actor->flags3 & MF3_GHOST))
 	{
 		return TRACE_Skip;
 	}
@@ -4218,7 +4240,17 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 
 	flags = (puffDefaults->flags6 & MF6_NOTRIGGER) ? 0 : TRACE_PCross | TRACE_Impact;
 	rail_data.StopAtInvul = (puffDefaults->flags3 & MF3_FOILINVUL) ? false : true;
-	rail_data.ThruSpecies = (puffDefaults->flags6 & MF6_MTHRUSPECIES) ? true : false;
+	rail_data.ThruGhosts = (puffDefaults->flags2 & MF2_THRUGHOST) ? true : false;
+	rail_data.MThruSpecies = (puffDefaults->flags6 & MF6_MTHRUSPECIES) ? true : false;
+	rail_data.ThruSpecies = (puffDefaults->flags6 & MF6_THRUSPECIES) ? true : false;
+	rail_data.ThruActors = (puffDefaults->flags2 & MF2_THRUACTORS) ? true : false;
+	// used as damage inflictor
+	AActor *thepuff = NULL;
+
+	if (puffclass != NULL)
+		thepuff = Spawn(puffclass, source->x, source->y, source->z, ALLOW_REPLACE);
+
+	rail_data.PuffSpecies = (thepuff != NULL) ? thepuff->GetSpecies() : NAME_None;
 	Trace(x1, y1, shootz, source->Sector, vx, vy, vz,
 		distance, MF_SHOOTABLE, ML_BLOCKEVERYTHING, source, trace,
 		flags, ProcessRailHit, &rail_data);
@@ -4227,15 +4259,8 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 	unsigned int i;
 	FName damagetype = (puffDefaults == NULL || puffDefaults->DamageType == NAME_None) ? FName(NAME_Railgun) : puffDefaults->DamageType;
 
-	// used as damage inflictor
-	AActor *thepuff = NULL;
-
-	if (puffclass != NULL) thepuff = Spawn(puffclass, source->x, source->y, source->z, ALLOW_REPLACE);
-
 	for (i = 0; i < rail_data.RailHits.Size(); i++)
 	{
-		
-
 		fixed_t x, y, z;
 		bool spawnpuff;
 		bool bleed = false;
