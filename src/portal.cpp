@@ -14,16 +14,16 @@ PortalDrawseg* CurrentPortal = NULL;
 int CurrentPortalUniq = 0;
 bool CurrentPortalInSkybox = false;
 
-// [ZZ] lots of floats here to avoid overflowing a lot
+// [ZZ] lots of doubles here to avoid overflowing a lot
 bool R_IntersectLines(fixed_t o1x, fixed_t o1y, fixed_t p1x, fixed_t p1y,
 				      fixed_t o2x, fixed_t o2y, fixed_t p2x, fixed_t p2y,
 				      fixed_t& rx, fixed_t& ry)
 {
-	float xx = FIXED2FLOAT(o2x) - FIXED2FLOAT(o1x);
-	float xy = FIXED2FLOAT(o2y) - FIXED2FLOAT(o1y);
+	double xx = FIXED2DBL(o2x) - FIXED2DBL(o1x);
+	double xy = FIXED2DBL(o2y) - FIXED2DBL(o1y);
 
-	float d1x = FIXED2FLOAT(p1x) - FIXED2FLOAT(o1x);
-	float d1y = FIXED2FLOAT(p1y) - FIXED2FLOAT(o1y);
+	double d1x = FIXED2DBL(p1x) - FIXED2DBL(o1x);
+	double d1y = FIXED2DBL(p1y) - FIXED2DBL(o1y);
 
 	if (d1x > d1y)
 	{
@@ -36,14 +36,14 @@ bool R_IntersectLines(fixed_t o1x, fixed_t o1y, fixed_t p1x, fixed_t p1y,
 		d1y = 32767.0;
 	}
 
-	float d2x = FIXED2FLOAT(p2x) - FIXED2FLOAT(o2x);
-	float d2y = FIXED2FLOAT(p2y) - FIXED2FLOAT(o2y);
+	double d2x = FIXED2DBL(p2x) - FIXED2DBL(o2x);
+	double d2y = FIXED2DBL(p2y) - FIXED2DBL(o2y);
 
-	float cross = d1x*d2y - d1y*d2x;
+	double cross = d1x*d2y - d1y*d2x;
 	if (fabs(cross) < 1e-8)
 		return false;
 
-	float t1 = (xx * d2y - xy * d2x)/cross;
+	double t1 = (xx * d2y - xy * d2x)/cross;
 	rx = o1x + FLOAT2FIXED(d1x * t1);
 	ry = o1y + FLOAT2FIXED(d1y * t1);
 	return true;
@@ -244,9 +244,9 @@ fixed_t P_PointLineDistance(line_t* line, fixed_t x, fixed_t y)
 
 void P_NormalizeVXVY(fixed_t& vx, fixed_t& vy)
 {
-	float _vx = FIXED2FLOAT(vx);
-	float _vy = FIXED2FLOAT(vy);
-	float len = sqrt(_vx*_vx+_vy*_vy);
+	double _vx = FIXED2DBL(vx);
+	double _vy = FIXED2DBL(vy);
+	double len = sqrt(_vx*_vx+_vy*_vy);
 	vx = FLOAT2FIXED(_vx/len);
 	vy = FLOAT2FIXED(_vy/len);
 }
@@ -361,7 +361,7 @@ bool PortalTracer::TraceStep()
 		}
 	}
 
-	//Printf("returning %d; vx = %.2f; vy = %.2f\n", (oDepth != depth), FIXED2FLOAT(this->vx), FIXED2FLOAT(this->vy));
+	//Printf("returning %d; vx = %.2f; vy = %.2f\n", (oDepth != depth), FIXED2DBL(this->vx), FIXED2DBL(this->vy));
 
 	return (oDepth != depth); // if a portal has been found, return false
 }
