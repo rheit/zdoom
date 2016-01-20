@@ -4856,7 +4856,147 @@ enum RadiusGiveFlags
 	RGF_EXFILTER	=	1 << 15,
 	RGF_EXSPECIES	=	1 << 16,
 	RGF_EITHER		=	1 << 17,
+	RGF_ENTIREMAP	=	1 << 18
 };
+
+static bool DoRadiusGive(AActor *self, AActor *thing, const PClass *item, int amount, fixed_t distance, int flags, const PClass *filter, FName species, fixed_t mindist)
+{
+	// [MC] We only want to make an exception for missiles here. Nothing else.
+	bool missilePass = !!((flags & RGF_MISSILES) && thing->flags & MF_MISSILE);
+	if (thing == self)
+	{
+		if (!(flags & RGF_GIVESELF))
+			return false;
+	}
+	else if (thing->flags & MF_NOBLOCKMAP)
+	{
+		if (!missilePass)
+			return false;
+	}
+
+	//[MC] Check for a filter, species, and the related exfilter/expecies/either flag(s).
+	bool filterpass = DoCheckClass(thing, filter, !!(flags & RGF_EXFILTER)),
+		speciespass = DoCheckSpecies(thing, species, !!(flags & RGF_EXSPECIES));
+	if ((flags & RGF_EITHER) ? (!(filterpass || speciespass)) : (!(filterpass && speciespass)))
+	{
+		if (thing != self)	//Don't let filter and species obstruct RGF_GIVESELF.
+			return false;
+	}
+
+	//Check for target, master, and tracer flagging.
+	bool targetPass = true;
+	bool masterPass = true;
+	bool tracerPass = true;
+	bool ptrPass = false;
+	if ((thing != self) && (flags & (RGF_NOTARGET | RGF_NOMASTER | RGF_NOTRACER)))
+	{
+		if ((thing == self->target) && (flags & RGF_NOTARGET))
+			targetPass = false;
+		if ((thing == self->master) && (flags & RGF_NOMASTER))
+			masterPass = false;
+		if ((thing == self->tracer) && (flags & RGF_NOTRACER))
+			tracerPass = false;
+
+		ptrPass = (flags & RGF_INCLUSIVE) ? (targetPass || masterPass || tracerPass) : (targetPass && masterPass && tracerPass);
+
+		//We should not care about what the actor is here. It's safe to abort this actor.
+		if (!ptrPass)
+			return false;
+	}
+
+	//Next, actor flag checking. 
+	bool selfPass = !!((flags & RGF_GIVESELF) && thing == self);
+	bool corpsePass = !!((flags & RGF_CORPSES) && thing->flags & MF_CORPSE);
+	bool killedPass = !!((flags & RGF_KILLED) && thing->flags6 & MF6_KILLED);
+	bool monsterPass = !!((flags & RGF_MONSTERS) && thing->flags3 & MF3_ISMONSTER);
+	bool objectPass = !!((flags & RGF_OBJECTS) && (thing->player == NULL) && (!(thing->flags3 & MF3_ISMONSTER))
+		&& ((thing->flags & MF_SHOOTABLE) || (thing->flags6 & MF6_VULNERABLE)));
+	bool playerPass = !!((flags & RGF_PLAYERS) && (thing->player != NULL) && (thing->player->mo == thing));
+	bool voodooPass = !!((flags & RGF_VOODOO) && (thing->player != NULL) && (thing->player->mo != thing));
+	//Self calls priority over the rest of this.
+	if (!selfPass)
+	{
+		//If it's specifically a monster/object/player/voodoo... Can be either or...
+		if (monsterPass || objectPass || playerPass || voodooPass)
+		{
+			//...and is dead, without desire to give to the dead...
+			if (((thing->health <= 0) && !(corpsePass || killedPass)))
+			{
+				//Skip!
+				return false;
+			}
+		}
+	}
+
+	bool itemPass = !!((flags & RGF_ITEMS) && thing->IsKindOf(RUNTIME_CLASS(AInventory)));
+	if (selfPass || monsterPass || corpsePass || killedPass || itemPass || objectPass || missilePass || playerPass || voodooPass)
+	{
+		if (mindist > 0 || !(flags & RGF_ENTIREMAP))
+		{ //If there's no mindist and an entiremap flag, then don't bother calculating.
+			if (flags & RGF_CUBE)
+			{ // check if inside a cube
+				const double dx = fabs((double)(thing->x - self->x));
+				const double dy = fabs((double)(thing->y - self->y));
+				const double dz = fabs((double)(thing->z + thing->height / 2) - (self->z + self->height / 2));
+				const double min = (double)mindist;
+
+				if (min && (dx < min && dy < min && dz < min))
+				{ // Does it fall within the minimum distance to fail?
+					return false;
+				}
+
+				const double dist = (double)distance;
+				if (!(flags & RGF_ENTIREMAP) && (dx > dist || dy > dist || dz > dist))
+				{ // Is it outside the distance?
+					return false;
+				}
+			}
+			else
+			{ // check if inside a sphere
+				const double minsquared = double(mindist) * double(mindist);
+				const TVector3<double> tpos(thing->x, thing->y, thing->z + thing->height / 2);
+				const TVector3<double> spos(self->x, self->y, self->z + self->height / 2);
+
+				if (minsquared && ((tpos - spos).LengthSquared() < minsquared))
+				{ // Within minimum distance
+					return false;
+				}
+
+				const double distsquared = double(distance) * double(distance);
+				if (!(flags & RGF_ENTIREMAP) && ((tpos - spos).LengthSquared() > distsquared))
+				{ // Outside of maximum distance
+					return false;
+				}
+			}
+		}
+		if ((flags & RGF_NOSIGHT) || P_CheckSight(thing, self, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
+		{ // OK to give; target is in direct path, or the monster doesn't care about it being in line of sight.
+			AInventory *gift = static_cast<AInventory *>(Spawn(item, 0, 0, 0, NO_REPLACE));
+			if (gift->IsKindOf(RUNTIME_CLASS(AHealth)))
+			{
+				gift->Amount *= amount;
+			}
+			else
+			{
+				gift->Amount = amount;
+			}
+			gift->flags |= MF_DROPPED;
+			gift->ClearCounters();
+			if (!gift->CallTryPickup(thing))
+			{
+				gift->Destroy();
+				return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
+		else
+			return false;
+	}
+	return false;
+}
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 {
@@ -4870,7 +5010,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 	ACTION_PARAM_FIXED(mindist, 6);
 
 	// We need a valid item, valid targets, and a valid range
-	if (item == NULL || (flags & RGF_MASK) == 0 || !flags || distance <= 0 || mindist >= distance)
+	if (item == NULL || (flags & RGF_MASK) == 0 || !flags || 
+		(distance <= 0 && !(flags & RGF_ENTIREMAP)) || 
+		((mindist > 0) && (mindist >= distance)))
 	{
 		ACTION_SET_RESULT(false);
 		return;
@@ -4880,125 +5022,25 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 	{
 		amount = 1;
 	}
-	FBlockThingsIterator it(FBoundingBox(self->x, self->y, distance));
 
 	AActor *thing;
 	bool given = false;
-	while ((thing = it.Next()))
+	if (flags & RGF_MISSILES)
 	{
-		//[MC] Check for a filter, species, and the related exfilter/expecies/either flag(s).
-		bool filterpass = DoCheckClass(thing, filter, !!(flags & RGF_EXFILTER)),
-			speciespass = DoCheckSpecies(thing, species, !!(flags & RGF_EXSPECIES));
-
-		if ((flags & RGF_EITHER) ? (!(filterpass || speciespass)) : (!(filterpass && speciespass)))
+		TThinkerIterator<AActor> it;
+		while ((thing = it.Next()))
 		{
-			if (thing != self)	//Don't let filter and species obstruct RGF_GIVESELF.
-				continue;
+			bool giving = !!(DoRadiusGive(self, thing, item, amount, distance, flags, filter, species, mindist));
+			if (giving)	given = true;
 		}
-
-		if (thing == self)
+	}
+	else
+	{
+		FBlockThingsIterator it(FBoundingBox(self->x, self->y, distance));
+		while ((thing = it.Next()))
 		{
-			if (!(flags & RGF_GIVESELF))
-				continue;
-		}
-
-		//Check for target, master, and tracer flagging.
-		bool targetPass = true;
-		bool masterPass = true;
-		bool tracerPass = true;
-		bool ptrPass = false;
-		if ((thing != self) && (flags & (RGF_NOTARGET | RGF_NOMASTER | RGF_NOTRACER)))
-		{
-			if ((thing == self->target) && (flags & RGF_NOTARGET))
-				targetPass = false;
-			if ((thing == self->master) && (flags & RGF_NOMASTER))
-				masterPass = false;
-			if ((thing == self->tracer) && (flags & RGF_NOTRACER))
-				tracerPass = false;
-
-			ptrPass = (flags & RGF_INCLUSIVE) ? (targetPass || masterPass || tracerPass) : (targetPass && masterPass && tracerPass);
-
-			//We should not care about what the actor is here. It's safe to abort this actor.
-			if (!ptrPass)
-				continue;
-		}
-
-		//Next, actor flag checking. 
-		bool selfPass = !!((flags & RGF_GIVESELF) && thing == self);
-		bool corpsePass = !!((flags & RGF_CORPSES) && thing->flags & MF_CORPSE);
-		bool killedPass = !!((flags & RGF_KILLED) && thing->flags6 & MF6_KILLED);
-		bool monsterPass = !!((flags & RGF_MONSTERS) && thing->flags3 & MF3_ISMONSTER);
-		bool objectPass = !!((flags & RGF_OBJECTS) && (thing->player == NULL) && (!(thing->flags3 & MF3_ISMONSTER))
-											&& ((thing->flags & MF_SHOOTABLE) || (thing->flags6 & MF6_VULNERABLE)));
-		bool playerPass = !!((flags & RGF_PLAYERS) && (thing->player != NULL) && (thing->player->mo == thing));
-		bool voodooPass = !!((flags & RGF_VOODOO) && (thing->player != NULL) && (thing->player->mo != thing));
-		//Self calls priority over the rest of this.
-		if (!selfPass)
-		{
-			//If it's specifically a monster/object/player/voodoo... Can be either or...
-			if (monsterPass || objectPass || playerPass || voodooPass)
-			{
-				//...and is dead, without desire to give to the dead...
-				if (((thing->health <= 0) && !(corpsePass || killedPass)))
-				{
-					//Skip!
-					continue;
-				}
-			}
-		}
-
-		bool itemPass = !!((flags & RGF_ITEMS) && thing->IsKindOf(RUNTIME_CLASS(AInventory)));
-		bool missilePass = !!((flags & RGF_MISSILES) && thing->flags & MF_MISSILE);
-
-		if (selfPass || monsterPass || corpsePass || killedPass || itemPass || objectPass || missilePass || playerPass || voodooPass)
-		{
-
-			if (flags & RGF_CUBE)
-			{ // check if inside a cube
-				double dx = fabs((double)(thing->x - self->x));
-				double dy = fabs((double)(thing->y - self->y));
-				double dz = fabs((double)(thing->z + thing->height / 2) - (self->z + self->height / 2));
-				double dist = (double)distance;
-				double min = (double)mindist;
-				if ((dx > dist || dy > dist || dz > dist) || (min && (dx < min && dy < min && dz < min)))
-				{
-					continue;
-				}
-			}
-			else
-			{ // check if inside a sphere
-				double distsquared = double(distance) * double(distance);
-				double minsquared = double(mindist) * double(mindist);
-				TVector3<double> tpos(thing->x, thing->y, thing->z + thing->height / 2);
-				TVector3<double> spos(self->x, self->y, self->z + self->height / 2);
-				if ((tpos - spos).LengthSquared() > distsquared || (minsquared && ((tpos - spos).LengthSquared() < minsquared)))
-				{
-					continue;
-				}
-			}
-
-			if ((flags & RGF_NOSIGHT) || P_CheckSight(thing, self, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
-			{ // OK to give; target is in direct path, or the monster doesn't care about it being in line of sight.
-				AInventory *gift = static_cast<AInventory *>(Spawn(item, 0, 0, 0, NO_REPLACE));
-				if (gift->IsKindOf(RUNTIME_CLASS(AHealth)))
-				{
-					gift->Amount *= amount;
-				}
-				else
-				{
-					gift->Amount = amount;
-				}
-				gift->flags |= MF_DROPPED;
-				gift->ClearCounters();
-				if (!gift->CallTryPickup(thing))
-				{
-					gift->Destroy();
-				}
-				else
-				{
-					given = true;
-				}
-			}
+			bool giving = !!(DoRadiusGive(self, thing, item, amount, distance, flags, filter, species, mindist));
+			if (giving)	given = true;
 		}
 	}
 	ACTION_SET_RESULT(given);

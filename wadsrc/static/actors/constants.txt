@@ -238,6 +238,7 @@ enum
 	RGF_EXFILTER	=	1 << 15,
 	RGF_EXSPECIES	=	1 << 16,
 	RGF_EITHER		=	1 << 17,
+	RGF_ENTIREMAP	=	1 << 18,
 };
 
 // Activation flags
