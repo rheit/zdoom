@@ -1247,6 +1247,52 @@ public:
 	{
 		return z;
 	}
+	fixedvec3 Pos() const
+	{
+		fixedvec3 ret = { X(), Y(), Z() };
+		return ret;
+	}
+	fixedvec3 PosRelative(AActor *other) const
+	{
+		fixedvec3 ret = { X(), Y(), Z() };
+		return ret;
+	}
+	fixedvec3 PosRelative(sector_t *sec) const
+	{
+		fixedvec3 ret = { X(), Y(), Z() };
+		return ret;
+	}
+	fixedvec3 PosRelative(line_t *line) const
+	{
+		fixedvec3 ret = { X(), Y(), Z() };
+		return ret;
+	}
+	fixed_t SoundX() const
+	{
+		return X();
+	}
+	fixed_t SoundY() const
+	{
+		return Y();
+	}
+	fixed_t SoundZ() const
+	{
+		return Z();
+	}
+	fixedvec3 InterpolatedPosition(fixed_t ticFrac) const
+	{
+		fixedvec3 ret;
+
+		ret.x = PrevX + FixedMul (ticFrac, X() - PrevX);
+		ret.y = PrevY + FixedMul (ticFrac, Y() - PrevY);
+		ret.z = PrevZ + FixedMul (ticFrac, Z() - PrevZ);
+		return ret;
+	}
+	fixedvec3 PosPlusZ(fixed_t zadd) const
+	{
+		fixedvec3 ret = { X(), Y(), Z() + zadd };
+		return ret;
+	}
 	fixed_t Top() const
 	{
 		return z + height;
@@ -1254,6 +1300,38 @@ public:
 	void SetZ(fixed_t newz, bool moving = true)
 	{
 		z = newz;
+	}
+	void AddZ(fixed_t newz, bool moving = true)
+	{
+		z += newz;
+	}
+
+	// These are not for general use as they do not link the actor into the world!
+	void SetXY(fixed_t xx, fixed_t yy)
+	{
+		x = xx;
+		y = yy;
+	}
+	void SetXYZ(fixed_t xx, fixed_t yy, fixed_t zz)
+	{
+		x = xx;
+		y = yy;
+		z = zz;
+	}
+	void SetXY(const fixedvec2 &npos)
+	{
+		x = npos.x;
+		y = npos.y;
+	}
+	void SetXYZ(const fixedvec3 &npos)
+	{
+		x = npos.x;
+		y = npos.y;
+		z = npos.z;
+	}
+	void SetMovement(fixed_t x, fixed_t y, fixed_t z)
+	{
+		// not yet implemented
 	}
 
 };
@@ -1358,6 +1436,18 @@ template<class T>
 inline T *Spawn (const fixedvec3 &pos, replace_t allowreplacement)
 {
 	return static_cast<T *>(AActor::StaticSpawn (RUNTIME_CLASS(T), pos.x, pos.y, pos.z, allowreplacement));
+}
+
+inline fixedvec2 Vec2Angle(fixed_t length, angle_t angle) 
+{
+	fixedvec2 ret = { FixedMul(length, finecosine[angle >> ANGLETOFINESHIFT]),
+						FixedMul(length, finesine[angle >> ANGLETOFINESHIFT]) };
+	return ret;
+}
+
+inline fixedvec3 PosRelative(const fixedvec3 &pos, line_t *line, sector_t *refsec = NULL)
+{
+	return pos;
 }
 
 void PrintMiscActorInfo(AActor * query);

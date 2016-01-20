@@ -451,9 +451,7 @@ void P_RunEffect (AActor *actor, int effects)
 	{
 		// Grenade trail
 
-		fixedvec3 pos = actor->Vec3Offset(
-			-FixedMul(finecosine[(moveangle) >> ANGLETOFINESHIFT], actor->radius * 2),
-			-FixedMul(finesine[(moveangle) >> ANGLETOFINESHIFT], actor->radius * 2),
+		fixedvec3 pos = actor->Vec3Angle(-actor->radius * 2, moveangle,
 			-(actor->height >> 3) * (actor->velz >> 16) + (2 * actor->height) / 3);
 
 		P_DrawSplash2 (6, pos.x, pos.y, pos.z,
@@ -845,10 +843,11 @@ void P_DisconnectEffect (AActor *actor)
 		if (!p)
 			break;
 
-		fixedvec3 pos = actor->Vec3Offset(
-			((M_Random()-128)<<9) * (actor->radius>>FRACBITS),
-			((M_Random()-128)<<9) * (actor->radius>>FRACBITS),
-			(M_Random()<<8) * (actor->height>>FRACBITS));
+		
+		fixed_t xo = ((M_Random() - 128) << 9) * (actor->radius >> FRACBITS);
+		fixed_t yo = ((M_Random() - 128) << 9) * (actor->radius >> FRACBITS);
+		fixed_t zo = (M_Random() << 8) * (actor->height >> FRACBITS);
+		fixedvec3 pos = actor->Vec3Offset(xo, yo, zo);
 		p->x = pos.x;
 		p->y = pos.y;
 		p->z = pos.z;

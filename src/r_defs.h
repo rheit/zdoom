@@ -683,6 +683,17 @@ struct sector_t
 		return pos == floor? floorplane:ceilingplane;
 	}
 
+	fixed_t HighestCeiling(AActor *a) const
+	{
+		return ceilingplane.ZatPoint(a);
+	}
+
+	fixed_t LowestFloor(AActor *a) const
+	{
+		return floorplane.ZatPoint(a);
+	}
+
+
 	bool isSecret() const
 	{
 		return !!(Flags & SECF_SECRET);
@@ -981,6 +992,11 @@ struct line_t
 	bool		portal_mirror;
 	bool		portal_passive;
 	line_t		*portal_dst;
+
+	bool isLinePortal() const
+	{
+		return false;
+	}
 };
 
 // phares 3/14/98
