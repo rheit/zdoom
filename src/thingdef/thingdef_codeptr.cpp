@@ -6059,8 +6059,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 // Sets the thrust factor of an actor('s pointer). ThrustFactor can be set
 // for damagetypes, so it allows the actor to take more/less of a thrust
 // based upon a certain damagetype that's hurting it. It multiplies the
-// thrust amount after mass calculations, and doesn't rely upon damage
-// factored out. It uses the raw damage instead, if thrust by actual damage.
+// thrust amount after mass calculations, and relies upon damage factored
+// out, unless the THRUSTRAWDMG flag is used.
 //===========================================================================
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetThrustFactor)
