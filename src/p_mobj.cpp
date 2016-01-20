@@ -348,7 +348,7 @@ void AActor::Serialize (FArchive &arc)
 			<< RipLevelMin
 			<< RipLevelMax;
 	}
-	if (SaveVersion >= 4524)
+	if (SaveVersion >= 4532)
 	{
 		arc << ThrustFactor;
 	}
