@@ -184,3 +184,62 @@ void ASSIGN_AAPTR(AActor *toActor, int toSlot, AActor *ptr, int flags)
 			break;
 	}
 }
+
+/*
+
+AAPTR_FILTER
+
+Search references from one actor (context)
+to find another actor (target)
+using references specified in aaptr_filter
+
+a null context will only match static filter specifications
+a null target will only match AAPTR_NULL
+
+a null filter will match nothing (and it will check the bits one by one, so it is better to preempt the call)
+null filter is not handled specifically here because specific handling is better handled by the calling code
+
+There is no filter for AAPTR_DEFAULT
+*/
+
+bool AAPTR_FILTER(AActor *context, AActor *target, int aaptr_filter)
+{
+	if (target)
+	{
+		/*
+		Because we're going through the lot, and returning on first match (or after processing all) order has no impact on logic, only performance
+		For this reason, it seems viable to put target master and tracer rather high up, and rare/processing-intensive tests later
+		*/
+
+		// Also note that since target is not null at this point, there is no need to re-verify that stuff is not equal to null; NULL != target
+
+		if (context)
+		{
+			if ((aaptr_filter & AAPTR_TARGET) && context->target == target) return true;
+			if ((aaptr_filter & AAPTR_MASTER) && context->master == target) return true;
+			if ((aaptr_filter & AAPTR_TRACER) && context->tracer == target) return true;
+			if ((aaptr_filter & AAPTR_FRIENDPLAYER) && context->FriendPlayer && AAPTR_RESOLVE_PLAYERNUM(context->FriendPlayer - 1) == target) return true;
+
+			if (context->player)
+			{
+				if ((aaptr_filter & AAPTR_PLAYER_GETCONVERSATION) && context->player->ConversationNPC == target) return true;
+				if (aaptr_filter & AAPTR_PLAYER_GETTARGET)
+				{
+					AActor *gettarget = NULL;
+					P_BulletSlope(context, &gettarget);
+					if (gettarget == target) return true;
+				}
+			}
+		}
+
+		// [zombie] support any amount of players
+		for (int i = 0; i < MAXPLAYERS; i++)
+		{
+			if ((aaptr_filter & (AAPTR_PLAYER1 << i)) && AAPTR_RESOLVE_PLAYERNUM(i) == target)
+				return true;
+		}
+
+		return false;
+	}
+	return !!(aaptr_filter & AAPTR_NULL);
+}
