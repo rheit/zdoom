@@ -6052,7 +6052,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 			}
 			addToCount = true; //Always count specific targets if found.
 		}
-		else if (checkmask)
+		else if (checkmask && !classtarget)
 		{
 			//The only part where process of elimination will hinder the search,
 			//so rule IN instead of OUT.
