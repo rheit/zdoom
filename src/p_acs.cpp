@@ -3693,6 +3693,7 @@ enum
 	APROP_StencilColor	= 41,
 	APROP_Friction		= 42,
 	APROP_DamageMultiplier=43,
+	APROP_InversePlayerVisibility	= 44,
 };
 
 // These are needed for ACS's APROP_RenderStyle
@@ -3942,6 +3943,14 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 
 	case APROP_Friction:
 		actor->Friction = value;
+		break;
+	
+	case APROP_InversePlayerVisibility:
+		if (value)
+			actor->flags7 |= MF7_INVERSEPLAYERVIS;
+		else
+			actor->flags7 &= ~MF7_INVERSEPLAYERVIS;
+		break;
 
 	default:
 		// do nothing.
@@ -4043,6 +4052,7 @@ int DLevelScript::GetActorProperty (int tid, int property, const SDWORD *stack, 
 	case APROP_NameTag:		return GlobalACSStrings.AddString(actor->GetTag(), stack, stackdepth);
 	case APROP_StencilColor:return actor->fillcolor;
 	case APROP_Friction:	return actor->Friction;
+	case APROP_InversePlayerVisibility:	return !!(actor->flags7 & MF7_INVERSEPLAYERVIS);
 
 	default:				return 0;
 	}
@@ -4102,6 +4112,7 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_Notarget:
 		case APROP_Notrigger:
 		case APROP_Dormant:
+		case APROP_InversePlayerVisibility:
 			return (GetActorProperty(tid, property, NULL, 0) == (!!value));
 
 		// Strings are covered by GetActorProperty, but they're fairly
@@ -4466,6 +4477,7 @@ enum EACSFunctions
 	ACSF_SetSectorDamage,
 	ACSF_SetSectorTerrain,
 	ACSF_SpawnParticle,
+	ACSF_SetActorVisibility,
 	
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
@@ -6018,6 +6030,16 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				P_SpawnParticle(x, y, z, xvel, yvel, zvel, color, fullbright, startalpha, lifetime, size, fadestep, accelx, accely, accelz);
 		}
 		break;
+		
+		case ACSF_SetActorVisibility:
+			if (argCount >= 3)
+			{
+				actor = SingleActorFromTID(args[0], activator);
+				actor->VisibleToPlayerActive = true;
+				if (args[1] < MAXPLAYERS && args[1] >= 0)
+					actor->VisibleToPlayer[args[1]] = args[2];
+			}
+			break;
 		
 		default:
 			break;
