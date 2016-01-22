@@ -6000,14 +6000,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 	if (!ref || !(classname || checkmask) || ((distance <= 0) && !(flags & CPXF_NODISTANCE)))
 		return;
 
+	if (flags & CPXF_NODISTANCE)	
+		distance = (FIXED_MAX / 2);
+
 	TThinkerIterator<AActor> it;
 	AActor *mo, *classtarget = NULL, *nonclasstarget = NULL, *dist = NULL;
 	bool result = false, primary = false;
 	const bool ptrDistPref = !!(flags & (CPXF_CLOSEST | CPXF_FARTHEST));
 	const bool ptrWillChange = !!(flags & (CPXF_SETTARGET | CPXF_SETMASTER | CPXF_SETTRACER));
 	int counter = 0, maskcounter = 0;
-	const double distsquared = double(distance) * double(distance);
-	double closer = distsquared, farther = 0, current = distsquared;
+	fixed_t closer = distance, farther = 0, current = distance;
 
 	//[MC] Process of elimination, I think, will get through this as quickly and 
 	//efficiently as possible. 
@@ -6032,9 +6034,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 			if (flags & CPXF_DEADONLY)
 				continue;
 		}
-
-		if ((flags & CPXF_CHECKSIGHT) && !(P_CheckSight(mo, ref, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY)))
-			continue;
 		
 		// Check for name, and/or inheritance. If neither, check for a masking flag.
 		// The function has to track them independently from actors that qualify for mask, 
@@ -6083,11 +6082,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 		//Z later for ensuring CLOSEST and FARTHEST flags are respected perfectly.
 		//Ripped from sphere checking in A_RadiusGive (along with a number of things).
 		//Make sure it's in range and respect the desire for Z or not.
-		fixedvec3 diff = ref->Vec3To(mo);
-		diff.z += (ref->height - mo->height) / 2;
-		double lengthsquared = TVector3<double>(diff.x, diff.y, (flags & CPXF_NOZ) ? 0 : diff.z).LengthSquared();
-		if ((flags & CPXF_NODISTANCE) || lengthsquared <= distsquared)
-		{ 
+		if ((flags & CPXF_NODISTANCE) || (ref->AproxDistance(mo) < distance &&
+			((flags & CPXF_NOZ) ||
+			((ref->Z() > mo->Z() && ref->Z() - mo->Top() < distance) ||
+			(ref->Z() <= mo->Z() && mo->Z() - ref->Top() < distance)))))
+		{
+
+			if ((flags & CPXF_CHECKSIGHT) && !(P_CheckSight(mo, ref, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY)))
+				continue;
+						
 			//We are in range.
 			if (addToCount) counter++;
 
@@ -6099,11 +6102,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 			// over non-matching class names.
 			// First, make sure we even desire it.
 
-			if (ptrWillChange && ptrDistPref)
+			if (ptrWillChange)
 			{
-				if (flags & CPXF_NOZ)
-					lengthsquared = TVector3<double>(diff.x, diff.y, diff.z).LengthSquared();
-				current = lengthsquared;
+				current = ref->AproxDistance(mo);
 
 				// Reset the current closest upon finding a classtarget so we can continue 
 				// searching for just primary targets.
