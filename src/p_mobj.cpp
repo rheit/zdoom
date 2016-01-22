@@ -306,12 +306,15 @@ void AActor::Serialize (FArchive &arc)
 		<< smokecounter
 		<< BlockingMobj
 		<< BlockingLine
-		<< VisibleToTeam // [BB]
-		<< VisibleToPlayerActive; // [zombie]
+		<< VisibleToTeam; // [BB]
+	if (SaveVersion >= 4532)
+	{
+		arc << VisibleToPlayerActive; // [zombie]
 		for (int i = 0; i < MAXPLAYERS; i++)
 		{
 			arc << VisibleToPlayer[i];
 		}
+	}
 	arc	<< pushfactor
 		<< Species
 		<< Score;
