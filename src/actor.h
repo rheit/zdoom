@@ -374,6 +374,7 @@ enum ActorFlag7
 	MF7_FORCEDECAL		= 0x00080000,	// [ZK] Forces puff's decal to override the weapon's.
 	MF7_LAXTELEFRAGDMG	= 0x00100000,	// [MC] Telefrag damage can be reduced.
 	MF7_ICESHATTER		= 0x00200000,	// [MC] Shatters ice corpses regardless of damagetype.
+	MF7_INVERSEPLAYERVIS= 0x00400000,	// [zombie] Inverse player visibility
 };
 
 // --- mobj.renderflags ---
@@ -1052,6 +1053,10 @@ public:
 
 	// [BB] If 0, everybody can see the actor, if > 0, only members of team (VisibleToTeam-1) can see it.
 	DWORD			VisibleToTeam;
+	
+	// [zombie] VisibleToPlayer
+	bool			VisibleToPlayerActive;
+	bool			VisibleToPlayer[MAXPLAYERS];
 
 	int				special1;		// Special info
 	int				special2;		// Special info

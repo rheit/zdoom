@@ -306,8 +306,16 @@ void AActor::Serialize (FArchive &arc)
 		<< smokecounter
 		<< BlockingMobj
 		<< BlockingLine
-		<< VisibleToTeam // [BB]
-		<< pushfactor
+		<< VisibleToTeam; // [BB]
+	if (SaveVersion >= 4532)
+	{
+		arc << VisibleToPlayerActive; // [zombie]
+		for (int i = 0; i < MAXPLAYERS; i++)
+		{
+			arc << VisibleToPlayer[i];
+		}
+	}
+	arc	<< pushfactor
 		<< Species
 		<< Score;
 	if (SaveVersion >= 3113)
@@ -1030,6 +1038,13 @@ bool AActor::IsVisibleToPlayer() const
 		}
 		if(!visible)
 			return false;
+	}
+	
+	// [zombie] VisibleToPlayer
+	if (pPlayer && pPlayer->mo && VisibleToPlayerActive)
+	{
+		bool visible = VisibleToPlayer[consoleplayer];
+		return (flags7 & MF7_INVERSEPLAYERVIS) ? !visible : visible;
 	}
 
 	// [BB] Passed all checks.

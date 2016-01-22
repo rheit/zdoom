@@ -1387,6 +1387,21 @@ DEFINE_PROPERTY(visibletoplayerclass, Ssssssssssssssssssss, Actor)
 }
 
 //==========================================================================
+// [zombie] VisibleToPlayer
+//==========================================================================
+DEFINE_PROPERTY(visibletoplayer, Iiiiiiii, Actor) // Iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii <- for Zandronum's 64 players
+{
+	defaults->VisibleToPlayerActive = true;
+	for (int i = 0; i < PROP_PARM_COUNT; i++)
+	{
+		PROP_INT_PARM(pn, i);
+		if (pn > MAXPLAYERS || pn < 1)
+			I_Error("No such player number: %d", pn);
+		defaults->VisibleToPlayer[pn - 1] = true;
+	}
+}
+
+//==========================================================================
 //
 //==========================================================================
 DEFINE_PROPERTY(accuracy, I, Actor)
