@@ -393,6 +393,8 @@ DSectorPlaneInterpolation::DSectorPlaneInterpolation(sector_t *_sector, bool _pl
 	sector = _sector;
 	ceiling = _plane;
 	UpdateInterpolation ();
+	bakheight = oldheight;
+	baktexz = oldtexz;
 
 	if (attach)
 	{
@@ -568,6 +570,8 @@ DSectorScrollInterpolation::DSectorScrollInterpolation(sector_t *_sector, bool _
 	sector = _sector;
 	ceiling = _plane;
 	UpdateInterpolation ();
+	bakx = oldx;
+	baky = oldy;
 	interpolator.AddInterpolation(this);
 }
 
@@ -666,6 +670,8 @@ DWallScrollInterpolation::DWallScrollInterpolation(side_t *_side, int _part)
 	side = _side;
 	part = _part;
 	UpdateInterpolation ();
+	bakx = oldx;
+	baky = oldy;
 	interpolator.AddInterpolation(this);
 }
 
@@ -757,6 +763,9 @@ DPolyobjInterpolation::DPolyobjInterpolation(FPolyObj *po)
 	oldverts.Resize(po->Vertices.Size() << 1);
 	bakverts.Resize(po->Vertices.Size() << 1);
 	UpdateInterpolation ();
+	bakcx = oldcx;
+	bakcy = oldcy;
+	bakverts = oldverts;
 	interpolator.AddInterpolation(this);
 }
 
