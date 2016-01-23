@@ -346,6 +346,7 @@ ACTOR Actor native //: Thinker
 	action native A_RearrangePointers(int newtarget, int newmaster = AAPTR_DEFAULT, int newtracer = AAPTR_DEFAULT, int flags=0);
 	action native A_TransferPointer(int ptr_source, int ptr_recepient, int sourcefield, int recepientfield=AAPTR_DEFAULT, int flags=0);
 	action native A_CopyFriendliness(int ptr_source = AAPTR_MASTER);
+	action native A_FilterVisibility(int ptr_bitmask);
 
 	action native ACS_NamedExecute(string script, int mapnum=0, int arg1=0, int arg2=0, int arg3=0);
 	action native ACS_NamedSuspend(string script, int mapnum=0);
