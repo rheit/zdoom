@@ -6114,7 +6114,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 					closer = current;
 					farther = 0;
 				}
-				if ((flags & CPXF_CLOSEST) && ((current < closer) || !closer))
+				if ((flags & CPXF_CLOSEST) && (current < closer))
 				{
 					if (classtarget != NULL)
 						dist = classtarget;		//Primary target aka classname-specified actor
