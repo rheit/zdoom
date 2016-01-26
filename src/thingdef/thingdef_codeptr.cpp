@@ -5968,13 +5968,12 @@ enum CPXFflags
 	CPXF_FARTHEST =		1 << 9,
 	CPXF_CLOSEST =		1 << 10,
 	CPXF_SETONPTR =		1 << 11,
-	CPXF_NODISTANCE =	1 << 12,
-	CPXF_CHECKSIGHT =	1 << 13,
-	CPXF_MONSTERS =		1 << 14,
-	CPXF_MISSILES =		1 << 15,
-	CPXF_OBJECTS =		1 << 16,
-	CPXF_CORPSES =		1 << 17,
-	CPXF_NOCOUNTMASK =	1 << 18,
+	CPXF_CHECKSIGHT =	1 << 12,
+	CPXF_MONSTERS =		1 << 13,
+	CPXF_MISSILES =		1 << 14,
+	CPXF_OBJECTS =		1 << 15,
+	CPXF_CORPSES =		1 << 16,
+	CPXF_NOCOUNTMASK =	1 << 17,
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 {
@@ -5997,12 +5996,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 
 	//We need these to check out.
 	const bool checkmask = !!(flags & (CPXF_MONSTERS | CPXF_MISSILES | CPXF_OBJECTS | CPXF_CORPSES));
-	if (!ref || !(classname || checkmask) || ((distance <= 0) && !(flags & CPXF_NODISTANCE)))
+	if (!ref || !(classname || checkmask) || (distance <= 0))
 		return;
-
-	if (flags & CPXF_NODISTANCE)	
-		distance = (FIXED_MAX / 2);
-
+	
 	TThinkerIterator<AActor> it;
 	AActor *mo, *classtarget = NULL, *nonclasstarget = NULL, *dist = NULL;
 	bool result = false, primary = false;
@@ -6082,7 +6078,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 		//Z later for ensuring CLOSEST and FARTHEST flags are respected perfectly.
 		//Ripped from sphere checking in A_RadiusGive (along with a number of things).
 		//Make sure it's in range and respect the desire for Z or not.
-		if ((flags & CPXF_NODISTANCE) || (ref->AproxDistance(mo) < distance &&
+		if ((ref->AproxDistance(mo) < distance &&
 			((flags & CPXF_NOZ) ||
 			((ref->Z() > mo->Z() && ref->Z() - mo->Top() < distance) ||
 			(ref->Z() <= mo->Z() && mo->Z() - ref->Top() < distance)))))
