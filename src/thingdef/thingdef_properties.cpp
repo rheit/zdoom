@@ -1462,6 +1462,15 @@ DEFINE_PROPERTY(riplevelmax, I, Actor)
 }
 
 //==========================================================================
+// [FDARI]
+//==========================================================================
+DEFINE_PROPERTY(visiblefilter, I, Actor)
+{
+	PROP_INT_PARM(i, 0);
+	defaults->VisibleFilter = i;
+}
+
+//==========================================================================
 //
 // Special inventory properties
 //

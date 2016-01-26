@@ -6136,3 +6136,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 		ACTION_JUMP(block);
 	}
 }
+
+//==========================================================================
+//
+// A_FilterVisibility
+//
+//==========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FilterVisibility)
+{
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_INT(visiblefilter, 0);
+	self->VisibleFilter = visiblefilter;
+}

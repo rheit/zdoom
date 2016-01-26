@@ -66,6 +66,7 @@
 #include "farchive.h"
 #include "r_data/colormaps.h"
 #include "r_renderer.h"
+#include "actorptrselect.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -300,14 +301,18 @@ void AActor::Serialize (FArchive &arc)
 		<< PainType
 		<< DeathType;
 	}
-	arc	<< gravity
+	arc << gravity
 		<< FastChaseStrafeCount
 		<< master
 		<< smokecounter
 		<< BlockingMobj
 		<< BlockingLine
-		<< VisibleToTeam // [BB]
-		<< pushfactor
+		<< VisibleToTeam; // [BB]
+	if (SaveVersion >= 4532) // [zombie]
+	{
+		arc << VisibleFilter; // [fdari]
+	}
+	arc	<< pushfactor
 		<< Species
 		<< Score;
 	if (SaveVersion >= 3113)
@@ -1030,6 +1035,13 @@ bool AActor::IsVisibleToPlayer() const
 		}
 		if(!visible)
 			return false;
+	}
+
+	// [FDARI] Passed all checks but the filter
+	if (VisibleFilter)
+	{
+		bool visible = AAPTR_FILTER(const_cast<AActor *>(this), pPlayer->mo, VisibleFilter);
+		return (flags7 & MF7_FILTERHIDES) ? !visible : visible;
 	}
 
 	// [BB] Passed all checks.
