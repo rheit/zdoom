@@ -552,6 +552,39 @@ public:
 	ExpVal EvalExpression (AActor *self);
 };
 
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+class FxMax : public FxExpression
+{
+protected:
+	TDeletingArray<FxExpression*> min;
+
+public:
+	FxMax(TArray<FxExpression*> mi, bool floaty, const FScriptPosition &pos);
+	~FxMax();
+	FxExpression *Resolve(FCompileContext&);
+
+	ExpVal EvalExpression(AActor *self);
+};
+
+class FxMin : public FxExpression
+{
+protected:
+	TDeletingArray<FxExpression*> min;
+
+public:
+	FxMin(TArray<FxExpression*> mi, bool floaty, const FScriptPosition &pos);
+	~FxMin();
+	FxExpression *Resolve(FCompileContext&);
+
+	ExpVal EvalExpression(AActor *self);
+};
+
 //==========================================================================
 //
 //

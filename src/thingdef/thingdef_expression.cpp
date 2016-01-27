@@ -1771,6 +1771,157 @@ ExpVal FxRandom::EvalExpression (AActor *self)
 
 //==========================================================================
 //
+// 
+//
+//==========================================================================
+FxMax::FxMax(TArray<FxExpression*> mi, bool floaty, const FScriptPosition &pos)
+: FxExpression(pos)
+{
+	for (unsigned int index = 0; index < mi.Size(); index++)
+	{
+		FxExpression *casted;
+		if (floaty)
+		{
+			casted = new FxFloatCast(mi[index]);
+		}
+		else
+		{
+			casted = new FxIntCast(mi[index]);
+		}
+		min.Push(casted);
+	}
+	ValueType = floaty ? VAL_Float : VAL_Int;
+}
+
+FxMax::~FxMax()
+{
+}
+
+FxExpression *FxMax::Resolve(FCompileContext &ctx)
+{
+	CHECKRESOLVED();
+	for (unsigned int index = 0; index < min.Size(); index++)
+	{
+		RESOLVE(min[index], ctx);
+		ABORT(min[index]);
+	}
+	return this;
+}
+
+ExpVal FxMax::EvalExpression(AActor *self)
+{
+	ExpVal val;
+	int size = min.Size();
+	if (size <= 0)
+	{
+		val.Type = VAL_Int;
+		val.Int = 0;
+		return val;
+	}
+	if (ValueType == VAL_Int)
+	{
+		int current = min[0]->EvalExpression(self).GetInt();
+		val.Type = VAL_Int;
+		for (unsigned int index = 0; index < min.Size(); index++)
+		{ //Find the max/min 
+			int inspect = min[index]->EvalExpression(self).GetInt();
+			current = MAX(current, inspect);
+		}
+		val.Int = current;
+	}
+	else
+	{
+		double current = min[0]->EvalExpression(self).GetFloat();
+		val.Type = VAL_Float;
+		for (unsigned int index = 0; index < min.Size(); index++)
+		{
+			double inspect = min[index]->EvalExpression(self).GetFloat();
+			current = MAX(current, inspect);
+		}
+		val.Float = current;
+	}
+	
+	return val;
+}
+
+//==========================================================================
+//
+// 
+//
+//==========================================================================
+FxMin::FxMin(TArray<FxExpression*> mi, bool floaty, const FScriptPosition &pos)
+: FxExpression(pos)
+{
+	for (unsigned int index = 0; index < mi.Size(); index++)
+	{
+		FxExpression *casted;
+		if (floaty)
+		{
+			casted = new FxFloatCast(mi[index]);
+		}
+		else
+		{
+			casted = new FxIntCast(mi[index]);
+		}
+		min.Push(casted);
+	}
+	ValueType = floaty ? VAL_Float : VAL_Int;
+}
+
+FxMin::~FxMin()
+{
+}
+
+FxExpression *FxMin::Resolve(FCompileContext &ctx)
+{
+	CHECKRESOLVED();
+	for (unsigned int index = 0; index < min.Size(); index++)
+	{
+		RESOLVE(min[index], ctx);
+		ABORT(min[index]);
+	}
+	return this;
+}
+
+ExpVal FxMin::EvalExpression(AActor *self)
+{
+	ExpVal val;
+	int size = min.Size();
+	if (size <= 0)
+	{
+		val.Type = VAL_Int;
+		val.Int = 0;
+		return val;
+	}
+	if (ValueType == VAL_Int)
+	{
+		int current = min[0]->EvalExpression(self).GetInt();
+		val.Type = VAL_Int;
+		for (unsigned int index = 0; index < min.Size(); index++)
+		{ //Find the max/min 
+			int inspect = min[index]->EvalExpression(self).GetInt();
+			current = MIN(current, inspect);
+		}
+		val.Int = current;
+	}
+	else
+	{
+		double current = min[0]->EvalExpression(self).GetFloat();
+		val.Type = VAL_Float;
+		for (unsigned int index = 0; index < min.Size(); index++)
+		{
+			double inspect = min[index]->EvalExpression(self).GetFloat();
+			current = MIN(current, inspect);
+		}
+		val.Float = current;
+	}
+
+	return val;
+}
+
+
+//==========================================================================
+//
 //
 //
 //==========================================================================

@@ -160,6 +160,10 @@ std2:
 		'frandom'					{ RET(TK_FRandom); }
 		'randompick'				{ RET(TK_RandomPick); }
 		'frandompick'				{ RET(TK_FRandomPick); }
+		'imin'						{ RET(TK_IMin); }
+		'imax'						{ RET(TK_IMax); }
+		'fmin'						{ RET(TK_FMin); }
+		'fmax'						{ RET(TK_FMax); }
 
 		L (L|D)*					{ RET(TK_Identifier); }
 
