@@ -26,7 +26,9 @@ void BlastActor (AActor *victim, fixed_t strength, fixed_t speed, AActor * Owner
 {
 	angle_t angle,ang;
 	AActor *mo;
+
 	fixedvec3 pos;
+	fixed_t velmul;
 
 	if (!victim->SpecialBlastHandling (Owner, strength))
 	{
@@ -35,9 +37,10 @@ void BlastActor (AActor *victim, fixed_t strength, fixed_t speed, AActor * Owner
 
 	angle = Owner->AngleTo(victim);
 	angle >>= ANGLETOFINESHIFT;
-	victim->velx = FixedMul (speed, finecosine[angle]);
-	victim->vely = FixedMul (speed, finesine[angle]);
-
+	velmul = victim->GetThrustFactor(NAME_Melee);
+	victim->velx = FixedMul(FixedMul(speed, velmul), finecosine[angle]);
+	victim->vely = FixedMul(FixedMul(speed, velmul), finesine[angle]);
+	
 	// Spawn blast puff
 	ang = victim->AngleTo(Owner);
 	ang >>= ANGLETOFINESHIFT;
@@ -56,19 +59,19 @@ void BlastActor (AActor *victim, fixed_t strength, fixed_t speed, AActor * Owner
 		// [RH] Floor and ceiling huggers should not be blasted vertically.
 		if (!(victim->flags3 & (MF3_FLOORHUGGER|MF3_CEILINGHUGGER)))
 		{
-			victim->velz = 8*FRACUNIT;
+			victim->velz = FixedMul((8*FRACUNIT),velmul);
 			mo->velz = victim->velz;
 		}
 	}
 	else
 	{
-		victim->velz = (1000 / victim->Mass) << FRACBITS;
+		victim->velz = FixedMul(((1000 / victim->Mass) << FRACBITS), velmul);
 	}
 	if (victim->player)
 	{
 		// Players handled automatically
 	}
-	else if (!dontdamage)
+	else if (!dontdamage && !(victim->flags7 & MF7_NOIMPACTDMG) && (velmul > 0))
 	{
 		victim->flags2 |= MF2_BLASTED;
 	}

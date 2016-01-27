@@ -4836,10 +4836,12 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 				double thrust;
 				int damage = abs((int)points);
 				int newdam = damage;
-
+				fixed_t thrustmul = thing->GetThrustFactor(bombmod);
 				if (!(flags & RADF_NODAMAGE))
 					newdam = P_DamageMobj(thing, bombspot, bombsource, damage, bombmod);
-				else if (thing->player == NULL && (!(flags & RADF_NOIMPACTDAMAGE) && !(thing->flags7 & MF7_DONTTHRUST)))
+				else if (thing->player == NULL 
+				&& (!(flags & RADF_NOIMPACTDAMAGE) && !(thing->flags7 & MF7_DONTTHRUST) && !(thing->flags7 & MF7_NOIMPACTDMG))
+				&& (thrustmul > 0))
 					thing->flags2 |= MF2_BLASTED;
 
 				if (!(thing->flags & MF_ICECORPSE))
@@ -4851,9 +4853,10 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 					{
 						if (bombsource == NULL || !(bombsource->flags2 & MF2_NODMGTHRUST))
 						{
-							if (!(thing->flags7 & MF7_DONTTHRUST))
+							if (!(thing->flags7 & MF7_DONTTHRUST) && (thrustmul > 0))
 							{
-							
+								
+								
 								thrust = points * 0.5f / (double)thing->Mass;
 								if (bombsource == thing)
 								{
@@ -4869,10 +4872,11 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 									velz *= 0.8f;
 								}
 								angle_t ang = bombspot->AngleTo(thing) >> ANGLETOFINESHIFT;
-								thing->velx += fixed_t(finecosine[ang] * thrust);
-								thing->vely += fixed_t(finesine[ang] * thrust);
+								thing->velx += FixedMul(fixed_t(finecosine[ang] * thrust), thrustmul);
+								thing->vely += FixedMul(fixed_t(finesine[ang] * thrust), thrustmul);
+
 								if (!(flags & RADF_NODAMAGE))
-									thing->velz += (fixed_t)velz;	// this really doesn't work well
+									thing->velz += FixedMul((fixed_t)velz, thrustmul);	// this really doesn't work well
 							}
 						}
 					}

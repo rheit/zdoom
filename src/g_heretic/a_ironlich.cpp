@@ -27,12 +27,13 @@ IMPLEMENT_CLASS(AWhirlwind)
 int AWhirlwind::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 {
 	int randVal;
+	fixed_t thrustmul = target->GetThrustFactor(damagetype);
 
 	if (!(target->flags7 & MF7_DONTTHRUST))
 	{
 		target->angle += pr_foo.Random2() << 20;
-		target->velx += pr_foo.Random2() << 10;
-		target->vely += pr_foo.Random2() << 10;
+		target->velx += FixedMul((pr_foo.Random2() << 10),thrustmul);
+		target->vely += FixedMul((pr_foo.Random2() << 10),thrustmul);
 	}
 
 	if ((level.time & 16) && !(target->flags2 & MF2_BOSS) && !(target->flags7 & MF7_DONTTHRUST))
@@ -42,9 +43,10 @@ int AWhirlwind::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 		{
 			randVal = 160;
 		}
-		target->velz += randVal << 11;
+		target->velz += FixedMul((randVal << 11),thrustmul);
 		if (target->velz > 12*FRACUNIT)
 		{
+
 			target->velz = 12*FRACUNIT;
 		}
 	}
