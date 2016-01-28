@@ -472,10 +472,11 @@ enum
 // Flags for A_Face*
 enum
 {
+	FAF_NODISTFACTOR = 0, //For compatibility as this flag's been around a while.
 	FAF_BOTTOM = 1,
 	FAF_MIDDLE = 2,
 	FAF_TOP = 4,
-	FAF_NODISTFACTOR = 8,
+	FAF_MULTIPLY = 8,
 };
 
 // Flags for A_QuakeEx
