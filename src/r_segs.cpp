@@ -2671,7 +2671,7 @@ int OWallMost (short *mostbuf, fixed_t z, const FWallCoords *wallc)
 	else
 	{
 		fixed_t yinc  = (Scale (z, InvZtoScale, iy2) - y) / (ix2 - ix1);
-		qinterpolatedown16short (&mostbuf[ix1], ix2-ix1, y + centeryfrac, yinc);
+		qinterpolatedown16short (&mostbuf[ix1], ix2-ix1+1, y + centeryfrac, yinc);
 	}
 #else
 	double max = viewheight;
@@ -2860,7 +2860,7 @@ int WallMost (short *mostbuf, const secplane_t &plane, const FWallCoords *wallc)
 	else
 	{
 		fixed_t yinc = (Scale (z2>>4, InvZtoScale, iy2) - y) / (ix2-ix1);
-		qinterpolatedown16short (&mostbuf[ix1], ix2-ix1, y + centeryfrac,yinc);
+		qinterpolatedown16short (&mostbuf[ix1], ix2-ix1+1, y + centeryfrac,yinc);
 	}
 
 	if (mostbuf[ix1] < 0) mostbuf[ix1] = 0;
