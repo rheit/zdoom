@@ -6219,7 +6219,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 	}
 
 	//Nothing to block it so skip the rest.
-	if (P_TestMobjLocation(mobj)) return;
+	if (P_CheckMove(mobj,mobj->X(),mobj->Y())) return;
 
 	if (mobj->BlockingMobj)
 	{
