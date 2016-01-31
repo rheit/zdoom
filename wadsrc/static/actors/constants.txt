@@ -415,46 +415,27 @@ enum
 // Flags for A_Kill (Master/Target/Tracer/Children/Siblings) series
 enum
 {
-	KILF_FOILINVUL =		0x00000001,
-	KILF_KILLMISSILES =		0x00000002,
-	KILF_NOMONSTERS =		0x00000004,
-	KILF_FOILBUDDHA =		0x00000008,
-	KILF_EXFILTER =			0x00000010,
-	KILF_EXSPECIES =		0x00000020,
-	KILF_EITHER =			0x00000040,
-
-	KILS_FOILINVUL =		KILF_FOILINVUL,
-	KILS_KILLMISSILES =		KILF_KILLMISSILES,
-	KILS_NOMONSTERS =		KILF_NOMONSTERS,
-	KILS_FOILBUDDHA =		KILF_FOILBUDDHA,
-	KILS_EXFILTER =			KILF_EXFILTER,
-	KILS_EXSPECIES =		KILF_EXSPECIES,
-	KILS_EITHER =			KILF_EITHER,
+	KILS_FOILINVUL =		1,
+	KILS_KILLMISSILES =		1 << 1,
+	KILS_NOMONSTERS =		1 << 2,
+	KILS_FOILBUDDHA =		1 << 3,
+	KILS_EXFILTER =			1 << 4,
+	KILS_EXSPECIES =		1 << 5,
+	KILS_EITHER =			1 << 6,
 };
 
 // Flags for A_Damage (Master/Target/Tracer/Children/Siblings/Self) series
 enum
 {
-	DMSF_FOILINVUL			= 1,		//Foil invulnerability
-	DMSF_AFFECTARMOR		= 1 << 1,	//Make it affect armor
-	DMSF_KILL				= 1 << 2,	//Damages them for their current health
-	DMSF_NOFACTOR			= 1 << 3,	//Ignore DamageFactors
-	DMSF_FOILBUDDHA			= 1 << 4,	//Can kill actors with Buddha flag, except the player.
-	DMSF_NOPROTECT			= 1 << 5,	//Ignores PowerProtection entirely
-	DMSF_EXFILTER			= 1 << 6,	//Changes filter into a blacklisted class instead of whitelisted.
-	DMSF_EXSPECIES			= 1 << 7,	//^ but with species instead.
-	DMSF_EITHER				= 1 << 8,	//Allow either type or species to be affected.
-
-	// Since changing name conventions, this is here for compatibility.
-	DMSS_FOILINVUL =		DMSF_FOILINVUL,
-	DMSS_AFFECTARMOR =		DMSF_AFFECTARMOR,
-	DMSS_KILL =				DMSF_KILL,
-	DMSS_NOFACTOR =			DMSF_NOFACTOR,
-	DMSS_FOILBUDDHA =		DMSF_FOILBUDDHA,
-	DMSS_NOPROTECT =		DMSF_NOPROTECT,
-	DMSS_EXFILTER =			DMSF_EXFILTER,
-	DMSS_EXSPECIES =		DMSF_EXSPECIES,
-	DMSS_EITHER =			DMSF_EITHER,
+	DMSS_FOILINVUL =		1,
+	DMSS_AFFECTARMOR =		1 << 1,
+	DMSS_KILL =				1 << 2,
+	DMSS_NOFACTOR =			1 << 3,
+	DMSS_FOILBUDDHA =		1 << 4,
+	DMSS_NOPROTECT =		1 << 5,
+	DMSS_EXFILTER =			1 << 6,
+	DMSS_EXSPECIES =		1 << 7,
+	DMSS_EITHER =			1 << 8,
 };
 
 // Flags for A_AlertMonsters
