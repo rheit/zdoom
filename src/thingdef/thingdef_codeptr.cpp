@@ -87,6 +87,7 @@ static FRandom pr_grenade ("ThrowGrenade");
 static FRandom pr_crailgun ("CustomRailgun");
 static FRandom pr_spawndebris ("SpawnDebris");
 static FRandom pr_spawnitemex ("SpawnItemEx");
+static FRandom pr_spawnparticle("SpawnParticle");
 static FRandom pr_burst ("Burst");
 static FRandom pr_monsterrefire ("MonsterRefire");
 static FRandom pr_teleport("A_Teleport");
@@ -2663,7 +2664,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnParticle)
 	ACTION_PARAM_FIXED(fadestepf,	15);
 	ACTION_PARAM_INT(chance,		16);
 	
-	if (chance > 0 && pr_spawnitemex() < chance) return;
+	if (chance > 0 && pr_spawnparticle() < chance) return;
 
 	BYTE startalpha = (BYTE)Scale(clamp(startalphaf, 0, FRACUNIT), 255, FRACUNIT);
 	int fadestep = fadestepf < 0? -1 : Scale(clamp(fadestepf, 0, FRACUNIT), 255, FRACUNIT);
