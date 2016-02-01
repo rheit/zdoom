@@ -2661,7 +2661,10 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnParticle)
 	ACTION_PARAM_FIXED(accelz,		13);
 	ACTION_PARAM_FIXED(startalphaf, 14);
 	ACTION_PARAM_FIXED(fadestepf,	15);
+	ACTION_PARAM_INT(chance,		16);
 	
+	if (chance > 0 && pr_spawnitemex() < chance) return;
+
 	BYTE startalpha = (BYTE)Scale(clamp(startalphaf, 0, FRACUNIT), 255, FRACUNIT);
 	int fadestep = fadestepf < 0? -1 : Scale(clamp(fadestepf, 0, FRACUNIT), 255, FRACUNIT);
 	lifetime = clamp<int>(lifetime, 0, 255); // Clamp to byte
