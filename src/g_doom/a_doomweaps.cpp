@@ -582,7 +582,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 	angle_t 			an;
 	AActor				*linetarget;
 
-	ACTION_PARAM_START(7);
+	ACTION_PARAM_START(8);
 	ACTION_PARAM_CLASS(spraytype, 0);
 	ACTION_PARAM_INT(numrays, 1);
 	ACTION_PARAM_INT(damagecnt, 2);
@@ -590,6 +590,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 	ACTION_PARAM_FIXED(distance, 4);
 	ACTION_PARAM_ANGLE(vrange, 5);
 	ACTION_PARAM_INT(defdamage, 6);
+	ACTION_PARAM_BOOL(sprayinflictor, 7);
 
 	if (spraytype == NULL) spraytype = PClass::FindClass("BFGExtra");
 	if (numrays <= 0) numrays = 40;
@@ -619,12 +620,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 
 			if (spray != NULL)
 			{
-				if (spray->flags6 & MF6_MTHRUSPECIES && self->target->GetSpecies() == linetarget->GetSpecies())
+				if ((spray->flags6 & MF6_MTHRUSPECIES && self->target->GetSpecies() == linetarget->GetSpecies()) ||
+					(spray->flags6 & MF6_THRUSPECIES && spray->GetSpecies() == linetarget->GetSpecies()))
 				{
 					spray->Destroy(); // [MC] Remove it because technically, the spray isn't trying to "hit" them.
 					continue;
 				}
-				if (spray->flags5 & MF5_PUFFGETSOWNER) spray->target = self->target;
+				if (spray->flags7 & MF7_HITTARGET)	spray->target = linetarget; //Overridden by PUFFGETSOWNER.
+				if (spray->flags7 & MF7_HITMASTER)	spray->master = linetarget;
+				if (spray->flags7 & MF7_HITTRACER)	spray->tracer = linetarget;
+				if (spray->flags5 & MF5_PUFFGETSOWNER) spray->target = self;
 				if (spray->flags3 & MF3_FOILINVUL) dmgFlags |= DMG_FOILINVUL;
 				if (spray->flags7 & MF7_FOILBUDDHA) dmgFlags |= DMG_FOILBUDDHA;
 				dmgType = spray->DamageType;
@@ -642,7 +647,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 				damage = defdamage;
 			}
 
-			int newdam = P_DamageMobj(linetarget, self->target, self->target, damage, dmgType, dmgFlags);
+			int newdam = P_DamageMobj(linetarget, (spray && sprayinflictor) ? spray : self->target, self->target, damage, dmgType, dmgFlags);
 			P_TraceBleed(newdam > 0 ? newdam : damage, linetarget, self->target);
 		}
 	}
