@@ -629,7 +629,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 				if (spray->flags7 & MF7_HITTARGET)	spray->target = linetarget; //Overridden by PUFFGETSOWNER.
 				if (spray->flags7 & MF7_HITMASTER)	spray->master = linetarget;
 				if (spray->flags7 & MF7_HITTRACER)	spray->tracer = linetarget;
-				if (spray->flags5 & MF5_PUFFGETSOWNER) spray->target = self;
+				if (spray->flags5 & MF5_PUFFGETSOWNER) spray->target = self->target;
 				if (spray->flags3 & MF3_FOILINVUL) dmgFlags |= DMG_FOILINVUL;
 				if (spray->flags7 & MF7_FOILBUDDHA) dmgFlags |= DMG_FOILBUDDHA;
 				dmgType = spray->DamageType;
