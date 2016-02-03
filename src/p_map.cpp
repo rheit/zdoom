@@ -1052,6 +1052,11 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 	if ((tm.thing->flags6 & MF6_THRUSPECIES) && (tm.thing->GetSpecies() == thing->GetSpecies()))
 		return true;
 
+	FActorInfo *info = thing->GetClass()->ActorInfo;
+	FActorInfo *tminfo = tm.thing->GetClass()->ActorInfo;
+	if (info->CheckCollisionType(tminfo->CollisionType))
+		return true;
+
 	tm.thing->BlockingMobj = thing;
 	topz = thing->Top();
 	if (!(i_compatflags & COMPATF_NO_PASSMOBJ) && !(tm.thing->flags & (MF_FLOAT | MF_MISSILE | MF_SKULLFLY | MF_NOGRAVITY)) &&
