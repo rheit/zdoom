@@ -5311,18 +5311,18 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPainThreshold)
 
 enum DMSS
 {
-	DMSS_FOILINVUL			= 1,	//Foil invulnerability
-	DMSS_AFFECTARMOR		= 2,	//Make it affect armor
-	DMSS_KILL				= 4,	//Damages them for their current health
-	DMSS_NOFACTOR			= 8,	//Ignore DamageFactors
-	DMSS_FOILBUDDHA			= 16,	//Can kill actors with Buddha flag, except the player.
-	DMSS_NOPROTECT			= 32,	//Ignores PowerProtection entirely
-	DMSS_EXFILTER			= 64,	//Changes filter into a blacklisted class instead of whitelisted.
-	DMSS_EXSPECIES			= 128,	// ^ but with species instead.
-	DMSS_EITHER				= 256,  //Allow either type or species to be affected.
+	DMSS_FOILINVUL			= 1,		//Foil invulnerability
+	DMSS_AFFECTARMOR		= 1 << 1,	//Make it affect armor
+	DMSS_KILL				= 1 << 2,	//Damages them for their current health
+	DMSS_NOFACTOR			= 1 << 3,	//Ignore DamageFactors
+	DMSS_FOILBUDDHA			= 1 << 4,	//Can kill actors with Buddha flag, except the player.
+	DMSS_NOPROTECT			= 1 << 5,	//Ignores PowerProtection entirely
+	DMSS_EXFILTER			= 1 << 6,	//Changes filter into a blacklisted class instead of whitelisted.
+	DMSS_EXSPECIES			= 1 << 7,	// ^ but with species instead.
+	DMSS_EITHER				= 1 << 8,	//Allow either type or species to be affected.
 };
 
-static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags, const PClass *filter, FName species)
+static void DoDamage(AActor *dmgtarget, AActor *inflictor, AActor *source, int amount, FName DamageType, int flags, const PClass *filter, FName species)
 {
 	bool filterpass = DoCheckClass(dmgtarget, filter, !!(flags & DMSS_EXFILTER)),
 		speciespass = DoCheckSpecies(dmgtarget, species, !!(flags & DMSS_EXSPECIES));
@@ -5343,7 +5343,7 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 			dmgFlags |= DMG_NO_PROTECT;
 	
 		if (amount > 0)
-			P_DamageMobj(dmgtarget, self, self, amount, DamageType, dmgFlags); //Should wind up passing them through just fine.
+			P_DamageMobj(dmgtarget, inflictor, source, amount, DamageType, dmgFlags); //Should wind up passing them through just fine.
 
 		else if (amount < 0)
 		{
@@ -5360,14 +5360,24 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 {
-	ACTION_PARAM_START(5);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_CLASS(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
+	ACTION_PARAM_INT(inflict, 5);
+	ACTION_PARAM_INT(src, 6);
 
-		DoDamage(self, self, amount, DamageType, flags, filter, species);
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
+
+	DoDamage(self, inflictor, source, amount, DamageType, flags, filter, species);
 }
 
 //===========================================================================
@@ -5377,16 +5387,26 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 {
-	ACTION_PARAM_START(5);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_CLASS(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
+	ACTION_PARAM_INT(inflict, 5);
+	ACTION_PARAM_INT(src, 6);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->target != NULL)
 	{
-		DoDamage(self->target, self, amount, DamageType, flags, filter, species);
+		DoDamage(self->target, inflictor, source, amount, DamageType, flags, filter, species);
 	}
 }
 
@@ -5397,16 +5417,26 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 {
-	ACTION_PARAM_START(5);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_CLASS(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
+	ACTION_PARAM_INT(inflict, 5);
+	ACTION_PARAM_INT(src, 6);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->tracer != NULL)
 	{
-		DoDamage(self->tracer, self, amount, DamageType, flags, filter, species);
+		DoDamage(self->tracer, inflictor, source, amount, DamageType, flags, filter, species);
 	}
 }
 
@@ -5417,16 +5447,26 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 {
-	ACTION_PARAM_START(5);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_CLASS(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
+	ACTION_PARAM_INT(inflict, 5);
+	ACTION_PARAM_INT(src, 6);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->master != NULL)
 	{
-		DoDamage(self->master, self, amount, DamageType, flags, filter, species);
+		DoDamage(self->master, inflictor, source, amount, DamageType, flags, filter, species);
 	}
 }
 
@@ -5437,12 +5477,22 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 {
-	ACTION_PARAM_START(5);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_CLASS(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
+	ACTION_PARAM_INT(inflict, 5);
+	ACTION_PARAM_INT(src, 6);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor * mo;
@@ -5451,7 +5501,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 	{
 		if (mo->master == self)
 		{
-			DoDamage(mo, self, amount, DamageType, flags, filter, species);
+			DoDamage(mo, inflictor, source, amount, DamageType, flags, filter, species);
 		}
 	}
 }
@@ -5463,12 +5513,22 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 {
-	ACTION_PARAM_START(5);
+	ACTION_PARAM_START(7);
 	ACTION_PARAM_INT(amount, 0);
 	ACTION_PARAM_NAME(DamageType, 1);
 	ACTION_PARAM_INT(flags, 2);
 	ACTION_PARAM_CLASS(filter, 3);
 	ACTION_PARAM_NAME(species, 4);
+	ACTION_PARAM_INT(inflict, 5);
+	ACTION_PARAM_INT(src, 6);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor * mo;
@@ -5479,7 +5539,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 		{
 			if (mo->master == self->master && mo != self)
 			{
-				DoDamage(mo, self, amount, DamageType, flags, filter, species);
+				DoDamage(mo, inflictor, source, amount, DamageType, flags, filter, species);
 			}
 		}
 	}
@@ -5502,7 +5562,7 @@ enum KILS
 	KILS_EITHER			= 1 << 6,
 };
 
-static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags, const PClass *filter, FName species)
+static void DoKill(AActor *killtarget, AActor *inflictor, AActor *source, FName damagetype, int flags, const PClass *filter, FName species)
 {
 	bool filterpass = DoCheckClass(killtarget, filter, !!(flags & KILS_EXFILTER)),
 		speciespass = DoCheckSpecies(killtarget, species, !!(flags & KILS_EXSPECIES));
@@ -5530,7 +5590,7 @@ static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags
 		}
 		if (!(flags & KILS_NOMONSTERS))
 		{
-			P_DamageMobj(killtarget, self, self, killtarget->health, damagetype, dmgFlags);
+			P_DamageMobj(killtarget, inflictor, source, killtarget->health, damagetype, dmgFlags);
 		}
 	}
 }
@@ -5543,15 +5603,25 @@ static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(6);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
 	ACTION_PARAM_CLASS(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
+	ACTION_PARAM_INT(inflict, 4);
+	ACTION_PARAM_INT(src, 5);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->target != NULL)
 	{
-		DoKill(self->target, self, damagetype, flags, filter, species);
+		DoKill(self->target, inflictor, source, damagetype, flags, filter, species);
 	}
 }
 
@@ -5562,15 +5632,25 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(6);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
 	ACTION_PARAM_CLASS(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
+	ACTION_PARAM_INT(inflict, 4);
+	ACTION_PARAM_INT(src, 5);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->tracer != NULL)
 	{
-		DoKill(self->tracer, self, damagetype, flags, filter, species);
+		DoKill(self->tracer, inflictor, source, damagetype, flags, filter, species);
 	}
 }
 
@@ -5581,15 +5661,25 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(6);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
 	ACTION_PARAM_CLASS(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
+	ACTION_PARAM_INT(inflict, 4);
+	ACTION_PARAM_INT(src, 5);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->master != NULL)
 	{
-		DoKill(self->master, self, damagetype, flags, filter, species);
+		DoKill(self->master, inflictor, source, damagetype, flags, filter, species);
 	}
 }
 
@@ -5600,11 +5690,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(6);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
 	ACTION_PARAM_CLASS(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
+	ACTION_PARAM_INT(inflict, 4);
+	ACTION_PARAM_INT(src, 5);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -5613,7 +5713,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 	{
 		if (mo->master == self) 
 		{
-			DoKill(mo, self, damagetype, flags, filter, species);
+			DoKill(mo, inflictor, source, damagetype, flags, filter, species);
 		}
 	}
 }
@@ -5625,11 +5725,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 {
-	ACTION_PARAM_START(4);
+	ACTION_PARAM_START(6);
 	ACTION_PARAM_NAME(damagetype, 0);
 	ACTION_PARAM_INT(flags, 1);
 	ACTION_PARAM_CLASS(filter, 2);
 	ACTION_PARAM_NAME(species, 3);
+	ACTION_PARAM_INT(inflict, 4);
+	ACTION_PARAM_INT(src, 5);
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -5640,7 +5750,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 		{
 			if (mo->master == self->master && mo != self)
 			{ 
-				DoKill(mo, self, damagetype, flags, filter, species);
+				DoKill(mo, inflictor, source, damagetype, flags, filter, species);
 			}
 		}
 	}
