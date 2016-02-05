@@ -5640,7 +5640,7 @@ enum DMSS
 	DMSS_EITHER				= 256,  //Allow either type or species to be affected.
 };
 
-static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags, PClassActor *filter, FName species)
+static void DoDamage(AActor *dmgtarget, AActor *inflictor, AActor *source, int amount, FName DamageType, int flags, PClassActor *filter, FName species)
 {
 	bool filterpass = DoCheckClass(dmgtarget, filter, !!(flags & DMSS_EXFILTER)),
 		speciespass = DoCheckSpecies(dmgtarget, species, !!(flags & DMSS_EXSPECIES));
@@ -5659,10 +5659,10 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 			amount += dmgtarget->health;
 		if (flags & DMSS_NOPROTECT) //Ignore PowerProtection.
 			dmgFlags |= DMG_NO_PROTECT;
-	
+
 		if (amount > 0)
 		{ //Should wind up passing them through just fine.
-			P_DamageMobj(dmgtarget, self, self, amount, DamageType, dmgFlags);
+			P_DamageMobj(dmgtarget, inflictor, source, amount, DamageType, dmgFlags); //Should wind up passing them through just fine.
 		}
 		else if (amount < 0)
 		{
@@ -5685,8 +5685,18 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT(inflict)		{ inflict = AAPTR_DEFAULT; }
 
-	DoDamage(self, self, amount, damagetype, flags, filter, species);
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
+
+	DoDamage(self, inflictor, source, amount, damagetype, flags, filter, species);
 	return 0;
 }
 
@@ -5703,9 +5713,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->target != NULL)
-		DoDamage(self->target, self, amount, damagetype, flags, filter, species);
+	{
+		DoDamage(self->target, inflictor, source, amount, damagetype, flags, filter, species);
+	}
 	return 0;
 }
 
@@ -5722,9 +5744,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->tracer != NULL)
-		DoDamage(self->tracer, self, amount, damagetype, flags, filter, species);
+	{
+		DoDamage(self->tracer, inflictor, source, amount, damagetype, flags, filter, species);
+	}
 	return 0;
 }
 
@@ -5741,9 +5775,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->master != NULL)
-		DoDamage(self->master, self, amount, damagetype, flags, filter, species);
+	{
+		DoDamage(self->master, inflictor, source, amount, damagetype, flags, filter, species);
+	}
 	return 0;
 }
 
@@ -5760,6 +5806,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -5767,7 +5823,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 	while ( (mo = it.Next()) )
 	{
 		if (mo->master == self)
-			DoDamage(mo, self, amount, damagetype, flags, filter, species);
+		{
+			DoDamage(mo, inflictor, source, amount, damagetype, flags, filter, species);
+		}
 	}
 	return 0;
 }
@@ -5785,6 +5843,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -5794,7 +5862,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 		while ((mo = it.Next()))
 		{
 			if (mo->master == self->master && mo != self)
-				DoDamage(mo, self, amount, damagetype, flags, filter, species);
+			{
+				DoDamage(mo, inflictor, source, amount, damagetype, flags, filter, species);
+			}
 		}
 	}
 	return 0;
@@ -5817,7 +5887,7 @@ enum KILS
 	KILS_EITHER			= 1 << 6,
 };
 
-static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags, PClassActor *filter, FName species)
+static void DoKill(AActor *killtarget, AActor *inflictor, AActor *source, FName damagetype, int flags, PClassActor *filter, FName species)
 {
 	bool filterpass = DoCheckClass(killtarget, filter, !!(flags & KILS_EXFILTER)),
 		speciespass = DoCheckSpecies(killtarget, species, !!(flags & KILS_EXSPECIES));
@@ -5844,7 +5914,7 @@ static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags
 		}
 		if (!(flags & KILS_NOMONSTERS))
 		{
-			P_DamageMobj(killtarget, self, self, killtarget->health, damagetype, dmgFlags);
+			P_DamageMobj(killtarget, inflictor, source, killtarget->health, damagetype, dmgFlags);
 		}
 	}
 }
@@ -5862,9 +5932,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTarget)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->target != NULL)
-		DoKill(self->target, self, damagetype, flags, filter, species);
+	{
+		DoKill(self->target, inflictor, source, damagetype, flags, filter, species);
+	}
 	return 0;
 }
 
@@ -5880,9 +5962,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillTracer)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->tracer != NULL)
-		DoKill(self->tracer, self, damagetype, flags, filter, species);
+	{
+		DoKill(self->tracer, inflictor, source, damagetype, flags, filter, species);
+	}
 	return 0;
 }
 
@@ -5898,9 +5992,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillMaster)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	if (self->master != NULL)
-		DoKill(self->master, self, damagetype, flags, filter, species);
+	{
+		DoKill(self->master, inflictor, source, damagetype, flags, filter, species);
+	}
 	return 0;
 }
 
@@ -5916,6 +6022,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -5924,7 +6040,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillChildren)
 	{
 		if (mo->master == self) 
 		{
-			DoKill(mo, self, damagetype, flags, filter, species);
+			DoKill(mo, inflictor, source, damagetype, flags, filter, species);
 		}
 	}
 	return 0;
@@ -5942,6 +6058,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
 	PARAM_NAME_OPT	(species)		{ species = NAME_None; }
+	PARAM_INT_OPT	(src)			{ src = AAPTR_DEFAULT; }
+	PARAM_INT_OPT	(inflict)		{ inflict = AAPTR_DEFAULT; }
+
+	AActor *source = COPY_AAPTR(self, src);
+	AActor *inflictor = COPY_AAPTR(self, inflict);
+
+	if (!source)
+		source = self;
+	if (!inflictor)
+		inflictor = self;
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -5952,7 +6078,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 		{
 			if (mo->master == self->master && mo != self)
 			{ 
-				DoKill(mo, self, damagetype, flags, filter, species);
+				DoKill(mo, inflictor, source, damagetype, flags, filter, species);
 			}
 		}
 	}
