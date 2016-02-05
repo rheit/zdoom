@@ -37,7 +37,11 @@
 **
 */
 
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 #include <malloc.h>
+#else
+#include <stdlib.h>
+#endif
 #include "actor.h"
 #include "sc_man.h"
 #include "tarray.h"
