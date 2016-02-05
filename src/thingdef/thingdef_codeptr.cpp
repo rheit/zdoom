@@ -157,6 +157,110 @@ bool ACustomInventory::CallStateChain (AActor *actor, FState *state)
 }
 
 //==========================================================================
+// DoMinMax - reduces code duplication.
+//==========================================================================
+static int DoMinMax(bool domin, bool isFloat, VM_ARGS)
+{
+	if (numret > 0)
+	{
+		assert(ret != NULL);
+		PARAM_PROLOGUE;
+		PARAM_OBJECT(self, AActor);
+
+		// [MC] The code between the float and int blocks are the same, only
+		// with different type variables.
+		if (isFloat)
+		{
+			PARAM_FLOAT(first);
+			int count = numparam - paramnum;
+			double result = first;
+			if (count > 0)
+			{
+				for (int mini = 0; mini < count; mini++)
+				{
+					PARAM_FLOAT_AT(paramnum + mini, num);
+					result = (domin) ? MIN(result, num) : MAX(result, num);
+				}
+			}
+			ret->SetFloat(result);
+		}
+		else
+		{
+			PARAM_INT(first);
+			int count = numparam - paramnum, result = first;
+			if (count > 0)
+			{
+				for (int mini = 0; mini < count; mini++)
+				{
+					PARAM_INT_AT(paramnum + mini, num);
+					result = (domin) ? MIN(result, num) : MAX(result, num);
+				}
+			}
+			ret->SetInt(result);
+		}
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
+// Min
+//
+// NON-ACTION function to return the min of 2+ int numbers, or just returns 
+// the first defined if < 2.
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, Min)
+{
+	PARAM_PROLOGUE;
+	return DoMinMax(true, false, VM_ARGS_NAMES);
+}
+
+//==========================================================================
+//
+// Max
+//
+// NON-ACTION function to return the max of 2+ int numbers.
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, Max)
+{
+	PARAM_PROLOGUE;
+	return DoMinMax(false, false, VM_ARGS_NAMES);
+}
+
+//==========================================================================
+//
+// FMin
+//
+// NON-ACTION function to return the min of 2+ float numbers.
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, FMin)
+{
+	PARAM_PROLOGUE;
+	return DoMinMax(true, true, VM_ARGS_NAMES);
+}
+
+//==========================================================================
+//
+// FMax
+//
+// NON-ACTION function to return the max of 2+ float numbers.
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, FMax)
+{
+	PARAM_PROLOGUE;
+	return DoMinMax(false, true, VM_ARGS_NAMES);
+}
+
+//==========================================================================
 //
 // CheckClass
 //

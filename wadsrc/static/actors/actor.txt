@@ -33,6 +33,10 @@ ACTOR Actor native //: Thinker
 	RipLevelMax 0
 
 	// Functions
+	native int Min(int first, ...);
+	native int Max(int first, ...);
+	native float FMin(float first, ...);
+	native float FMax(float first, ...);
 	native bool CheckClass(class<Actor> checkclass, int ptr_select = AAPTR_DEFAULT, bool match_superclass = false);
 	native bool IsPointerEqual(int ptr_select1, int ptr_select2);
 
