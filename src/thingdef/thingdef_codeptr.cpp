@@ -219,6 +219,39 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, IsPointerEqual)
 
 //==========================================================================
 //
+// GetDistance
+//
+// NON-ACTION function to get the distance in double.
+//
+//==========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetDistance)
+{
+	if (numret > 0)
+	{
+		assert(ret != NULL);
+		PARAM_PROLOGUE;
+		PARAM_OBJECT(self, AActor);
+		PARAM_BOOL(checkz);
+		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
+
+		AActor *target = COPY_AAPTR(self, ptr);
+
+		if (!target || target == self)
+		{
+			ret->SetFloat(false);
+		}
+		else
+		{
+			fixed_t dist = (checkz) ? self->AproxDistance3D(target) : self->AproxDistance(target);
+			ret->SetFloat(FIXED2DBL(dist));
+		}
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
 // A_RearrangePointers
 //
 // Allow an actor to change its relationship to other actors by
