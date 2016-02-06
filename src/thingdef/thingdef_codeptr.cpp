@@ -4377,7 +4377,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetAngle)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPitch)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_ANGLE(pitch);
+	PARAM_FIXED(pitch);
 	PARAM_INT_OPT(flags)	{ flags = 0; }
 	PARAM_INT_OPT(ptr)		{ ptr = AAPTR_DEFAULT; }
 
@@ -6596,7 +6596,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMovementDirection)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_ANGLE_OPT(offset)			{ offset = 0; }
 	PARAM_ANGLE_OPT(anglelimit)		{ anglelimit = 0; }
-	PARAM_ANGLE_OPT(pitchlimit)		{ pitchlimit = 0; }
+	PARAM_FIXED_OPT(pitchlimit)		{ pitchlimit = 0; }
 	PARAM_INT_OPT(flags)			{ flags = 0; }
 	PARAM_INT_OPT(ptr)				{ ptr = AAPTR_DEFAULT; }
 
