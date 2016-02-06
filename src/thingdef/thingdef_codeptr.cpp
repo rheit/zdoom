@@ -1061,7 +1061,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomMissile)
 	PARAM_INT_OPT	(spawnofs_xy) { spawnofs_xy = 0; }
 	PARAM_ANGLE_OPT	(angle)		  { angle = 0; }
 	PARAM_INT_OPT	(flags)		  { flags = 0; }
-	PARAM_ANGLE_OPT	(pitch)		  { pitch = 0; }
+	PARAM_FIXED_OPT	(pitch)		  { pitch = 0; }
 	PARAM_INT_OPT	(ptr)		  { ptr = AAPTR_TARGET; }
 
 	AActor *ref = COPY_AAPTR(self, ptr);
@@ -1490,7 +1490,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireCustomMissile)
 	PARAM_INT_OPT	(spawnofs_xy)	{ spawnofs_xy = 0; }
 	PARAM_FIXED_OPT	(spawnheight)	{ spawnheight = 0; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
-	PARAM_ANGLE_OPT	(pitch)			{ pitch = 0; }
+	PARAM_FIXED_OPT	(pitch)			{ pitch = 0; }
 
 	if (!self->player)
 		return 0;
@@ -3641,7 +3641,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckLOF)
 	PARAM_FIXED_OPT	(minrange)		{ minrange = 0; }
 	{
 		PARAM_ANGLE_OPT	(angle)			{ angle = 0; }
-		PARAM_ANGLE_OPT	(pitch)			{ pitch = 0; }
+		PARAM_FIXED_OPT	(pitch)			{ pitch = 0; }
 		PARAM_FIXED_OPT	(offsetheight)	{ offsetheight = 0; }
 		PARAM_FIXED_OPT	(offsetwidth)	{ offsetwidth = 0; }
 		PARAM_INT_OPT	(ptr_target)	{ ptr_target = AAPTR_DEFAULT; }
@@ -5100,7 +5100,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 	PARAM_STATE_OPT(success_state)		{ success_state = NULL; }
 	PARAM_FIXED_OPT(heightoffset)		{ heightoffset = 0; }
 	PARAM_FIXED_OPT(radiusoffset)		{ radiusoffset = 0; }
-	PARAM_ANGLE_OPT(pitch)				{ pitch = 0; }
+	PARAM_FIXED_OPT(pitch)				{ pitch = 0; }
 	
 	AActor *reference;
 
