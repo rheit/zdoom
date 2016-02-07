@@ -2110,8 +2110,13 @@ static int PatchCodePtrs (int dummy)
 				}
 				else
 				{
+					const DWORD funcflags = sym->Flags;
+					const size_t argindex = 0
+						+ ((funcflags & VARF_Method) ? 1 : 0)  // skip implied self pointer
+						+ ((funcflags & VARF_Action) ? 2 : 0); // skip implied stateowner and callingstate pointers
+
 					TArray<DWORD> &args = sym->Variants[0].ArgFlags;
-					if (args.Size() != 0 && !(args[0] & VARF_Optional))
+					if (args.Size() > argindex && !(args[argindex] & VARF_Optional))
 					{
 						Printf("Frame %d: Incompatible code pointer '%s'\n", frame, Line2);
 						sym = NULL;
