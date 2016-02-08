@@ -4513,9 +4513,9 @@ enum EACSFunctions
 	ACSF_SetSectorDamage,
 	ACSF_SetSectorTerrain,
 	ACSF_SpawnParticle,
-	ACSF_GETCAMERAX,
-	ACSF_GETCAMERAY,
-	ACSF_GETCAMERAZ,
+	ACSF_GetCameraX,
+	ACSF_GetCameraY,
+	ACSF_GetCameraZ,
 	
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
@@ -6061,9 +6061,9 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				P_SpawnParticle(x, y, z, xvel, yvel, zvel, color, fullbright, startalpha, lifetime, size, fadestep, accelx, accely, accelz);
 		}
 		break;
-		case ACSF_GETCAMERAX:
-		case ACSF_GETCAMERAY:
-		case ACSF_GETCAMERAZ:
+		case ACSF_GetCameraX:
+		case ACSF_GetCameraY:
+		case ACSF_GetCameraZ:
 		{
 			//Based on DrawCoordinates from shared_hud.cpp [IBM] (It's actually the same code)
 			fixed_t x;
@@ -6074,8 +6074,6 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				//so if I try to get the player position, I'll be trying to load an invalid pointer.
 				//The return is going to be zero, while that player pointer is not yet created (requiring better explanation)
 				return 0;
-			}
-			if (players){
 			}
 			if (!map_point_coordinates || !automapactive)//
 			{
@@ -6089,11 +6087,11 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				AM_GetPosition(x, y);
 				z = P_PointInSector(x, y)->floorplane.ZatPoint(x, y);
 			}
-			if (funcIndex == ACSF_GETCAMERAX)
+			if (funcIndex == ACSF_GetCameraX)
 			{
 				return x;
 			}
-			else if (funcIndex == ACSF_GETCAMERAY)
+			else if (funcIndex == ACSF_GetCameraY)
 			{
 				return y;
 			}
