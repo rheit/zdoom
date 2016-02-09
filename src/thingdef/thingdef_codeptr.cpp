@@ -6750,3 +6750,44 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMovementDirection)
 	}
 	return numret;
 }
+
+//===========================================================================
+//
+// A_CopySpriteFrame(int flags, int ptr)
+//
+// Sets the actor('s pointer) sprite frame to target, master or tracer's 
+// sprite/frames.
+// 
+//===========================================================================
+enum
+{
+	CSF_NOSPRITE =		1,
+	CSF_NOFRAME =		1 << 1,
+};
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopySpriteFrame)
+{
+	PARAM_ACTION_PROLOGUE;
+	PARAM_INT_OPT(ptr)				{ ptr = AAPTR_TARGET; }
+	PARAM_INT_OPT(flags)			{ flags = 0; }
+	
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	//Need an actor.
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return numret;
+	}
+
+	if (!(flags & CSF_NOSPRITE))
+	{
+		self->sprite = mobj->sprite;
+	}
+
+	if (!(flags & CSF_NOFRAME))
+	{
+		self->frame = mobj->frame;
+	}
+	return numret;
+}
