@@ -562,53 +562,12 @@ bool AActor::SetState (FState *newstate, bool nofunction)
 			Destroy ();
 			return false;
 		}
-		int prevsprite, newsprite;
-
-		if (state != NULL)
-		{
-			prevsprite = state->sprite;
-		}
-		else
-		{
-			prevsprite = -1;
-		}
 		state = newstate;
 		tics = GetTics(newstate);
-		renderflags = (renderflags & ~RF_FULLBRIGHT) | ActorRenderFlags::FromInt (newstate->GetFullbright());
-		newsprite = newstate->sprite;
-		if (newsprite != SPR_FIXED)
-		{ // okay to change sprite and/or frame
-			if (!newstate->GetSameFrame())
-			{ // okay to change frame
-				frame = newstate->GetFrame();
-			}
-			if (newsprite != SPR_NOCHANGE)
-			{ // okay to change sprite
-				if (!(flags4 & MF4_NOSKIN) && newsprite == SpawnState->sprite)
-				{ // [RH] If the new sprite is the same as the original sprite, and
-				// this actor is attached to a player, use the player's skin's
-				// sprite. If a player is not attached, do not change the sprite
-				// unless it is different from the previous state's sprite; a
-				// player may have been attached, died, and respawned elsewhere,
-				// and we do not want to lose the skin on the body. If it wasn't
-				// for Dehacked, I would move sprite changing out of the states
-				// altogether, since actors rarely change their sprites after
-				// spawning.
-					if (player != NULL && skins != NULL)
-					{
-						sprite = skins[player->userinfo.GetSkin()].sprite;
-					}
-					else if (newsprite != prevsprite)
-					{
-						sprite = newsprite;
-					}
-				}
-				else
-				{
-					sprite = newsprite;
-				}
-			}
-		}
+
+		// [MC] Move this to its own function so it can be called, allowing sprites
+		// to set themselves regardless of SetState being called or not.
+		SetSpriteToNewState(newstate);
 
 		if (!nofunction && newstate->CallAction(this, this))
 		{
@@ -633,6 +592,73 @@ bool AActor::SetState (FState *newstate, bool nofunction)
 		Renderer->StateChanged(this);
 	}
 	return true;
+}
+
+//==========================================================================
+//
+// AActor::SetSpriteToNewState
+//
+// Adjusts the sprite of the actor to the next state expecting.
+//
+//==========================================================================
+
+void AActor::SetSpriteToNewState(FState *newstate)
+{
+	if (debugfile && player && (player->cheats & CF_PREDICTING))
+		fprintf(debugfile, "for pl %td: SetState while predicting!\n", player - players);
+	if (tics == 0)
+	{
+		if (newstate == NULL)
+		{
+			return;
+		}
+		int prevsprite, newsprite;
+
+		if (state != NULL)
+		{
+			prevsprite = state->sprite;
+		}
+		else
+		{
+			prevsprite = -1;
+		}
+		renderflags = (renderflags & ~RF_FULLBRIGHT) | ActorRenderFlags::FromInt(newstate->GetFullbright());
+		newsprite = newstate->sprite;
+		if (newsprite != SPR_FIXED)
+		{ // okay to change sprite and/or frame
+			if (!newstate->GetSameFrame())
+			{ // okay to change frame
+				frame = newstate->GetFrame();
+			}
+			if (newsprite != SPR_NOCHANGE)
+			{ // okay to change sprite
+				if (!(flags4 & MF4_NOSKIN) && newsprite == SpawnState->sprite)
+				{ // [RH] If the new sprite is the same as the original sprite, and
+					// this actor is attached to a player, use the player's skin's
+					// sprite. If a player is not attached, do not change the sprite
+					// unless it is different from the previous state's sprite; a
+					// player may have been attached, died, and respawned elsewhere,
+					// and we do not want to lose the skin on the body. If it wasn't
+					// for Dehacked, I would move sprite changing out of the states
+					// altogether, since actors rarely change their sprites after
+					// spawning.
+					if (player != NULL && skins != NULL)
+					{
+						sprite = skins[player->userinfo.GetSkin()].sprite;
+					}
+					else if (newsprite != prevsprite)
+					{
+						sprite = newsprite;
+					}
+				}
+				else
+				{
+					sprite = newsprite;
+				}
+			}
+		}
+	}
+	return;
 }
 
 //============================================================================

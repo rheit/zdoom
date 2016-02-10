@@ -718,6 +718,7 @@ static void DoJump(AActor *self, AActor *stateowner, FState *callingstate, FStat
 		// call is waiting for us to return. We use the flag OF_StateChanged
 		// to cause it to bypass the normal next state mechanism and use
 		// the one we set here instead.
+		self->SetSpriteToNewState(jumpto);
 		self->state = jumpto;
 		self->ObjectFlags |= OF_StateChanged;
 	}
