@@ -604,8 +604,6 @@ bool AActor::SetState (FState *newstate, bool nofunction)
 
 void AActor::SetSpriteToNewState(FState *newstate)
 {
-	if (debugfile && player && (player->cheats & CF_PREDICTING))
-		fprintf(debugfile, "for pl %td: SetState while predicting!\n", player - players);
 	if (tics == 0)
 	{
 		if (newstate == NULL)
