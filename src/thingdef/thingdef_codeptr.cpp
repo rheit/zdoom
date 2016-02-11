@@ -289,6 +289,51 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetDistance)
 
 //==========================================================================
 //
+// GetDistance
+//
+// NON-ACTION function to check if no players are in visible sight or range.
+//
+//==========================================================================
+static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, bool twodi);
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, CheckSightOrRange)
+{
+	if (numret > 0)
+	{
+		assert(ret != NULL);
+		PARAM_PROLOGUE;
+		PARAM_OBJECT(self, AActor);
+		PARAM_FLOAT(range);
+		PARAM_BOOL_OPT(twodi)	{ twodi = false; }
+
+		range = range * range * (double(FRACUNIT) * FRACUNIT);		// no need for square roots
+		for (int i = 0; i < MAXPLAYERS; ++i)
+		{
+			if (playeringame[i])
+			{
+				// Always check from each player.
+				if (DoCheckSightOrRange(self, players[i].mo, range, twodi))
+				{
+					ret->SetInt(0);
+					return 1;
+				}
+				// If a player is viewing from a non-player, check that too.
+				if (players[i].camera != NULL && players[i].camera->player == NULL &&
+					DoCheckSightOrRange(self, players[i].camera, range, twodi))
+				{
+					ret->SetInt(0);
+					return 1;
+				}
+			}
+		}
+		ret->SetInt(1);
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
 // A_RearrangePointers
 //
 // Allow an actor to change its relationship to other actors by
