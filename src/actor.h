@@ -1035,6 +1035,8 @@ public:
 	int				skillrespawncount;
 	int				TIDtoHate;			// TID of things to hate (0 if none)
 	FNameNoInit		Species;		// For monster families
+	FNameNoInit		NoCollideGroup;
+	PClassActor	*	NoCollideActor;	// [MC]Like species but without subjugation to infighting or missile checks of ANY KIND. A strict one way system.
 	TObjPtr<AActor>	tracer;			// Thing being chased/attacked for tracers
 	TObjPtr<AActor>	master;			// Thing which spawned this one (prevents mutual attacks)
 	fixed_t			floorclip;		// value to use for floor clipping

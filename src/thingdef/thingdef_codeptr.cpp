@@ -6791,3 +6791,56 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMovementDirection)
 	}
 	return numret;
 }
+
+//===========================================================================
+//
+// A_SetNoColideActor
+//
+// Sets the specific actor to not collide with anymore.
+// 
+//===========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetNoCollideActor)
+{
+	PARAM_ACTION_PROLOGUE;
+	PARAM_CLASS(ncclass, AActor);
+	PARAM_INT_OPT(ptr) { ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	//Need an actor.
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return 0;
+	}
+
+	mobj->NoCollideActor = ncclass;
+	return 0;
+}
+
+//===========================================================================
+//
+// A_SetNoCollideGroup
+//
+// Sets the calling actor (pointer)'s NoCollideGroup. Any actor sharing the
+// same group cannot collide with one another and can move independantly
+// through everyone else of the same group name.
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetNoCollideGroup)
+{
+	PARAM_ACTION_PROLOGUE;
+	PARAM_NAME(ncgroup);
+	PARAM_INT_OPT(ptr)	{ ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+	if (!mobj)
+	{
+		ACTION_SET_RESULT(false);
+		return 0;
+	}
+
+	mobj->NoCollideGroup = ncgroup;
+	return 0;
+}

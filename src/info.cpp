@@ -555,6 +555,7 @@ void PClassActor::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 	{
 		if (def->TeleFogSourceType == oldclass) def->TeleFogSourceType = static_cast<PClassActor *>(newclass);
 		if (def->TeleFogDestType == oldclass) def->TeleFogDestType = static_cast<PClassActor *>(newclass);
+		if (def->NoCollideActor == oldclass) def->NoCollideActor = static_cast<PClassActor *>(newclass);
 	}
 }
 
