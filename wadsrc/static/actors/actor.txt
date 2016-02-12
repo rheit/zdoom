@@ -42,7 +42,7 @@ ACTOR Actor native //: Thinker
 	native bool IsPointerEqual(int ptr_select1, int ptr_select2);
 	native int	CountInv(class<Inventory> itemtype, int ptr_select = AAPTR_DEFAULT);
 	native float GetDistance(bool checkz, int ptr = AAPTR_DEFAULT);
-	native bool CheckSightOrRange(float range, bool twodi = false);
+	native bool CheckSightOrRange(float range, int flags = 0);
 
 	// Action functions
 	// Meh, MBF redundant functions. Only for DeHackEd support.
@@ -317,7 +317,7 @@ ACTOR Actor native //: Thinker
 	action native A_SetChaseThreshold(int threshold, bool def = false, int ptr = AAPTR_DEFAULT);
 	action native A_CheckProximity(state jump, class<Actor> classname, float distance, int count = 1, int flags = 0, int ptr = AAPTR_DEFAULT);
 	action native A_CheckBlock(state block, int flags = 0, int ptr = AAPTR_DEFAULT);
-	action native A_CheckSightOrRange(float distance, state label, bool two_dimension = false);
+	action native A_CheckSightOrRange(float distance, state label, int flags = 0);
 	action native A_CheckRange(float distance, state label, bool two_dimension = false);
 	action native A_FaceMovementDirection(float offset = 0, float anglelimit = 0, float pitchlimit = 0, int flags = 0, int ptr = AAPTR_DEFAULT);
 

@@ -294,9 +294,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetDistance)
 // NON-ACTION function to check if no players are in visible sight or range.
 //
 //==========================================================================
-static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, bool twodi);
+enum
+{
+	CSRF_NOZ =			1,
+	CSRF_NOSIGHT =		1 << 1,
+};
 
-static bool StartCheckSightOrRange(AActor *self, double range, bool twodi)
+static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, int flags);
+
+static bool StartCheckSightOrRange(AActor *self, double range, int flags)
 {
 	range = range * range * (double(FRACUNIT) * FRACUNIT);		// no need for square roots
 	for (int i = 0; i < MAXPLAYERS; ++i)
@@ -304,13 +310,13 @@ static bool StartCheckSightOrRange(AActor *self, double range, bool twodi)
 		if (playeringame[i])
 		{
 			// Always check from each player.
-			if (DoCheckSightOrRange(self, players[i].mo, range, twodi))
+			if (DoCheckSightOrRange(self, players[i].mo, range, flags))
 			{
 				return false;
 			}
 			// If a player is viewing from a non-player, check that too.
 			if (players[i].camera != NULL && players[i].camera->player == NULL &&
-				DoCheckSightOrRange(self, players[i].camera, range, twodi))
+				DoCheckSightOrRange(self, players[i].camera, range, flags))
 			{
 				return false;
 			}
@@ -3107,7 +3113,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSight)
 // Useful for maps with many multi-actor special effects.
 //
 //===========================================================================
-static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, bool twodi)
+static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, int flags)
 {
 	if (camera == NULL)
 	{
@@ -3129,13 +3135,17 @@ static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, bool
 	{
 		dz = 0;
 	}
-	double distance = ((double)pos.x * pos.x) + ((double)pos.y * pos.y) + (twodi == 0? ((double)dz * dz) : 0);
+	double distance = ((double)pos.x * pos.x) + ((double)pos.y * pos.y) + ((flags & CSRF_NOZ) ? 0 : ((double)dz * dz));
 	if (distance <= range){
 		// Within range
 		return true;
 	}
 
-	// Now check LOS.
+	// Now check LOS unless undesired.
+	if (flags & CSRF_NOSIGHT)
+	{
+		return false;
+	}
 	if (P_CheckSight(camera, self, SF_IGNOREVISIBILITY))
 	{ // Visible
 		return true;
@@ -3148,11 +3158,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSightOrRange)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_FLOAT(range);
 	PARAM_STATE(jump);
-	PARAM_BOOL_OPT(twodi)	{ twodi = false; }
+	PARAM_INT_OPT(flags)	{ flags = 0; }
 
 	ACTION_SET_RESULT(false);	// Jumps should never set the result for inventory state chains!
 
-	if (StartCheckSightOrRange(self, range, twodi))
+	if (StartCheckSightOrRange(self, range, flags))
 	{
 		ACTION_JUMP(jump);
 	}
