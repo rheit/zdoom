@@ -296,6 +296,29 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetDistance)
 //==========================================================================
 static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, bool twodi);
 
+static bool StartCheckSightOrRange(AActor *self, double range, bool twodi)
+{
+	range = range * range * (double(FRACUNIT) * FRACUNIT);		// no need for square roots
+	for (int i = 0; i < MAXPLAYERS; ++i)
+	{
+		if (playeringame[i])
+		{
+			// Always check from each player.
+			if (DoCheckSightOrRange(self, players[i].mo, range, twodi))
+			{
+				return false;
+			}
+			// If a player is viewing from a non-player, check that too.
+			if (players[i].camera != NULL && players[i].camera->player == NULL &&
+				DoCheckSightOrRange(self, players[i].camera, range, twodi))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, CheckSightOrRange)
 {
 	if (numret > 0)
@@ -306,27 +329,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, CheckSightOrRange)
 		PARAM_FLOAT(range);
 		PARAM_BOOL_OPT(twodi)	{ twodi = false; }
 
-		range = range * range * (double(FRACUNIT) * FRACUNIT);		// no need for square roots
-		for (int i = 0; i < MAXPLAYERS; ++i)
-		{
-			if (playeringame[i])
-			{
-				// Always check from each player.
-				if (DoCheckSightOrRange(self, players[i].mo, range, twodi))
-				{
-					ret->SetInt(0);
-					return 1;
-				}
-				// If a player is viewing from a non-player, check that too.
-				if (players[i].camera != NULL && players[i].camera->player == NULL &&
-					DoCheckSightOrRange(self, players[i].camera, range, twodi))
-				{
-					ret->SetInt(0);
-					return 1;
-				}
-			}
-		}
-		ret->SetInt(1);
+		ret->SetInt(StartCheckSightOrRange(self, range, twodi));
 		return 1;
 	}
 	return 0;
@@ -3149,25 +3152,10 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSightOrRange)
 
 	ACTION_SET_RESULT(false);	// Jumps should never set the result for inventory state chains!
 
-	range = range * range * (double(FRACUNIT) * FRACUNIT);		// no need for square roots
-	for (int i = 0; i < MAXPLAYERS; ++i)
+	if (StartCheckSightOrRange(self, range, twodi))
 	{
-		if (playeringame[i])
-		{
-			// Always check from each player.
-			if (DoCheckSightOrRange(self, players[i].mo, range, twodi))
-			{
-				return numret;
-			}
-			// If a player is viewing from a non-player, check that too.
-			if (players[i].camera != NULL && players[i].camera->player == NULL &&
-				DoCheckSightOrRange(self, players[i].camera, range, twodi))
-			{
-				return numret;
-			}
-		}
+		ACTION_JUMP(jump);
 	}
-	ACTION_JUMP(jump);
 	return numret;
 }
 
