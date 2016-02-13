@@ -965,8 +965,21 @@ static bool CheckCollisionGroups(AActor *t1, AActor *t2)
 	if (t1->NoCollideActor == NULL && t2->NoCollideActor == NULL)
 		return false;
 
-	//Either they didn't have a shared collision name, or neither of them did.
-	//So check for collision actor exclusions. This works two-way.
+	//Check for inheriting actors of NoCollideChild.
+	if ((t1->flags7 & MF7_NOCOLLIDECHILD) && (t1->NoCollideActor != NULL))
+	{
+		if (t2->IsKindOf(t1->NoCollideActor))
+			return true;
+	}
+
+	//Check the inverse just to make sure.
+	if ((t2->flags7 & MF7_NOCOLLIDECHILD) && (t2->NoCollideActor != NULL))
+	{
+		if (t1->IsKindOf(t2->NoCollideActor))
+			return true;
+	}
+
+	//Check for collision actor exclusions. This works two-way.
 	if (((t1->NoCollideActor != NULL) && (t1->NoCollideActor == t2->GetClass())) ||
 		((t2->NoCollideActor != NULL) && (t2->NoCollideActor == t1->GetClass())))
 	{
