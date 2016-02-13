@@ -546,3 +546,10 @@ enum
 	FMDF_INTERPOLATE =		1 << 1,
 	FMDF_NOANGLE =			1 << 2,
 };
+
+//Flags for (A_)CheckSightOrRange
+enum
+{
+	CSRF_NOZ =			1,
+	CSRF_NOSIGHT =		1 << 1,
+};
