@@ -965,15 +965,15 @@ static bool CheckCollisionGroups(AActor *t1, AActor *t2)
 	if (t1->NoCollideActor == NULL && t2->NoCollideActor == NULL)
 		return false;
 
-	//Check for inheriting actors of NoCollideChild.
-	if ((t1->flags7 & MF7_NOCOLLIDECHILD) && (t1->NoCollideActor != NULL))
+	//Check for inheriting actors of NOCOLLIDESUBCLASS.
+	if ((t1->flags7 & MF7_NOCOLLIDESUBCLASS) && (t1->NoCollideActor != NULL))
 	{
 		if (t2->IsKindOf(t1->NoCollideActor))
 			return true;
 	}
 
 	//Check the inverse just to make sure.
-	if ((t2->flags7 & MF7_NOCOLLIDECHILD) && (t2->NoCollideActor != NULL))
+	if ((t2->flags7 & MF7_NOCOLLIDESUBCLASS) && (t2->NoCollideActor != NULL))
 	{
 		if (t1->IsKindOf(t2->NoCollideActor))
 			return true;

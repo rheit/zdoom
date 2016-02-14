@@ -376,7 +376,7 @@ enum ActorFlag7
 	MF7_FORCEDECAL		= 0x00080000,	// [ZK] Forces puff's decal to override the weapon's.
 	MF7_LAXTELEFRAGDMG	= 0x00100000,	// [MC] Telefrag damage can be reduced.
 	MF7_ICESHATTER		= 0x00200000,	// [MC] Shatters ice corpses regardless of damagetype.
-	MF7_NOCOLLIDECHILD	= 0x00400000,	// NoCollideActor includes any children inheriting from this actor.
+	MF7_NOCOLLIDESUBCLASS	= 0x00400000,	// NoCollideActor includes any children inheriting from this actor.
 };
 
 // --- mobj.renderflags ---
