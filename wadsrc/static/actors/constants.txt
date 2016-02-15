@@ -546,3 +546,9 @@ enum
 	FMDF_INTERPOLATE =		1 << 1,
 	FMDF_NOANGLE =			1 << 2,
 };
+
+enum
+{
+	CSF_NOSPRITE =		1,
+	CSF_NOFRAME =		1 << 1,
+};
