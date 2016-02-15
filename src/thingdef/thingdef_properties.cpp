@@ -1368,6 +1368,24 @@ DEFINE_PROPERTY(species, S, Actor)
 //==========================================================================
 //
 //==========================================================================
+DEFINE_PROPERTY(nocollisiongroup, S, Actor)
+{
+	PROP_STRING_PARM(n, 0);
+	defaults->NoCollideGroup = n;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(nocollisionactor, S, Actor)
+{
+	PROP_STRING_PARM(str, 0);
+	defaults->NoCollideActor = FindClassTentative(str, RUNTIME_CLASS(AActor));
+}
+
+//==========================================================================
+//
+//==========================================================================
 DEFINE_PROPERTY(clearflags, 0, Actor)
 {
 	defaults->flags = 0;

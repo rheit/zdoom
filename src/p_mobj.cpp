@@ -441,6 +441,11 @@ void AActor::Serialize (FArchive &arc)
 	{
 		arc << DefThreshold;
 	}
+	if (SaveVersion >= 4534)
+	{
+		arc << NoCollideActor
+			<< NoCollideGroup;
+	}
 
 	{
 		FString tagstr;

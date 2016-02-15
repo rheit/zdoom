@@ -954,6 +954,45 @@ static bool CheckRipLevel(AActor *victim, AActor *projectile)
 	return true;
 }
 
+static bool CheckCollisionGroups(AActor *t1, AActor *t2)
+{
+	if (!t1 || !t2) //Better safe than sorry.
+		return true;
+
+	//Make sure once we have a collision group, they're not nothing.
+	if (t1->NoCollideGroup == t2->NoCollideGroup)
+	{
+		if (t1->NoCollideGroup != NAME_None)
+			return true;
+	}
+
+	//Skip the rest if neither have NoCollisionActor defined.
+	if (t1->NoCollideActor == NULL && t2->NoCollideActor == NULL)
+		return false;
+
+	//Check for inheriting actors of NOCOLLIDESUBCLASS.
+	if ((t1->flags7 & MF7_NOCOLLIDESUBCLASS) && (t1->NoCollideActor != NULL))
+	{
+		if (t2->IsKindOf(t1->NoCollideActor))
+			return true;
+	}
+
+	//Check the inverse just to make sure.
+	if ((t2->flags7 & MF7_NOCOLLIDESUBCLASS) && (t2->NoCollideActor != NULL))
+	{
+		if (t1->IsKindOf(t2->NoCollideActor))
+			return true;
+	}
+
+	//Check for collision actor exclusions. This works two-way.
+	if (((t1->NoCollideActor != NULL) && (t1->NoCollideActor == t2->GetClass())) ||
+		((t2->NoCollideActor != NULL) && (t2->NoCollideActor == t1->GetClass())))
+	{
+		return true;
+	}
+	return false;
+}
+
 
 //==========================================================================
 //
@@ -1041,6 +1080,9 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 
 	// don't clip against self
 	if (thing == tm.thing)
+		return true;
+
+	if (CheckCollisionGroups(thing, tm.thing))
 		return true;
 
 	if (!((thing->flags & (MF_SOLID | MF_SPECIAL | MF_SHOOTABLE)) || thing->flags6 & MF6_TOUCHY))
@@ -1706,6 +1748,10 @@ bool P_TestMobjZ(AActor *actor, bool quick, AActor **pOnmobj)
 			continue;
 		}
 		if ((actor->flags2 | thing->flags2) & MF2_THRUACTORS)
+		{
+			continue;
+		}
+		if (CheckCollisionGroups(actor, thing))
 		{
 			continue;
 		}
@@ -5204,6 +5250,8 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 		// Or would that risk breaking established behavior? THRUGHOST, like MTHRUSPECIES,
 		// is normally for projectiles which would have exploded by now anyway...
 		if (thing->flags6 & MF6_THRUSPECIES && thing->GetSpecies() == intersect->GetSpecies())
+			continue;
+		if (CheckCollisionGroups(thing, intersect))
 			continue;
 		if ((thing->flags & MF_MISSILE) && (intersect->flags2 & MF2_REFLECTIVE) && (intersect->flags7 & MF7_THRUREFLECT))
 			continue;
