@@ -80,6 +80,8 @@ bool IsOpenALPresent()
 {
 #ifdef NO_OPENAL
 	return false;
+#elif !defined DYN_OPENAL
+	return true;
 #else
 	static bool cached_result = false;
 	static bool done = false;
