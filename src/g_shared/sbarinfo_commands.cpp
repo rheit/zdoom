@@ -3499,6 +3499,82 @@ class CommandIfHealth : public SBarInfoCommandFlowControl
 
 ////////////////////////////////////////////////////////////////////////////////
 
+class CommandIfAmmo : public SBarInfoCommandFlowControl
+{
+public:
+	CommandIfAmmo(SBarInfo *script) : SBarInfoCommandFlowControl(script),
+		negate(false), secammo(false), percentage(false)
+	{
+	}
+
+	void	Parse(FScanner &sc, bool fullScreenOffsets)
+	{
+		while (sc.CheckToken(TK_Identifier))
+		{
+			if (sc.Compare("not"))
+				negate = true;
+			else if (sc.Compare("ammo2"))
+				secammo = true;
+			else
+				sc.ScriptError("Unknown optional parameter '%s'.", sc.String);
+		}
+
+		sc.MustGetToken(TK_IntConst);
+		percentage = sc.CheckToken('%');
+		value = sc.Number;
+
+		SBarInfoCommandFlowControl::Parse(sc, fullScreenOffsets);
+	}
+	void	Tick(const SBarInfoMainBlock *block, const DSBarInfo *statusBar, bool hudChanged)
+	{
+		SBarInfoCommandFlowControl::Tick(block, statusBar, hudChanged);
+
+		if (statusBar->CPlayer->ReadyWeapon != NULL)
+		{
+			AAmmo *ammo = NULL;
+			int ammocount = 0;
+			int ammomax = 0;
+			int amount;
+
+			if (!secammo)
+				ammo = statusBar->CPlayer->ReadyWeapon->Ammo1;
+			else
+				ammo = statusBar->CPlayer->ReadyWeapon->Ammo2;
+
+			if (ammo == NULL)
+			{
+				SetTruth(false, block, statusBar);
+				return;
+			}
+
+			ammocount = ammo->Amount;
+			ammomax = ammo->MaxAmount;
+
+			if (!percentage)
+				amount = ammocount;
+			else if (ammomax > 0) // Avoid dividing by zero
+				amount = ammocount * 100 / ammomax;
+			else
+			{
+				SetTruth(false, block, statusBar);
+				return;
+			}
+
+			SetTruth((amount >= value) ^ negate, block, statusBar);
+			return;
+		}
+
+		SetTruth(false, block, statusBar);
+	}
+protected:
+	bool	negate;
+	bool	secammo;
+	bool	percentage;
+	int		value;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 static const char *SBarInfoCommandNames[] =
 {
 	"drawimage", "drawnumber", "drawswitchableimage",
@@ -3508,7 +3584,7 @@ static const char *SBarInfoCommandNames[] =
 	"gamemode", "playerclass", "playertype", "aspectratio",
 	"isselected", "usesammo", "usessecondaryammo",
 	"hasweaponpiece", "inventorybarnotvisible",
-	"weaponammo", "ininventory", "alpha", "ifhealth",
+	"weaponammo", "ininventory", "alpha", "ifhealth", "ifammo",
 	NULL
 };
 
@@ -3522,6 +3598,7 @@ enum SBarInfoCommands
 	SBARINFO_ISSELECTED, SBARINFO_USESAMMO, SBARINFO_USESSECONDARYAMMO,
 	SBARINFO_HASWEAPONPIECE, SBARINFO_INVENTORYBARNOTVISIBLE,
 	SBARINFO_WEAPONAMMO, SBARINFO_ININVENTORY, SBARINFO_ALPHA, SBARINFO_IFHEALTH,
+	SBARINFO_IFAMMO,
 };
 
 SBarInfoCommand *SBarInfoCommandFlowControl::NextCommand(FScanner &sc)
@@ -3555,6 +3632,7 @@ SBarInfoCommand *SBarInfoCommandFlowControl::NextCommand(FScanner &sc)
 			case SBARINFO_ININVENTORY: return new CommandInInventory(script);
 			case SBARINFO_ALPHA: return new CommandAlpha(script);
 			case SBARINFO_IFHEALTH: return new CommandIfHealth(script);
+			case SBARINFO_IFAMMO: return new CommandIfAmmo(script);
 		}
 
 		sc.ScriptError("Unknown command '%s'.\n", sc.String);
