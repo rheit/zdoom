@@ -185,6 +185,10 @@ TArray<FString> ACS_StringBuilderStack;
 #define STRINGBUILDER_START(Builder) if (Builder.IsNotEmpty() || ACS_StringBuilderStack.Size()) { ACS_StringBuilderStack.Push(Builder); Builder = ""; }
 #define STRINGBUILDER_FINISH(Builder) if (!ACS_StringBuilderStack.Pop(Builder)) { Builder = ""; }
 
+// [IBM] Required information for using the acs scripts ACSF_GETCAMERAX/Y/Z
+void AM_GetPosition(fixed_t & x, fixed_t & y);
+EXTERN_CVAR(Bool, map_point_coordinates)
+
 //============================================================================
 //
 // uallong
@@ -4481,6 +4485,9 @@ enum EACSFunctions
 	ACSF_SetSectorDamage,
 	ACSF_SetSectorTerrain,
 	ACSF_SpawnParticle,
+	ACSF_GetCameraX,
+	ACSF_GetCameraY,
+	ACSF_GetCameraZ,
 	
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
@@ -6026,7 +6033,45 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				P_SpawnParticle(x, y, z, xvel, yvel, zvel, color, fullbright, startalpha, lifetime, size, fadestep, accelx, accely, accelz);
 		}
 		break;
-		
+		case ACSF_GetCameraX:
+		case ACSF_GetCameraY:
+		case ACSF_GetCameraZ:
+		{
+			//Based on DrawCoordinates from shared_hud.cpp [IBM] (It's actually the same code)
+			fixed_t x;
+			fixed_t y;
+			fixed_t z;
+			if (playeringame[consoleplayer] == false){//this check is required because I think, when a user connect to the server
+				//he'll run the first interaction of this script, and by that, his player class is not yet loaded
+				//so if I try to get the player position, I'll be trying to load an invalid pointer.
+				//The return is going to be zero, while that player pointer is not yet created (requiring better explanation)
+				return 0;
+			}
+			if (!map_point_coordinates || !automapactive)//
+			{
+				x = players[consoleplayer].camera->X();
+				y = players[consoleplayer].camera->Y();
+				z =	players[consoleplayer].camera->Z();
+
+			}
+			else//Player is looking at the map
+			{
+				AM_GetPosition(x, y);
+				z = P_PointInSector(x, y)->floorplane.ZatPoint(x, y);
+			}
+			if (funcIndex == ACSF_GetCameraX)
+			{
+				return x;
+			}
+			else if (funcIndex == ACSF_GetCameraY)
+			{
+				return y;
+			}
+			//Else
+			return z;
+		}
+		break;
+
 		default:
 			break;
 	}
