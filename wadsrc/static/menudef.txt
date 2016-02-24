@@ -1304,7 +1304,7 @@ OptionMenu "CompatibilityOptions"
 	Option "Use buggier stair building",				"compat_stairs", "YesNo"
 	Option "Use Doom's floor motion behavior",			"compat_floormove", "YesNo"
 	Option "Use Doom's point-on-line algorithm",		"compat_pointonline", "YesNo"
-	Option "$CMPTMNU_MULTIEXIT",					"compat_multiexit", "YesNo"
+	Option "Level exit can be triggered more than once",	"compat_multiexit", "YesNo"
 	
 	StaticText " "
 	StaticText "Physics Behavior",1
