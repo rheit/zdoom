@@ -334,7 +334,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpawnHealth)
 	{
 		PARAM_PROLOGUE;
 		PARAM_OBJECT(self, AActor);
-		ret->SetInt(self->SpawnHealth());
+		PARAM_INT_OPT(pick_pointer)		{ pick_pointer = AAPTR_DEFAULT; }
+		self = COPY_AAPTR(self, pick_pointer);
+		if (self == NULL)
+		{
+			ret->SetInt(0);
+		}
+		else
+		{
+			ret->SetInt(self->SpawnHealth());
+		}
 		return 1;
 	}
 	return 0;
@@ -351,7 +360,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetGibHealth)
 	{
 		PARAM_PROLOGUE;
 		PARAM_OBJECT(self, AActor);
-		ret->SetInt(self->GetGibHealth());
+		PARAM_INT_OPT(pick_pointer)		{ pick_pointer = AAPTR_DEFAULT; }
+		self = COPY_AAPTR(self, pick_pointer);
+		if (self == NULL)
+		{
+			ret->SetInt(0);
+		}
+		else
+		{
+			ret->SetInt(self->GetGibHealth());
+		}
 		return 1;
 	}
 	return 0;
