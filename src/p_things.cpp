@@ -692,6 +692,7 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 		caller = temp;
 	}
 
+	FTextureID oldFloor = caller->floorpic;
 	fixedvec3 old = caller->Pos();
 	int oldpgroup = caller->Sector->PortalGroup;
 
@@ -752,8 +753,8 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 			caller->SetOrigin(xofs + FixedMul(rad, finecosine[fineangle]), yofs + FixedMul(rad, finesine[fineangle]), zofs, true);
 		}
 	}
-
-	if ((flags & WARPF_NOCHECKPOSITION) || P_TestMobjLocation(caller))
+	if ((flags & WARPF_NOCHECKPOSITION) || 
+		(P_TestMobjLocation(caller) && (!(flags & WARPF_NOLEAVEFLOORPIC) || (caller->floorpic == oldFloor))))
 	{
 		if (flags & WARPF_TESTONLY)
 		{
