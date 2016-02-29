@@ -691,13 +691,15 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 		reference = caller;
 		caller = temp;
 	}
-
+	fixedvec3 newpos;
 	fixedvec3 old = caller->Pos();
 	int oldpgroup = caller->Sector->PortalGroup;
 
 	zofs += FixedMul(reference->height, heightoffset);
 	
-
+	newpos.x = xofs;
+	newpos.y = yofs;
+	newpos.z = zofs;
 	if (!(flags & WARPF_ABSOLUTEANGLE))
 	{
 		angle += (flags & WARPF_USECALLERANGLE) ? caller->angle : reference->angle;
@@ -705,7 +707,7 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 
 	const fixed_t rad = FixedMul(radiusoffset, reference->radius);
 	const angle_t fineangle = angle >> ANGLETOFINESHIFT;
-
+	bool canMove = false;
 	if (!(flags & WARPF_ABSOLUTEPOSITION))
 	{
 		if (!(flags & WARPF_ABSOLUTEOFFSET))
@@ -715,46 +717,42 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 			// (borrowed from A_SpawnItemEx, assumed workable)
 			// in relative mode negative y values mean 'left' and positive ones mean 'right'
 			// This is the inverse orientation of the absolute mode!
-			
 			xofs = FixedMul(xofs1, finecosine[fineangle]) + FixedMul(yofs, finesine[fineangle]);
 			yofs = FixedMul(xofs1, finesine[fineangle]) - FixedMul(yofs, finecosine[fineangle]);
 		}
 
-		if (flags & WARPF_TOFLOOR)
-		{
-			// set correct xy
-			// now the caller's floorz should be appropriate for the assigned xy-position
-			// assigning position again with.
-			// extra unlink, link and environment calculation
-			caller->SetOrigin(reference->Vec3Offset(
-				xofs + FixedMul(rad, finecosine[fineangle]),
-				yofs + FixedMul(rad, finesine[fineangle]),
-				0), true);
-			caller->SetZ(caller->floorz + zofs);
-		}
-		else
-		{
-			caller->SetOrigin(reference->Vec3Offset(
-				 xofs + FixedMul(rad, finecosine[fineangle]),
-				 yofs + FixedMul(rad, finesine[fineangle]),
-				 zofs), true);
-		}
+		// [MC] In order to compensate for the ability to check stepheight and dropoff, perform all the calculations
+		// pre-move. 
+
+		newpos = reference->Vec3Offset(
+			xofs + FixedMul(rad, finecosine[fineangle]),
+			yofs + FixedMul(rad, finesine[fineangle]),
+			((flags & WARPF_TOFLOOR) ? 0 : zofs));
+
 	}
 	else // [MC] The idea behind "absolute" is meant to be "absolute". Override everything, just like A_SpawnItemEx's.
 	{
-		if (flags & WARPF_TOFLOOR)
+		newpos.x = xofs + FixedMul(rad, finecosine[fineangle]);
+		newpos.y = yofs + FixedMul(rad, finesine[fineangle]);
+	}
+
+	if (flags & WARPF_CHECKDROPOFF)
+	{
+		canMove = P_CheckMove(caller, newpos.x, newpos.y);
+		if (!canMove && !(flags & WARPF_NOCHECKPOSITION))
 		{
-			caller->SetOrigin(xofs + FixedMul(rad, finecosine[fineangle]), yofs + FixedMul(rad, finesine[fineangle]), zofs, true);
-			caller->SetZ(caller->floorz + zofs);
-		}
-		else
-		{
-			caller->SetOrigin(xofs + FixedMul(rad, finecosine[fineangle]), yofs + FixedMul(rad, finesine[fineangle]), zofs, true);
+			return false;
 		}
 	}
 
-	bool checkpos = (flags & WARPF_CHECKDROPOFF) ? P_CheckMove(caller, caller->X(), caller->Y()) : P_TestMobjLocation(caller);
-	if ((flags & WARPF_NOCHECKPOSITION) || checkpos)
+	caller->SetOrigin(newpos, true);
+	if (flags & WARPF_TOFLOOR)
+	{
+		caller->SetZ(caller->floorz + newpos.z);
+	}
+
+	//Check to see if it worked.
+	if ((flags & WARPF_NOCHECKPOSITION) || canMove || P_TestMobjLocation(caller))
 	{
 		if (flags & WARPF_TESTONLY)
 		{
