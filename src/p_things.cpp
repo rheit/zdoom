@@ -753,7 +753,8 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 		}
 	}
 
-	if ((flags & WARPF_NOCHECKPOSITION) || P_TestMobjLocation(caller))
+	bool checkpos = (flags & WARPF_CHECKDROPOFF) ? P_CheckMove(caller, caller->X(), caller->Y()) : P_TestMobjLocation(caller);
+	if ((flags & WARPF_NOCHECKPOSITION) || checkpos)
 	{
 		if (flags & WARPF_TESTONLY)
 		{
