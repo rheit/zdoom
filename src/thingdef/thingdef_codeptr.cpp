@@ -6840,3 +6840,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMovementDirection)
 	}
 	ACTION_RETURN_BOOL(true);
 }
+
+//===========================================================================
+//
+// A_FilterVisibility
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FilterVisibility)
+{
+	PARAM_ACTION_PROLOGUE;
+	PARAM_INT_OPT(visibleFilter) { visibleFilter = 0; }
+	self->VisibleFilter = visibleFilter;
+	return 0;
+}
