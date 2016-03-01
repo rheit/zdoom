@@ -739,6 +739,10 @@ int P_Thing_Warp(AActor *caller, AActor *reference, fixed_t xofs, fixed_t yofs, 
 	if (flags & WARPF_CHECKDROPOFF)
 	{
 		canMove = P_CheckMove(caller, newpos.x, newpos.y);
+		if (flags & WARPF_TESTONLY)
+		{
+			return canMove;
+		}
 		if (!canMove && !(flags & WARPF_NOCHECKPOSITION))
 		{
 			return false;
