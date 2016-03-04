@@ -1264,7 +1264,7 @@ void FWeaponSlots::SetFromGameInfo()
 	// Append extra weapons to the slots.
 	for (i = 0; i < NUM_WEAPON_SLOTS; ++i)
 	{
-		for (unsigned j = 0; j < gameinfo.DefaultWeaponSlots[i].Size(); i++)
+		for (unsigned j = 0; j < gameinfo.DefaultWeaponSlots[i].Size(); j++)
 		{
 			const PClass *cls = PClass::FindClass(gameinfo.DefaultWeaponSlots[i][j]);
 			if (cls == NULL)
