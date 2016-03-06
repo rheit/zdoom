@@ -3667,7 +3667,7 @@ struct aim_t
 	void EnterSectorPortal(int position, fixed_t frac, sector_t *entersec, fixed_t newtoppitch, fixed_t newbottompitch)
 	{
 		AActor *portal = entersec->SkyBoxes[position];
-		if (portal == NULL)
+		if (portal == NULL) return;
 		if (position == sector_t::ceiling && portal->threshold < limitz) return;
 		else if (position == sector_t::floor && portal->threshold > limitz) return;
 		aim_t newtrace = Clone();
@@ -3778,8 +3778,8 @@ struct aim_t
 		intercept_t *in;
 
 		if (aimdebug)
-			Printf("Start AimTraverse, start = %f,%f,%f, vect = %f,%f,%f\n",
-				startpos.x / 65536., startpos.y / 65536., startpos.y / 65536.,
+			Printf("Start AimTraverse, start = %f,%f,%f, vect = %f,%f\n",
+				startpos.x / 65536., startpos.y / 65536., startpos.z / 65536.,
 				aimtrace.x / 65536., aimtrace.y / 65536.);
 		
 		while ((in = it.Next()))
