@@ -87,7 +87,7 @@ struct FTraceInfo
 		return CheckPlane(checkFloor ? sector->floorplane : sector->ceilingplane);
 	}
 
-	bool FTraceInfo::Check3DFloorPlane(const F3DFloor *ffloor, bool checkBottom)
+	bool Check3DFloorPlane(const F3DFloor *ffloor, bool checkBottom)
 	{
 		return CheckPlane(checkBottom? *(ffloor->bottom.plane) : *(ffloor->top.plane));
 	}
