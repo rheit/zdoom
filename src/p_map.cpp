@@ -3667,7 +3667,7 @@ struct aim_t
 	void EnterSectorPortal(int position, fixed_t frac, sector_t *entersec, fixed_t newtoppitch, fixed_t newbottompitch)
 	{
 		AActor *portal = entersec->SkyBoxes[position];
-		if (portal == NULL)
+		if (portal == NULL) return;
 		if (position == sector_t::ceiling && portal->threshold < limitz) return;
 		else if (position == sector_t::floor && portal->threshold > limitz) return;
 		aim_t newtrace = Clone();
