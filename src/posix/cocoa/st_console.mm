@@ -220,12 +220,27 @@ struct TimedUpdater
 template <typename Function, unsigned int interval>
 unsigned int TimedUpdater<Function, interval>::m_previousTime;
 
-template <typename Function, unsigned int interval = THIRTY_FPS>
+template <typename Function, unsigned int interval /* = THIRTY_FPS */>
 static void UpdateTimed(const Function& function)
 {
 	TimedUpdater<Function, interval> dummy(function);
 }
 
+
+namespace {
+
+struct FAddTextLambda
+{
+	NSTextView *&m_textView;
+	unsigned int m_characterCount;
+
+	void operator()() const
+	{
+		[m_textView scrollRangeToVisible:NSMakeRange(m_characterCount, 0)];
+	}
+};
+
+}
 
 void FConsoleWindow::AddText(const char* message)
 {
@@ -315,10 +330,8 @@ void FConsoleWindow::AddText(const char* message)
 
 	if ([m_window isVisible])
 	{
-		UpdateTimed([&]()
-		{
-			[m_textView scrollRangeToVisible:NSMakeRange(m_characterCount, 0)];
-		});
+		FAddTextLambda lambda = { m_textView, m_characterCount };
+		UpdateTimed<FAddTextLambda, THIRTY_FPS>(lambda);
 	}
 }
 
@@ -419,6 +432,23 @@ void FConsoleWindow::ExpandTextView(const float height)
 }
 
 
+namespace {
+
+struct FProgressUpdateLambda
+{
+	NSProgressIndicator *&m_progressBar;
+	const int current;
+	const int maximum;
+
+	void operator()() const
+	{
+		[m_progressBar setMaxValue:maximum];
+		[m_progressBar setDoubleValue:current];
+	}
+};
+
+}
+
 void FConsoleWindow::Progress(const int current, const int maximum)
 {
 	if (nil == m_progressBar)
@@ -426,11 +456,8 @@ void FConsoleWindow::Progress(const int current, const int maximum)
 		return;
 	}
 
-	UpdateTimed([&]()
-	{
-		[m_progressBar setMaxValue:maximum];
-		[m_progressBar setDoubleValue:current];
-	});
+	FProgressUpdateLambda lambda = { m_progressBar, current, maximum };
+	UpdateTimed<FProgressUpdateLambda, THIRTY_FPS>(lambda);
 }
 
 
