@@ -943,7 +943,7 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 	bool forcedPain = false;
 	int fakeDamage = 0;
 	int holdDamage = 0;
-	int rawdamage = damage; 
+	const int rawdamage = damage; 
 	
 	if (damage < 0) damage = 0;
 
@@ -1297,12 +1297,19 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 
 				if (damage <= 0)
 				{
-					// If MF6_FORCEPAIN is set, make the player enter the pain state.
-					if (!(target->flags5 & MF5_NOPAIN) && inflictor != NULL &&
-						(inflictor->flags6 & MF6_FORCEPAIN) && !(inflictor->flags5 & MF5_PAINLESS) 
-						&& (!(player->mo->flags2 & MF2_INVULNERABLE)) && (!(player->cheats & CF_GODMODE)) && (!(player->cheats & CF_GODMODE2)))
+					if (!(target->flags5 & MF5_NOPAIN))
 					{
-						goto dopain;
+						// If MF6_FORCEPAIN is set, make the player enter the pain state.
+						if ((inflictor != NULL) && (inflictor->flags6 & MF6_FORCEPAIN) && !(inflictor->flags5 & MF5_PAINLESS) &&
+							(!(player->mo->flags2 & MF2_INVULNERABLE)) && (!(player->cheats & CF_GODMODE)) && (!(player->cheats & CF_GODMODE2)))
+						{
+							goto dopain;
+						}
+						if ((((player->mo->flags7 & MF7_ALLOWPAIN) || (player->mo->flags5 & MF5_NODAMAGE)) || ((inflictor != NULL) && (inflictor->flags7 & MF7_CAUSEPAIN))))
+						{
+							invulpain = true;
+							goto fakepain;
+						}
 					}
 					return damage;
 				}
