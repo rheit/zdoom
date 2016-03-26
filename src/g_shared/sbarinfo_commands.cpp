@@ -3499,6 +3499,23 @@ class CommandIfHealth : public SBarInfoCommandFlowControl
 
 ////////////////////////////////////////////////////////////////////////////////
 
+class CommandIfInvulnerable : public CommandUsesAmmo
+{
+	public:
+		CommandIfInvulnerable(SBarInfo *script) : CommandUsesAmmo(script)
+		{
+		}
+
+		void	Tick(const SBarInfoMainBlock *block, const DSBarInfo *statusBar, bool hudChanged)
+		{
+			SBarInfoCommandFlowControl::Tick(block, statusBar, hudChanged);
+
+			SetTruth(((statusBar->CPlayer->mo->flags2 & MF2_INVULNERABLE) || (statusBar->CPlayer->cheats & (CF_GODMODE | CF_GODMODE2))) ^ negate, block, statusBar);
+		}
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 static const char *SBarInfoCommandNames[] =
 {
 	"drawimage", "drawnumber", "drawswitchableimage",
@@ -3509,6 +3526,7 @@ static const char *SBarInfoCommandNames[] =
 	"isselected", "usesammo", "usessecondaryammo",
 	"hasweaponpiece", "inventorybarnotvisible",
 	"weaponammo", "ininventory", "alpha", "ifhealth",
+	"ifinvulnerable",
 	NULL
 };
 
@@ -3522,6 +3540,7 @@ enum SBarInfoCommands
 	SBARINFO_ISSELECTED, SBARINFO_USESAMMO, SBARINFO_USESSECONDARYAMMO,
 	SBARINFO_HASWEAPONPIECE, SBARINFO_INVENTORYBARNOTVISIBLE,
 	SBARINFO_WEAPONAMMO, SBARINFO_ININVENTORY, SBARINFO_ALPHA, SBARINFO_IFHEALTH,
+	SBARINFO_IFINVULNERABLE,
 };
 
 SBarInfoCommand *SBarInfoCommandFlowControl::NextCommand(FScanner &sc)
@@ -3555,6 +3574,7 @@ SBarInfoCommand *SBarInfoCommandFlowControl::NextCommand(FScanner &sc)
 			case SBARINFO_ININVENTORY: return new CommandInInventory(script);
 			case SBARINFO_ALPHA: return new CommandAlpha(script);
 			case SBARINFO_IFHEALTH: return new CommandIfHealth(script);
+			case SBARINFO_IFINVULNERABLE: return new CommandIfInvulnerable(script);
 		}
 
 		sc.ScriptError("Unknown command '%s'.\n", sc.String);
