@@ -673,6 +673,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireGrenade)
 		return;
 
 	P_SetPsprite (player, ps_flash, flash);
+	self->player->psprites[ps_flash].processPending = true;
 
 	if (grenadetype != NULL)
 	{
