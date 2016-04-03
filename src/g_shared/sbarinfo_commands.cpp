@@ -3441,6 +3441,23 @@ class CommandIfInvulnerable : public SBarInfoNegatableFlowControl
 
 ////////////////////////////////////////////////////////////////////////////////
 
+class CommandIfInvulnerable : public CommandUsesAmmo
+{
+	public:
+		CommandIfInvulnerable(SBarInfo *script) : CommandUsesAmmo(script)
+		{
+		}
+
+		void	Tick(const SBarInfoMainBlock *block, const DSBarInfo *statusBar, bool hudChanged)
+		{
+			SBarInfoCommandFlowControl::Tick(block, statusBar, hudChanged);
+
+			SetTruth(((statusBar->CPlayer->mo->flags2 & MF2_INVULNERABLE) || (statusBar->CPlayer->cheats & (CF_GODMODE | CF_GODMODE2))) ^ negate, block, statusBar);
+		}
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 static const char *SBarInfoCommandNames[] =
 {
 	"drawimage", "drawnumber", "drawswitchableimage",
