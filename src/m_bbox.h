@@ -81,6 +81,13 @@ public:
 	inline double Left () const { return m_Box[BOXLEFT]; }
 	inline double Right () const { return m_Box[BOXRIGHT]; }
 
+	DVector2 Center () const
+	{
+		return DVector2(
+			(m_Box[BOXLEFT] + m_Box[BOXRIGHT]) / 2,
+			(m_Box[BOXTOP] + m_Box[BOXBOTTOM]) / 2);
+	}
+
 	bool inRange(const line_t *ld) const;
 
 	int BoxOnLineSide (const line_t *ld) const;
