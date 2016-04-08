@@ -6707,7 +6707,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 	if (flags & CBF_DROPOFF)
 	{
 		mobj->SetZ(pos.Z);
-		checker = P_CheckMove(mobj, pos);
+		checker = P_CheckMove(mobj, pos, true);
 		mobj->SetZ(oldpos.Z);
 	}
 	else

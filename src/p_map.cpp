@@ -2410,7 +2410,7 @@ bool P_TryMove(AActor *thing, const DVector2 &pos,
 //
 //==========================================================================
 
-bool P_CheckMove(AActor *thing, const DVector2 &pos)
+bool P_CheckMove(AActor *thing, const DVector2 &pos, bool dropoff)
 {
 	FCheckPosition tm;
 	double		newz = thing->Z();
@@ -2450,6 +2450,15 @@ bool P_CheckMove(AActor *thing, const DVector2 &pos)
 		}
 		if (!(thing->flags & MF_TELEPORT) && !(thing->flags3 & MF3_FLOORHUGGER))
 		{
+			// special logic to move a monster off a dropoff
+			// this intentionally does not check for standing on things.
+			if (dropoff && (
+				thing->floorz - tm.floorz > thing->MaxDropOffHeight ||
+				thing->dropoffz - tm.dropoffz > thing->MaxDropOffHeight))
+			{
+				thing->flags6 &= ~MF6_INTRYMOVE;
+				return false;
+			}
 			if (tm.floorz - newz > thing->MaxStepHeight)
 			{ // too big a step up
 				return false;
