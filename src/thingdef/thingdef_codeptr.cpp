@@ -686,7 +686,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlaySound)
 	PARAM_FLOAT_OPT	(volume)		{ volume = 1; }
 	PARAM_BOOL_OPT	(looping)		{ looping = false; }
 	PARAM_FLOAT_OPT	(attenuation)	{ attenuation = ATTN_NORM; }
-	PARAM_BOOL_OPT(local)			{ local = false; }
+	PARAM_BOOL_OPT	(local)			{ local = false; }
 
 	if (!looping)
 	{
