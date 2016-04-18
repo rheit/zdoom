@@ -2086,7 +2086,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItem)
 	if (distance==0) 
 	{
 		// use the minimum distance that does not result in an overlap
-		distance=(self->radius+GetDefaultByType(missile)->radius)>>FRACBITS;
+		distance=(self->radius+GetDefaultByType(missile)->radius);
 	}
 
 	if (ACTION_CALL_FROM_WEAPON())
