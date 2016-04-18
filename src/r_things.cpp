@@ -1195,6 +1195,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 	FTexture*			tex;
 	vissprite_t*		vis;
 	static vissprite_t	avis[NUMPSPRITES];
+	vissprite_t			tempvis;
 	bool noaccel;
 
 	assert(pspnum >= 0 && pspnum < NUMPSPRITES);
@@ -1225,7 +1226,6 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 
 	tx -= tex->GetScaledLeftOffset() << FRACBITS;
 	x1 = (centerxfrac + FixedMul (tx, pspritexscale)) >>FRACBITS;
-	VisPSpritesX1[pspnum] = x1;
 
 	// off the right side
 	if (x1 > viewwidth)
@@ -1239,13 +1239,11 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 		return;
 	
 	// store information in a vissprite
-	vis = &avis[pspnum];
+	vis = &tempvis;
 	vis->renderflags = owner->renderflags;
 	vis->floorclip = 0;
 
-
 	vis->texturemid = MulScale16((BASEYCENTER<<FRACBITS) - sy, tex->yScale) + (tex->TopOffset << FRACBITS);
-
 
 	if (camera->player && (RenderTarget != screen ||
 		viewheight == RenderTarget->GetHeight() ||
@@ -1296,6 +1294,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 		vis->startfrac += vis->xiscale*(vis->x1-x1);
 
 	noaccel = false;
+	FDynamicColormap *colormap_to_use = NULL;
 	if (pspnum <= ps_flash)
 	{
 		vis->Style.alpha = owner->alpha;
@@ -1392,11 +1391,11 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 		{
 			noaccel = true;
 		}
-		VisPSpritesBaseColormap[pspnum] = mybasecolormap;
+		colormap_to_use = mybasecolormap;
 	}
 	else
 	{
-		VisPSpritesBaseColormap[pspnum] = basecolormap;
+		colormap_to_use = basecolormap;
 		vis->Style.colormap = basecolormap->Maps;
 		vis->Style.RenderStyle = STYLE_Normal;
 	}
@@ -1409,7 +1408,10 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, fixed_t sx, fixed_
 		style.CheckFuzz();
 		if (style.BlendOp != STYLEOP_Fuzz)
 		{
-			VisPSprites[pspnum] = vis;
+			VisPSpritesX1[pspnum] = x1;
+			VisPSpritesBaseColormap[pspnum] = colormap_to_use;
+			VisPSprites[pspnum] = &avis[pspnum];
+			avis[pspnum] = *vis;
 			return;
 		}
 	}
@@ -1585,9 +1587,6 @@ void R_DrawRemainingPlayerSprites()
 		}
 	}
 }
-
-
-
 
 //
 // R_SortVisSprites
