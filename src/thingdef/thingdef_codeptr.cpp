@@ -207,8 +207,7 @@ DEFINE_ACTION_FUNCTION(AActor, CheckClass)
 	if (numret > 0)
 	{
 		assert(ret != NULL);
-		PARAM_PROLOGUE;
-		PARAM_OBJECT	(self, AActor);
+		PARAM_SELF_PROLOGUE(AActor);
 		PARAM_CLASS		(checktype, AActor);
 		PARAM_INT_OPT	(pick_pointer)		{ pick_pointer = AAPTR_DEFAULT; }
 		PARAM_BOOL_OPT	(match_superclass)	{ match_superclass = false; }
@@ -244,8 +243,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, IsPointerEqual)
 	if (numret > 0)
 	{
 		assert(ret != NULL);
-		PARAM_PROLOGUE;
-		PARAM_OBJECT	(self, AActor);
+		PARAM_SELF_PROLOGUE(AActor);
 		PARAM_INT		(ptr_select1);
 		PARAM_INT		(ptr_select2);
 
@@ -268,8 +266,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, CountInv)
 	if (numret > 0)
 	{
 		assert(ret != NULL);
-		PARAM_PROLOGUE;
-		PARAM_OBJECT(self, AActor);
+		PARAM_SELF_PROLOGUE(AActor);
 		PARAM_CLASS(itemtype, AInventory);
 		PARAM_INT_OPT(pick_pointer)		{ pick_pointer = AAPTR_DEFAULT; }
 
@@ -300,8 +297,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetDistance)
 	if (numret > 0)
 	{
 		assert(ret != NULL);
-		PARAM_PROLOGUE;
-		PARAM_OBJECT(self, AActor);
+		PARAM_SELF_PROLOGUE(AActor);
 		PARAM_BOOL(checkz);
 		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
 
@@ -333,8 +329,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpawnHealth)
 {
 	if (numret > 0)
 	{
-		PARAM_PROLOGUE;
-		PARAM_OBJECT(self, AActor);
+		PARAM_SELF_PROLOGUE(AActor);
 		ret->SetInt(self->SpawnHealth());
 		return 1;
 	}
@@ -350,8 +345,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetGibHealth)
 {
 	if (numret > 0)
 	{
-		PARAM_PROLOGUE;
-		PARAM_OBJECT(self, AActor);
+		PARAM_SELF_PROLOGUE(AActor);
 		ret->SetInt(self->GetGibHealth());
 		return 1;
 	}
@@ -372,32 +366,28 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetGibHealth)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, __decorate_internal_state__)
 {
-	PARAM_PROLOGUE;
-	PARAM_OBJECT(self, AActor);
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(returnme);
 	ACTION_RETURN_STATE(returnme);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, __decorate_internal_int__)
 {
-	PARAM_PROLOGUE;
-	PARAM_OBJECT(self, AActor);
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(returnme);
 	ACTION_RETURN_INT(returnme);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, __decorate_internal_bool__)
 {
-	PARAM_PROLOGUE;
-	PARAM_OBJECT(self, AActor);
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_BOOL(returnme);
 	ACTION_RETURN_BOOL(returnme);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, __decorate_internal_float__)
 {
-	PARAM_PROLOGUE;
-	PARAM_OBJECT(self, AActor);
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(returnme);
 	if (numret > 0)
 	{
@@ -420,7 +410,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, __decorate_internal_float__)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RearrangePointers)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(ptr_target);
 	PARAM_INT_OPT	(ptr_master)		{ ptr_master = AAPTR_DEFAULT; }
 	PARAM_INT_OPT	(ptr_tracer)		{ ptr_tracer = AAPTR_TRACER; }
@@ -500,7 +490,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RearrangePointers)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_TransferPointer)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(ptr_source);
 	PARAM_INT		(ptr_recipient);
 	PARAM_INT		(ptr_sourcefield);
@@ -659,7 +649,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ComboAttack)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BasicAttack)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT	(melee_damage);
 	PARAM_SOUND	(melee_sound);
 	PARAM_CLASS	(missile_type, AActor);
@@ -738,7 +728,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_StopSound)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlayWeaponSound)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_SOUND(soundid);
 
 	S_Sound(self, CHAN_WEAPON, soundid, 1, ATTN_NORM);
@@ -747,7 +737,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlayWeaponSound)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlaySoundEx)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_SOUND		(soundid);
 	PARAM_NAME		(channel);
 	PARAM_BOOL_OPT	(looping)		  { looping = false; }
@@ -784,7 +774,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlaySoundEx)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_StopSoundEx)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME(channel);
 
 	if (channel > NAME_Auto && channel <= NAME_SoundSlot7)
@@ -808,7 +798,7 @@ enum
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SeekerMissile)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(ang1);
 	PARAM_INT(ang2);
 	PARAM_INT_OPT(flags)	{ flags = 0; }
@@ -865,7 +855,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BulletAttack)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Jump)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT_OPT(maxchance) { maxchance = 256; }
 
 	paramnum++;		// Increment paramnum to point at the first jump target
@@ -886,7 +876,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Jump)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHealthLower)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(health);
 	PARAM_STATE		(jump);
 	PARAM_INT_OPT	(ptr_selector)	{ ptr_selector = AAPTR_DEFAULT; }
@@ -909,7 +899,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHealthLower)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetOutsideMeleeRange)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 
 	if (!self->CheckMeleeRange())
@@ -926,7 +916,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetOutsideMeleeRange)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetInsideMeleeRange)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 
 	if (self->CheckMeleeRange())
@@ -943,7 +933,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetInsideMeleeRange)
 //==========================================================================
 static int DoJumpIfCloser(AActor *target, VM_ARGS)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT	(dist);
 	PARAM_STATE	(jump);
 	PARAM_BOOL_OPT(noz) { noz = false; }
@@ -964,7 +954,7 @@ static int DoJumpIfCloser(AActor *target, VM_ARGS)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfCloser)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 
 	AActor *target;
 
@@ -984,13 +974,13 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfCloser)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTracerCloser)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	return DoJumpIfCloser(self->tracer, VM_ARGS_NAMES);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfMasterCloser)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	return DoJumpIfCloser(self->master, VM_ARGS_NAMES);
 }
 
@@ -999,9 +989,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfMasterCloser)
 // State jump function
 //
 //==========================================================================
-int DoJumpIfInventory(AActor *owner, AActor *self, AActor *stateowner, FState *callingstate, VMValue *param, int numparam, VMReturn *ret, int numret)
+int DoJumpIfInventory(AActor *owner, AActor *self, VMValue *param, int numparam, VMReturn *ret, int numret)
 {
-	int paramnum = NAP-1;
+	int paramnum = 0;
 	PARAM_CLASS		(itemtype, AInventory);
 	PARAM_INT		(itemamount);
 	PARAM_STATE		(label);
@@ -1038,14 +1028,14 @@ int DoJumpIfInventory(AActor *owner, AActor *self, AActor *stateowner, FState *c
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfInventory)
 {
-	PARAM_ACTION_PROLOGUE;
-	return DoJumpIfInventory(self, self, stateowner, callingstate, param, numparam, ret, numret);
+	PARAM_SELF_PROLOGUE(AActor);
+	return DoJumpIfInventory(self, self, param, numparam, ret, numret);
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfInTargetInventory)
 {
-	PARAM_ACTION_PROLOGUE;
-	return DoJumpIfInventory(self->target, self, stateowner, callingstate, param, numparam, ret, numret);
+	PARAM_SELF_PROLOGUE(AActor);
+	return DoJumpIfInventory(self->target, self, param, numparam, ret, numret);
 }
 
 //==========================================================================
@@ -1055,7 +1045,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfInTargetInventory)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfArmorType)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME	 (type);
 	PARAM_STATE	 (label);
 	PARAM_INT_OPT(amount) { amount = 1; }
@@ -1178,7 +1168,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusThrust)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CallSpecial)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(special);
 	PARAM_INT_OPT	(arg1) { arg1 = 0; }
 	PARAM_INT_OPT	(arg2) { arg2 = 0; }
@@ -1211,7 +1201,7 @@ enum CM_Flags
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomMissile)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS		(ti, AActor);
 	PARAM_FLOAT_OPT	(Spawnheight) { Spawnheight = 32; }
 	PARAM_FLOAT_OPT	(Spawnofs_xy) { Spawnofs_xy = 0; }
@@ -1355,7 +1345,7 @@ enum CBA_Flags
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_ANGLE		(spread_xy);
 	PARAM_ANGLE		(spread_z);
 	PARAM_INT		(numbullets);
@@ -1457,7 +1447,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomMeleeAttack)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomComboAttack)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS		(ti, AActor);
 	PARAM_FLOAT		(spawnheight);
 	PARAM_INT		(damage);
@@ -1891,7 +1881,7 @@ enum
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(damage);
 	PARAM_INT_OPT	(spawnofs_xy)		{ spawnofs_xy = 0; }
 	PARAM_COLOR_OPT	(color1)			{ color1 = 0; }
@@ -2007,7 +1997,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 
 static bool DoGiveInventory(AActor *receiver, bool orresult, VM_ARGS)
 {
-	int paramnum = NAP-1;
+	int paramnum = 0;
 	PARAM_CLASS		(mi, AInventory);
 	PARAM_INT_OPT	(amount)			{ amount = 1; }
 
@@ -2057,19 +2047,19 @@ static bool DoGiveInventory(AActor *receiver, bool orresult, VM_ARGS)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GiveInventory)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	ACTION_RETURN_BOOL(DoGiveInventory(self, false, VM_ARGS_NAMES));
 }	
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GiveToTarget)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	ACTION_RETURN_BOOL(DoGiveInventory(self->target, false, VM_ARGS_NAMES));
 }
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GiveToChildren)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -2087,7 +2077,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GiveToChildren)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GiveToSiblings)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 
 	TThinkerIterator<AActor> it;
 	AActor *mo;
@@ -2119,7 +2109,7 @@ enum
 
 bool DoTakeInventory(AActor *receiver, bool orresult, VM_ARGS)
 {
-	int paramnum = NAP-1;
+	int paramnum = 0;
 	PARAM_CLASS		(itemtype, AInventory);
 	PARAM_INT_OPT	(amount)		{ amount = 0; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -2143,19 +2133,19 @@ bool DoTakeInventory(AActor *receiver, bool orresult, VM_ARGS)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_TakeInventory)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	ACTION_RETURN_BOOL(DoTakeInventory(self, false, VM_ARGS_NAMES));
 }	
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_TakeFromTarget)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	ACTION_RETURN_BOOL(DoTakeInventory(self->target, false, VM_ARGS_NAMES));
 }	
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_TakeFromChildren)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	TThinkerIterator<AActor> it;
 	AActor *mo;
 	int count = 0;
@@ -2172,7 +2162,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_TakeFromChildren)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_TakeFromSiblings)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	TThinkerIterator<AActor> it;
 	AActor *mo;
 	int count = 0;
@@ -2462,7 +2452,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItem)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnItemEx)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS		(missile, AActor);
 	PARAM_FLOAT_OPT	(xofs)		{ xofs = 0; }
 	PARAM_FLOAT_OPT	(yofs)		{ yofs = 0; }
@@ -2624,7 +2614,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ThrowGrenade)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Recoil)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(xyvel);
 
 	self->Thrust(self->Angles.Yaw + 180., xyvel);
@@ -2639,7 +2629,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Recoil)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SelectWeapon)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS(cls, AWeapon);
 
 	if (cls == NULL || self->player == NULL) 
@@ -2673,7 +2663,7 @@ EXTERN_CVAR(Float, con_midtime)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Print)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STRING	(text);
 	PARAM_FLOAT_OPT	(time)		{ time = 0; }
 	PARAM_NAME_OPT	(fontname)	{ fontname = NAME_None; }
@@ -2708,7 +2698,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Print)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PrintBold)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STRING	(text);
 	PARAM_FLOAT_OPT	(time)		{ time = 0; }
 	PARAM_NAME_OPT	(fontname)	{ fontname = NAME_None; }
@@ -2739,7 +2729,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PrintBold)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Log)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STRING(text);
 
 	if (text[0] == '$') text = GStrings(&text[1]);
@@ -2756,7 +2746,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Log)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LogInt)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(num);
 	Printf("%d\n", num);
 	return 0;
@@ -2770,7 +2760,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LogInt)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LogFloat)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(num);
 	IGNORE_FORMAT_PRE
 	Printf("%H\n", num);
@@ -2785,7 +2775,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LogFloat)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTranslucent)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT		(alpha);
 	PARAM_INT_OPT	(mode)	{ mode = 0; }
 
@@ -2881,7 +2871,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeOut)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeTo)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT		(target);
 	PARAM_FLOAT_OPT	(amount)		{ amount = 0.1; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -2926,7 +2916,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeTo)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetScale)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT		(scalex);
 	PARAM_FLOAT_OPT	(scaley)	{ scaley = scalex; }
 	PARAM_INT_OPT	(ptr)		{ ptr = AAPTR_DEFAULT; }
@@ -2954,7 +2944,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetScale)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetMass)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(mass);
 
 	self->Mass = mass;
@@ -2968,7 +2958,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetMass)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnDebris)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS		(debris, AActor);
 	PARAM_BOOL_OPT	(transfer_translation)	{ transfer_translation = false; }
 	PARAM_FLOAT_OPT	(mult_h)				{ mult_h = 1; }
@@ -3023,7 +3013,7 @@ enum SPFflag
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnParticle)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_COLOR		(color);
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_INT_OPT	(lifetime)		{ lifetime = 35; }
@@ -3084,7 +3074,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnParticle)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSight)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 
 	for (int i = 0; i < MAXPLAYERS; i++) 
@@ -3153,7 +3143,7 @@ static bool DoCheckSightOrRange(AActor *self, AActor *camera, double range, bool
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSightOrRange)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(range);
 	PARAM_STATE(jump);
 	PARAM_BOOL_OPT(twodi)	{ twodi = false; }
@@ -3182,7 +3172,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSightOrRange)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckRange)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(range);
 	PARAM_STATE(jump);
 	PARAM_BOOL_OPT(twodi)	{ twodi = false; }
@@ -3216,7 +3206,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckRange)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropInventory)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS(drop, AInventory);
 
 	if (drop)
@@ -3238,7 +3228,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropInventory)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetBlend)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_COLOR		(color);
 	PARAM_FLOAT		(alpha);
 	PARAM_INT		(tics);
@@ -3265,7 +3255,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetBlend)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIf)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_BOOL	(condition);
 	PARAM_STATE	(jump);
 
@@ -3280,7 +3270,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIf)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CountdownArg)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(cnt);
 	PARAM_STATE_OPT(state) { state = self->FindState(NAME_Death); }
 
@@ -3311,7 +3301,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CountdownArg)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Burst)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS(chunk, AActor);
 
 	int i, numChunks;
@@ -3369,7 +3359,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Burst)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckFloor)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 
 	if (self->Z() <= self->floorz)
@@ -3388,7 +3378,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckFloor)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckCeiling)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 
 	if (self->Top() >= self->ceilingz) // Height needs to be counted
@@ -3523,7 +3513,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Respawn)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlayerSkinCheck)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 
 	if (self->player != NULL &&
@@ -3541,7 +3531,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PlayerSkinCheck)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetGravity)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(gravity);
 	
 	self->Gravity = clamp(gravity, 0., 10.); 
@@ -3706,7 +3696,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckLOF)
 	DVector3 pos;
 	DVector3 vel;
 
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE		(jump);
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_FLOAT_OPT	(range)			{ range = 0; }
@@ -3898,7 +3888,7 @@ enum JLOS_flags
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetInLOS)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE		(jump);
 	PARAM_ANGLE_OPT	(fov)			{ fov = 0.; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -4034,7 +4024,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfTargetInLOS)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfInTargetLOS)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE		(jump);
 	PARAM_ANGLE_OPT	(fov)			{ fov = 0.; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -4185,7 +4175,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ResetReloadCounter)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeFlag)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STRING	(flagname);
 	PARAM_BOOL		(value);
 
@@ -4284,7 +4274,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeFlag)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckFlag)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STRING	(flagname);
 	PARAM_STATE		(jumpto);
 	PARAM_INT_OPT	(checkpointer)	{ checkpointer = AAPTR_DEFAULT; }
@@ -4376,7 +4366,8 @@ DEFINE_ACTION_FUNCTION(AActor, A_RaiseSiblings)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS (AActor, A_FaceConsolePlayer)
 {
-	// NOTE: It does nothing for zdoom.
+	// NOTE: It does nothing for ZDoom, since in a multiplayer game, each
+	// node has its own console player.
 	return 0;
 }
 
@@ -4389,7 +4380,7 @@ DEFINE_ACTION_FUNCTION_PARAMS (AActor, A_FaceConsolePlayer)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_MonsterRefire)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT	(prob);
 	PARAM_STATE	(jump);
 
@@ -4448,19 +4439,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetAngle)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPitch)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(pitch);
 	PARAM_INT_OPT(flags)	{ flags = 0; }
 	PARAM_INT_OPT(ptr)		{ ptr = AAPTR_DEFAULT; }
 
 	AActor *ref = COPY_AAPTR(self, ptr);
 
-	if (ref == NULL)
+	if (ref != NULL)
 	{
-		return 0;
+		ref->SetPitch(pitch, !!(flags & SPF_INTERPOLATE), !!(flags & SPF_FORCECLAMP));
 	}
-
-	ref->SetPitch(pitch, !!(flags & SPF_INTERPOLATE), !!(flags & SPF_FORCECLAMP));
 	return 0;
 }
 
@@ -4474,7 +4463,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPitch)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRoll)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT		(roll);
 	PARAM_INT_OPT	(flags)		{ flags = 0; }
 	PARAM_INT_OPT	(ptr)		{ ptr = AAPTR_DEFAULT; }
@@ -4497,7 +4486,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRoll)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ScaleVelocity)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(scale);
 	PARAM_INT_OPT(ptr)	{ ptr = AAPTR_DEFAULT; }
 
@@ -4578,7 +4567,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ChangeVelocity)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetArg)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(pos);
 	PARAM_INT(value);
 
@@ -4598,7 +4587,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetArg)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpecial)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(spec);
 	PARAM_INT_OPT	(arg0)	{ arg0 = 0; }
 	PARAM_INT_OPT	(arg1)	{ arg1 = 0; }
@@ -4621,7 +4610,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpecial)
 //
 //===========================================================================
 
-static PField *GetVar(AActor *self, FName varname)
+static PField *GetVar(DObject *self, FName varname)
 {
 	PField *var = dyn_cast<PField>(self->GetClass()->Symbols.FindSymbol(varname, true));
 
@@ -4636,7 +4625,7 @@ static PField *GetVar(AActor *self, FName varname)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserVar)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(DObject);
 	PARAM_NAME	(varname);
 	PARAM_INT	(value);
 
@@ -4651,7 +4640,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserVar)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserVarFloat)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(DObject);
 	PARAM_NAME	(varname);
 	PARAM_FLOAT	(value);
 
@@ -4670,7 +4659,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserVarFloat)
 //
 //===========================================================================
 
-static PField *GetArrayVar(AActor *self, FName varname, int pos)
+static PField *GetArrayVar(DObject *self, FName varname, int pos)
 {
 	PField *var = dyn_cast<PField>(self->GetClass()->Symbols.FindSymbol(varname, true));
 
@@ -4693,7 +4682,7 @@ static PField *GetArrayVar(AActor *self, FName varname, int pos)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserArray)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(DObject);
 	PARAM_NAME	(varname);
 	PARAM_INT	(pos);
 	PARAM_INT	(value);
@@ -4710,7 +4699,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserArray)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetUserArrayFloat)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(DObject);
 	PARAM_NAME	(varname);
 	PARAM_INT	(pos);
 	PARAM_FLOAT	(value);
@@ -4944,7 +4933,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Turn)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Quake)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(intensity);
 	PARAM_INT		(duration);
 	PARAM_INT		(damrad);
@@ -4965,7 +4954,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Quake)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_QuakeEx)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(intensityX);
 	PARAM_INT(intensityY);
 	PARAM_INT(intensityZ);
@@ -5033,7 +5022,7 @@ void A_Weave(AActor *self, int xyspeed, int zspeed, double xydist, double zdist)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Weave)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT	(xspeed);
 	PARAM_INT	(yspeed);
 	PARAM_FLOAT	(xdist);
@@ -5269,7 +5258,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedExecuteWithResult)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(arg1)				{ arg1 = 0; }
 	PARAM_INT_OPT	(arg2)				{ arg2 = 0; }
@@ -5282,7 +5271,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedExecuteWithResult)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedExecute)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(mapnum)			{ mapnum = 0; }
 	PARAM_INT_OPT	(arg1)				{ arg1 = 0; }
@@ -5295,7 +5284,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedExecute)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedExecuteAlways)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(mapnum)			{ mapnum = 0; }
 	PARAM_INT_OPT	(arg1)				{ arg1 = 0; }
@@ -5308,7 +5297,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedExecuteAlways)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedLockedExecute)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(mapnum)			{ mapnum = 0; }
 	PARAM_INT_OPT	(arg1)				{ arg1 = 0; }
@@ -5321,7 +5310,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedLockedExecute)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedLockedExecuteDoor)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(mapnum)			{ mapnum = 0; }
 	PARAM_INT_OPT	(arg1)				{ arg1 = 0; }
@@ -5334,7 +5323,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedLockedExecuteDoor)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedSuspend)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(mapnum)			{ mapnum = 0; }
 
@@ -5344,7 +5333,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedSuspend)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, ACS_NamedTerminate)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME		(scriptname);
 	PARAM_INT_OPT	(mapnum)			{ mapnum = 0; }
 
@@ -5530,7 +5519,7 @@ static bool DoRadiusGive(AActor *self, AActor *thing, PClassActor *item, int amo
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS		(item, AInventory);
 	PARAM_FLOAT		(distance);
 	PARAM_INT		(flags);
@@ -5581,7 +5570,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RadiusGive)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckSpecies)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 	PARAM_NAME_OPT(species)		{ species = NAME_None; }
 	PARAM_INT_OPT(ptr)			{ ptr = AAPTR_DEFAULT; }
@@ -5630,7 +5619,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTics)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetDamageType)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME(damagetype);
 
 	self->DamageType = damagetype;
@@ -5645,7 +5634,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetDamageType)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropItem)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS   (spawntype, AActor);
 	PARAM_INT_OPT (amount)		{ amount = -1; }
 	PARAM_INT_OPT (chance)		{ chance = 256; }
@@ -5661,7 +5650,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropItem)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpeed)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(speed);
 	PARAM_INT_OPT(ptr)	{ ptr = AAPTR_DEFAULT; }
 
@@ -5681,7 +5670,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpeed)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatSpeed)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT(speed);
 	PARAM_INT_OPT(ptr)	{ ptr = AAPTR_DEFAULT; }
 
@@ -5703,7 +5692,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatSpeed)
 //==========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetPainThreshold)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(threshold);
 	PARAM_INT_OPT(ptr)	{ ptr = AAPTR_DEFAULT; }
 
@@ -5786,7 +5775,7 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(amount);
 	PARAM_NAME_OPT	(damagetype)	{ damagetype = NAME_None; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -5804,7 +5793,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSelf)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(amount);
 	PARAM_NAME_OPT	(damagetype)	{ damagetype = NAME_None; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -5823,7 +5812,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTarget)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(amount);
 	PARAM_NAME_OPT	(damagetype)	{ damagetype = NAME_None; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -5842,7 +5831,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageTracer)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(amount);
 	PARAM_NAME_OPT	(damagetype)	{ damagetype = NAME_None; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -5861,7 +5850,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageMaster)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(amount);
 	PARAM_NAME_OPT	(damagetype)	{ damagetype = NAME_None; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -5886,7 +5875,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageChildren)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DamageSiblings)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(amount);
 	PARAM_NAME_OPT	(damagetype)	{ damagetype = NAME_None; }
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
@@ -6227,7 +6216,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveSiblings)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Remove)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(removee);
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
 	PARAM_CLASS_OPT	(filter, AActor){ filter = NULL; }
@@ -6251,7 +6240,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Remove)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTeleFog)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS(oldpos, AActor);
 	PARAM_CLASS(newpos, AActor);
 
@@ -6288,7 +6277,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SwapTeleFog)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(bob);
 
 	//Respect float bob phase limits.
@@ -6308,7 +6297,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetFloatBobPhase)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetHealth)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT		(health);
 	PARAM_INT_OPT	(ptr)	{ ptr = AAPTR_DEFAULT; }
 
@@ -6381,7 +6370,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ResetHealth)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(high);
 	PARAM_STATE(low);
 	PARAM_FLOAT_OPT(offsethigh) { offsethigh = 0; }
@@ -6413,7 +6402,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_JumpIfHigherOrLower)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpecies)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_NAME(species);
 	PARAM_INT_OPT(ptr)	{ ptr = AAPTR_DEFAULT; }
 
@@ -6435,7 +6424,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpecies)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(level);
 	self->RipperLevel = level;
 	return 0;
@@ -6449,7 +6438,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipperLevel)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(min);
 	self->RipLevelMin = min;
 	return 0;
@@ -6463,7 +6452,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMin)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(max);
 	self->RipLevelMax = max;
 	return 0;
@@ -6479,7 +6468,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetRipMax)
 //===========================================================================
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetChaseThreshold)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(threshold);
 	PARAM_BOOL_OPT(def) { def = false; }
 	PARAM_INT_OPT(ptr) { ptr = AAPTR_DEFAULT; }
@@ -6522,7 +6511,7 @@ enum CPXFflags
 };
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckProximity)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(jump);
 	PARAM_CLASS(classname, AActor);
 	PARAM_FLOAT(distance);
@@ -6680,7 +6669,7 @@ enum CBF
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckBlock)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_STATE(block)
 	PARAM_INT_OPT(flags) { flags = 0; }
 	PARAM_INT_OPT(ptr)		{ ptr = AAPTR_DEFAULT; }
