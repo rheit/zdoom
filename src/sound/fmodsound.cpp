@@ -34,80 +34,12 @@
 
 // HEADER FILES ------------------------------------------------------------
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <mmsystem.h>
-extern HWND Window;
-#define USE_WINDOWS_DWORD
-#else
-#define FALSE 0
-#define TRUE 1
-#endif
-#if defined(__FreeBSD__) || defined(__APPLE__)
-#include <stdlib.h>
-#elif __sun
-#include <alloca.h>
-#else
-#include <malloc.h>
-#endif
-
-#include "except.h"
-#include "templates.h"
+#include "commonsound.h"
 #include "fmodsound.h"
-#include "c_cvars.h"
-#include "i_system.h"
-#include "i_music.h"
-#include "v_text.h"
-#include "v_video.h"
-#include "v_palette.h"
-#include "cmdlib.h"
-#include "s_sound.h"
-#include "files.h"
 
 #if FMOD_VERSION > 0x42899 && FMOD_VERSION < 0x43400
 #error You are trying to compile with an unsupported version of FMOD.
 #endif
-
-// MACROS ------------------------------------------------------------------
-
-// killough 2/21/98: optionally use varying pitched sounds
-#define PITCH(freq,pitch) (snd_pitched ? ((freq)*(pitch))/128.f : float(freq))
-
-// Just some extra for music and whatever
-#define NUM_EXTRA_SOFTWARE_CHANNELS		1
-
-#define MAX_CHANNELS				256
-
-#define SPECTRUM_SIZE				256
-
-// PUBLIC DATA DEFINITIONS -------------------------------------------------
-
-ReverbContainer *ForcedEnvironment;
-
-CVAR (Int, snd_driver, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Int, snd_buffercount, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Bool, snd_hrtf, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Bool, snd_waterreverb, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_resampler, "Linear", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_speakermode, "Auto", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_output_format, "PCM-16", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_midipatchset, "", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Bool, snd_profile, false, 0)
-
-// Underwater low-pass filter cutoff frequency. Set to 0 to disable the filter.
-CUSTOM_CVAR (Float, snd_waterlp, 250, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-{
-	// Clamp to the DSP unit's limits.
-	if (*self < 10 && *self != 0)
-	{
-		self = 10;
-	}
-	else if (*self > 22000)
-	{
-		self = 22000;
-	}
-}
 
 CUSTOM_CVAR (Int, snd_streambuffersize, 64, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
