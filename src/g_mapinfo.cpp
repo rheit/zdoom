@@ -989,14 +989,14 @@ DEFINE_MAP_OPTION(gravity, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetFloat();
-	info->gravity = float(parse.sc.Float);
+	info->gravity = parse.sc.Float;
 }
 
 DEFINE_MAP_OPTION(aircontrol, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetFloat();
-	info->aircontrol = float(parse.sc.Float);
+	info->aircontrol = parse.sc.Float;
 }
 
 DEFINE_MAP_OPTION(airsupply, true)
@@ -1150,7 +1150,7 @@ DEFINE_MAP_OPTION(teamdamage, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetFloat();
-	info->teamdamage = float(parse.sc.Float);
+	info->teamdamage = parse.sc.Float;
 }
 
 DEFINE_MAP_OPTION(mapbackground, true)
@@ -1328,6 +1328,7 @@ MapFlagHandlers[] =
 	{ "compat_floormove",				MITYPE_COMPATFLAG, 0, COMPATF2_FLOORMOVE },
 	{ "compat_soundcutoff",				MITYPE_COMPATFLAG, 0, COMPATF2_SOUNDCUTOFF },
 	{ "compat_pointonline",				MITYPE_COMPATFLAG, 0, COMPATF2_POINTONLINE },
+	{ "compat_multiexit",				MITYPE_COMPATFLAG, 0, COMPATF2_MULTIEXIT },
 	{ "cd_start_track",					MITYPE_EATNEXT,	0, 0 },
 	{ "cd_end1_track",					MITYPE_EATNEXT,	0, 0 },
 	{ "cd_end2_track",					MITYPE_EATNEXT,	0, 0 },

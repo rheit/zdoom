@@ -275,17 +275,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Saw)
 	A_FaceTarget (self);
 	if (self->CheckMeleeRange ())
 	{
-		angle_t 	angle;
-		AActor		*linetarget;
+		DAngle angle;
+		FTranslatedLineTarget t;
 
 		damage *= (pr_m_saw()%10+1);
-		angle = self->angle + (pr_m_saw.Random2() << 18);
+		angle = self->Angles.Yaw + pr_m_saw.Random2() * (5.625 / 256);
 		
-		P_LineAttack (self, angle, MELEERANGE+1,
-					P_AimLineAttack (self, angle, MELEERANGE+1, &linetarget), damage,
-					NAME_Melee, pufftype, false, &linetarget);
+		P_LineAttack (self, angle, SAWRANGE,
+					P_AimLineAttack (self, angle, SAWRANGE), damage,
+					NAME_Melee, pufftype, false, &t);
 
-		if (!linetarget)
+		if (!t.linetarget)
 		{
 			S_Sound (self, CHAN_WEAPON, fullsound, 1, ATTN_NORM);
 			return 0;
@@ -293,20 +293,22 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Saw)
 		S_Sound (self, CHAN_WEAPON, hitsound, 1, ATTN_NORM);
 			
 		// turn to face target
-		angle = self->AngleTo(linetarget);
-		if (angle - self->angle > ANG180)
+		angle = t.angleFromSource;
+		DAngle anglediff = deltaangle(self->Angles.Yaw, angle);
+
+		if (anglediff < 0.0)
 		{
-			if (angle - self->angle < (angle_t)(-ANG90/20))
-				self->angle = angle + ANG90/21;
+			if (anglediff < -4.5)
+				self->Angles.Yaw = angle + 90.0 / 21;
 			else
-				self->angle -= ANG90/20;
+				self->Angles.Yaw -= 4.5;
 		}
 		else
 		{
-			if (angle - self->angle > ANG90/20)
-				self->angle = angle - ANG90/21;
+			if (anglediff > 4.5)
+				self->Angles.Yaw = angle - 90.0 / 21;
 			else
-				self->angle += ANG90/20;
+				self->Angles.Yaw += 4.5;
 		}
 	}
 	else
@@ -325,10 +327,10 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Saw)
 
 static void MarinePunch(AActor *self, int damagemul)
 {
-	angle_t 	angle;
+	DAngle 	angle;
 	int 		damage;
-	int 		pitch;
-	AActor		*linetarget;
+	DAngle 		pitch;
+	FTranslatedLineTarget t;
 
 	if (self->target == NULL)
 		return;
@@ -336,16 +338,15 @@ static void MarinePunch(AActor *self, int damagemul)
 	damage = ((pr_m_punch()%10+1) << 1) * damagemul;
 
 	A_FaceTarget (self);
-	angle = self->angle + (pr_m_punch.Random2() << 18);
-	pitch = P_AimLineAttack (self, angle, MELEERANGE, &linetarget);
-	P_LineAttack (self, angle, MELEERANGE, pitch, damage, NAME_Melee, NAME_BulletPuff, true, &linetarget);
+	angle = self->Angles.Yaw + pr_m_punch.Random2() * (5.625 / 256);
+	pitch = P_AimLineAttack (self, angle, MELEERANGE);
+	P_LineAttack (self, angle, MELEERANGE, pitch, damage, NAME_Melee, NAME_BulletPuff, true, &t);
 
 	// turn to face target
-	if (linetarget)
+	if (t.linetarget)
 	{
 		S_Sound (self, CHAN_WEAPON, "*fist", 1, ATTN_NORM);
-		self->angle = self->AngleTo(linetarget);
-
+		self->Angles.Yaw = t.angleFromSource;
 	}
 }
 
@@ -364,17 +365,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Punch)
 //
 //============================================================================
 
-void P_GunShot2 (AActor *mo, bool accurate, int pitch, PClassActor *pufftype)
+void P_GunShot2 (AActor *mo, bool accurate, DAngle pitch, PClassActor *pufftype)
 {
-	angle_t 	angle;
+	DAngle 	angle;
 	int 		damage;
 		
 	damage = 5*(pr_m_gunshot()%3+1);
-	angle = mo->angle;
+	angle = mo->Angles.Yaw;
 
 	if (!accurate)
 	{
-		angle += pr_m_gunshot.Random2 () << 18;
+		angle += pr_m_gunshot.Random2() * (5.625 / 256);
 	}
 
 	P_LineAttack (mo, angle, MISSILERANGE, pitch, damage, NAME_Hitscan, pufftype);
@@ -396,7 +397,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_FirePistol)
 
 	S_Sound (self, CHAN_WEAPON, "weapons/pistol", 1, ATTN_NORM);
 	A_FaceTarget (self);
-	P_GunShot2 (self, accurate, P_AimLineAttack (self, self->angle, MISSILERANGE),
+	P_GunShot2 (self, accurate, P_AimLineAttack (self, self->Angles.Yaw, MISSILERANGE),
 		PClass::FindActor(NAME_BulletPuff));
 	return 0;
 }
@@ -411,14 +412,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireShotgun)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	int pitch;
+	DAngle pitch;
 
 	if (self->target == NULL)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON,  "weapons/shotgf", 1, ATTN_NORM);
 	A_FaceTarget (self);
-	pitch = P_AimLineAttack (self, self->angle, MISSILERANGE);
+	pitch = P_AimLineAttack (self, self->Angles.Yaw, MISSILERANGE);
 	for (int i = 0; i < 7; ++i)
 	{
 		P_GunShot2 (self, false, pitch, PClass::FindActor(NAME_BulletPuff));
@@ -458,21 +459,21 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireShotgun2)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	int pitch;
+	DAngle pitch;
 
 	if (self->target == NULL)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON, "weapons/sshotf", 1, ATTN_NORM);
 	A_FaceTarget (self);
-	pitch = P_AimLineAttack (self, self->angle, MISSILERANGE);
+	pitch = P_AimLineAttack (self, self->Angles.Yaw, MISSILERANGE);
 	for (int i = 0; i < 20; ++i)
 	{
 		int damage = 5*(pr_m_fireshotgun2()%3+1);
-		angle_t angle = self->angle + (pr_m_fireshotgun2.Random2() << 19);
+		DAngle angle = self->Angles.Yaw + pr_m_fireshotgun2.Random2() * (11.25 / 256);
 
 		P_LineAttack (self, angle, MISSILERANGE,
-					  pitch + (pr_m_fireshotgun2.Random2() * 332063), damage,
+					  pitch + pr_m_fireshotgun2.Random2() * (7.097 / 256), damage,
 					  NAME_Hitscan, NAME_BulletPuff);
 	}
 	self->special1 = level.maptime;
@@ -495,7 +496,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_FireCGun)
 
 	S_Sound (self, CHAN_WEAPON, "weapons/chngun", 1, ATTN_NORM);
 	A_FaceTarget (self);
-	P_GunShot2 (self, accurate, P_AimLineAttack (self, self->angle, MISSILERANGE),
+	P_GunShot2 (self, accurate, P_AimLineAttack (self, self->Angles.Yaw, MISSILERANGE),
 		PClass::FindActor(NAME_BulletPuff));
 	return 0;
 }
@@ -648,13 +649,11 @@ void AScriptedMarine::SetSprite (PClassActor *source)
 	{ // A valid actor class wasn't passed, so use the standard sprite
 		SpriteOverride = sprite = GetClass()->OwnedStates[0].sprite;
 		// Copy the standard scaling
-		scaleX = GetDefault()->scaleX;
-		scaleY = GetDefault()->scaleY;
+		Scale = GetDefault()->Scale;
 	}
 	else
 	{ // Use the same sprite and scaling the passed class spawns with
 		SpriteOverride = sprite = GetDefaultByType (source)->SpawnState->sprite;
-		scaleX = GetDefaultByType(source)->scaleX;
-		scaleY = GetDefaultByType(source)->scaleY;
+		Scale = GetDefaultByType(source)->Scale;
 	}
 }

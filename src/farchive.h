@@ -166,7 +166,14 @@ public:
 virtual	void Write (const void *mem, unsigned int len);
 virtual void Read (void *mem, unsigned int len);
 
+		void WriteString(const FString &str);
 		void WriteString (const char *str);
+
+		void WriteByte(BYTE val);
+		void WriteInt16(WORD val);
+		void WriteInt32(DWORD val);
+		void WriteInt64(QWORD val);
+
 		void WriteCount (DWORD count);
 		DWORD ReadCount ();
 
@@ -209,6 +216,16 @@ inline	FArchive& operator<< (signed char *&str) { return operator<< ((char *&)st
 inline	FArchive& operator<< (bool &b) { return operator<< ((BYTE &)b); }
 inline  FArchive& operator<< (DObject* &object) { return ReadObject (object, RUNTIME_CLASS(DObject)); }
 
+	void EnableThinkers()
+	{
+		m_ThinkersAllowed = true;
+	}
+
+	bool ThinkersAllowed()
+	{
+		return m_ThinkersAllowed;
+	}
+
 protected:
 		enum { EObjectHashSize = 137 };
 
@@ -246,6 +263,7 @@ protected:
 
 		int *m_SpriteMap;
 		size_t m_NumSprites;
+		bool m_ThinkersAllowed = false;
 
 		FArchive ();
 		void AttachToFile (FFile &file);
@@ -291,6 +309,7 @@ template<> FArchive &operator<< (FArchive &arc, FStrifeDialogueNode *&node);
 template<> FArchive &operator<< (FArchive &arc, FSwitchDef* &sw);
 template<> FArchive &operator<< (FArchive &arc, FDoorAnimation* &da);
 FArchive &operator<< (FArchive &arc, FLinePortal &da);
+FArchive &operator<< (FArchive &arc, FSectorPortal &da);
 
 
 
@@ -323,6 +342,10 @@ FArchive &operator<< (FArchive &arc, const sector_t *&sec);
 FArchive &operator<< (FArchive &arc, line_t *&line);
 FArchive &operator<< (FArchive &arc, vertex_t *&vert);
 FArchive &operator<< (FArchive &arc, side_t *&side);
+
+FArchive &operator<<(FArchive &arc, DAngle &ang);
+FArchive &operator<<(FArchive &arc, DVector3 &vec);
+FArchive &operator<<(FArchive &arc, DVector2 &vec);
 
 
 

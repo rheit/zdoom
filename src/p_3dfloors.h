@@ -2,8 +2,6 @@
 #define __SECTORE_H
 
 
-#define CenterSpot(sec) (vertex_t*)&(sec)->soundorg[0]
-
 // 3D floor flags. Most are the same as in Legacy but I added some for EDGE's and Vavoom's features as well.
 typedef enum
 {
@@ -70,7 +68,6 @@ struct F3DFloor
 	{
 		secplane_t *	plane;
 		const FTextureID *	texture;
-		const fixed_t *		texheight;
 		sector_t *		model;
 		int				isceiling;
 		int				vindex;
@@ -87,8 +84,6 @@ struct F3DFloor
 	planeref			top;
 
 	short				*toplightlevel;
-	
-	fixed_t				delta;
 	
 	unsigned int		flags;
 	line_t*				master;
@@ -127,9 +122,8 @@ struct lightlist_t
 class player_s;
 void P_PlayerOnSpecial3DFloor(player_t* player);
 
-void P_Get3DFloorAndCeiling(AActor * thing, sector_t * sector, fixed_t * floorz, fixed_t * ceilingz, int * floorpic);
-bool P_CheckFor3DFloorHit(AActor * mo);
-bool P_CheckFor3DCeilingHit(AActor * mo);
+bool P_CheckFor3DFloorHit(AActor * mo, double z);
+bool P_CheckFor3DCeilingHit(AActor * mo, double z);
 void P_Recalculate3DFloors(sector_t *);
 void P_RecalculateAttached3DFloors(sector_t * sec);
 void P_RecalculateLights(sector_t *sector);
@@ -141,14 +135,9 @@ void P_Spawn3DFloors( void );
 struct FLineOpening;
 
 void P_LineOpening_XFloors (FLineOpening &open, AActor * thing, const line_t *linedef, 
-							fixed_t x, fixed_t y, fixed_t refx, fixed_t refy, bool restrict);
+							double x, double y, bool restrict);
 
-secplane_t P_FindFloorPlane(sector_t * sector, fixed_t x, fixed_t y, fixed_t z);
-int	P_Find3DFloor(sector_t * sec, fixed_t x, fixed_t y, fixed_t z, bool above, bool floor, fixed_t &cmpz);
-inline int	P_Find3DFloor(sector_t * sec, const fixedvec3 &pos, bool above, bool floor, fixed_t &cmpz)
-{
-	return P_Find3DFloor(sec, pos.x, pos.y, pos.z, above, floor, cmpz);
-}
-							
+secplane_t P_FindFloorPlane(sector_t * sector, const DVector3 &pos);
+int	P_Find3DFloor(sector_t * sec, const DVector3 &pos, bool above, bool floor, double &cmpz);
 
 #endif

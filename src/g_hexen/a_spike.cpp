@@ -82,7 +82,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustInitUp)
 
 	self->special2 = 5;	// Raise speed
 	self->args[0] = 1;		// Mark as up
-	self->floorclip = 0;
+	self->Floorclip = 0;
 	self->flags = MF_SOLID;
 	self->flags2 = MF2_NOTELEPORT|MF2_FLOORCLIP;
 	self->special1 = 0L;
@@ -95,7 +95,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustInitDn)
 
 	self->special2 = 5;	// Raise speed
 	self->args[0] = 0;		// Mark as down
-	self->floorclip = self->GetDefault()->height;
+	self->Floorclip = self->GetDefault()->Height;
 	self->flags = 0;
 	self->flags2 = MF2_NOTELEPORT|MF2_FLOORCLIP;
 	self->renderflags = RF_INVISIBLE;
@@ -111,7 +111,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustRaise)
 
 	AThrustFloor *actor = static_cast<AThrustFloor *>(self);
 
-	if (A_RaiseMobj (actor, self->special2*FRACUNIT))
+	if (A_RaiseMobj (actor, self->special2))
 	{	// Reached it's target height
 		actor->args[0] = 1;
 		if (actor->args[1])
@@ -121,7 +121,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustRaise)
 	}
 
 	// Lose the dirt clump
-	if ((actor->floorclip < actor->height) && actor->DirtClump)
+	if ((actor->Floorclip < actor->Height) && actor->DirtClump)
 	{
 		actor->DirtClump->Destroy ();
 		actor->DirtClump = NULL;
@@ -138,7 +138,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustLower)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (A_SinkMobj (self, 6*FRACUNIT))
+	if (A_SinkMobj (self, 6))
 	{
 		self->args[0] = 0;
 		if (self->args[1])
@@ -153,23 +153,32 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustImpale)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	AActor *thing;
-	FBlockThingsIterator it(FBoundingBox(self->X(), self->Y(), self->radius));
-	while ((thing = it.Next()))
+	// This doesn't need to iterate through portals.
+
+	FPortalGroupArray check;
+	FMultiBlockThingsIterator it(check, self);
+	FMultiBlockThingsIterator::CheckResult cres;
+	while (it.Next(&cres))
 	{
-		if (!thing->intersects(self))
-		{
+		double blockdist = self->radius + cres.thing->radius;
+		if (fabs(cres.thing->X() - cres.Position.X) >= blockdist || fabs(cres.thing->Y() - cres.Position.Y) >= blockdist)
 			continue;
+
+		// Q: Make this z-aware for everything? It never was before.
+		if (cres.thing->Top() < self->Z() || cres.thing->Z() > self->Top())
+		{
+			if (self->Sector->PortalGroup != cres.thing->Sector->PortalGroup)
+				continue;
 		}
 
-		if (!(thing->flags & MF_SHOOTABLE) )
+		if (!(cres.thing->flags & MF_SHOOTABLE) )
 			continue;
 
-		if (thing == self)
+		if (cres.thing == self)
 			continue;	// don't clip against self
 
-		int newdam = P_DamageMobj (thing, self, self, 10001, NAME_Crush);
-		P_TraceBleed (newdam > 0 ? newdam : 10001, thing);
+		int newdam = P_DamageMobj (cres.thing, self, self, 10001, NAME_Crush);
+		P_TraceBleed (newdam > 0 ? newdam : 10001, cres.thing);
 		self->args[1] = 1;	// Mark thrust thing as bloody
 	}
 	return 0;

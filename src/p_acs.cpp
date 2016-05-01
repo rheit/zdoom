@@ -76,12 +76,12 @@
 #include "actorptrselect.h"
 #include "farchive.h"
 #include "decallib.h"
-#include "portal.h"
 #include "p_terrain.h"
 #include "version.h"
 #include "p_effect.h"
 #include "r_utility.h"
 #include "a_morph.h"
+#include "i_music.h"
 
 #include "g_shared/a_pickups.h"
 
@@ -148,6 +148,41 @@ enum
 	PICKAF_FORCETID = 1,
 	PICKAF_RETURNTID = 2,
 };
+
+// ACS specific conversion functions to and from fixed point.
+// These should be used to convert from and to sctipt variables
+// so that there is a clear distinction between leftover fixed point code
+// and genuinely needed conversions.
+
+inline double ACSToDouble(int acsval)
+{
+	return acsval / 65536.;
+}
+
+inline float ACSToFloat(int acsval)
+{
+	return acsval / 65536.f;
+}
+
+inline int DoubleToACS(double val)
+{
+	return xs_Fix<16>::ToFix(val);
+}
+
+inline DAngle ACSToAngle(int acsval)
+{
+	return acsval * (360. / 65536.);
+}
+
+inline int AngleToACS(DAngle ang)
+{
+	return ang.BAMs() >> 16;
+}
+
+inline int PitchToACS(DAngle ang)
+{
+	return int(ang.Normalized180().Degrees * (65536. / 360));
+}
 
 struct CallReturn
 {
@@ -693,7 +728,7 @@ void ACSStringPool::ReadStrings(PNGHandle *png, DWORD id)
 	if (len != 0)
 	{
 		FPNGChunkArchive arc(png->File->GetFile(), id, len);
-		int32 i, j, poolsize;
+		int32_t i, j, poolsize;
 		unsigned int h, bucketnum;
 		char *str = NULL;
 
@@ -739,7 +774,7 @@ void ACSStringPool::ReadStrings(PNGHandle *png, DWORD id)
 
 void ACSStringPool::WriteStrings(FILE *file, DWORD id) const
 {
-	int32 i, poolsize = (int32)Pool.Size();
+	int32_t i, poolsize = (int32_t)Pool.Size();
 	
 	if (poolsize == 0)
 	{ // No need to write if we don't have anything.
@@ -1109,48 +1144,6 @@ static void ClearInventory (AActor *activator)
 
 //============================================================================
 //
-// DoGiveInv
-//
-// Gives an item to a single actor.
-//
-//============================================================================
-
-static void DoGiveInv (AActor *actor, PClassActor *info, int amount)
-{
-	AWeapon *savedPendingWeap = actor->player != NULL
-		? actor->player->PendingWeapon : NULL;
-	bool hadweap = actor->player != NULL ? actor->player->ReadyWeapon != NULL : true;
-
-	AInventory *item = static_cast<AInventory *>(Spawn (info, 0,0,0, NO_REPLACE));
-
-	// This shouldn't count for the item statistics!
-	item->ClearCounters();
-	if (info->IsDescendantOf (RUNTIME_CLASS(ABasicArmorPickup)))
-	{
-		static_cast<ABasicArmorPickup*>(item)->SaveAmount *= amount;
-	}
-	else if (info->IsDescendantOf (RUNTIME_CLASS(ABasicArmorBonus)))
-	{
-		static_cast<ABasicArmorBonus*>(item)->SaveAmount *= amount;
-	}
-	else
-	{
-		item->Amount = amount;
-	}
-	if (!item->CallTryPickup (actor))
-	{
-		item->Destroy ();
-	}
-	// If the item was a weapon, don't bring it up automatically
-	// unless the player was not already using a weapon.
-	if (savedPendingWeap != NULL && hadweap && actor->player != NULL)
-	{
-		actor->player->PendingWeapon = savedPendingWeap;
-	}
-}
-
-//============================================================================
-//
 // GiveInventory
 //
 // Gives an item to one or more actors.
@@ -1183,12 +1176,12 @@ static void GiveInventory (AActor *activator, const char *type, int amount)
 		for (int i = 0; i < MAXPLAYERS; ++i)
 		{
 			if (playeringame[i])
-				DoGiveInv (players[i].mo, info, amount);
+				players[i].mo->GiveInventory(static_cast<PClassInventory *>(info), amount);
 		}
 	}
 	else
 	{
-		DoGiveInv (activator, info, amount);
+		activator->GiveInventory(static_cast<PClassInventory *>(info), amount);
 	}
 }
 
@@ -1361,7 +1354,7 @@ public:
 	void Serialize (FArchive &arc);
 private:
 	sector_t *Sector;
-	fixed_t WatchD, LastD;
+	double WatchD, LastD;
 	int Special, Arg0, Arg1, Arg2, Arg3, Arg4;
 	TObjPtr<AActor> Activator;
 	line_t *Line;
@@ -1397,9 +1390,9 @@ DPlaneWatcher::DPlaneWatcher (AActor *it, line_t *line, int lineSide, bool ceili
 		{
 			plane = Sector->floorplane;
 		}
-		LastD = plane.d;
-		plane.ChangeHeight (height << FRACBITS);
-		WatchD = plane.d;
+		LastD = plane.fD();
+		plane.ChangeHeight (height);
+		WatchD = plane.fD();
 	}
 	else
 	{
@@ -1425,15 +1418,15 @@ void DPlaneWatcher::Tick ()
 		return;
 	}
 
-	fixed_t newd;
+	double newd;
 
 	if (bCeiling)
 	{
-		newd = Sector->ceilingplane.d;
+		newd = Sector->ceilingplane.fD();
 	}
 	else
 	{
-		newd = Sector->floorplane.d;
+		newd = Sector->floorplane.fD();
 	}
 
 	if ((LastD < WatchD && newd >= WatchD) ||
@@ -1625,13 +1618,13 @@ void FBehavior::StaticSerializeModuleStates (FArchive &arc)
 		if (arc.IsStoring())
 		{
 			arc.WriteString (module->ModuleName);
-			if (SaveVersion >= 4516) arc << ModSize;
+			arc << ModSize;
 		}
 		else
 		{
 			char *modname = NULL;
 			arc << modname;
-			if (SaveVersion >= 4516) arc << ModSize;
+			arc << ModSize;
 			if (stricmp (modname, module->ModuleName) != 0)
 			{
 				delete[] modname;
@@ -2473,7 +2466,7 @@ void FBehavior::LoadScriptsDirectory ()
 	}
 }
 
-int STACK_ARGS FBehavior::SortScripts (const void *a, const void *b)
+int FBehavior::SortScripts (const void *a, const void *b)
 {
 	ScriptPtr *ptr1 = (ScriptPtr *)a;
 	ScriptPtr *ptr2 = (ScriptPtr *)b;
@@ -2870,35 +2863,19 @@ void FBehavior::StaticStopMyScripts (AActor *actor)
 
 void P_SerializeACSScriptNumber(FArchive &arc, int &scriptnum, bool was2byte)
 {
-	if (SaveVersion < 3359)
+	arc << scriptnum;
+	// If the script number is negative, then it's really a name.
+	// So read/store the name after it.
+	if (scriptnum < 0)
 	{
-		if (was2byte)
+		if (arc.IsStoring())
 		{
-			WORD oldver;
-			arc << oldver;
-			scriptnum = oldver;
+			arc.WriteName(FName(ENamedName(-scriptnum)).GetChars());
 		}
 		else
 		{
-			arc << scriptnum;
-		}
-	}
-	else
-	{
-		arc << scriptnum;
-		// If the script number is negative, then it's really a name.
-		// So read/store the name after it.
-		if (scriptnum < 0)
-		{
-			if (arc.IsStoring())
-			{
-				arc.WriteName(FName(ENamedName(-scriptnum)).GetChars());
-			}
-			else
-			{
-				const char *nam = arc.ReadName();
-				scriptnum = -FName(nam);
-			}
+			const char *nam = arc.ReadName();
+			scriptnum = -FName(nam);
 		}
 	}
 }
@@ -2940,52 +2917,47 @@ void DACSThinker::Serialize (FArchive &arc)
 	int scriptcount = 0;
 
 	Super::Serialize (arc);
-	if (SaveVersion < 4515)
-		arc << Scripts << LastScript;
+	if (arc.IsStoring())
+	{
+		DLevelScript *script;
+		script = Scripts;
+		while (script)
+		{
+			scriptcount++;
+
+			// We want to store this list backwards, so we can't loose the last pointer
+			if (script->next == NULL)
+				break;
+			script = script->next;
+		}
+		arc << scriptcount;
+
+		while (script)
+		{
+			arc << script;
+			script = script->prev;
+		}
+	}
 	else
 	{
-		if (arc.IsStoring())
+		// We are running through this list backwards, so the next entry is the last processed
+		DLevelScript *next = NULL;
+		arc << scriptcount;
+		Scripts = NULL;
+		LastScript = NULL;
+		for (int i = 0; i < scriptcount; i++)
 		{
-			DLevelScript *script;
-			script = Scripts;
-			while (script)
-			{
-				scriptcount++;
+			arc << Scripts;
 
-				// We want to store this list backwards, so we can't loose the last pointer
-				if (script->next == NULL)
-					break;
-				script = script->next;
-			}
-			arc << scriptcount;
+			Scripts->next = next;
+			Scripts->prev = NULL;
+			if (next != NULL)
+				next->prev = Scripts;
 
-			while (script)
-			{
-				arc << script;
-				script = script->prev;
-			}
-		}
-		else
-		{
-			// We are running through this list backwards, so the next entry is the last processed
-			DLevelScript *next = NULL;
-			arc << scriptcount;
-			Scripts = NULL;
-			LastScript = NULL;
-			for (int i = 0; i < scriptcount; i++)
-			{
-				arc << Scripts;
+			next = Scripts;
 
-				Scripts->next = next;
-				Scripts->prev = NULL;
-				if (next != NULL)
-					next->prev = Scripts;
-
-				next = Scripts;
-
-				if (i == 0)
-					LastScript = Scripts;
-			}
+			if (i == 0)
+				LastScript = Scripts;
 		}
 	}
 	if (arc.IsStoring ())
@@ -3073,8 +3045,6 @@ void DLevelScript::Serialize (FArchive &arc)
 	DWORD i;
 
 	Super::Serialize (arc);
-	if (SaveVersion < 4515)
-		arc << next << prev;
 
 	P_SerializeACSScriptNumber(arc, script, false);
 
@@ -3111,23 +3081,9 @@ void DLevelScript::Serialize (FArchive &arc)
 
 	arc << activefont
 		<< hudwidth << hudheight;
-	if (SaveVersion >= 3960)
-	{
-		arc << ClipRectLeft << ClipRectTop << ClipRectWidth << ClipRectHeight
-			<< WrapWidth;
-	}
-	else
-	{
-		ClipRectLeft = ClipRectTop = ClipRectWidth = ClipRectHeight = WrapWidth = 0;
-	}
-	if (SaveVersion >= 4058)
-	{
-		arc << InModuleScriptNumber;
-	}
-	else
-	{ // Don't worry about locating profiling info for old saves.
-		InModuleScriptNumber = -1;
-	}
+	arc << ClipRectLeft << ClipRectTop << ClipRectWidth << ClipRectHeight
+		<< WrapWidth;
+	arc << InModuleScriptNumber;
 }
 
 DLevelScript::DLevelScript ()
@@ -3433,7 +3389,7 @@ void DLevelScript::ReplaceTextures (int fromnamei, int tonamei, int flags)
 	}
 }
 
-int DLevelScript::DoSpawn (int type, fixed_t x, fixed_t y, fixed_t z, int tid, int angle, bool force)
+int DLevelScript::DoSpawn (int type, const DVector3 &pos, int tid, DAngle angle, bool force)
 {
 	PClassActor *info = PClass::FindActor(FBehavior::StaticLookupString (type));
 	AActor *actor = NULL;
@@ -3449,14 +3405,14 @@ int DLevelScript::DoSpawn (int type, fixed_t x, fixed_t y, fixed_t z, int tid, i
 			return 0;
 		}
 
-		actor = Spawn (info, x, y, z, ALLOW_REPLACE);
+		actor = Spawn (info, pos, ALLOW_REPLACE);
 		if (actor != NULL)
 		{
 			ActorFlags2 oldFlags2 = actor->flags2;
 			actor->flags2 |= MF2_PASSMOBJ;
 			if (force || P_TestMobjLocation (actor))
 			{
-				actor->angle = angle << 24;
+				actor->Angles.Yaw = angle;
 				actor->tid = tid;
 				actor->AddToHash ();
 				if (actor->flags & MF_SPECIAL)
@@ -3477,6 +3433,12 @@ int DLevelScript::DoSpawn (int type, fixed_t x, fixed_t y, fixed_t z, int tid, i
 	return spawncount;
 }
 
+int DLevelScript::DoSpawn(int type, int x, int y, int z, int tid, int angle, bool force)
+{
+	return DoSpawn(type, DVector3(ACSToDouble(x), ACSToDouble(y), ACSToDouble(z)), tid, angle * (360. / 256), force);
+}
+
+
 int DLevelScript::DoSpawnSpot (int type, int spot, int tid, int angle, bool force)
 {
 	int spawned = 0;
@@ -3488,12 +3450,12 @@ int DLevelScript::DoSpawnSpot (int type, int spot, int tid, int angle, bool forc
 
 		while ( (aspot = iterator.Next ()) )
 		{
-			spawned += DoSpawn (type, aspot->X(), aspot->Y(), aspot->Z(), tid, angle, force);
+			spawned += DoSpawn (type, aspot->Pos(), tid, angle * (360. / 256), force);
 		}
 	}
 	else if (activator != NULL)
 	{
-			spawned += DoSpawn (type, activator->X(), activator->Y(), activator->Z(), tid, angle, force);
+		spawned += DoSpawn (type, activator->Pos(), tid, angle * (360. / 256), force);
 	}
 	return spawned;
 }
@@ -3509,23 +3471,23 @@ int DLevelScript::DoSpawnSpotFacing (int type, int spot, int tid, bool force)
 
 		while ( (aspot = iterator.Next ()) )
 		{
-			spawned += DoSpawn (type, aspot->X(), aspot->Y(), aspot->Z(), tid, aspot->angle >> 24, force);
+			spawned += DoSpawn (type, aspot->Pos(), tid, aspot->Angles.Yaw, force);
 		}
 	}
 	else if (activator != NULL)
 	{
-			spawned += DoSpawn (type, activator->X(), activator->Y(), activator->Z(), tid, activator->angle >> 24, force);
+			spawned += DoSpawn (type, activator->Pos(), tid, activator->Angles.Yaw, force);
 	}
 	return spawned;
 }
 
-void DLevelScript::DoFadeTo (int r, int g, int b, int a, fixed_t time)
+void DLevelScript::DoFadeTo (int r, int g, int b, int a, int time)
 {
-	DoFadeRange (0, 0, 0, -1, clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255), clamp(a, 0, FRACUNIT), time);
+	DoFadeRange (0, 0, 0, -1, clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255), clamp(a, 0, 65536), time);
 }
 
 void DLevelScript::DoFadeRange (int r1, int g1, int b1, int a1,
-								int r2, int g2, int b2, int a2, fixed_t time)
+								int r2, int g2, int b2, int a2, int time)
 {
 	player_t *viewer;
 	float ftime = (float)time / 65536.f;
@@ -3739,6 +3701,8 @@ enum
 	APROP_StencilColor	= 41,
 	APROP_Friction		= 42,
 	APROP_DamageMultiplier=43,
+	APROP_MaxStepHeight	= 44,
+	APROP_MaxDropOffHeight= 45,
 };
 
 // These are needed for ACS's APROP_RenderStyle
@@ -3806,7 +3770,7 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_Speed:
-		actor->Speed = value;
+		actor->Speed = ACSToDouble(value);
 		break;
 
 	case APROP_Damage:
@@ -3814,7 +3778,7 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_Alpha:
-		actor->alpha = value;
+		actor->Alpha = ACSToDouble(value);
 		break;
 
 	case APROP_RenderStyle:
@@ -3850,7 +3814,7 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 
 	case APROP_JumpZ:
 		if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
-			static_cast<APlayerPawn *>(actor)->JumpZ = value;
+			static_cast<APlayerPawn *>(actor)->JumpZ = ACSToDouble(value);
 		break; 	// [GRB]
 
 	case APROP_ChaseGoal:
@@ -3889,7 +3853,7 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_Gravity:
-		actor->gravity = value;
+		actor->Gravity = ACSToDouble(value);
 		break;
 
 	case APROP_SeeSound:
@@ -3925,11 +3889,11 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_DamageFactor:
-		actor->DamageFactor = value;
+		actor->DamageFactor = ACSToDouble(value);
 		break;
 
 	case APROP_DamageMultiplier:
-		actor->DamageMultiply = value;
+		actor->DamageMultiply = ACSToDouble(value);
 		break;
 
 	case APROP_MasterTID:
@@ -3939,11 +3903,11 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_ScaleX:
-		actor->scaleX = value;
+		actor->Scale.X = ACSToDouble(value);
 		break;
 
 	case APROP_ScaleY:
-		actor->scaleY = value;
+		actor->Scale.Y = ACSToDouble(value);
 		break;
 
 	case APROP_Mass:
@@ -3963,23 +3927,23 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_MeleeRange:
-		actor->meleerange = value;
+		actor->meleerange = ACSToDouble(value);
 		break;
 
 	case APROP_ViewHeight:
 		if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 		{
-			static_cast<APlayerPawn *>(actor)->ViewHeight = value;
+			static_cast<APlayerPawn *>(actor)->ViewHeight = ACSToDouble(value);
 			if (actor->player != NULL)
 			{
-				actor->player->viewheight = value;
+				actor->player->viewheight = ACSToDouble(value);
 			}
 		}
 		break;
 
 	case APROP_AttackZOffset:
 		if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
-			static_cast<APlayerPawn *>(actor)->AttackZOffset = value;
+			static_cast<APlayerPawn *>(actor)->AttackZOffset = ACSToDouble(value);
 		break;
 
 	case APROP_StencilColor:
@@ -3987,7 +3951,16 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		break;
 
 	case APROP_Friction:
-		actor->Friction = value;
+		actor->Friction = ACSToDouble(value);
+
+	case APROP_MaxStepHeight:
+		actor->MaxStepHeight = ACSToDouble(value);
+		break;
+
+	case APROP_MaxDropOffHeight:
+		actor->MaxDropOffHeight = ACSToDouble(value);
+		break;
+
 
 	default:
 		// do nothing.
@@ -4006,11 +3979,11 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	switch (property)
 	{
 	case APROP_Health:		return actor->health;
-	case APROP_Speed:		return actor->Speed;
+	case APROP_Speed:		return DoubleToACS(actor->Speed);
 	case APROP_Damage:		return actor->GetMissileDamage(0,1);
-	case APROP_DamageFactor:return actor->DamageFactor;
-	case APROP_DamageMultiplier: return actor->DamageMultiply;
-	case APROP_Alpha:		return actor->alpha;
+	case APROP_DamageFactor:return DoubleToACS(actor->DamageFactor);
+	case APROP_DamageMultiplier: return DoubleToACS(actor->DamageMultiply);
+	case APROP_Alpha:		return DoubleToACS(actor->Alpha);
 	case APROP_RenderStyle:	for (int style = STYLE_None; style < STYLE_Count; ++style)
 							{ // Check for a legacy render style that matches.
 								if (LegacyRenderStyles[style] == actor->RenderStyle)
@@ -4021,7 +3994,7 @@ int DLevelScript::GetActorProperty (int tid, int property)
 							// The current render style isn't expressable as a legacy style,
 							// so pretends it's normal.
 							return STYLE_Normal;
-	case APROP_Gravity:		return actor->gravity;
+	case APROP_Gravity:		return DoubleToACS(actor->Gravity);
 	case APROP_Invulnerable:return !!(actor->flags2 & MF2_INVULNERABLE);
 	case APROP_Ambush:		return !!(actor->flags & MF_AMBUSH);
 	case APROP_Dropped:		return !!(actor->flags & MF_DROPPED);
@@ -4042,7 +4015,7 @@ int DLevelScript::GetActorProperty (int tid, int property)
 
 	case APROP_JumpZ:		if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 							{
-								return static_cast<APlayerPawn *>(actor)->JumpZ;	// [GRB]
+								return DoubleToACS(static_cast<APlayerPawn *>(actor)->JumpZ);	// [GRB]
 							}
 							else
 							{
@@ -4053,18 +4026,18 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	case APROP_TargetTID:	return (actor->target != NULL)? actor->target->tid : 0;
 	case APROP_TracerTID:	return (actor->tracer != NULL)? actor->tracer->tid : 0;
 	case APROP_WaterLevel:	return actor->waterlevel;
-	case APROP_ScaleX: 		return actor->scaleX;
-	case APROP_ScaleY: 		return actor->scaleY;
+	case APROP_ScaleX: 		return DoubleToACS(actor->Scale.X);
+	case APROP_ScaleY: 		return DoubleToACS(actor->Scale.Y);
 	case APROP_Mass: 		return actor->Mass;
 	case APROP_Accuracy:    return actor->accuracy;
 	case APROP_Stamina:     return actor->stamina;
-	case APROP_Height:		return actor->height;
-	case APROP_Radius:		return actor->radius;
+	case APROP_Height:		return DoubleToACS(actor->Height);
+	case APROP_Radius:		return DoubleToACS(actor->radius);
 	case APROP_ReactionTime:return actor->reactiontime;
-	case APROP_MeleeRange:	return actor->meleerange;
+	case APROP_MeleeRange:	return DoubleToACS(actor->meleerange);
 	case APROP_ViewHeight:	if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 							{
-								return static_cast<APlayerPawn *>(actor)->ViewHeight;
+								return DoubleToACS(static_cast<APlayerPawn *>(actor)->ViewHeight);
 							}
 							else
 							{
@@ -4073,7 +4046,7 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	case APROP_AttackZOffset:
 							if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 							{
-								return static_cast<APlayerPawn *>(actor)->AttackZOffset;
+								return DoubleToACS(static_cast<APlayerPawn *>(actor)->AttackZOffset);
 							}
 							else
 							{
@@ -4088,7 +4061,9 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	case APROP_Species:		return GlobalACSStrings.AddString(actor->GetSpecies());
 	case APROP_NameTag:		return GlobalACSStrings.AddString(actor->GetTag());
 	case APROP_StencilColor:return actor->fillcolor;
-	case APROP_Friction:	return actor->Friction;
+	case APROP_Friction:	return DoubleToACS(actor->Friction);
+	case APROP_MaxStepHeight: return DoubleToACS(actor->MaxStepHeight);
+	case APROP_MaxDropOffHeight: return DoubleToACS(actor->MaxDropOffHeight);
 
 	default:				return 0;
 	}
@@ -4135,6 +4110,8 @@ int DLevelScript::CheckActorProperty (int tid, int property, int value)
 		case APROP_MeleeRange:
 		case APROP_ViewHeight:
 		case APROP_AttackZOffset:
+		case APROP_MaxStepHeight:
+		case APROP_MaxDropOffHeight:
 		case APROP_StencilColor:
 			return (GetActorProperty(tid, property) == value);
 
@@ -4179,49 +4156,19 @@ bool DLevelScript::DoCheckActorTexture(int tid, AActor *activator, int string, b
 	  // they're obviously not the same.
 		return 0;
 	}
-	int i, numff;
 	FTextureID secpic;
-	sector_t *sec = actor->Sector;
-	numff = sec->e->XFloor.ffloors.Size();
+	sector_t *resultsec;
+	F3DFloor *resffloor;
 
 	if (floor)
 	{
-		// Looking through planes from top to bottom
-		for (i = 0; i < numff; ++i)
-		{
-			F3DFloor *ff = sec->e->XFloor.ffloors[i];
-
-			if ((ff->flags & (FF_EXISTS | FF_SOLID)) == (FF_EXISTS | FF_SOLID) &&
-				actor->Z() >= ff->top.plane->ZatPoint(actor))
-			{ // This floor is beneath our feet.
-				secpic = *ff->top.texture;
-				break;
-			}
-		}
-		if (i == numff)
-		{ // Use sector's floor
-			secpic = sec->GetTexture(sector_t::floor);
-		}
+		actor->Sector->NextLowestFloorAt(actor->X(), actor->Y(), actor->Z(), 0, actor->MaxStepHeight, &resultsec, &resffloor);
+		secpic = resffloor ? *resffloor->top.texture : resultsec->planes[sector_t::floor].Texture;
 	}
 	else
 	{
-		fixed_t z = actor->Top();
-		// Looking through planes from bottom to top
-		for (i = numff-1; i >= 0; --i)
-		{
-			F3DFloor *ff = sec->e->XFloor.ffloors[i];
-
-			if ((ff->flags & (FF_EXISTS | FF_SOLID)) == (FF_EXISTS | FF_SOLID) &&
-				z <= ff->bottom.plane->ZatPoint(actor))
-			{ // This floor is above our eyes.
-				secpic = *ff->bottom.texture;
-				break;
-			}
-		}
-		if (i < 0)
-		{ // Use sector's ceiling
-			secpic = sec->GetTexture(sector_t::ceiling);
-		}
+		actor->Sector->NextHighestCeilingAt(actor->X(), actor->Y(), actor->Z(), actor->Top(), 0, &resultsec, &resffloor);
+		secpic = resffloor ? *resffloor->bottom.texture : resultsec->planes[sector_t::ceiling].Texture;
 	}
 	return tex == TexMan[secpic];
 }
@@ -4512,6 +4459,8 @@ enum EACSFunctions
 	ACSF_SetSectorDamage,
 	ACSF_SetSectorTerrain,
 	ACSF_SpawnParticle,
+	ACSF_SetMusicVolume,
+	// 2 more left...
 	
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
@@ -4560,24 +4509,24 @@ int DLevelScript::LineFromID(int id)
 	}
 }
 
-bool GetVarAddrType(AActor *self, FName varname, int index, void *&addr, PType *&type)
+bool GetVarAddrType(AActor *self, FName varname, int index, void *&addr, PType *&type, bool readonly)
 {
 	PField *var = dyn_cast<PField>(self->GetClass()->Symbols.FindSymbol(varname, true));
 	PArray *arraytype;
-	BYTE *baddr = reinterpret_cast<BYTE *>(self) + var->Offset;
 
-	if (var == NULL || (var->Flags & VARF_Native))
+	if (var == NULL || (!readonly && (var->Flags & VARF_Native)))
 	{
 		return false;
 	}
 	type = var->Type;
+	BYTE *baddr = reinterpret_cast<BYTE *>(self) + var->Offset;
 	arraytype = dyn_cast<PArray>(type);
 	if (arraytype != NULL)
 	{
 		// unwrap contained type
 		type = arraytype->ElementType;
 		// offset by index (if in bounds)
-		if ((unsigned)index < arraytype->ElementCount)
+		if ((unsigned)index >= arraytype->ElementCount)
 		{ // out of bounds
 			return false;
 		}
@@ -4588,6 +4537,17 @@ bool GetVarAddrType(AActor *self, FName varname, int index, void *&addr, PType *
 		return false;
 	}
 	addr = baddr;
+	// We don't want Int subclasses like Name or Color to be accessible,
+	// but we do want to support Float subclasses like Fixed.
+	if (!type->IsA(RUNTIME_CLASS(PInt)) && !type->IsKindOf(RUNTIME_CLASS(PFloat)))
+	{
+		// For reading, we also support Name and String types.
+		if (readonly && (type->IsA(RUNTIME_CLASS(PName)) || type->IsA(RUNTIME_CLASS(PString))))
+		{
+			return true;
+		}
+		return false;
+	}
 	return true;
 }
 
@@ -4596,9 +4556,16 @@ static void SetUserVariable(AActor *self, FName varname, int index, int value)
 	void *addr;
 	PType *type;
 
-	if (GetVarAddrType(self, varname, index, addr, type))
+	if (GetVarAddrType(self, varname, index, addr, type, false))
 	{
-		type->SetValue(addr, value);
+		if (!type->IsKindOf(RUNTIME_CLASS(PFloat)))
+		{
+			type->SetValue(addr, value);
+		}
+		else
+		{
+			type->SetValue(addr, ACSToDouble(value));
+		}
 	}
 }
 
@@ -4607,9 +4574,24 @@ static int GetUserVariable(AActor *self, FName varname, int index)
 	void *addr;
 	PType *type;
 
-	if (GetVarAddrType(self, varname, index, addr, type))
+	if (GetVarAddrType(self, varname, index, addr, type, true))
 	{
-		return type->GetValueInt(addr);
+		if (type->IsKindOf(RUNTIME_CLASS(PFloat)))
+		{
+			return DoubleToACS(type->GetValueFloat(addr));
+		}
+		else if (type->IsA(RUNTIME_CLASS(PName)))
+		{
+			return GlobalACSStrings.AddString(FName(ENamedName(type->GetValueInt(addr))).GetChars());
+		}
+		else if (type->IsA(RUNTIME_CLASS(PString)))
+		{
+			return GlobalACSStrings.AddString(*(FString *)addr);
+		}
+		else
+		{
+			return type->GetValueInt(addr);
+		}
 	}
 	return 0;
 }
@@ -4634,7 +4616,7 @@ static void DoSetCVar(FBaseCVar *cvar, int value, bool is_string, bool force=fal
 	}
 	else if (cvar->GetRealType() == CVAR_Float)
 	{
-		val.Float = FIXED2FLOAT(value);
+		val.Float = ACSToFloat(value);
 		type = CVAR_Float;
 	}
 	else
@@ -4665,7 +4647,7 @@ static int DoGetCVar(FBaseCVar *cvar, bool is_string)
 	else if (cvar->GetRealType() == CVAR_Float)
 	{
 		val = cvar->GetGenericRep(CVAR_Float);
-		return FLOAT2FIXED(val.Float);
+		return DoubleToACS(val.Float);
 	}
 	else
 	{
@@ -4763,24 +4745,25 @@ static int SetCVar(AActor *activator, const char *cvarname, int value, bool is_s
 	return 1;
 }
 
-static bool DoSpawnDecal(AActor *actor, const FDecalTemplate *tpl, int flags, angle_t angle, fixed_t zofs, fixed_t distance)
+static bool DoSpawnDecal(AActor *actor, const FDecalTemplate *tpl, int flags, DAngle angle, double zofs, double distance)
 {
 	if (!(flags & SDF_ABSANGLE))
 	{
-		angle += actor->angle;
+		angle += actor->Angles.Yaw;
 	}
 	return NULL != ShootDecal(tpl, actor, actor->Sector, actor->X(), actor->Y(),
-		actor->Z() + (actor->height>>1) - actor->floorclip + actor->GetBobOffset() + zofs,
+		actor->Center() - actor->Floorclip + actor->GetBobOffset() + zofs,
 		angle, distance, !!(flags & SDF_PERMANENT));
 }
 
 static void SetActorAngle(AActor *activator, int tid, int angle, bool interpolate)
 {
+	DAngle an = ACSToAngle(angle);
 	if (tid == 0)
 	{
 		if (activator != NULL)
 		{
-			activator->SetAngle(angle << 16, interpolate);
+			activator->SetAngle(an, interpolate);
 		}
 	}
 	else
@@ -4790,18 +4773,19 @@ static void SetActorAngle(AActor *activator, int tid, int angle, bool interpolat
 
 		while ((actor = iterator.Next()))
 		{
-			actor->SetAngle(angle << 16, interpolate);
+			actor->SetAngle(an, interpolate);
 		}
 	}
 }
 
 static void SetActorPitch(AActor *activator, int tid, int angle, bool interpolate)
 {
+	DAngle an = ACSToAngle(angle);
 	if (tid == 0)
 	{
 		if (activator != NULL)
 		{
-			activator->SetPitch(angle << 16, interpolate);
+			activator->SetPitch(an, interpolate);
 		}
 	}
 	else
@@ -4811,18 +4795,19 @@ static void SetActorPitch(AActor *activator, int tid, int angle, bool interpolat
 
 		while ((actor = iterator.Next()))
 		{
-			actor->SetPitch(angle << 16, interpolate);
+			actor->SetPitch(an, interpolate);
 		}
 	}
 }
 
 static void SetActorRoll(AActor *activator, int tid, int angle, bool interpolate)
 {
+	DAngle an = ACSToAngle(angle);
 	if (tid == 0)
 	{
 		if (activator != NULL)
 		{
-			activator->SetRoll(angle << 16, interpolate);
+			activator->SetRoll(an, interpolate);
 		}
 	}
 	else
@@ -4832,7 +4817,7 @@ static void SetActorRoll(AActor *activator, int tid, int angle, bool interpolate
 
 		while ((actor = iterator.Next()))
 		{
-			actor->SetRoll(angle << 16, interpolate);
+			actor->SetRoll(an, interpolate);
 		}
 	}
 }
@@ -4908,7 +4893,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			return GetUDMFInt(UDMF_Line, LineFromID(args[0]), FBehavior::StaticLookupString(args[1]));
 
 		case ACSF_GetLineUDMFFixed:
-			return GetUDMFFixed(UDMF_Line, LineFromID(args[0]), FBehavior::StaticLookupString(args[1]));
+			return DoubleToACS(GetUDMFFloat(UDMF_Line, LineFromID(args[0]), FBehavior::StaticLookupString(args[1])));
 
 		case ACSF_GetThingUDMFInt:
 		case ACSF_GetThingUDMFFixed:
@@ -4918,25 +4903,25 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			return GetUDMFInt(UDMF_Sector, P_FindFirstSectorFromTag(args[0]), FBehavior::StaticLookupString(args[1]));
 
 		case ACSF_GetSectorUDMFFixed:
-			return GetUDMFFixed(UDMF_Sector, P_FindFirstSectorFromTag(args[0]), FBehavior::StaticLookupString(args[1]));
+			return DoubleToACS(GetUDMFFloat(UDMF_Sector, P_FindFirstSectorFromTag(args[0]), FBehavior::StaticLookupString(args[1])));
 
 		case ACSF_GetSideUDMFInt:
 			return GetUDMFInt(UDMF_Side, SideFromID(args[0], args[1]), FBehavior::StaticLookupString(args[2]));
 
 		case ACSF_GetSideUDMFFixed:
-			return GetUDMFFixed(UDMF_Side, SideFromID(args[0], args[1]), FBehavior::StaticLookupString(args[2]));
+			return DoubleToACS(GetUDMFFloat(UDMF_Side, SideFromID(args[0], args[1]), FBehavior::StaticLookupString(args[2])));
 
 		case ACSF_GetActorVelX:
 			actor = SingleActorFromTID(args[0], activator);
-			return actor != NULL? actor->velx : 0;
+			return actor != NULL? DoubleToACS(actor->Vel.X) : 0;
 
 		case ACSF_GetActorVelY:
 			actor = SingleActorFromTID(args[0], activator);
-			return actor != NULL? actor->vely : 0;
+			return actor != NULL? DoubleToACS(actor->Vel.Y) : 0;
 
 		case ACSF_GetActorVelZ:
 			actor = SingleActorFromTID(args[0], activator);
-			return actor != NULL? actor->velz : 0;
+			return actor != NULL? DoubleToACS(actor->Vel.Z) : 0;
 
 		case ACSF_SetPointer:
 			if (activator)
@@ -4970,7 +4955,9 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			{
 				if (actor->player != NULL && actor->player->playerstate == PST_LIVE)
 				{
-					P_BulletSlope(actor, &actor);
+					FTranslatedLineTarget t;
+					P_BulletSlope(actor, &t, ALF_PORTALRESTRICT);
+					actor = t.linetarget;
 				}
 				else
 				{
@@ -4990,11 +4977,11 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			{
 				if (actor->player != NULL)
 				{
-					return actor->player->mo->ViewHeight + actor->player->crouchviewdelta;
+					return DoubleToACS(actor->player->mo->ViewHeight + actor->player->crouchviewdelta);
 				}
 				else
 				{
-					return actor->GetCameraHeight();
+					return DoubleToACS(actor->GetCameraHeight());
 				}
 			}
 			else return 0;
@@ -5039,8 +5026,8 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 
 		case ACSF_SetSkyScrollSpeed:
 		{
-			if (args[0] == 1) level.skyspeed1 = FIXED2FLOAT(args[1]);
-			else if (args[0] == 2) level.skyspeed2 = FIXED2FLOAT(args[1]);
+			if (args[0] == 1) level.skyspeed1 = ACSToFloat(args[1]);
+			else if (args[0] == 2) level.skyspeed2 = ACSToFloat(args[1]);
 			return 1;
 		}
 
@@ -5076,7 +5063,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 						return equippedarmor->MaxAmount;
 
 					case ARMORINFO_SAVEPERCENT:
-						return equippedarmor->SavePercent;
+						return DoubleToACS(equippedarmor->SavePercent);
 
 					case ARMORINFO_MAXABSORB:
 						return equippedarmor->MaxAbsorb;
@@ -5104,20 +5091,23 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			return (CheckActorProperty(args[0], args[1], args[2]));
         
         case ACSF_SetActorVelocity:
-            if (args[0] == 0)
-            {
-				P_Thing_SetVelocity(activator, args[1], args[2], args[3], !!args[4], !!args[5]);
-            }
-            else
-            {
-                TActorIterator<AActor> iterator (args[0]);
-                
-                while ( (actor = iterator.Next ()) )
-                {
-					P_Thing_SetVelocity(actor, args[1], args[2], args[3], !!args[4], !!args[5]);
-                }
-            }
-			return 0;
+		{
+			DVector3 vel(ACSToDouble(args[1]), ACSToDouble(args[2]), ACSToDouble(args[3]));
+			if (args[0] == 0)
+			{
+				P_Thing_SetVelocity(activator, vel, !!args[4], !!args[5]);
+			}
+			else
+			{
+				TActorIterator<AActor> iterator(args[0]);
+
+				while ((actor = iterator.Next()))
+				{
+					P_Thing_SetVelocity(actor, vel, !!args[4], !!args[5]);
+				}
+			}
+			return 0; 
+		}
 
 		case ACSF_SetUserVariable:
 		{
@@ -5274,7 +5264,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 				FPolyObj *poly = PO_GetPolyobj(args[0]);
 				if (poly != NULL)
 				{
-					return poly->StartSpot.x;
+					return DoubleToACS(poly->StartSpot.pos.X);
 				}
 			}
 			return FIXED_MAX;
@@ -5284,7 +5274,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 				FPolyObj *poly = PO_GetPolyobj(args[0]);
 				if (poly != NULL)
 				{
-					return poly->StartSpot.y;
+					return DoubleToACS(poly->StartSpot.pos.Y);
 				}
 			}
 			return FIXED_MAX;
@@ -5364,13 +5354,13 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			return P_IsTIDUsed(args[0]);
 
 		case ACSF_Sqrt:
-			return xs_FloorToInt(sqrt(double(args[0])));
+			return xs_FloorToInt(g_sqrt(double(args[0])));
 
 		case ACSF_FixedSqrt:
-			return FLOAT2FIXED(sqrt(FIXED2DBL(args[0])));
+			return DoubleToACS(g_sqrt(ACSToDouble(args[0])));
 
 		case ACSF_VectorLength:
-			return FLOAT2FIXED(TVector2<double>(FIXED2DBL(args[0]), FIXED2DBL(args[1])).Length());
+			return DoubleToACS(DVector2(ACSToDouble(args[0]), ACSToDouble(args[1])).Length());
 
 		case ACSF_SetHUDClipRect:
 			ClipRectLeft = argCount > 0 ? args[0] : 0;
@@ -5437,12 +5427,12 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 		//[RC] A bullet firing function for ACS. Thanks to DavidPH.
 		case ACSF_LineAttack:
 			{
-				fixed_t	angle		= args[1] << FRACBITS;
-				fixed_t	pitch		= args[2] << FRACBITS;
+				DAngle angle		= ACSToAngle(args[1]);
+				DAngle pitch		= ACSToAngle(args[2]);
 				int	damage			= args[3];
 				FName pufftype		= argCount > 4 && args[4]? FName(FBehavior::StaticLookupString(args[4])) : NAME_BulletPuff;
 				FName damagetype	= argCount > 5 && args[5]? FName(FBehavior::StaticLookupString(args[5])) : NAME_None;
-				fixed_t	range		= argCount > 6 && args[6]? args[6] : MISSILERANGE;
+				double range		= argCount > 6 && args[6]? ACSToDouble(args[6]) : MISSILERANGE;
 				int flags			= argCount > 7 && args[7]? args[7] : 0;
 				int pufftid			= argCount > 8 && args[8]? args[8] : 0;
 
@@ -5497,9 +5487,9 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 					AActor *spot;
 
 					int chan = argCount > 2 ? args[2] : CHAN_BODY;
-					float vol = argCount > 3 ? FIXED2FLOAT(args[3]) : 1.f;
+					float vol = argCount > 3 ? ACSToFloat(args[3]) : 1.f;
 					INTBOOL looping = argCount > 4 ? args[4] : false;
-					float atten = argCount > 5 ? FIXED2FLOAT(args[5]) : ATTN_NORM;
+					float atten = argCount > 5 ? ACSToFloat(args[5]) : ATTN_NORM;
 
 					if (args[0] == 0)
 					{
@@ -5553,7 +5543,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			// SoundVolume(int tid, int channel, fixed volume)
 			{
 				int chan = args[1];
-				float volume = FIXED2FLOAT(args[2]);
+				float volume = ACSToFloat(args[2]);
 
 				if (args[0] == 0)
 				{
@@ -5661,9 +5651,9 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				if (tpl != NULL)
 				{
 					int flags = (argCount > 2) ? args[2] : 0;
-					angle_t angle = (argCount > 3) ? (args[3] << FRACBITS) : 0;
-					fixed_t zoffset = (argCount > 4) ? (args[4] << FRACBITS) : 0;
-					fixed_t distance = (argCount > 5) ? (args[5] << FRACBITS) : 64*FRACUNIT;
+					DAngle angle = ACSToAngle((argCount > 3) ? args[3] : 0);
+					int zoffset = (argCount > 4) ? args[4]: 0;
+					int distance = (argCount > 5) ? args[5] : 64;
 
 					if (args[0] == 0)
 					{
@@ -5774,9 +5764,13 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 		{
 			return P_StartQuakeXYZ(activator, args[0], args[1], args[2], args[3], args[4], args[5], args[6], FBehavior::StaticLookupString(args[7]), 
 				argCount > 8 ? args[8] : 0,
-				argCount > 9 ? FIXED2DBL(args[9]) : 1.0, 
-				argCount > 10 ? FIXED2DBL(args[10]) : 1.0, 
-				argCount > 11 ? FIXED2DBL(args[11]) : 1.0 );
+				argCount > 9 ? ACSToDouble(args[9]) : 1.0,
+				argCount > 10 ? ACSToDouble(args[10]) : 1.0,
+				argCount > 11 ? ACSToDouble(args[11]) : 1.0,
+				argCount > 12 ? args[12] : 0,
+				argCount > 13 ? args[13] : 0,
+				argCount > 14 ? args[14] : 0,
+				argCount > 15 ? args[15] : 0);
 		}
 
 		case ACSF_SetLineActivation:
@@ -5870,7 +5864,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 					flags = args[7];
 				}
 
-				AActor* pickedActor = P_LinePickActor(actor, args[1] << 16, args[3], args[2] << 16, actorMask, wallMask);
+				AActor* pickedActor = P_LinePickActor(actor, ACSToAngle(args[1]), ACSToDouble(args[3]), ACSToAngle(args[2]), actorMask, wallMask);
 				if (pickedActor == NULL) {
 					return 0;
 				}
@@ -5930,11 +5924,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 
 		// [Nash] Actor roll functions. Let's roll!
 		case ACSF_SetActorRoll:
-			actor = SingleActorFromTID(args[0], activator);
-			if (actor != NULL)
-			{
-				actor->SetRoll(args[1] << 16, false);
-			}
+			SetActorRoll(activator, args[0], args[1], false);
 			return 0;
 
 		case ACSF_ChangeActorRoll:
@@ -5946,22 +5936,22 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 
 		case ACSF_GetActorRoll:
 			actor = SingleActorFromTID(args[0], activator);
-			return actor != NULL? actor->roll >> 16 : 0;
+			return actor != NULL? AngleToACS(actor->Angles.Roll) : 0;
 		
 		// [ZK] A_Warp in ACS
 		case ACSF_Warp:
 		{
 			int tid_dest = args[0];
-			fixed_t xofs = args[1];
-			fixed_t yofs = args[2];
-			fixed_t zofs = args[3];
-			angle_t angle = args[4];
+			int xofs = args[1];
+			int yofs = args[2];
+			int zofs = args[3];
+			int angle = args[4];
 			int flags = args[5];
 			const char *statename = argCount > 6 ? FBehavior::StaticLookupString(args[6]) : "";
 			bool exact = argCount > 7 ? !!args[7] : false;
-			fixed_t heightoffset = argCount > 8 ? args[8] : 0;
-			fixed_t radiusoffset = argCount > 9 ? args[9] : 0;
-			fixed_t pitch = argCount > 10 ? args[10] : 0;
+			int heightoffset = argCount > 8 ? args[8] : 0;
+			int radiusoffset = argCount > 9 ? args[9] : 0;
+			int pitch = argCount > 10 ? args[10] : 0;
 
 			FState *state = argCount > 6 ? activator->GetClass()->FindStateByString(statename, exact) : 0;
 
@@ -5975,11 +5965,11 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				reference = SingleActorFromTID(tid_dest, activator);
 			}
 
-			// If there is no actor to warp to, fail.
-			if (!reference)
+			// If there is no activator or actor to warp to, fail.
+			if (activator == NULL || !reference)
 				return false;
 
-			if (P_Thing_Warp(activator, reference, xofs, yofs, zofs, angle, flags, heightoffset, radiusoffset, pitch))
+			if (P_Thing_Warp(activator, reference, ACSToDouble(xofs), ACSToDouble(yofs), ACSToDouble(zofs), ACSToAngle(angle), flags, ACSToDouble(heightoffset), ACSToDouble(radiusoffset), ACSToAngle(pitch)))
 			{
 				if (state && argCount > 6)
 				{
@@ -6036,15 +6026,15 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			bool fullbright = argCount > 1 ? !!args[1] : false;
 			int lifetime = argCount > 2 ? args[2] : 35;
 			int size = argCount > 3 ? args[3] : 1;
-			fixed_t x = argCount > 4 ? args[4] : 0;
-			fixed_t y = argCount > 5 ? args[5] : 0;
-			fixed_t z = argCount > 6 ? args[6] : 0;
-			fixed_t xvel = argCount > 7 ? args[7] : 0;
-			fixed_t yvel = argCount > 8 ? args[8] : 0;
-			fixed_t zvel = argCount > 9 ? args[9] : 0;
-			fixed_t accelx = argCount > 10 ? args[10] : 0;
-			fixed_t accely = argCount > 11 ? args[11] : 0;
-			fixed_t accelz = argCount > 12 ? args[12] : 0;
+			int x = argCount > 4 ? args[4] : 0;
+			int y = argCount > 5 ? args[5] : 0;
+			int z = argCount > 6 ? args[6] : 0;
+			int xvel = argCount > 7 ? args[7] : 0;
+			int yvel = argCount > 8 ? args[8] : 0;
+			int zvel = argCount > 9 ? args[9] : 0;
+			int accelx = argCount > 10 ? args[10] : 0;
+			int accely = argCount > 11 ? args[11] : 0;
+			int accelz = argCount > 12 ? args[12] : 0;
 			int startalpha = argCount > 13 ? args[13] : 0xFF; // Byte trans			
 			int fadestep = argCount > 14 ? args[14] : -1;
 
@@ -6054,9 +6044,16 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			size = clamp<int>(size, 0, 65535); // Clamp to word
 
 			if (lifetime != 0)
-				P_SpawnParticle(x, y, z, xvel, yvel, zvel, color, fullbright, startalpha, lifetime, size, fadestep, accelx, accely, accelz);
+				P_SpawnParticle(DVector3(ACSToDouble(x), ACSToDouble(y), ACSToDouble(z)), 
+								DVector3(ACSToDouble(xvel), ACSToDouble(yvel), ACSToDouble(zvel)),
+								DVector3(ACSToDouble(accelx), ACSToDouble(accely), ACSToDouble(accelz)),
+								color, fullbright, startalpha/255., lifetime, size, fadestep/255.);
 		}
 		break;
+
+		case ACSF_SetMusicVolume:
+			I_SetMusicVolume(ACSToFloat(args[0]));
+			break;
 		
 		default:
 			break;
@@ -7766,7 +7763,7 @@ scriptwait:
 			break;
 
 		case PCD_PRINTFIXED:
-			work.AppendFormat ("%g", FIXED2FLOAT(STACK(1)));
+			work.AppendFormat ("%g", ACSToDouble(STACK(1)));
 			--sp;
 			break;
 
@@ -7979,10 +7976,10 @@ scriptwait:
 					int type = Stack[optstart-6];
 					int id = Stack[optstart-5];
 					EColorRange color;
-					float x = FIXED2FLOAT(Stack[optstart-3]);
-					float y = FIXED2FLOAT(Stack[optstart-2]);
-					float holdTime = FIXED2FLOAT(Stack[optstart-1]);
-					fixed_t alpha;
+					float x = ACSToFloat(Stack[optstart-3]);
+					float y = ACSToFloat(Stack[optstart-2]);
+					float holdTime = ACSToFloat(Stack[optstart-1]);
+					float alpha;
 					DHUDMessage *msg;
 
 					if (type & HUDMSG_COLORSTRING)
@@ -7997,29 +7994,29 @@ scriptwait:
 					switch (type & 0xFF)
 					{
 					default:	// normal
-						alpha = (optstart < sp) ? Stack[optstart] : FRACUNIT;
+						alpha = (optstart < sp) ? ACSToFloat(Stack[optstart]) : 1.f;
 						msg = new DHUDMessage (activefont, work, x, y, hudwidth, hudheight, color, holdTime);
 						break;
 					case 1:		// fade out
 						{
-							float fadeTime = (optstart < sp) ? FIXED2FLOAT(Stack[optstart]) : 0.5f;
-							alpha = (optstart < sp-1) ? Stack[optstart+1] : FRACUNIT;
+							float fadeTime = (optstart < sp) ? ACSToFloat(Stack[optstart]) : 0.5f;
+							alpha = (optstart < sp-1) ? ACSToFloat(Stack[optstart+1]) : 1.f;
 							msg = new DHUDMessageFadeOut (activefont, work, x, y, hudwidth, hudheight, color, holdTime, fadeTime);
 						}
 						break;
 					case 2:		// type on, then fade out
 						{
-							float typeTime = (optstart < sp) ? FIXED2FLOAT(Stack[optstart]) : 0.05f;
-							float fadeTime = (optstart < sp-1) ? FIXED2FLOAT(Stack[optstart+1]) : 0.5f;
-							alpha = (optstart < sp-2) ? Stack[optstart+2] : FRACUNIT;
+							float typeTime = (optstart < sp) ? ACSToFloat(Stack[optstart]) : 0.05f;
+							float fadeTime = (optstart < sp-1) ? ACSToFloat(Stack[optstart+1]) : 0.5f;
+							alpha = (optstart < sp-2) ? ACSToFloat(Stack[optstart+2]) : 1.f;
 							msg = new DHUDMessageTypeOnFadeOut (activefont, work, x, y, hudwidth, hudheight, color, typeTime, holdTime, fadeTime);
 						}
 						break;
 					case 3:		// fade in, then fade out
 						{
-							float inTime = (optstart < sp) ? FIXED2FLOAT(Stack[optstart]) : 0.5f;
-							float outTime = (optstart < sp-1) ? FIXED2FLOAT(Stack[optstart+1]) : 0.5f;
-							alpha = (optstart < sp-2) ? Stack[optstart+2] : FRACUNIT;
+							float inTime = (optstart < sp) ? ACSToFloat(Stack[optstart]) : 0.5f;
+							float outTime = (optstart < sp-1) ? ACSToFloat(Stack[optstart+1]) : 0.5f;
+							alpha = (optstart < sp-2) ? ACSToFloat(Stack[optstart + 2]) : 1.f;
 							msg = new DHUDMessageFadeInOut (activefont, work, x, y, hudwidth, hudheight, color, holdTime, inTime, outTime);
 						}
 						break;
@@ -8379,23 +8376,23 @@ scriptwait:
 			break;
 
 		case PCD_SETGRAVITY:
-			level.gravity = (float)STACK(1) / 65536.f;
+			level.gravity = ACSToDouble(STACK(1));
 			sp--;
 			break;
 
 		case PCD_SETGRAVITYDIRECT:
-			level.gravity = (float)uallong(pc[0]) / 65536.f;
+			level.gravity = ACSToDouble(uallong(pc[0]));
 			pc++;
 			break;
 
 		case PCD_SETAIRCONTROL:
-			level.aircontrol = STACK(1);
+			level.aircontrol = ACSToDouble(STACK(1));
 			sp--;
 			G_AirControlChanged ();
 			break;
 
 		case PCD_SETAIRCONTROLDIRECT:
-			level.aircontrol = uallong(pc[0]);
+			level.aircontrol = ACSToDouble(uallong(pc[0]));
 			pc++;
 			G_AirControlChanged ();
 			break;
@@ -8607,8 +8604,11 @@ scriptwait:
 					else
 					{
 						item = activator->GiveInventoryType (static_cast<PClassAmmo *>(type));
-						item->MaxAmount = STACK(1);
-						item->Amount = 0;
+						if (item != NULL)
+						{
+							item->MaxAmount = STACK(1);
+							item->Amount = 0;
+						}
 					}
 				}
 			}
@@ -8676,7 +8676,7 @@ scriptwait:
 				bool result = false;
 				AActor *actor = SingleActorFromTID (STACK(5), activator);
 				if (actor != NULL)
-					result = P_MoveThing(actor, STACK(4), STACK(3), STACK(2), !!STACK(1));
+					result = P_MoveThing(actor, DVector3(ACSToDouble(STACK(4)), ACSToDouble(STACK(3)), ACSToDouble(STACK(2))), !!STACK(1));
 				sp -= 4;
 				STACK(1) = result;
 			}
@@ -8693,11 +8693,11 @@ scriptwait:
 				}
 				else if (pcd == PCD_GETACTORZ)
 				{
-					STACK(1) = actor->Z() + actor->GetBobOffset();
+					STACK(1) = DoubleToACS(actor->Z() + actor->GetBobOffset());
 				}
 				else
 				{
-					STACK(1) = pcd == PCD_GETACTORX ? actor->X() : pcd == PCD_GETACTORY ? actor->Y() : actor->Z();
+					STACK(1) = DoubleToACS(pcd == PCD_GETACTORX ? actor->X() : pcd == PCD_GETACTORY ? actor->Y() : actor->Z());
 				}
 			}
 			break;
@@ -8705,35 +8705,35 @@ scriptwait:
 		case PCD_GETACTORFLOORZ:
 			{
 				AActor *actor = SingleActorFromTID(STACK(1), activator);
-				STACK(1) = actor == NULL ? 0 : actor->floorz;
+				STACK(1) = actor == NULL ? 0 : DoubleToACS(actor->floorz);
 			}
 			break;
 
 		case PCD_GETACTORCEILINGZ:
 			{
 				AActor *actor = SingleActorFromTID(STACK(1), activator);
-				STACK(1) = actor == NULL ? 0 : actor->ceilingz;
+				STACK(1) = actor == NULL ? 0 : DoubleToACS(actor->ceilingz);
 			}
 			break;
 
 		case PCD_GETACTORANGLE:
 			{
 				AActor *actor = SingleActorFromTID(STACK(1), activator);
-				STACK(1) = actor == NULL ? 0 : actor->angle >> 16;
+				STACK(1) = actor == NULL ? 0 : AngleToACS(actor->Angles.Yaw);
 			}
 			break;
 
 		case PCD_GETACTORPITCH:
 			{
 				AActor *actor = SingleActorFromTID(STACK(1), activator);
-				STACK(1) = actor == NULL ? 0 : actor->pitch >> 16;
+				STACK(1) = actor == NULL ? 0 : PitchToACS(actor->Angles.Pitch);
 			}
 			break;
 
 		case PCD_GETLINEROWOFFSET:
 			if (activationline != NULL)
 			{
-				PushToStack (activationline->sidedef[0]->GetTextureYOffset(side_t::mid) >> FRACBITS);
+				PushToStack (int(activationline->sidedef[0]->GetTextureYOffset(side_t::mid)));
 			}
 			else
 			{
@@ -8750,9 +8750,9 @@ scriptwait:
 			{
 				int tag = STACK(3);
 				int secnum;
-				fixed_t x = STACK(2) << FRACBITS;
-				fixed_t y = STACK(1) << FRACBITS;
-				fixed_t z = 0;
+				double x = double(STACK(2));
+				double y = double(STACK(1));
+				double z = 0;
 
 				if (tag != 0)
 					secnum = P_FindFirstSectorFromTag (tag);
@@ -8771,7 +8771,7 @@ scriptwait:
 					}
 				}
 				sp -= 2;
-				STACK(1) = z;
+				STACK(1) = DoubleToACS(z);
 			}
 			break;
 
@@ -8852,38 +8852,39 @@ scriptwait:
 			{ // translation using desaturation
 				int start = STACK(8);
 				int end = STACK(7);
-				fixed_t r1 = STACK(6);
-				fixed_t g1 = STACK(5);
-				fixed_t b1 = STACK(4);
-				fixed_t r2 = STACK(3);
-				fixed_t g2 = STACK(2);
-				fixed_t b2 = STACK(1);
+				int r1 = STACK(6);
+				int g1 = STACK(5);
+				int b1 = STACK(4);
+				int r2 = STACK(3);
+				int g2 = STACK(2);
+				int b2 = STACK(1);
 				sp -= 8;
 
 				if (translation != NULL)
 					translation->AddDesaturation(start, end,
-						FIXED2DBL(r1), FIXED2DBL(g1), FIXED2DBL(b1),
-						FIXED2DBL(r2), FIXED2DBL(g2), FIXED2DBL(b2));
+						ACSToDouble(r1), ACSToDouble(g1), ACSToDouble(b1),
+						ACSToDouble(r2), ACSToDouble(g2), ACSToDouble(b2));
 			}
 			break;
 
 		case PCD_ENDTRANSLATION:
-			// This might be useful for hardware rendering, but
-			// for software it is superfluous.
-			translation->UpdateNative();
-			translation = NULL;
+			if (translation != NULL)
+			{
+				translation->UpdateNative();
+				translation = NULL;
+			}
 			break;
 
 		case PCD_SIN:
-			STACK(1) = finesine[angle_t(STACK(1)<<16)>>ANGLETOFINESHIFT];
+			STACK(1) = DoubleToACS(ACSToAngle(STACK(1)).Sin());
 			break;
 
 		case PCD_COS:
-			STACK(1) = finecosine[angle_t(STACK(1)<<16)>>ANGLETOFINESHIFT];
+			STACK(1) = DoubleToACS(ACSToAngle(STACK(1)).Cos());
 			break;
 
 		case PCD_VECTORANGLE:
-			STACK(2) = R_PointToAngle2 (0, 0, STACK(2), STACK(1)) >> 16;
+			STACK(2) = AngleToACS(VecToAngle(STACK(2), STACK(1)).Degrees);
 			sp--;
 			break;
 
@@ -9063,15 +9064,15 @@ scriptwait:
 			// Like Thing_Projectile(Gravity) specials, but you can give the
 			// projectile a TID.
 			// Thing_Projectile2 (tid, type, angle, speed, vspeed, gravity, newtid);
-			P_Thing_Projectile (STACK(7), activator, STACK(6), NULL, ((angle_t)(STACK(5)<<24)),
-				STACK(4)<<(FRACBITS-3), STACK(3)<<(FRACBITS-3), 0, NULL, STACK(2), STACK(1), false);
+			P_Thing_Projectile(STACK(7), activator, STACK(6), NULL, STACK(5) * (360. / 256.),
+				STACK(4) / 8., STACK(3) / 8., 0, NULL, STACK(2), STACK(1), false);
 			sp -= 7;
 			break;
 
 		case PCD_SPAWNPROJECTILE:
 			// Same, but takes an actor name instead of a spawn ID.
-			P_Thing_Projectile (STACK(7), activator, 0, FBehavior::StaticLookupString (STACK(6)), ((angle_t)(STACK(5)<<24)),
-				STACK(4)<<(FRACBITS-3), STACK(3)<<(FRACBITS-3), 0, NULL, STACK(2), STACK(1), false);
+			P_Thing_Projectile(STACK(7), activator, 0, FBehavior::StaticLookupString(STACK(6)), STACK(5) * (360. / 256.),
+				STACK(4) / 8., STACK(3) / 8., 0, NULL, STACK(2), STACK(1), false);
 			sp -= 7;
 			break;
 
@@ -9250,12 +9251,12 @@ scriptwait:
 				switch (STACK(1))
 				{
 				case PLAYERINFO_TEAM:			STACK(2) = userinfo->GetTeam(); break;
-				case PLAYERINFO_AIMDIST:		STACK(2) = userinfo->GetAimDist(); break;
+				case PLAYERINFO_AIMDIST:		STACK(2) = (SDWORD)(userinfo->GetAimDist() * (0x40000000/90.)); break;	// Yes, this has been returning a BAM since its creation.
 				case PLAYERINFO_COLOR:			STACK(2) = userinfo->GetColor(); break;
 				case PLAYERINFO_GENDER:			STACK(2) = userinfo->GetGender(); break;
 				case PLAYERINFO_NEVERSWITCH:	STACK(2) = userinfo->GetNeverSwitch(); break;
-				case PLAYERINFO_MOVEBOB:		STACK(2) = userinfo->GetMoveBob(); break;
-				case PLAYERINFO_STILLBOB:		STACK(2) = userinfo->GetStillBob(); break;
+				case PLAYERINFO_MOVEBOB:		STACK(2) = DoubleToACS(userinfo->GetMoveBob()); break;
+				case PLAYERINFO_STILLBOB:		STACK(2) = DoubleToACS(userinfo->GetStillBob()); break;
 				case PLAYERINFO_PLAYERCLASS:	STACK(2) = userinfo->GetPlayerClassNum(); break;
 				case PLAYERINFO_DESIREDFOV:		STACK(2) = (int)pl->DesiredFOV; break;
 				case PLAYERINFO_FOV:			STACK(2) = (int)pl->FOV; break;
@@ -9306,7 +9307,26 @@ scriptwait:
 			AActor *actor = SingleActorFromTID(STACK(1), activator);
 			if (actor != NULL)
 			{
-				STACK(1) = actor->Sector->lightlevel;
+				sector_t *sector = actor->Sector;
+				if (sector->e->XFloor.lightlist.Size())
+				{
+					unsigned   i;
+					TArray<lightlist_t> &lightlist = sector->e->XFloor.lightlist;
+
+					STACK(1) = *lightlist.Last().p_lightlevel;
+					for (i = 1; i < lightlist.Size(); i++)
+					{
+						if (lightlist[i].plane.ZatPoint(actor) <= actor->Z())
+						{
+							STACK(1) = *lightlist[i - 1].p_lightlevel;
+							break;
+						}
+					}
+				}
+				else
+				{
+					STACK(1) = actor->Sector->lightlevel;
+				}
 			}
 			else STACK(1) = 0;
 			break;
@@ -9396,7 +9416,7 @@ scriptwait:
 				{
 					if (activator->player)
 					{
-						if (P_UndoPlayerMorph(activator->player, activator->player, force))
+						if (P_UndoPlayerMorph(activator->player, activator->player, 0, force))
 						{
 							changes++;
 						}
@@ -9422,7 +9442,7 @@ scriptwait:
 					{
 						if (actor->player)
 						{
-							if (P_UndoPlayerMorph(activator->player, actor->player, force))
+							if (P_UndoPlayerMorph(activator->player, actor->player, 0, force))
 							{
 								changes++;
 							}
@@ -9968,7 +9988,7 @@ void ClearProfiles(TArray<ProfileCollector> &profiles)
 	}
 }
 
-static int STACK_ARGS sort_by_total_instr(const void *a_, const void *b_)
+static int sort_by_total_instr(const void *a_, const void *b_)
 {
 	const ProfileCollector *a = (const ProfileCollector *)a_;
 	const ProfileCollector *b = (const ProfileCollector *)b_;
@@ -9978,7 +9998,7 @@ static int STACK_ARGS sort_by_total_instr(const void *a_, const void *b_)
 	return (int)(b->ProfileData->TotalInstr - a->ProfileData->TotalInstr);
 }
 
-static int STACK_ARGS sort_by_min(const void *a_, const void *b_)
+static int sort_by_min(const void *a_, const void *b_)
 {
 	const ProfileCollector *a = (const ProfileCollector *)a_;
 	const ProfileCollector *b = (const ProfileCollector *)b_;
@@ -9986,7 +10006,7 @@ static int STACK_ARGS sort_by_min(const void *a_, const void *b_)
 	return b->ProfileData->MinInstrPerRun - a->ProfileData->MinInstrPerRun;
 }
 
-static int STACK_ARGS sort_by_max(const void *a_, const void *b_)
+static int sort_by_max(const void *a_, const void *b_)
 {
 	const ProfileCollector *a = (const ProfileCollector *)a_;
 	const ProfileCollector *b = (const ProfileCollector *)b_;
@@ -9994,7 +10014,7 @@ static int STACK_ARGS sort_by_max(const void *a_, const void *b_)
 	return b->ProfileData->MaxInstrPerRun - a->ProfileData->MaxInstrPerRun;
 }
 
-static int STACK_ARGS sort_by_avg(const void *a_, const void *b_)
+static int sort_by_avg(const void *a_, const void *b_)
 {
 	const ProfileCollector *a = (const ProfileCollector *)a_;
 	const ProfileCollector *b = (const ProfileCollector *)b_;
@@ -10004,7 +10024,7 @@ static int STACK_ARGS sort_by_avg(const void *a_, const void *b_)
 	return b_avg - a_avg;
 }
 
-static int STACK_ARGS sort_by_runs(const void *a_, const void *b_)
+static int sort_by_runs(const void *a_, const void *b_)
 {
 	const ProfileCollector *a = (const ProfileCollector *)a_;
 	const ProfileCollector *b = (const ProfileCollector *)b_;
@@ -10013,7 +10033,7 @@ static int STACK_ARGS sort_by_runs(const void *a_, const void *b_)
 }
 
 static void ShowProfileData(TArray<ProfileCollector> &profiles, long ilimit,
-	int (STACK_ARGS *sorter)(const void *, const void *), bool functions)
+	int (*sorter)(const void *, const void *), bool functions)
 {
 	static const char *const typelabels[2] = { "script", "function" };
 
@@ -10084,7 +10104,7 @@ static void ShowProfileData(TArray<ProfileCollector> &profiles, long ilimit,
 
 CCMD(acsprofile)
 {
-	static int (STACK_ARGS *sort_funcs[])(const void*, const void *) =
+	static int (*sort_funcs[])(const void*, const void *) =
 	{
 		sort_by_total_instr,
 		sort_by_min,
@@ -10097,7 +10117,7 @@ CCMD(acsprofile)
 
 	TArray<ProfileCollector> ScriptProfiles, FuncProfiles;
 	long limit = 10;
-	int (STACK_ARGS *sorter)(const void *, const void *) = sort_by_total_instr;
+	int (*sorter)(const void *, const void *) = sort_by_total_instr;
 
 	assert(countof(sort_names) == countof(sort_match_len));
 

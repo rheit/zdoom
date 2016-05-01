@@ -88,7 +88,7 @@ public:
 	{
 		Style = style;
 	}
-	void SetAlpha(fixed_t alpha)
+	void SetAlpha(float alpha)
 	{
 		Alpha = alpha;
 	}
@@ -127,7 +127,7 @@ protected:
 	EColorRange TextColor;
 	FFont *Font;
 	FRenderStyle Style;
-	fixed_t Alpha;
+	double Alpha;
 
 	void CalcClipCoords(int hudheight);
 	DHUDMessage () : SourceText(NULL) {}
@@ -264,6 +264,7 @@ class FMugShot
 			DISABLEOUCH = 0x8,
 			DISABLEPAIN = 0x10,
 			DISABLERAMPAGE = 0x20,
+			CUSTOM = 0x40,
 		};
 
 		FMugShot();
@@ -349,7 +350,7 @@ public:
 	DHUDMessage *DetachMessage (uint32 id);
 	void DetachAllMessages ();
 	void ShowPlayerName ();
-	fixed_t GetDisplacement () { return Displacement; }
+	double GetDisplacement() { return Displacement; }
 	int GetPlayer ();
 
 	static void AddBlend (float r, float g, float b, float a, float v_blend[4]);
@@ -380,7 +381,6 @@ protected:
 	void UpdateRect (int x, int y, int width, int height) const;
 	void DrawImage (FTexture *image, int x, int y, FRemapTable *translation=NULL) const;
 	void DrawDimImage (FTexture *image, int x, int y, bool dimmed) const;
-	void DrawFadedImage (FTexture *image, int x, int y, fixed_t shade) const;
 	void DrawPartialImage (FTexture *image, int wx, int ww) const;
 
 	void DrINumber (signed int val, int x, int y, int imgBase=imgINumbers) const;
@@ -407,8 +407,8 @@ public:
 	bool Centering;
 	bool FixedOrigin;
 	bool CompleteBorder;
-	fixed_t CrosshairSize;
-	fixed_t Displacement;
+	double CrosshairSize;
+	double Displacement;
 
 	enum
 	{

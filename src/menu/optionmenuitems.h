@@ -121,7 +121,21 @@ public:
 
 	bool Activate()
 	{
-		M_StartMessage("Do you really want to do this?", 0);
+		const char *msg = GStrings("SAFEMESSAGE");
+
+		const char *actionLabel = mLabel;
+		if (actionLabel != NULL)
+		{
+			if (*actionLabel == '$')
+			{
+				actionLabel = GStrings(actionLabel + 1);
+			}
+		}
+
+		FString FullString;
+		FullString.Format(TEXTCOLOR_WHITE "%s" TEXTCOLOR_NORMAL "\n\n" "%s", actionLabel != NULL ? actionLabel : "", msg);
+
+		if (msg && FullString) M_StartMessage(FullString, 0);
 		return true;
 	}
 };
@@ -229,6 +243,10 @@ public:
 			SetSelection(Selection);
 			S_Sound (CHAN_VOICE | CHAN_UI, "menu/change", snd_menuvolume, ATTN_NONE);
 		}
+		else
+		{
+			return FOptionMenuItem::MenuEvent(mkey, fromcontroller);
+		}
 		return true;
 	}
 
@@ -277,10 +295,10 @@ public:
 			}
 			else
 			{
-				UCVarValue cv = mCVar->GetGenericRep(CVAR_String);
+				const char *cv = mCVar->GetHumanString();
 				for(unsigned i = 0; i < (*opt)->mValues.Size(); i++)
 				{
-					if ((*opt)->mValues[i].TextValue.CompareNoCase(cv.String) == 0)
+					if ((*opt)->mValues[i].TextValue.CompareNoCase(cv) == 0)
 					{
 						Selection = i;
 						break;
@@ -977,7 +995,7 @@ public:
 		if ( mCVar == NULL )
 			return "";
 
-		return mCVar->GetGenericRep( CVAR_String ).String;
+		return mCVar->GetHumanString();
 	}
 
 	virtual FString Represent()

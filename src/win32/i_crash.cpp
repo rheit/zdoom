@@ -45,7 +45,13 @@
 #include <winternl.h>
 #endif
 #ifndef __GNUC__
+#if _MSC_VER
+#pragma warning(disable:4091)	// this silences a warning for a bogus definition in the Windows 8.1 SDK.
+#endif
 #include <dbghelp.h>
+#if _MSC_VER
+#pragma warning(default:4091)
+#endif
 #endif
 #include <commctrl.h>
 #include <commdlg.h>
@@ -536,7 +542,7 @@ static DWORD WINAPI WriteMiniDumpInAnotherThread (LPVOID lpParam)
 //
 //==========================================================================
 
-void __cdecl Writef (HANDLE file, const char *format, ...)
+void Writef (HANDLE file, const char *format, ...)
 {
 	char buffer[1024];
 	va_list args;

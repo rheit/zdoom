@@ -35,10 +35,6 @@ xx(LP,		lp,		RPRPKI),	// load pointer
 xx(LP_R,	lp,		RPRPRI),
 xx(LV,		lv,		RVRPKI),	// load vector
 xx(LV_R,	lv,		RVRPRI),
-xx(LX,		lx,		RFRPKI),	// load fixed point
-xx(LX_R,	lx,		RFRPRI),
-xx(LANG,	lang,	RFRPKI),	// load angle
-xx(LANG_R,	lang,	RFRPRI),
 
 xx(LBIT,	lbit,	RIRPI8),	// rA = !!(*rB & C)  -- *rB is a byte
 
@@ -59,10 +55,6 @@ xx(SP,		sp,		RPRPKI),		// store pointer
 xx(SP_R,	sp,		RPRPRI),
 xx(SV,		sv,		RPRVKI),		// store vector
 xx(SV_R,	sv,		RPRVRI),
-xx(SX,		sx,		RPRFKI),		// store fixed point
-xx(SX_R,	sx,		RPRFRI),
-xx(SANG,	sang,	RPRFKI),		// store angle
-xx(SANG_R,	sang,	RPRFRI),
 
 xx(SBIT,	sbit,	RPRII8),		// *rA |= C if rB is true, *rA &= ~C otherwise
 
@@ -182,6 +174,7 @@ xx(MINF_RR,		min,	RFRFRF),		// fA = min(fB),fkC)
 xx(MINF_RK,		min,	RFRFKF),
 xx(MAXF_RR,		max,	RFRFRF),		// fA = max(fB),fkC)
 xx(MAXF_RK,		max,	RFRFKF),
+xx(ATAN2,		atan2,	RFRFRF),		// fA = atan2(fB,fC), result is in degrees
 xx(FLOP,		flop,	RFRFI8),		// fA = f(fB), where function is selected by C
 xx(EQF_R,		beq,	CFRR),			// if ((fB == fkC) != (A & 1)) then pc++
 xx(EQF_K,		beq,	CFRK),

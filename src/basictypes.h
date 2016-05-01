@@ -1,16 +1,6 @@
 #ifndef __BASICTYPES_H
 #define __BASICTYPES_H
 
-#ifdef _MSC_VER
-typedef __int8					SBYTE;
-typedef unsigned __int8			BYTE;
-typedef __int16					SWORD;
-typedef unsigned __int16		WORD;
-typedef __int32					SDWORD;
-typedef unsigned __int32		uint32;
-typedef __int64					SQWORD;
-typedef unsigned __int64		QWORD;
-#else
 #include <stdint.h>
 
 typedef int8_t					SBYTE;
@@ -21,11 +11,6 @@ typedef int32_t					SDWORD;
 typedef uint32_t				uint32;
 typedef int64_t					SQWORD;
 typedef uint64_t				QWORD;
-#endif
-
-typedef SDWORD					int32;
-typedef float					real32;
-typedef double					real64;
 
 // windef.h, included by windows.h, has its own incompatible definition
 // of DWORD as a long. In files that mix Doom and Windows code, you
@@ -73,7 +58,7 @@ union QWORD_UNION
 };
 
 //
-// Fixed point, 32bit as 16.16.
+// fixed point, 32bit as 16.16.
 //
 #define FRACBITS						16
 #define FRACUNIT						(1<<FRACBITS)
@@ -81,22 +66,19 @@ union QWORD_UNION
 typedef SDWORD							fixed_t;
 typedef DWORD							dsfixed_t;				// fixedpt used by span drawer
 
-struct fixedvec3
-{
-	fixed_t x, y, z;
-};
-
-struct fixedvec2
-{
-	fixed_t x, y;
-};
-
-
 #define FIXED_MAX						(signed)(0x7fffffff)
 #define FIXED_MIN						(signed)(0x80000000)
 
 #define DWORD_MIN						((uint32)0)
 #define DWORD_MAX						((uint32)0xffffffff)
+
+// the last remnants of tables.h
+#define ANGLE_90		(0x40000000)
+#define ANGLE_180		(0x80000000)
+#define ANGLE_270		(0xc0000000)
+#define ANGLE_MAX		(0xffffffff)
+
+typedef uint32			angle_t;
 
 
 #ifdef __GNUC__

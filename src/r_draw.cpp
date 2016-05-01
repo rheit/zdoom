@@ -33,7 +33,6 @@
 #include "v_video.h"
 #include "doomstat.h"
 #include "st_stuff.h"
-#include "a_hexenglobal.h"
 #include "g_game.h"
 #include "g_level.h"
 #include "r_data/r_translate.h"
@@ -61,7 +60,6 @@ extern	int		ST_Y;
 
 BYTE*			viewimage;
 extern "C" {
-int				halfviewwidth;
 int				ylookup[MAXHEIGHT];
 BYTE			*dc_destorg;
 }
@@ -81,12 +79,13 @@ void (*R_DrawSpanTranslucent)(void);
 void (*R_DrawSpanMaskedTranslucent)(void);
 void (*R_DrawSpanAddClamp)(void);
 void (*R_DrawSpanMaskedAddClamp)(void);
-void (STACK_ARGS *rt_map4cols)(int,int,int);
+void (*rt_map4cols)(int,int,int);
 
 //
 // R_DrawColumn
 // Source is the top of the column to scale.
 //
+double 			dc_texturemid;
 extern "C" {
 int				dc_pitch=0xABadCafe;	// [RH] Distance between rows
 
@@ -95,7 +94,6 @@ int 			dc_x;
 int 			dc_yl; 
 int 			dc_yh; 
 fixed_t 		dc_iscale; 
-fixed_t 		dc_texturemid;
 fixed_t			dc_texturefrac;
 int				dc_color;				// [RH] Color for column filler
 DWORD			dc_srccolor;
@@ -985,7 +983,7 @@ int 					dscount;
 
 #ifdef X86_ASM
 extern "C" void R_SetSpanSource_ASM (const BYTE *flat);
-extern "C" void STACK_ARGS R_SetSpanSize_ASM (int xbits, int ybits);
+extern "C" void R_SetSpanSize_ASM (int xbits, int ybits);
 extern "C" void R_SetSpanColormap_ASM (BYTE *colormap);
 extern "C" BYTE *ds_curcolormap, *ds_cursource, *ds_curtiltedsource;
 #endif
@@ -1494,7 +1492,7 @@ extern "C" void R_SetupDrawSlabC(const BYTE *colormap)
 	slabcolormap = colormap;
 }
 
-extern "C" void STACK_ARGS R_DrawSlabC(int dx, fixed_t v, int dy, fixed_t vi, const BYTE *vptr, BYTE *p)
+extern "C" void R_DrawSlabC(int dx, fixed_t v, int dy, fixed_t vi, const BYTE *vptr, BYTE *p)
 {
 	int x;
 	const BYTE *colormap = slabcolormap;
@@ -1575,53 +1573,53 @@ extern "C" void STACK_ARGS R_DrawSlabC(int dx, fixed_t v, int dy, fixed_t vi, co
 // wallscan stuff, in C
 
 #ifndef X86_ASM
-static DWORD STACK_ARGS vlinec1 ();
+static DWORD vlinec1 ();
 static int vlinebits;
 
-DWORD (STACK_ARGS *dovline1)() = vlinec1;
-DWORD (STACK_ARGS *doprevline1)() = vlinec1;
+DWORD (*dovline1)() = vlinec1;
+DWORD (*doprevline1)() = vlinec1;
 
 #ifdef X64_ASM
 extern "C" void vlinetallasm4();
 #define dovline4 vlinetallasm4
 extern "C" void setupvlinetallasm (int);
 #else
-static void STACK_ARGS vlinec4 ();
-void (STACK_ARGS *dovline4)() = vlinec4;
+static void vlinec4 ();
+void (*dovline4)() = vlinec4;
 #endif
 
-static DWORD STACK_ARGS mvlinec1();
-static void STACK_ARGS mvlinec4();
+static DWORD mvlinec1();
+static void mvlinec4();
 static int mvlinebits;
 
-DWORD (STACK_ARGS *domvline1)() = mvlinec1;
-void (STACK_ARGS *domvline4)() = mvlinec4;
+DWORD (*domvline1)() = mvlinec1;
+void (*domvline4)() = mvlinec4;
 
 #else
 
 extern "C"
 {
-DWORD STACK_ARGS vlineasm1 ();
-DWORD STACK_ARGS prevlineasm1 ();
-DWORD STACK_ARGS vlinetallasm1 ();
-DWORD STACK_ARGS prevlinetallasm1 ();
-void STACK_ARGS vlineasm4 ();
-void STACK_ARGS vlinetallasmathlon4 ();
-void STACK_ARGS vlinetallasm4 ();
-void STACK_ARGS setupvlineasm (int);
-void STACK_ARGS setupvlinetallasm (int);
+DWORD vlineasm1 ();
+DWORD prevlineasm1 ();
+DWORD vlinetallasm1 ();
+DWORD prevlinetallasm1 ();
+void vlineasm4 ();
+void vlinetallasmathlon4 ();
+void vlinetallasm4 ();
+void setupvlineasm (int);
+void setupvlinetallasm (int);
 
-DWORD STACK_ARGS mvlineasm1();
-void STACK_ARGS mvlineasm4();
-void STACK_ARGS setupmvlineasm (int);
+DWORD mvlineasm1();
+void mvlineasm4();
+void setupmvlineasm (int);
 }
 
-DWORD (STACK_ARGS *dovline1)() = vlinetallasm1;
-DWORD (STACK_ARGS *doprevline1)() = prevlinetallasm1;
-void (STACK_ARGS *dovline4)() = vlinetallasm4;
+DWORD (*dovline1)() = vlinetallasm1;
+DWORD (*doprevline1)() = prevlinetallasm1;
+void (*dovline4)() = vlinetallasm4;
 
-DWORD (STACK_ARGS *domvline1)() = mvlineasm1;
-void (STACK_ARGS *domvline4)() = mvlineasm4;
+DWORD (*domvline1)() = mvlineasm1;
+void (*domvline4)() = mvlineasm4;
 #endif
 
 void setupvline (int fracbits)
@@ -1661,7 +1659,7 @@ void setupvline (int fracbits)
 }
 
 #if !defined(X86_ASM)
-DWORD STACK_ARGS vlinec1 ()
+DWORD vlinec1 ()
 {
 	DWORD fracstep = dc_iscale;
 	DWORD frac = dc_texturefrac;
@@ -1682,7 +1680,7 @@ DWORD STACK_ARGS vlinec1 ()
 	return frac;
 }
 
-void STACK_ARGS vlinec4 ()
+void vlinec4 ()
 {
 	BYTE *dest = dc_dest;
 	int count = dc_count;
@@ -1712,7 +1710,7 @@ void setupmvline (int fracbits)
 }
 
 #if !defined(X86_ASM)
-DWORD STACK_ARGS mvlinec1 ()
+DWORD mvlinec1 ()
 {
 	DWORD fracstep = dc_iscale;
 	DWORD frac = dc_texturefrac;
@@ -1737,7 +1735,7 @@ DWORD STACK_ARGS mvlinec1 ()
 	return frac;
 }
 
-void STACK_ARGS mvlinec4 ()
+void mvlinec4 ()
 {
 	BYTE *dest = dc_dest;
 	int count = dc_count;
@@ -1758,8 +1756,8 @@ void STACK_ARGS mvlinec4 ()
 #endif
 
 extern "C" short spanend[MAXHEIGHT];
-extern fixed_t rw_light;
-extern fixed_t rw_lightstep;
+extern float rw_light;
+extern float rw_lightstep;
 extern int wallshade;
 
 static void R_DrawFogBoundarySection (int y, int y2, int x1)
@@ -1796,12 +1794,12 @@ void R_DrawFogBoundary (int x1, int x2, short *uclip, short *dclip)
 	// to create new horizontal spans whenever the light changes enough that
 	// we need to use a new colormap.
 
-	fixed_t lightstep = rw_lightstep;
-	fixed_t light = rw_light+lightstep*(x2-x1-1);
+	double lightstep = rw_lightstep;
+	double light = rw_light + rw_lightstep*(x2-x1-1);
 	int x = x2-1;
 	int t2 = uclip[x];
 	int b2 = dclip[x];
-	int rcolormap = GETPALOOKUP (light, wallshade);
+	int rcolormap = GETPALOOKUP(light, wallshade);
 	int lcolormap;
 	BYTE *basecolormapdata = basecolormap->Maps;
 
@@ -1820,7 +1818,7 @@ void R_DrawFogBoundary (int x1, int x2, short *uclip, short *dclip)
 		int stop;
 
 		light -= rw_lightstep;
-		lcolormap = GETPALOOKUP (light, wallshade);
+		lcolormap = GETPALOOKUP(light, wallshade);
 		if (lcolormap != rcolormap)
 		{
 			if (t2 < b2 && rcolormap != 0)
@@ -2350,6 +2348,18 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 	}
 }
 
+static fixed_t GetAlpha(int type, fixed_t alpha)
+{
+	switch (type)
+	{
+	case STYLEALPHA_Zero:		return 0;
+	case STYLEALPHA_One:		return OPAQUE;
+	case STYLEALPHA_Src:		return alpha;
+	case STYLEALPHA_InvSrc:		return OPAQUE - alpha;
+	default:					return 0;
+	}
+}
+
 ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, DWORD color)
 {
 	fixed_t fglevel, bglevel;
@@ -2359,13 +2369,13 @@ ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, 
 	if (style.BlendOp == STYLEOP_Shadow)
 	{
 		style = LegacyRenderStyles[STYLE_TranslucentStencil];
-		alpha = FRACUNIT*3/10;
+		alpha = TRANSLUC33;
 		color = 0;
 	}
 
 	if (style.Flags & STYLEF_TransSoulsAlpha)
 	{
-		alpha = fixed_t(transsouls * FRACUNIT);
+		alpha = fixed_t(transsouls * OPAQUE);
 	}
 	else if (style.Flags & STYLEF_Alpha1)
 	{
@@ -2373,7 +2383,7 @@ ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, 
 	}
 	else
 	{
-		alpha = clamp<fixed_t> (alpha, 0, FRACUNIT);
+		alpha = clamp<fixed_t> (alpha, 0, OPAQUE);
 	}
 
 	dc_translation = NULL;

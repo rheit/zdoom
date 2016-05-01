@@ -62,7 +62,6 @@
 #include "cmdlib.h"
 #include "p_terrain.h"
 #include "decallib.h"
-#include "a_doomglobal.h"
 #include "autosegs.h"
 #include "i_cd.h"
 #include "stats.h"
@@ -210,7 +209,7 @@ void ReadStatistics()
 //
 // ====================================================================
 
-int STACK_ARGS compare_episode_names(const void *a, const void *b)
+int compare_episode_names(const void *a, const void *b)
 {
 	FStatistics *A = (FStatistics*)a;
 	FStatistics *B = (FStatistics*)b;
@@ -218,7 +217,7 @@ int STACK_ARGS compare_episode_names(const void *a, const void *b)
 	return strnatcasecmp(A->epi_header, B->epi_header);
 }
 
-int STACK_ARGS compare_level_names(const void *a, const void *b)
+int compare_level_names(const void *a, const void *b)
 {
 	FLevelStatistics *A = (FLevelStatistics*)a;
 	FLevelStatistics *B = (FLevelStatistics*)b;
@@ -226,7 +225,7 @@ int STACK_ARGS compare_level_names(const void *a, const void *b)
 	return strnatcasecmp(A->name, B->name);
 }
 
-int STACK_ARGS compare_dates(const void *a, const void *b)
+int compare_dates(const void *a, const void *b)
 {
 	FLevelStatistics *A = (FLevelStatistics*)a;
 	FLevelStatistics *B = (FLevelStatistics*)b;

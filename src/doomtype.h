@@ -44,7 +44,6 @@
 #include "tarray.h"
 #include "name.h"
 #include "zstring.h"
-#include "vectors.h"
 
 class PClassActor;
 typedef TMap<int, PClassActor *> FClassMap;
@@ -101,12 +100,6 @@ typedef TMap<int, PClassActor *> FClassMap;
 #endif
 
 
-#if defined(_MSC_VER) || defined(__WATCOMC__)
-#define STACK_ARGS __cdecl
-#else
-#define STACK_ARGS
-#endif
-
 #if defined(_MSC_VER)
 #define NOVTABLE __declspec(novtable)
 #else
@@ -121,6 +114,18 @@ typedef TMap<int, PClassActor *> FClassMap;
 #endif
 #else
 #define NO_SANITIZE
+#endif
+
+#if defined(__GNUC__)
+// With versions of GCC newer than 4.2, it appears it was determined that the
+// cost of an unaligned pointer on PPC was high enough to add padding to the
+// end of packed structs.  For whatever reason __packed__ and pragma pack are
+// handled differently in this regard. Note that this only needs to be applied
+// to types which are used in arrays or sizeof is needed. This also prevents
+// code from taking references to the struct members.
+#define FORCE_PACKED __attribute__((__packed__))
+#else
+#define FORCE_PACKED
 #endif
 
 #include "basictypes.h"
@@ -138,11 +143,11 @@ enum
 
 
 // [RH] This gets used all over; define it here:
-int STACK_ARGS Printf (int printlevel, const char *, ...) GCCPRINTF(2,3);
-int STACK_ARGS Printf (const char *, ...) GCCPRINTF(1,2);
+int Printf (int printlevel, const char *, ...) GCCPRINTF(2,3);
+int Printf (const char *, ...) GCCPRINTF(1,2);
 
 // [RH] Same here:
-int STACK_ARGS DPrintf (const char *, ...) GCCPRINTF(1,2);
+int DPrintf (const char *, ...) GCCPRINTF(1,2);
 
 extern "C" int mysnprintf(char *buffer, size_t count, const char *format, ...) GCCPRINTF(3,4);
 extern "C" int myvsnprintf(char *buffer, size_t count, const char *format, va_list argptr) GCCFORMAT(3);
@@ -240,9 +245,12 @@ enum ESSType
 	SS_BGRA
 };
 
-#ifndef M_PI
-#define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h
+// always use our own definition for consistency.
+#ifdef M_PI
+#undef M_PI
 #endif
+
+const double M_PI = 3.14159265358979323846;	// matches value in gcc v2 math.h
 
 template <typename T, size_t N>
 char ( &_ArraySizeHelper( T (&array)[N] ))[N];

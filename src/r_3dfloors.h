@@ -7,7 +7,7 @@
 
 struct HeightLevel
 {
-	fixed_t height;
+	double height;
 	struct HeightLevel *prev;
 	struct HeightLevel *next;
 };
@@ -49,11 +49,10 @@ enum
 
 extern int fake3D;
 extern F3DFloor *fakeFloor;
-extern fixed_t fakeHeight;
 extern fixed_t fakeAlpha;
 extern int fakeActive;
-extern fixed_t sclipBottom;
-extern fixed_t sclipTop;
+extern double sclipBottom;
+extern double sclipTop;
 extern HeightLevel *height_top;
 extern HeightLevel *height_cur;
 extern int CurrentMirror;

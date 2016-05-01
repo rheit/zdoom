@@ -121,7 +121,6 @@ extern	int 			viewwindowx;
 extern	int 			viewwindowy;
 extern	"C" int 		viewheight;
 extern	"C" int 		viewwidth;
-extern	"C"	int			halfviewwidth;		// [RH] Half view width, for plane drawing
 
 
 
@@ -212,7 +211,6 @@ extern bool ToggleFullscreen;
 extern int Net_Arbitrator;
 
 EXTERN_CVAR (Bool, var_friction)
-EXTERN_CVAR (Bool, var_pushers)
 
 
 // [RH] Miscellaneous info for DeHackEd support
@@ -234,7 +232,7 @@ struct DehInfo
 	int KFAAC;
 	char PlayerSprite[5];
 	BYTE ExplosionStyle;
-	fixed_t ExplosionAlpha;
+	double ExplosionAlpha;
 	int NoAutofreeze;
 	int BFGCells;
 };

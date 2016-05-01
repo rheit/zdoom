@@ -52,6 +52,7 @@
 #include "teaminfo.h"
 #include "p_spec.h"
 #include "p_checkposition.h"
+#include "math/cmath.h"
 
 #include "gi.h"
 
@@ -98,8 +99,9 @@ dirtype_t diags[4] =
 	DI_NORTHWEST, DI_NORTHEAST, DI_SOUTHWEST, DI_SOUTHEAST
 };
 
-fixed_t xspeed[8] = {FRACUNIT,46341,0,-46341,-FRACUNIT,-46341,0,46341};
-fixed_t yspeed[8] = {0,46341,FRACUNIT,46341,0,-46341,-FRACUNIT,-46341};
+#define SQRTHALF 0.7071075439453125
+double xspeed[8] = {1,SQRTHALF,0,-SQRTHALF,-1,-SQRTHALF,0,SQRTHALF};
+double yspeed[8] = {0,SQRTHALF,1,SQRTHALF,0,-SQRTHALF,-1,-SQRTHALF};
 
 void P_RandomChaseDir (AActor *actor);
 
@@ -122,7 +124,7 @@ void P_RandomChaseDir (AActor *actor);
 // sound blocking lines cut off traversal.
 //----------------------------------------------------------------------------
 
-void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soundblocks, AActor *emitter, fixed_t maxdist)
+void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soundblocks, AActor *emitter, double maxdist)
 {
 	int 		i;
 	line_t* 	check;
@@ -144,15 +146,40 @@ void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soun
 	for (actor = sec->thinglist; actor != NULL; actor = actor->snext)
 	{
 		if (actor != soundtarget && (!splash || !(actor->flags4 & MF4_NOSPLASHALERT)) &&
-			(!maxdist || (actor->AproxDistance(emitter) <= maxdist)))
+			(!maxdist || (actor->Distance2D(emitter) <= maxdist)))
 		{
 			actor->LastHeard = soundtarget;
 		}
 	}
 
+	bool checkabove = !sec->PortalBlocksSound(sector_t::ceiling);
+	bool checkbelow = !sec->PortalBlocksSound(sector_t::floor);
+
 	for (i = 0; i < sec->linecount; i++)
 	{
 		check = sec->lines[i];
+
+		// I wish there was a better method to do this than randomly looking through the portal at a few places...
+		if (checkabove)
+		{
+			sector_t *upper = P_PointInSector(check->v1->fPos() + check->Delta() / 2 + sec->GetPortalDisplacement(sector_t::ceiling));
+			P_RecursiveSound(upper, soundtarget, splash, soundblocks, emitter, maxdist);
+		}
+		if (checkbelow)
+		{
+			sector_t *lower = P_PointInSector(check->v1->fPos() + check->Delta() / 2 + sec->GetPortalDisplacement(sector_t::floor));
+			P_RecursiveSound(lower, soundtarget, splash, soundblocks, emitter, maxdist);
+		}
+		FLinePortal *port = check->getPortal();
+		if (port && (port->mFlags & PORTF_SOUNDTRAVERSE))
+		{
+			if (port->mDestination)
+			{
+				P_RecursiveSound(port->mDestination->frontsector, soundtarget, splash, soundblocks, emitter, maxdist);
+			}
+		}
+
+
 		if (check->sidedef[1] == NULL ||
 			!(check->flags & ML_TWOSIDED))
 		{
@@ -168,18 +195,18 @@ void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soun
 			other = check->sidedef[0]->sector;
 
 		// check for closed door
-		if ((sec->floorplane.ZatPoint (check->v1->x, check->v1->y) >=
-			 other->ceilingplane.ZatPoint (check->v1->x, check->v1->y) &&
-			 sec->floorplane.ZatPoint (check->v2->x, check->v2->y) >=
-			 other->ceilingplane.ZatPoint (check->v2->x, check->v2->y))
-		 || (other->floorplane.ZatPoint (check->v1->x, check->v1->y) >=
-			 sec->ceilingplane.ZatPoint (check->v1->x, check->v1->y) &&
-			 other->floorplane.ZatPoint (check->v2->x, check->v2->y) >=
-			 sec->ceilingplane.ZatPoint (check->v2->x, check->v2->y))
-		 || (other->floorplane.ZatPoint (check->v1->x, check->v1->y) >=
-			 other->ceilingplane.ZatPoint (check->v1->x, check->v1->y) &&
-			 other->floorplane.ZatPoint (check->v2->x, check->v2->y) >=
-			 other->ceilingplane.ZatPoint (check->v2->x, check->v2->y)))
+		if ((sec->floorplane.ZatPoint (check->v1->fPos()) >=
+			 other->ceilingplane.ZatPoint (check->v1->fPos()) &&
+			 sec->floorplane.ZatPoint (check->v2->fPos()) >=
+			 other->ceilingplane.ZatPoint (check->v2->fPos()))
+		 || (other->floorplane.ZatPoint (check->v1->fPos()) >=
+			 sec->ceilingplane.ZatPoint (check->v1->fPos()) &&
+			 other->floorplane.ZatPoint (check->v2->fPos()) >=
+			 sec->ceilingplane.ZatPoint (check->v2->fPos()))
+		 || (other->floorplane.ZatPoint (check->v1->fPos()) >=
+			 other->ceilingplane.ZatPoint (check->v1->fPos()) &&
+			 other->floorplane.ZatPoint (check->v2->fPos()) >=
+			 other->ceilingplane.ZatPoint (check->v2->fPos())))
 		{
 			continue;
 		}
@@ -207,7 +234,7 @@ void P_RecursiveSound (sector_t *sec, AActor *soundtarget, bool splash, int soun
 //
 //----------------------------------------------------------------------------
 
-void P_NoiseAlert (AActor *target, AActor *emitter, bool splash, fixed_t maxdist)
+void P_NoiseAlert (AActor *target, AActor *emitter, bool splash, double maxdist)
 {
 	if (emitter == NULL)
 		return;
@@ -232,12 +259,12 @@ bool AActor::CheckMeleeRange ()
 {
 	AActor *pl = target;
 
-	fixed_t dist;
+	double dist;
 		
 	if (!pl)
 		return false;
 				
-	dist = AproxDistance (pl);
+	dist = Distance2D (pl);
 
 	if (dist >= meleerange + pl->radius)
 		return false;
@@ -274,15 +301,16 @@ bool AActor::CheckMeleeRange ()
 bool P_CheckMeleeRange2 (AActor *actor)
 {
 	AActor *mo;
-	fixed_t dist;
+	double dist;
+
 
 	if (!actor->target)
 	{
 		return false;
 	}
 	mo = actor->target;
-	dist = mo->AproxDistance (actor);
-	if (dist >= MELEERANGE*2 || dist < MELEERANGE-20*FRACUNIT + mo->radius)
+	dist = mo->Distance2D (actor);
+	if (dist >= 128 || dist < actor->meleerange + mo->radius)
 	{
 		return false;
 	}
@@ -315,7 +343,7 @@ bool P_CheckMeleeRange2 (AActor *actor)
 //=============================================================================
 bool P_CheckMissileRange (AActor *actor)
 {
-	fixed_t dist;
+	double dist;
 		
 	if (!P_CheckSight (actor, actor->target, SF_SEEPASTBLOCKEVERYTHING))
 		return false;
@@ -354,15 +382,15 @@ bool P_CheckMissileRange (AActor *actor)
 
 	// OPTIMIZE: get this from a global checksight
 	// [RH] What?
-	dist = actor->AproxDistance (actor->target) - 64*FRACUNIT;
+	dist = actor->Distance2D (actor->target) - 64;
 	
 	if (actor->MeleeState == NULL)
-		dist -= 128*FRACUNIT;	// no melee attack, so fire more
+		dist -= 128;	// no melee attack, so fire more
 
 	return actor->SuggestMissileAttack (dist);
 }
 
-bool AActor::SuggestMissileAttack (fixed_t dist)
+bool AActor::SuggestMissileAttack (double dist)
 {
 	// new version encapsulates the different behavior in flags instead of virtual functions
 	// The advantage is that this allows inheriting the missile attack attributes from the
@@ -374,11 +402,11 @@ bool AActor::SuggestMissileAttack (fixed_t dist)
 	if (MeleeState != NULL && dist < meleethreshold)
 		return false;	// From the Revenant: close enough for fist attack
 
-	if (flags4 & MF4_MISSILEMORE) dist >>= 1;
-	if (flags4 & MF4_MISSILEEVENMORE) dist >>= 3;
+	if (flags4 & MF4_MISSILEMORE) dist *= 0.5;
+	if (flags4 & MF4_MISSILEEVENMORE) dist *= 0.125;
 	
-	int mmc = FixedMul(MinMissileChance, G_SkillProperty(SKILLP_Aggressiveness));
-	return pr_checkmissilerange() >= MIN<int> (dist >> FRACBITS, mmc);
+	int mmc = int(MinMissileChance * G_SkillProperty(SKILLP_Aggressiveness));
+	return pr_checkmissilerange() >= MIN<int> (int(dist), mmc);
 }
 
 //=============================================================================
@@ -394,16 +422,16 @@ bool AActor::SuggestMissileAttack (fixed_t dist)
 
 bool P_HitFriend(AActor * self)
 {
-	AActor *linetarget;
+	FTranslatedLineTarget t;
 
 	if (self->flags&MF_FRIENDLY && self->target != NULL)
 	{
-		angle_t angle = self->AngleTo(self->target);
-		fixed_t dist = self->AproxDistance (self->target);
-		P_AimLineAttack (self, angle, dist, &linetarget, 0, true);
-		if (linetarget != NULL && linetarget != self->target)
+		DAngle angle = self->AngleTo(self->target);
+		double dist = self->Distance2D(self->target);
+		P_AimLineAttack (self, angle, dist, &t, 0., true);
+		if (t.linetarget != NULL && t.linetarget != self->target)
 		{
-			return self->IsFriend (linetarget);
+			return self->IsFriend (t.linetarget);
 		}
 	}
 	return false;
@@ -418,11 +446,11 @@ bool P_HitFriend(AActor * self)
 bool P_Move (AActor *actor)
 {
 
-	fixed_t tryx, tryy, deltax, deltay, origx, origy;
+	double tryx, tryy, deltax, deltay, origx, origy;
 	bool try_ok;
-	int speed = actor->Speed;
-	int movefactor = ORIG_FRICTION_FACTOR;
-	int friction = ORIG_FRICTION;
+	double speed = actor->Speed;
+	double movefactor = ORIG_FRICTION_FACTOR;
+	double friction = ORIG_FRICTION;
 	int dropoff = 0;
 
 	if (actor->flags2 & MF2_BLASTED)
@@ -455,7 +483,7 @@ bool P_Move (AActor *actor)
 
 	if ((actor->flags6 & MF6_JUMPDOWN) && target &&
 			!(target->IsFriend(actor)) &&
-			actor->AproxDistance(target) < FRACUNIT*144 &&
+			actor->Distance2D(target) < 144 &&
 			pr_dropoff() < 235)
 	{
 		dropoff = 2;
@@ -470,40 +498,39 @@ bool P_Move (AActor *actor)
 
 		if (friction < ORIG_FRICTION)
 		{ // sludge
-			speed = ((ORIG_FRICTION_FACTOR - (ORIG_FRICTION_FACTOR-movefactor)/2)
-			   * speed) / ORIG_FRICTION_FACTOR;
+			speed = speed * ((ORIG_FRICTION_FACTOR - (ORIG_FRICTION_FACTOR-movefactor)/2)) / ORIG_FRICTION_FACTOR;
 			if (speed == 0)
 			{ // always give the monster a little bit of speed
-				speed = ksgn(actor->Speed);
+				speed = actor->Speed;
 			}
 		}
 	}
 
-	tryx = (origx = actor->X()) + (deltax = FixedMul (speed, xspeed[actor->movedir]));
-	tryy = (origy = actor->Y()) + (deltay = FixedMul (speed, yspeed[actor->movedir]));
+	tryx = (origx = actor->X()) + (deltax = (speed * xspeed[actor->movedir]));
+	tryy = (origy = actor->Y()) + (deltay = (speed * yspeed[actor->movedir]));
 
 	// Like P_XYMovement this should do multiple moves if the step size is too large
 
-	fixed_t maxmove = actor->radius - FRACUNIT;
+	double maxmove = actor->radius - 1;
 	int steps = 1;
 
 	if (maxmove > 0)
 	{ 
-		const fixed_t xspeed = abs (deltax);
-		const fixed_t yspeed = abs (deltay);
+		const double xspeed = fabs (deltax);
+		const double yspeed = fabs (deltay);
 
 		if (xspeed > yspeed)
 		{
 			if (xspeed > maxmove)
 			{
-				steps = 1 + xspeed / maxmove;
+				steps = 1 + int(xspeed / maxmove);
 			}
 		}
 		else
 		{
 			if (yspeed > maxmove)
 			{
-				steps = 1 + yspeed / maxmove;
+				steps = 1 + int(yspeed / maxmove);
 			}
 		}
 	}
@@ -514,28 +541,26 @@ bool P_Move (AActor *actor)
 	try_ok = true;
 	for(int i=1; i < steps; i++)
 	{
-		try_ok = P_TryMove(actor, origx + Scale(deltax, i, steps), origy + Scale(deltay, i, steps), dropoff, NULL, tm);
+		try_ok = P_TryMove(actor, DVector2(origx + deltax * i / steps, origy + deltay * i / steps), dropoff, NULL, tm);
 		if (!try_ok) break;
 	}
 
 	// killough 3/15/98: don't jump over dropoffs:
-	if (try_ok) try_ok = P_TryMove (actor, tryx, tryy, dropoff, NULL, tm);
+	if (try_ok) try_ok = P_TryMove (actor, DVector2(tryx, tryy), dropoff, NULL, tm);
 
 	// [GrafZahl] Interpolating monster movement as it is done here just looks bad
 	// so make it switchable
 	if (nomonsterinterpolation)
 	{
-		actor->PrevX = actor->X();
-		actor->PrevY = actor->Y();
-		actor->PrevZ = actor->Z();
+		actor->ClearInterpolation();
 	}
 
 	if (try_ok && friction > ORIG_FRICTION)
 	{
 		actor->SetOrigin(origx, origy, actor->Z(), false);
-		movefactor *= FRACUNIT / ORIG_FRICTION_FACTOR / 4;
-		actor->velx += FixedMul (deltax, movefactor);
-		actor->vely += FixedMul (deltay, movefactor);
+		movefactor *= 1.f / ORIG_FRICTION_FACTOR / 4;
+		actor->Vel.X += deltax * movefactor;
+		actor->Vel.Y += deltay * movefactor;
 	}
 
 	// [RH] If a walking monster is no longer on the floor, move it down
@@ -543,11 +568,11 @@ bool P_Move (AActor *actor)
 	// actually walking down a step.
 	if (try_ok &&
 		!((actor->flags & MF_NOGRAVITY) || (actor->flags6 & MF6_CANJUMP))
-		&& actor->Z() > actor->floorz && !(actor->flags2 & MF2_ONMOBJ))
+			&& actor->Z() > actor->floorz && !(actor->flags2 & MF2_ONMOBJ))
 	{
 		if (actor->Z() <= actor->floorz + actor->MaxStepHeight)
 		{
-			fixed_t savedz = actor->Z();
+			double savedz = actor->Z();
 			actor->SetZ(actor->floorz);
 			// Make sure that there isn't some other actor between us and
 			// the floor we could get stuck in. The old code did not do this.
@@ -558,11 +583,11 @@ bool P_Move (AActor *actor)
 			else
 			{ // The monster just hit the floor, so trigger any actions.
 				if (actor->floorsector->SecActTarget != NULL &&
-					actor->floorz == actor->floorsector->floorplane.ZatPoint(actor))
+					actor->floorz == actor->floorsector->floorplane.ZatPoint(actor->PosRelative(actor->floorsector)))
 				{
 					actor->floorsector->SecActTarget->TriggerAction(actor, SECSPAC_HitFloor);
 				}
-				P_CheckFor3DFloorHit(actor);
+				P_CheckFor3DFloorHit(actor, actor->Z());
 			}
 		}
 	}
@@ -571,7 +596,7 @@ bool P_Move (AActor *actor)
 	{
 		if (((actor->flags6 & MF6_CANJUMP)||(actor->flags & MF_FLOAT)) && tm.floatok)
 		{ // must adjust height
-			fixed_t savedz = actor->Z();
+			double savedz = actor->Z();
 
 			if (actor->Z() < tm.floorz)
 				actor->AddZ(actor->FloatSpeed);
@@ -612,18 +637,18 @@ bool P_Move (AActor *actor)
 		// Do NOT simply return false 1/4th of the time (causes monsters to
 		// back out when they shouldn't, and creates secondary stickiness).
 
-		line_t *ld;
+		spechit_t spec;
 		int good = 0;
 		
 		if (!(actor->flags6 & MF6_NOTRIGGER))
 		{
-			while (spechit.Pop (ld))
+			while (spechit.Pop (spec))
 			{
 				// [RH] let monsters push lines, as well as use them
-				if (((actor->flags4 & MF4_CANUSEWALLS) && P_ActivateLine (ld, actor, 0, SPAC_Use)) ||
-					((actor->flags2 & MF2_PUSHWALL) && P_ActivateLine (ld, actor, 0, SPAC_Push)))
+				if (((actor->flags4 & MF4_CANUSEWALLS) && P_ActivateLine (spec.line, actor, 0, SPAC_Use)) ||
+					((actor->flags2 & MF2_PUSHWALL) && P_ActivateLine (spec.line, actor, 0, SPAC_Push)))
 				{
-					good |= ld == actor->BlockingLine ? 1 : 2;
+					good |= spec.line == actor->BlockingLine ? 1 : 2;
 				}
 			}
 		}
@@ -673,7 +698,7 @@ bool P_TryWalk (AActor *actor)
 //
 //=============================================================================
 
-void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
+void P_DoNewChaseDir (AActor *actor, double deltax, double deltay)
 {
 	dirtype_t	d[2];
 	int			tdir;
@@ -684,19 +709,19 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 	olddir = (dirtype_t)actor->movedir;
 	turnaround = opposite[olddir];
 
-	if (deltax>10*FRACUNIT)
-		d[0]= DI_EAST;
-	else if (deltax<-10*FRACUNIT)
-		d[0]= DI_WEST;
+	if (deltax > 10)
+		d[0] = DI_EAST;
+	else if (deltax < -10)
+		d[0] = DI_WEST;
 	else
-		d[0]=DI_NODIR;
+		d[0] = DI_NODIR;
 
-	if (deltay<-10*FRACUNIT)
-		d[1]= DI_SOUTH;
-	else if (deltay>10*FRACUNIT)
-		d[1]= DI_NORTH;
+	if (deltay < -10)
+		d[1] = DI_SOUTH;
+	else if (deltay>10)
+		d[1] = DI_NORTH;
 	else
-		d[1]=DI_NODIR;
+		d[1] = DI_NODIR; 
 
 	// try direct route
 	if (d[0] != DI_NODIR && d[1] != DI_NODIR)
@@ -713,7 +738,7 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 	// try other directions
 	if (!(actor->flags5 & MF5_AVOIDINGDROPOFF))
 	{
-		if ((pr_newchasedir() > 200 || abs(deltay) > abs(deltax)))
+		if ((pr_newchasedir() > 200 || fabs(deltay) > fabs(deltax)))
 		{
 			swapvalues (d[0], d[1]);
 		}
@@ -817,7 +842,7 @@ void P_DoNewChaseDir (AActor *actor, fixed_t deltax, fixed_t deltay)
 
 void P_NewChaseDir(AActor * actor)
 {
-	fixedvec2 delta;
+	DVector2 delta;
 
 	actor->strafecount = 0;
 
@@ -834,8 +859,7 @@ void P_NewChaseDir(AActor * actor)
 			if ((actor->target->player != NULL && (actor->target->player->cheats & CF_FRIGHTENING)) || 
 				(actor->flags4 & MF4_FRIGHTENED))
 			{
-				delta.x = -delta.x;
-				delta.y = -delta.y;
+				delta = -delta;
 			}
 		}
 	}
@@ -857,42 +881,39 @@ void P_NewChaseDir(AActor * actor)
 		FBlockLinesIterator it(box);
 		line_t *line;
 
-		fixed_t deltax = 0;
-		fixed_t deltay = 0;
+		double deltax = 0;
+		double deltay = 0;
 		while ((line = it.Next()))
 		{
-			if (line->backsector                     && // Ignore one-sided linedefs
-				box.Right()  > line->bbox[BOXLEFT]   &&
-				box.Left()   < line->bbox[BOXRIGHT]  &&
-				box.Top()    > line->bbox[BOXBOTTOM] && // Linedef must be contacted
-				box.Bottom() < line->bbox[BOXTOP]    &&
+			if (line->backsector  && // Ignore one-sided linedefs
+				box.inRange(line) &&
 				box.BoxOnLineSide(line) == -1)
 		    {
-				fixed_t front = line->frontsector->floorplane.ZatPoint(actor);
-				fixed_t back  = line->backsector->floorplane.ZatPoint(actor);
-				angle_t angle;
+				double front = line->frontsector->floorplane.ZatPoint(actor->PosRelative(line));
+				double back  = line->backsector->floorplane.ZatPoint(actor->PosRelative(line));
+				DAngle angle;
 		
 				// The monster must contact one of the two floors,
 				// and the other must be a tall dropoff.
 				
 				if (back == actor->Z() && front < actor->Z() - actor->MaxDropOffHeight)
 				{
-					angle = R_PointToAngle2(0,0,line->dx,line->dy);   // front side dropoff
+					angle = line->Delta().Angle();   // front side dropoff
 				}
 				else if (front == actor->Z() && back < actor->Z() - actor->MaxDropOffHeight)
 				{
-					angle = R_PointToAngle2(line->dx,line->dy,0,0); // back side dropoff
+					angle = line->Delta().Angle() + 180.; // back side dropoff
 				}
 				else continue;
 		
 				// Move away from dropoff at a standard speed.
 				// Multiple contacted linedefs are cumulative (e.g. hanging over corner)
-				deltax -= finesine[angle >> ANGLETOFINESHIFT]*32;
-				deltay += finecosine[angle >> ANGLETOFINESHIFT]*32;
+				deltax -= 32 * angle.Sin();
+				deltay += 32 * angle.Cos();
 			}
 		}
 
-		if (deltax || deltay) 
+		if (deltax != 0 || deltay != 0) 
 		{
 			// [Graf Zahl] I have changed P_TryMove to only apply this logic when
 			// being called from here. AVOIDINGDROPOFF activates the code that
@@ -919,7 +940,7 @@ void P_NewChaseDir(AActor * actor)
 	// MBF code for friends. Cannot be done in ZDoom but left here as a reminder for later implementation.
 
 	if (actor->flags & target->flags & MF_FRIEND &&
-	    distfriend << FRACBITS > dist && 
+	    distfriend > dist && 
 	    !P_IsOnLift(target) && !P_IsUnderDamage(actor))
 	  deltax = -deltax, deltay = -deltay;
 	else
@@ -934,7 +955,7 @@ void P_NewChaseDir(AActor * actor)
 		if (actor->flags3 & MF3_AVOIDMELEE)
 		{
 			bool ismeleeattacker = false;
-			fixed_t dist = actor->AproxDistance(target);
+			double dist = actor->Distance2D(target);
 			if (target->player == NULL)
 			{
 				ismeleeattacker = (target->MissileState == NULL && dist < (target->meleerange + target->radius)*2);
@@ -943,17 +964,17 @@ void P_NewChaseDir(AActor * actor)
 			{
 				// melee range of player weapon is a parameter of the action function and cannot be checked here.
 				// Add a new weapon property?
-				ismeleeattacker = (target->player->ReadyWeapon->WeaponFlags & WIF_MELEEWEAPON && dist < MELEERANGE*3);
+				ismeleeattacker = ((target->player->ReadyWeapon->WeaponFlags & WIF_MELEEWEAPON) && dist < 192);
 			}
 			if (ismeleeattacker)
 			{
 				actor->strafecount = pr_enemystrafe() & 15;
-				delta.x = -delta.x, delta.y = -delta.y;
+				delta = -delta;
 			}
 	    }
 	}
 
-	P_DoNewChaseDir(actor, delta.x, delta.y);
+	P_DoNewChaseDir(actor, delta.X, delta.Y);
 
 	// If strafing, set movecount to strafecount so that old Doom
 	// logic still works the same, except in the strafing part
@@ -985,7 +1006,7 @@ void P_RandomChaseDir (AActor *actor)
 	if (actor->flags & MF_FRIENDLY)
 	{
 		AActor *player;
-		fixedvec2 delta;
+		DVector2 delta;
 		dirtype_t d[3];
 
 		if (actor->FriendPlayer != 0)
@@ -1009,16 +1030,16 @@ void P_RandomChaseDir (AActor *actor)
 			{
 				delta = actor->Vec2To(player);
 
-				if (delta.x>128*FRACUNIT)
+				if (delta.X>128)
 					d[1]= DI_EAST;
-				else if (delta.x<-128*FRACUNIT)
+				else if (delta.X<-128)
 					d[1]= DI_WEST;
 				else
 					d[1]=DI_NODIR;
 
-				if (delta.y<-128*FRACUNIT)
+				if (delta.Y<-128)
 					d[2]= DI_SOUTH;
-				else if (delta.y>128*FRACUNIT)
+				else if (delta.Y>128)
 					d[2]= DI_NORTH;
 				else
 					d[2]=DI_NODIR;
@@ -1026,13 +1047,13 @@ void P_RandomChaseDir (AActor *actor)
 				// try direct route
 				if (d[1] != DI_NODIR && d[2] != DI_NODIR)
 				{
-					actor->movedir = diags[((delta.y<0)<<1) + (delta.x>0)];
+					actor->movedir = diags[((delta.Y<0)<<1) + (delta.X>0)];
 					if (actor->movedir != turnaround && P_TryWalk(actor))
 						return;
 				}
 
 				// try other directions
-				if (pr_newchasedir() > 200 || abs(delta.y) > abs(delta.x))
+				if (pr_newchasedir() > 200 || fabs(delta.Y) > fabs(delta.X))
 				{
 					swapvalues (d[1], d[2]);
 				}
@@ -1135,23 +1156,23 @@ void P_RandomChaseDir (AActor *actor)
 
 bool P_IsVisible(AActor *lookee, AActor *other, INTBOOL allaround, FLookExParams *params)
 {
-	fixed_t maxdist;
-	fixed_t mindist;
-	angle_t fov;
+	double maxdist;
+	double mindist;
+	DAngle fov;
 
 	if (params != NULL)
 	{
-		maxdist = params->maxdist;
-		mindist = params->mindist;
-		fov = params->fov;
+		maxdist = params->maxDist;
+		mindist = params->minDist;
+		fov = params->Fov;
 	}
 	else
 	{
 		mindist = maxdist = 0;
-		fov = allaround ? 0 : ANGLE_180;
+		fov = allaround ? 0. : 180.;
 	}
 
-	fixed_t dist = lookee->AproxDistance (other);
+	double dist = lookee->Distance2D (other);
 
 	if (maxdist && dist > maxdist)
 		return false;			// [KS] too far
@@ -1159,15 +1180,15 @@ bool P_IsVisible(AActor *lookee, AActor *other, INTBOOL allaround, FLookExParams
 	if (mindist && dist < mindist)
 		return false;			// [KS] too close
 
-	if (fov && fov < ANGLE_MAX)
+	if (fov != 0)
 	{
-		angle_t an = lookee->AngleTo(other) - lookee->angle;
+		DAngle an = absangle(lookee->AngleTo(other), lookee->Angles.Yaw);
 
-		if (an > (fov / 2) && an < (ANGLE_MAX - (fov / 2)))
+		if (an > (fov / 2))
 		{
 			// if real close, react anyway
 			// [KS] but respect minimum distance rules
-			if (mindist || dist > MELEERANGE)
+			if (mindist || dist > lookee->meleerange + lookee->radius)
 				return false;	// outside of fov
 		}
 	}
@@ -1182,7 +1203,7 @@ bool P_IsVisible(AActor *lookee, AActor *other, INTBOOL allaround, FLookExParams
 //
 //---------------------------------------------------------------------------
 
-#define MONS_LOOK_RANGE (20*64*FRACUNIT)
+#define MONS_LOOK_RANGE (20*64)
 #define MONS_LOOK_LIMIT 64
 
 bool P_LookForMonsters (AActor *actor)
@@ -1202,7 +1223,7 @@ bool P_LookForMonsters (AActor *actor)
 		{ // Not a valid monster
 			continue;
 		}
-		if (mo->AproxDistance (actor) > MONS_LOOK_RANGE)
+		if (mo->Distance2D (actor) > MONS_LOOK_RANGE)
 		{ // Out of range
 			continue;
 		}
@@ -1702,8 +1723,7 @@ bool P_LookForPlayers (AActor *actor, INTBOOL allaround, FLookExParams *params)
 			if ((player->mo->flags & MF_SHADOW && !(i_compatflags & COMPATF_INVISIBILITY)) ||
 				player->mo->flags3 & MF3_GHOST)
 			{
-				if ((player->mo->AproxDistance (actor) > 2*MELEERANGE)
-					&& P_AproxDistance (player->mo->velx, player->mo->vely)	< 5*FRACUNIT)
+				if (player->mo->Distance2D (actor) > 128 && player->mo->Vel.XY().LengthSquared() < 5*5)
 				{ // Player is sneaking - can't detect
 					continue;
 				}
@@ -1857,15 +1877,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 {
 	PARAM_ACTION_PROLOGUE;
 	PARAM_INT_OPT	(flags)			{ flags = 0; }
-	PARAM_FIXED_OPT	(minseedist)	{ minseedist = 0; }
-	PARAM_FIXED_OPT	(maxseedist)	{ maxseedist = 0; }
-	PARAM_FIXED_OPT (maxheardist)	{ maxheardist = 0; }
-	PARAM_FLOAT_OPT (fov_f)			{ fov_f = 0; }
+	PARAM_FLOAT_OPT	(minseedist)	{ minseedist = 0; }
+	PARAM_FLOAT_OPT	(maxseedist)	{ maxseedist = 0; }
+	PARAM_FLOAT_OPT (maxheardist)	{ maxheardist = 0; }
+	PARAM_ANGLE_OPT (fov)			{ fov = 0.; }
 	PARAM_STATE_OPT	(seestate)		{ seestate = NULL; }
 
 	AActor *targ = NULL; // Shuts up gcc
-	fixed_t dist;
-	angle_t fov = (fov_f == 0) ? ANGLE_180 : FLOAT2ANGLE(fov_f);
+	double dist;
+	if (fov == 0) fov = 180.;
 	FLookExParams params = { fov, minseedist, maxseedist, maxheardist, flags, seestate };
 
 	if (self->flags5 & MF5_INCONVERSATION)
@@ -1905,7 +1925,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 				}
 				else
 				{
-					dist = self->AproxDistance (targ);
+					dist = self->Distance2D (targ);
 
 					// [KS] If the target is too far away, don't respond to the sound.
 					if (maxheardist && dist > maxheardist)
@@ -1976,7 +1996,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_LookEx)
 			{
 				if (self->flags & MF_AMBUSH)
 				{
-					dist = self->AproxDistance (self->target);
+					dist = self->Distance2D (self->target);
 					if (P_CheckSight (self, self->target, SF_SEEPASTBLOCKEVERYTHING) &&
 						(!minseedist || dist > minseedist) &&
 						(!maxseedist || dist < maxseedist))
@@ -2105,15 +2125,15 @@ void A_Wander(AActor *self, int flags)
 	// turn towards movement direction if not there yet
 	if (!(flags & CHF_NODIRECTIONTURN) && (self->movedir < DI_NODIR))
 	{
-		self->angle &= (angle_t)(7 << 29);
-		int delta = self->angle - (self->movedir << 29);
-		if (delta > 0)
+		self->Angles.Yaw = floor(self->Angles.Yaw.Degrees / 45) * 45.;
+		DAngle delta = deltaangle(self->Angles.Yaw, (self->movedir * 45));
+		if (delta < 0)
 		{
-			self->angle -= ANG90 / 2;
+			self->Angles.Yaw -= 45;
 		}
-		else if (delta < 0)
+		else if (delta > 0)
 		{
-			self->angle += ANG90 / 2;
+			self->Angles.Yaw += 45;
 		}
 	}
 
@@ -2194,11 +2214,10 @@ nosee:
 // enhancements.
 //
 //=============================================================================
-#define CLASS_BOSS_STRAFE_RANGE	64*10*FRACUNIT
+#define CLASS_BOSS_STRAFE_RANGE	64*10
 
 void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *meleestate, FState *missilestate, bool playactive, bool nightmarefast, bool dontmove, int flags)
 {
-	int delta;
 
 	if (actor->flags5 & MF5_INCONVERSATION)
 		return;
@@ -2260,15 +2279,15 @@ void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *mele
 	}
 	else if (!(flags & CHF_NODIRECTIONTURN) && actor->movedir < 8)
 	{
-		actor->angle &= (angle_t)(7<<29);
-		delta = actor->angle - (actor->movedir << 29);
-		if (delta > 0)
+		actor->Angles.Yaw = floor(actor->Angles.Yaw.Degrees / 45) * 45.;
+		DAngle delta = deltaangle(actor->Angles.Yaw, (actor->movedir * 45));
+		if (delta < 0)
 		{
-			actor->angle -= ANG90/2;
+			actor->Angles.Yaw -= 45;
 		}
-		else if (delta < 0)
+		else if (delta > 0)
 		{
-			actor->angle += ANG90/2;
+			actor->Angles.Yaw += 45;
 		}
 	}
 
@@ -2384,7 +2403,7 @@ void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *mele
 					spec->args[1], spec->args[2], spec->args[3], spec->args[4]);
 			}
 
-			angle_t lastgoalang = actor->goal->angle;
+			DAngle lastgoalang = actor->goal->Angles.Yaw;
 			int delay;
 			AActor * newgoal = iterator.Next ();
 			if (newgoal != NULL && actor->goal == actor->target)
@@ -2396,7 +2415,7 @@ void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *mele
 			{
 				delay = 0;
 				actor->reactiontime = actor->GetDefault()->reactiontime;
-				actor->angle = lastgoalang;		// Look in direction of last goal
+				actor->Angles.Yaw = lastgoalang;		// Look in direction of last goal
 			}
 			if (actor->target == actor->goal) actor->target = NULL;
 			actor->flags |= MF_JUSTATTACKED;
@@ -2426,18 +2445,16 @@ void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *mele
 		else
 		{
 			actor->FastChaseStrafeCount = 0;
-			actor->velx = 0;
-			actor->vely = 0;
-			fixed_t dist = actor->AproxDistance (actor->target);
+			actor->Vel.X = actor->Vel.Y = 0;
+			double dist = actor->Distance2D (actor->target);
 			if (dist < CLASS_BOSS_STRAFE_RANGE)
 			{
 				if (pr_chase() < 100)
 				{
-					angle_t ang = actor->AngleTo(actor->target);
-					if (pr_chase() < 128) ang += ANGLE_90;
-					else ang -= ANGLE_90;
-					actor->velx = 13 * finecosine[ang>>ANGLETOFINESHIFT];
-					actor->vely = 13 * finesine[ang>>ANGLETOFINESHIFT];
+					DAngle ang = actor->AngleTo(actor->target);
+					if (pr_chase() < 128) ang += 90.;
+					else ang -= 90.;
+					actor->VelFromAngle(ang, 13.);
 					actor->FastChaseStrafeCount = 3;		// strafe time
 				}
 			}
@@ -2518,8 +2535,8 @@ void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *mele
 	if ((!fastchase || !actor->FastChaseStrafeCount) && !dontmove)
 	{
 		// CANTLEAVEFLOORPIC handling was completely missing in the non-serpent functions.
-		fixed_t oldX = actor->X();
-		fixed_t oldY = actor->Y();
+		DVector2 old = actor->Pos();
+		int oldgroup = actor->PrevPortalGroup;
 		FTextureID oldFloor = actor->floorpic;
 
 		// chase towards player
@@ -2531,12 +2548,13 @@ void A_DoChase (VMFrameStack *stack, AActor *actor, bool fastchase, FState *mele
 		// (copied from A_SerpentChase - it applies to everything with CANTLEAVEFLOORPIC!)
 		if (actor->flags2&MF2_CANTLEAVEFLOORPIC && actor->floorpic != oldFloor )
 		{
-			if (P_TryMove(actor, oldX, oldY, false))
+			if (P_TryMove(actor, old, false))
 			{
 				if (nomonsterinterpolation)
 				{
-					actor->PrevX = oldX;
-					actor->PrevY = oldY;
+					actor->Prev.X = old.X;
+					actor->Prev.Y = old.Y;
+					actor->PrevPortalGroup = oldgroup;
 				}
 			}
 			if (!(flags & CHF_STOPIFBLOCKED))
@@ -2569,60 +2587,68 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 		
 	if (self->movedir != DI_NODIR)
 	{
-		const fixed_t absSpeed = abs (self->Speed);
-		fixedvec2 viletry = self->Vec2Offset(
-			FixedMul (absSpeed, xspeed[self->movedir]),
-			FixedMul (absSpeed, yspeed[self->movedir]), true);
-		AActor *corpsehit;
+		const double absSpeed = fabs (self->Speed);
+		DVector2 viletry = self->Vec2Offset(
+			absSpeed * xspeed[self->movedir],
+			absSpeed * yspeed[self->movedir], true);
 
-		FBlockThingsIterator it(FBoundingBox(viletry.x, viletry.y, 32*FRACUNIT));
-		while ((corpsehit = it.Next()))
+		FPortalGroupArray check(FPortalGroupArray::PGA_Full3d);
+
+		FMultiBlockThingsIterator it(check, viletry.X, viletry.Y, self->Z() - 64, self->Top() + 64, 32., false, NULL);
+		FMultiBlockThingsIterator::CheckResult cres;
+		while (it.Next(&cres))
 		{
+			AActor *corpsehit = cres.thing;
 			FState *raisestate = corpsehit->GetRaiseState();
 			if (raisestate != NULL)
 			{
 				// use the current actor's radius instead of the Arch Vile's default.
-				fixed_t maxdist = corpsehit->GetDefault()->radius + self->radius;
+				double maxdist = corpsehit->GetDefault()->radius + self->radius;
 
-				if (abs(corpsehit->X() - viletry.x) > maxdist ||
-					abs(corpsehit->Y() - viletry.y) > maxdist)
+				if (fabs(corpsehit->X() - cres.Position.X) > maxdist ||
+					fabs(corpsehit->Y() - cres.Position.Y) > maxdist)
 					continue;			// not actually touching
 				// Let's check if there are floors in between the archvile and its target
 
-				// if in a different section of the map, only consider possible if a line of sight exists.
-				if (corpsehit->Sector->PortalGroup != self->Sector->PortalGroup && !P_CheckSight(self, corpsehit))
-					continue;
-
-				sector_t *vilesec = self->Sector;
-				sector_t *corpsec = corpsehit->Sector;
-				// We only need to test if at least one of the sectors has a 3D floor.
-				sector_t *testsec = vilesec->e->XFloor.ffloors.Size() ? vilesec :
-					(vilesec != corpsec && corpsec->e->XFloor.ffloors.Size()) ? corpsec : NULL;
-				if (testsec)
+				if (corpsehit->Sector->PortalGroup != self->Sector->PortalGroup)
 				{
-					fixed_t zdist1, zdist2;
-					if (P_Find3DFloor(testsec, corpsehit->Pos(), false, true, zdist1)
-						!= P_Find3DFloor(testsec, self->Pos(), false, true, zdist2))
+					// if in a different section of the map, only consider possible if a line of sight exists.
+					if (!P_CheckSight(self, corpsehit))
+						continue;
+				}
+				else
+				{
+					sector_t *vilesec = self->Sector;
+					sector_t *corpsec = corpsehit->Sector;
+					// We only need to test if at least one of the sectors has a 3D floor.
+					sector_t *testsec = vilesec->e->XFloor.ffloors.Size() ? vilesec :
+						(vilesec != corpsec && corpsec->e->XFloor.ffloors.Size()) ? corpsec : NULL;
+					if (testsec)
 					{
-						// Not on same floor
-						if (vilesec == corpsec || abs(zdist1 - self->Z()) > self->height)
-							continue;
+						double zdist1, zdist2;
+						if (P_Find3DFloor(testsec, corpsehit->Pos(), false, true, zdist1)
+							!= P_Find3DFloor(testsec, self->Pos(), false, true, zdist2))
+						{
+							// Not on same floor
+							if (vilesec == corpsec || fabs(zdist1 - self->Z()) > self->Height)
+								continue;
+						}
 					}
 				}
 
-				corpsehit->velx = corpsehit->vely = 0;
+				corpsehit->Vel.X = corpsehit->Vel.Y = 0;
 				// [RH] Check against real height and radius
 
-				fixed_t oldheight = corpsehit->height;
-				fixed_t oldradius = corpsehit->radius;
+				double oldheight = corpsehit->Height;
+				double oldradius = corpsehit->radius;
 				ActorFlags oldflags = corpsehit->flags;
 
 				corpsehit->flags |= MF_SOLID;
-				corpsehit->height = corpsehit->GetDefault()->height;
+				corpsehit->Height = corpsehit->GetDefault()->Height;
 				bool check = P_CheckPosition(corpsehit, corpsehit->Pos());
 				corpsehit->flags = oldflags;
 				corpsehit->radius = oldradius;
-				corpsehit->height = oldheight;
+				corpsehit->Height = oldheight;
 				if (!check) continue;
 
 				// got one!
@@ -2664,15 +2690,15 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 				}
 				if (ib_compatflags & BCOMPATF_VILEGHOSTS)
 				{
-					corpsehit->height <<= 2;
+					corpsehit->Height *= 4;
 					// [GZ] This was a commented-out feature, so let's make use of it,
 					// but only for ghost monsters so that they are visibly different.
-					if (corpsehit->height == 0)
+					if (corpsehit->Height == 0)
 					{
 						// Make raised corpses look ghostly
-						if (corpsehit->alpha > TRANSLUC50)
+						if (corpsehit->Alpha > 0.5)
 						{
-							corpsehit->alpha /= 2;
+							corpsehit->Alpha /= 2;
 						}
 						// This will only work if the render style is changed as well.
 						if (corpsehit->RenderStyle == LegacyRenderStyles[STYLE_Normal])
@@ -2683,7 +2709,7 @@ static bool P_CheckForResurrection(AActor *self, bool usevilestates)
 				}
 				else
 				{
-					corpsehit->height = info->height;	// [RH] Use real mobj height
+					corpsehit->Height = info->Height;	// [RH] Use real mobj height
 					corpsehit->radius = info->radius;	// [RH] Use real radius
 				}
 
@@ -2747,7 +2773,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_VileChase)
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ExtChase)
 {
-	PARAM_ACTION_PROLOGUE;
+	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_BOOL		(domelee);
 	PARAM_BOOL		(domissile);
 	PARAM_BOOL_OPT	(playactive)	{ playactive = true; }
@@ -2780,7 +2806,7 @@ enum FAF_Flags
 	FAF_TOP = 4,
 	FAF_NODISTFACTOR = 8,	// deprecated
 };
-void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch, angle_t ang_offset, angle_t pitch_offset, int flags, fixed_t z_add)
+void A_Face(AActor *self, AActor *other, DAngle max_turn, DAngle max_pitch, DAngle ang_offset, DAngle pitch_offset, int flags, double z_add)
 {
 	if (!other)
 		return;
@@ -2793,99 +2819,90 @@ void A_Face (AActor *self, AActor *other, angle_t max_turn, angle_t max_pitch, a
 
 	self->flags &= ~MF_AMBUSH;
 
-	angle_t other_angle = self->AngleTo(other);
+	DAngle other_angle = self->AngleTo(other);
+	DAngle delta = -deltaangle(self->Angles.Yaw, other_angle);
 
 	// 0 means no limit. Also, if we turn in a single step anyways, no need to go through the algorithms.
 	// It also means that there is no need to check for going past the other.
-	if (max_turn && (max_turn < absangle(self->angle - other_angle)))
+	if (max_turn != 0 && (max_turn < fabs(delta)))
 	{
-		if (self->angle > other_angle)
+		if (delta > 0)
 		{
-			if (self->angle - other_angle < ANGLE_180)
-			{
-				self->angle -= max_turn + ang_offset;
-			}
-			else
-			{
-				self->angle += max_turn + ang_offset;
-			}
+			self->Angles.Yaw -= max_turn + ang_offset;
 		}
 		else
 		{
-			if (other_angle - self->angle < ANGLE_180)
-			{
-				self->angle += max_turn + ang_offset;
-			}
-			else
-			{
-				self->angle -= max_turn + ang_offset;
-			}
+			self->Angles.Yaw += max_turn + ang_offset;
 		}
 	}
 	else
 	{
-		self->angle = other_angle + ang_offset;
+		self->Angles.Yaw = other_angle + ang_offset;
 	}
 
 	// [DH] Now set pitch. In order to maintain compatibility, this can be
 	// disabled and is so by default.
-	if (max_pitch <= ANGLE_180)
+	if (max_pitch <= 180.)
 	{
-		fixedvec2 pos = self->Vec2To(other);
-		TVector2<double> dist(pos.x, pos.y);
+		DVector2 dist = self->Vec2To(other);
 		
 		// Positioning ala missile spawning, 32 units above foot level
-		fixed_t source_z = self->Z() + 32*FRACUNIT + self->GetBobOffset();
-		fixed_t target_z = other->Z() + 32*FRACUNIT + other->GetBobOffset();
+		double source_z = self->Z() + 32 + self->GetBobOffset();
+		double target_z = other->Z() + 32 + other->GetBobOffset();
 
 		// If the target z is above the target's head, reposition to the middle of
 		// its body.		
 		if (target_z >= other->Top())
 		{
-			target_z = other->Z() + (other->height / 2);
+			target_z = other->Center();
+		}
+		if (source_z >= self->Top())
+		{
+			source_z = self->Center();
 		}
 
-		//Note there is no +32*FRACUNIT on purpose. This is for customization sake. 
+		//Note there is no +32 on purpose. This is for customization sake. 
 		//If one doesn't want this behavior, just don't use FAF_BOTTOM.
 		if (flags & FAF_BOTTOM)
 			target_z = other->Z() + other->GetBobOffset(); 
 		if (flags & FAF_MIDDLE)
-			target_z = other->Z() + (other->height / 2) + other->GetBobOffset();
+			target_z = other->Center() + other->GetBobOffset();
 		if (flags & FAF_TOP)
-			target_z = other->Z() + (other->height) + other->GetBobOffset();
+			target_z = other->Top() + other->GetBobOffset();
 
 		target_z += z_add;
 
 		double dist_z = target_z - source_z;
-		double ddist = sqrt(dist.X*dist.X + dist.Y*dist.Y + dist_z*dist_z);
-		int other_pitch = (int)RAD2ANGLE(asin(dist_z / ddist));
+		double ddist = g_sqrt(dist.X*dist.X + dist.Y*dist.Y + dist_z*dist_z);
+
+		DAngle other_pitch = DAngle::ToDegrees(g_asin(dist_z / ddist)).Normalized180();
 		
 		if (max_pitch != 0)
 		{
-			if (self->pitch > other_pitch)
+			if (self->Angles.Pitch > other_pitch)
 			{
-				max_pitch = MIN(max_pitch, unsigned(self->pitch - other_pitch));
-				self->pitch -= max_pitch;
+				max_pitch = MIN(max_pitch, (self->Angles.Pitch - other_pitch).Normalized360());
+				self->Angles.Pitch -= max_pitch;
 			}
 			else
 			{
-				max_pitch = MIN(max_pitch, unsigned(other_pitch - self->pitch));
-				self->pitch += max_pitch;
+				max_pitch = MIN(max_pitch, (other_pitch - self->Angles.Pitch).Normalized360());
+				self->Angles.Pitch += max_pitch;
 			}
 		}
 		else
 		{
-			self->pitch = other_pitch;
+			self->Angles.Pitch = other_pitch;
 		}
-		self->pitch += pitch_offset;
+		self->Angles.Pitch += pitch_offset;
 	}
 	
 
 
 	// This will never work well if the turn angle is limited.
-	if (max_turn == 0 && (self->angle == other_angle) && other->flags & MF_SHADOW && !(self->flags6 & MF6_SEEINVISIBLE) )
+	if (max_turn == 0 && (self->Angles.Yaw == other_angle) && other->flags & MF_SHADOW && !(self->flags6 & MF6_SEEINVISIBLE) )
     {
-		self->angle += pr_facetarget.Random2() << 21;
+		self->Angles.Yaw += pr_facetarget.Random2() * (45 / 256.);
     }
 }
 
@@ -2897,12 +2914,12 @@ void A_FaceTarget(AActor *self)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTarget)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_ANGLE_OPT(max_turn)		{ max_turn = 0; }
-	PARAM_ANGLE_OPT(max_pitch)		{ max_pitch = 270; }
-	PARAM_ANGLE_OPT(ang_offset)		{ ang_offset = 0; }
-	PARAM_ANGLE_OPT(pitch_offset)	{ pitch_offset = 0; }
+	PARAM_ANGLE_OPT(max_turn)		{ max_turn = 0.; }
+	PARAM_ANGLE_OPT(max_pitch)		{ max_pitch = 270.; }
+	PARAM_ANGLE_OPT(ang_offset)	{ ang_offset = 0.; }
+	PARAM_ANGLE_OPT(pitch_offset)	{ pitch_offset = 0.; }
 	PARAM_INT_OPT(flags)			{ flags = 0; }
-	PARAM_FIXED_OPT(z_add)			{ z_add = 0; }
+	PARAM_FLOAT_OPT(z_add)			{ z_add = 0; }
 
 	A_Face(self, self->target, max_turn, max_pitch, ang_offset, pitch_offset, flags, z_add);
 	return 0;
@@ -2911,12 +2928,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTarget)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMaster)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_ANGLE_OPT(max_turn)		{ max_turn = 0; }
-	PARAM_ANGLE_OPT(max_pitch)		{ max_pitch = 270; }
-	PARAM_ANGLE_OPT(ang_offset)		{ ang_offset = 0; }
-	PARAM_ANGLE_OPT(pitch_offset)	{ pitch_offset = 0; }
-	PARAM_INT_OPT(flags)			{ flags = 0; }
-	PARAM_FIXED_OPT(z_add)			{ z_add = 0; }
+	PARAM_ANGLE_OPT(max_turn) { max_turn = 0.; }
+	PARAM_ANGLE_OPT(max_pitch) { max_pitch = 270.; }
+	PARAM_ANGLE_OPT(ang_offset) { ang_offset = 0.; }
+	PARAM_ANGLE_OPT(pitch_offset) { pitch_offset = 0.; }
+	PARAM_INT_OPT(flags) { flags = 0; }
+	PARAM_FLOAT_OPT(z_add) { z_add = 0; }
 
 	A_Face(self, self->master, max_turn, max_pitch, ang_offset, pitch_offset, flags, z_add);
 	return 0;
@@ -2925,12 +2942,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMaster)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceTracer)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_ANGLE_OPT(max_turn)		{ max_turn = 0; }
-	PARAM_ANGLE_OPT(max_pitch)		{ max_pitch = 270; }
-	PARAM_ANGLE_OPT(ang_offset)		{ ang_offset = 0; }
-	PARAM_ANGLE_OPT(pitch_offset)	{ pitch_offset = 0; }
-	PARAM_INT_OPT(flags)			{ flags = 0; }
-	PARAM_FIXED_OPT(z_add)			{ z_add = 0; }
+	PARAM_ANGLE_OPT(max_turn) { max_turn = 0.; }
+	PARAM_ANGLE_OPT(max_pitch) { max_pitch = 270.; }
+	PARAM_ANGLE_OPT(ang_offset) { ang_offset = 0.; }
+	PARAM_ANGLE_OPT(pitch_offset) { pitch_offset = 0.; }
+	PARAM_INT_OPT(flags) { flags = 0; }
+	PARAM_FLOAT_OPT(z_add) { z_add = 0; }
 
 	A_Face(self, self->tracer, max_turn, max_pitch, ang_offset, pitch_offset, flags, z_add);
 	return 0;
@@ -2950,8 +2967,8 @@ DEFINE_ACTION_FUNCTION(AActor, A_MonsterRail)
 	if (!self->target)
 		return 0;
 
-	fixed_t saved_pitch = self->pitch;
-	AActor *linetarget;
+	DAngle saved_pitch = self->Angles.Pitch;
+	FTranslatedLineTarget t;
 
 	// [RH] Andy Baker's stealth monsters
 	if (self->flags & MF_STEALTH)
@@ -2961,28 +2978,31 @@ DEFINE_ACTION_FUNCTION(AActor, A_MonsterRail)
 
 	self->flags &= ~MF_AMBUSH;
 		
-	self->angle = self->AngleTo(self->target);
+	self->Angles.Yaw = self->AngleTo(self->target);
 
-	self->pitch = P_AimLineAttack (self, self->angle, MISSILERANGE, &linetarget, ANGLE_1*60, 0, self->target);
-	if (linetarget == NULL)
+	self->Angles.Pitch = P_AimLineAttack (self, self->Angles.Yaw, MISSILERANGE, &t, 60., 0, self->target);
+	if (t.linetarget == NULL)
 	{
 		// We probably won't hit the target, but aim at it anyway so we don't look stupid.
-		fixedvec2 pos = self->Vec2To(self->target);
-		TVector2<double> xydiff(pos.x, pos.y);
-		double zdiff = (self->target->Z() + (self->target->height>>1)) - (self->Z() + (self->height>>1) - self->floorclip);
-		self->pitch = int(atan2(zdiff, xydiff.Length()) * ANGLE_180 / -M_PI);
+		DVector2 xydiff = self->Vec2To(self->target);
+		double zdiff = self->target->Center() - self->Center() - self->Floorclip;
+		self->Angles.Pitch = -VecToAngle(xydiff.Length(), zdiff);
 	}
 
 	// Let the aim trail behind the player
-	self->angle = self->AngleTo(self->target, -self->target->velx * 3, -self->target->vely * 3);
+	self->Angles.Yaw = self->AngleTo(self->target, -self->target->Vel.X * 3, -self->target->Vel.Y * 3);
 
 	if (self->target->flags & MF_SHADOW && !(self->flags6 & MF6_SEEINVISIBLE))
 	{
-		self->angle += pr_railface.Random2() << 21;
+		self->Angles.Yaw += pr_railface.Random2() * 45./256;
 	}
 
-	P_RailAttack (self, self->GetMissileDamage (0, 1), 0);
-	self->pitch = saved_pitch;
+	FRailParams p;
+
+	p.source = self;
+	p.damage = self->GetMissileDamage(0, 1);
+	P_RailAttack (&p);
+	self->Angles.Pitch = saved_pitch;
 	return 0;
 }
 
@@ -3068,11 +3088,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_ActiveAndUnblock)
 void ModifyDropAmount(AInventory *inv, int dropamount)
 {
 	int flagmask = IF_IGNORESKILL;
-	fixed_t dropammofactor = G_SkillProperty(SKILLP_DropAmmoFactor);
+	double dropammofactor = G_SkillProperty(SKILLP_DropAmmoFactor);
 	// Default drop amount is half of regular amount * regular ammo multiplication
 	if (dropammofactor == -1) 
 	{
-		dropammofactor = FRACUNIT/2;
+		dropammofactor = 0.5;
 		flagmask = 0;
 	}
 
@@ -3080,7 +3100,7 @@ void ModifyDropAmount(AInventory *inv, int dropamount)
 	{
 		if (flagmask != 0 && inv->IsKindOf(RUNTIME_CLASS(AAmmo)))
 		{
-			inv->Amount = FixedMul(dropamount, dropammofactor);
+			inv->Amount = int(dropamount * dropammofactor);
 			inv->ItemFlags |= IF_IGNORESKILL;
 		}
 		else
@@ -3094,7 +3114,7 @@ void ModifyDropAmount(AInventory *inv, int dropamount)
 		int amount = static_cast<PClassAmmo *>(inv->GetClass())->DropAmount;
 		if (amount <= 0)
 		{
-			amount = MAX(1, FixedMul(inv->Amount, dropammofactor));
+			amount = MAX(1, int(inv->Amount * dropammofactor));
 		}
 		inv->Amount = amount;
 		inv->ItemFlags |= flagmask;
@@ -3107,8 +3127,8 @@ void ModifyDropAmount(AInventory *inv, int dropamount)
 	else if (inv->IsKindOf (RUNTIME_CLASS(AWeapon)))
 	{
 		// The same goes for ammo from a weapon.
-		static_cast<AWeapon *>(inv)->AmmoGive1 = FixedMul(static_cast<AWeapon *>(inv)->AmmoGive1, dropammofactor);
-		static_cast<AWeapon *>(inv)->AmmoGive2 = FixedMul(static_cast<AWeapon *>(inv)->AmmoGive2, dropammofactor);
+		static_cast<AWeapon *>(inv)->AmmoGive1 = int(static_cast<AWeapon *>(inv)->AmmoGive1 * dropammofactor);
+		static_cast<AWeapon *>(inv)->AmmoGive2 = int(static_cast<AWeapon *>(inv)->AmmoGive2 * dropammofactor);
 		inv->ItemFlags |= flagmask;
 	}			
 	else if (inv->IsKindOf (RUNTIME_CLASS(ADehackedPickup)))
@@ -3131,9 +3151,8 @@ AInventory *P_DropItem (AActor *source, PClassActor *type, int dropamount, int c
 	if (type != NULL && pr_dropitem() <= chance)
 	{
 		AActor *mo;
-		fixed_t spawnz;
+		double spawnz = 0;
 
-		spawnz = source->Z();
 		if (!(i_compatflags & COMPATF_NOTOSSDROPS))
 		{
 			int style = sv_dropstyle;
@@ -3143,14 +3162,14 @@ AInventory *P_DropItem (AActor *source, PClassActor *type, int dropamount, int c
 			}
 			if (style == 2)
 			{
-				spawnz += 24*FRACUNIT;
+				spawnz = 24;
 			}
 			else
 			{
-				spawnz += source->height / 2;
+				spawnz = source->Height / 2;
 			}
 		}
-		mo = Spawn(type, source->X(), source->Y(), spawnz, ALLOW_REPLACE);
+		mo = Spawn(type, source->PosPlusZ(spawnz), ALLOW_REPLACE);
 		if (mo != NULL)
 		{
 			mo->flags |= MF_DROPPED;
@@ -3191,14 +3210,14 @@ void P_TossItem (AActor *item)
 	
 	if (style==2)
 	{
-		item->velx += pr_dropitem.Random2(7) << FRACBITS;
-		item->vely += pr_dropitem.Random2(7) << FRACBITS;
+		item->Vel.X += pr_dropitem.Random2(7);
+		item->Vel.Y += pr_dropitem.Random2(7);
 	}
 	else
 	{
-		item->velx = pr_dropitem.Random2() << 8;
-		item->vely = pr_dropitem.Random2() << 8;
-		item->velz = FRACUNIT*5 + (pr_dropitem() << 10);
+		item->Vel.X += pr_dropitem.Random2() / 256.;
+		item->Vel.Y += pr_dropitem.Random2() / 256.;
+		item->Vel.Z = 5. + pr_dropitem() / 64.;
 	}
 }
 
@@ -3270,7 +3289,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Detonate)
 	PARAM_ACTION_PROLOGUE;
 	int damage = self->GetMissileDamage(0, 1);
 	P_RadiusAttack (self, self->target, damage, damage, self->DamageType, RADF_HURTSOURCE);
-	P_CheckSplash(self, damage<<FRACBITS);
+	P_CheckSplash(self, damage);
 	return 0;
 }
 
@@ -3373,13 +3392,13 @@ void A_BossDeath(AActor *self)
 	{
 		if (type == NAME_Fatso)
 		{
-			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, FRACUNIT, 0, -1, 0, false);
+			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, 1., 0, -1, 0, false);
 			return;
 		}
 		
 		if (type == NAME_Arachnotron)
 		{
-			EV_DoFloor (DFloor::floorRaiseByTexture, NULL, 667, FRACUNIT, 0, -1, 0, false);
+			EV_DoFloor (DFloor::floorRaiseByTexture, NULL, 667, 1., 0, -1, 0, false);
 			return;
 		}
 	}
@@ -3388,15 +3407,15 @@ void A_BossDeath(AActor *self)
 		switch (level.flags & LEVEL_SPECACTIONSMASK)
 		{
 		case LEVEL_SPECLOWERFLOOR:
-			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, FRACUNIT, 0, -1, 0, false);
+			EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, 1., 0, -1, 0, false);
 			return;
 		
 		case LEVEL_SPECLOWERFLOORTOHIGHEST:
-			EV_DoFloor (DFloor::floorLowerToHighest, NULL, 666, FRACUNIT, 0, -1, 0, false);
+			EV_DoFloor (DFloor::floorLowerToHighest, NULL, 666, 1., 0, -1, 0, false);
 			return;
 		
 		case LEVEL_SPECOPENDOOR:
-			EV_DoDoor (DDoor::doorOpen, NULL, NULL, 666, 8*FRACUNIT, 0, 0, 0);
+			EV_DoDoor (DDoor::doorOpen, NULL, NULL, 666, 8., 0, 0, 0);
 			return;
 		}
 	}
@@ -3450,11 +3469,11 @@ int P_Massacre ()
 // Sink a mobj incrementally into the floor
 //
 
-bool A_SinkMobj (AActor *actor, fixed_t speed)
+bool A_SinkMobj (AActor *actor, double speed)
 {
-	if (actor->floorclip < actor->height)
+	if (actor->Floorclip < actor->Height)
 	{
-		actor->floorclip += speed;
+		actor->Floorclip += speed;
 		return false;
 	}
 	return true;
@@ -3465,17 +3484,17 @@ bool A_SinkMobj (AActor *actor, fixed_t speed)
 // Raise a mobj incrementally from the floor to 
 // 
 
-bool A_RaiseMobj (AActor *actor, fixed_t speed)
+bool A_RaiseMobj (AActor *actor, double speed)
 {
 	bool done = true;
 
 	// Raise a mobj from the ground
-	if (actor->floorclip > 0)
+	if (actor->Floorclip > 0)
 	{
-		actor->floorclip -= speed;
-		if (actor->floorclip <= 0)
+		actor->Floorclip -= speed;
+		if (actor->Floorclip <= 0)
 		{
-			actor->floorclip = 0;
+			actor->Floorclip = 0;
 			done = true;
 		}
 		else

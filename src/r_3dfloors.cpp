@@ -21,8 +21,8 @@ F3DFloor *fakeFloor;
 fixed_t fakeHeight;
 fixed_t fakeAlpha;
 int fakeActive = 0;
-fixed_t sclipBottom;
-fixed_t sclipTop;
+double sclipBottom;
+double sclipTop;
 HeightLevel *height_top = NULL;
 HeightLevel *height_cur = NULL;
 int CurrentMirror = 0;
@@ -52,9 +52,8 @@ void R_3D_AddHeight(secplane_t *add, sector_t *sec)
 {
 	HeightLevel *near;
 	HeightLevel *curr;
-	fixed_t height;
 
-	height = add->ZatPoint(viewx, viewy);
+	double height = add->ZatPoint(ViewPos);
 	if(height >= sec->CenterCeiling()) return;
 	if(height <= sec->CenterFloor()) return;
 

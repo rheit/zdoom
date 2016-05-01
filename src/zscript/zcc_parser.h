@@ -158,8 +158,8 @@ struct ZCC_TreeNode
 		assert(SiblingNext->SiblingPrev == this);
 
 		// Check integrity of new sibling list.
-		assert(sibling->SiblingPrev->SiblingNext = sibling);
-		assert(sibling->SiblingNext->SiblingPrev = sibling);
+		assert(sibling->SiblingPrev->SiblingNext == sibling);
+		assert(sibling->SiblingNext->SiblingPrev == sibling);
 
 		ZCC_TreeNode *siblingend = sibling->SiblingPrev;
 		SiblingPrev->SiblingNext = sibling;
@@ -174,24 +174,26 @@ struct ZCC_Identifier : ZCC_TreeNode
 	ENamedName Id;
 };
 
-struct ZCC_Class : ZCC_TreeNode
+struct ZCC_NamedNode : ZCC_TreeNode
 {
-	ENamedName ClassName;
+	ENamedName NodeName;
+};
+
+struct ZCC_Class : ZCC_NamedNode
+{
 	ZCC_Identifier *ParentName;
 	ZCC_Identifier *Replaces;
 	VM_UWORD Flags;
 	ZCC_TreeNode *Body;
 };
 
-struct ZCC_Struct : ZCC_TreeNode
+struct ZCC_Struct : ZCC_NamedNode
 {
-	ENamedName StructName;
 	ZCC_TreeNode *Body;
 };
 
-struct ZCC_Enum : ZCC_TreeNode
+struct ZCC_Enum : ZCC_NamedNode
 {
-	ENamedName EnumName;
 	EZCCBuiltinType EnumType;
 	struct ZCC_ConstantDef *Elements;
 };
@@ -253,7 +255,11 @@ struct ZCC_StateGoto : ZCC_StatePart
 struct ZCC_StateLine : ZCC_StatePart
 {
 	char Sprite[4];
-	BITFIELD bBright:1;
+	BITFIELD bBright : 1;
+	BITFIELD bFast : 1;
+	BITFIELD bSlow : 1;
+	BITFIELD bNoDelay : 1;
+	BITFIELD bCanRaise : 1;
 	FString *Frames;
 	ZCC_Expression *Offset;
 	ZCC_TreeNode *Action;
@@ -428,9 +434,8 @@ struct ZCC_FuncParamDecl : ZCC_TreeNode
 	int Flags;
 };
 
-struct ZCC_ConstantDef : ZCC_TreeNode
+struct ZCC_ConstantDef : ZCC_NamedNode
 {
-	ENamedName Name;
 	ZCC_Expression *Value;
 	PSymbolConst *Symbol;
 };
@@ -485,6 +490,8 @@ struct ZCC_OpInfoType
 	ZCC_OpProto *FindBestProto(PType *optype, const PType::Conversion **route, int &numslots);
 	ZCC_OpProto *FindBestProto(PType *left, const PType::Conversion **route1, int &numslots,
 		PType *right, const PType::Conversion **route2, int &numslots2);
+
+	void FreeAllProtos();
 };
 
 #define CONVERSION_ROUTE_SIZE	8

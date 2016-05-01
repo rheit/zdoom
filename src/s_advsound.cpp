@@ -162,8 +162,8 @@ enum SICommands
 struct FBloodSFX
 {
 	DWORD	RelVol;		// volume, 0-255
-	fixed_t	Pitch;		// pitch change
-	fixed_t	PitchRange;	// range of random pitch
+	int		Pitch;		// pitch change
+	int		PitchRange;	// range of random pitch
 	DWORD	Format;		// format of audio 1=11025 5=22050
 	SDWORD	LoopStart;	// loop position (-1 means no looping)
 	char	RawName[9];	// name of RAW resource
@@ -199,7 +199,7 @@ extern bool IsFloat (const char *str);
 
 // PRIVATE FUNCTION PROTOTYPES ---------------------------------------------
 
-static int STACK_ARGS SortPlayerClasses (const void *a, const void *b);
+static int SortPlayerClasses (const void *a, const void *b);
 static int S_DupPlayerSound (const char *pclass, int gender, int refid, int aliasref);
 static void S_SavePlayerSound (const char *pclass, int gender, int refid, int lumpnum, bool alias);
 static void S_RestorePlayerSounds();
@@ -1627,7 +1627,7 @@ void S_ShrinkPlayerSoundLists ()
 	DefPlayerClass = S_FindPlayerClass (DefPlayerClassName);
 }
 
-static int STACK_ARGS SortPlayerClasses (const void *a, const void *b)
+static int SortPlayerClasses (const void *a, const void *b)
 {
 	return stricmp (((const FPlayerClassLookup *)a)->Name,
 					((const FPlayerClassLookup *)b)->Name);
@@ -2281,7 +2281,7 @@ void AAmbientSound::Activate (AActor *activator)
 				Destroy ();
 				return;
 			}
-			amb->periodmin = Scale(S_GetMSLength(sndnum), TICRATE, 1000);
+			amb->periodmin = ::Scale(S_GetMSLength(sndnum), TICRATE, 1000);
 		}
 
 		NextCheck = level.maptime;

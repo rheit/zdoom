@@ -128,7 +128,7 @@ void I_Quit()
 extern FILE* Logfile;
 bool gameisdead;
 
-void STACK_ARGS I_FatalError(const char* const error, ...)
+void I_FatalError(const char* const error, ...)
 {
     static bool alreadyThrown = false;
     gameisdead = true;
@@ -165,7 +165,7 @@ void STACK_ARGS I_FatalError(const char* const error, ...)
     }
 }
 
-void STACK_ARGS I_Error(const char* const error, ...)
+void I_Error(const char* const error, ...)
 {
     va_list argptr;
     char errortext[MAX_ERRORTEXT];
@@ -180,6 +180,12 @@ void STACK_ARGS I_Error(const char* const error, ...)
 
 void I_SetIWADInfo()
 {
+}
+
+
+void I_DebugPrint(const char *cp)
+{
+	NSLog(@"%s", cp);
 }
 
 
@@ -208,12 +214,12 @@ void I_PrintStr(const char* const message)
 		else if (0x1d == *srcp || 0x1f == *srcp) // Opening and closing bar character
 		{
 			*dstp++ = '-';
-			*srcp++;
+			++srcp;
 		}
 		else if (0x1e == *srcp) // Middle bar character
 		{
 			*dstp++ = '=';
-			*srcp++;
+			++srcp;
 		}
 		else
 		{

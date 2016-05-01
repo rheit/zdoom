@@ -26,6 +26,7 @@
 
 // The most basic types we use, portability.
 #include "doomtype.h"
+#include "vectors.h"
 
 // Some global defines, that configure the game.
 #include "doomdef.h"
@@ -121,7 +122,7 @@ struct maplinedef2_t
 // LineDef attributes.
 //
 
-enum ELineFlags
+enum ELineFlags : unsigned
 {
 	ML_BLOCKING					=0x00000001,	// solid, is an obstacle
 	ML_BLOCKMONSTERS			=0x00000002,	// blocks monsters only
@@ -163,6 +164,8 @@ enum ELineFlags
 	ML_BLOCKSIGHT				= 0x04000000,	// blocks monster line of sight
 	ML_BLOCKHITSCAN				= 0x08000000,	// blocks hitscan attacks
 	ML_3DMIDTEX_IMPASS			= 0x10000000,	// [TP] if 3D midtex, behaves like a height-restricted ML_BLOCKING
+
+	ML_PORTALCONNECT			= 0x80000000,	// for internal use only: This line connects to a sector with a linked portal (used to speed up sight checks.)
 };
 
 
@@ -343,9 +346,7 @@ struct FDoomEdEntry;
 struct FMapThing
 {
 	int			thingid;
-	fixed_t		x;
-	fixed_t		y;
-	fixed_t		z;
+	DVector3	pos;
 	short		angle;
 	WORD		SkillFilter;
 	WORD		ClassFilter;
@@ -355,11 +356,10 @@ struct FMapThing
 	int			special;
 	int			args[5];
 	int			Conversation;
-	fixed_t		gravity;
-	fixed_t		alpha;
+	double		Gravity;
+	double		Alpha;
 	DWORD		fillcolor;
-	fixed_t		scaleX;
-	fixed_t		scaleY;
+	DVector2	Scale;
 	int			health;
 	int			score;
 	short		pitch;
@@ -426,12 +426,12 @@ enum EMapThingFlags
 // A simplified mapthing for player starts
 struct FPlayerStart
 {
-	fixed_t x, y, z;
+	DVector3 pos;
 	short angle, type;
 
 	FPlayerStart() { }
 	FPlayerStart(const FMapThing *mthing, int pnum)
-	: x(mthing->x), y(mthing->y), z(mthing->z),
+	: pos(mthing->pos),
 	  angle(mthing->angle),
 	  type(pnum)
 	{ }

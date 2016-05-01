@@ -1,8 +1,10 @@
 cmake_minimum_required( VERSION 2.8.7 )
 
+include(../precompiled_headers.cmake)
+
 if( COMMAND cmake_policy )
 	cmake_policy( SET CMP0003 NEW )
-endif( COMMAND cmake_policy )
+endif()
 
 include( CheckCXXSourceCompiles )
 include( CheckFunctionExists )
@@ -49,7 +51,7 @@ endif()
 # a system-wide version.
 
 # Construct version numbers for searching for the FMOD library on Linux.
-set( MINOR_VERSIONS "50" "49" "48" "47" "46" "45" "44" "43" "42" "41"
+set( MINOR_VERSIONS "61" "50" "49" "48" "47" "46" "45" "44" "43" "42" "41"
 	"40" "39" "38" "37" "36" "35" "34" "33" "32" "31" "30" "29" "28"
 	"27" "26" "25" "24" "23" "22" "21" "20" "21" "19" "18" "17" "16"
 	"15" "14" "13" "12" "11" "10" "09" "08" "07" "06" "05" "04" "03"
@@ -73,7 +75,12 @@ set( FMOD_DIR_VERSIONS ${FMOD_DIR_VERSIONS} "../fmod" )
 foreach( majver ${MAJOR_VERSIONS} )
 	foreach( minver ${MINOR_VERSIONS} )
 		set( FMOD_VERSIONS ${FMOD_VERSIONS} "fmodex${X64}-4.${majver}.${minver}" )
-		set( FMOD_DIR_VERSIONS ${FMOD_DIR_VERSIONS} "${CMAKE_HOME_DIRECTORY}/fmodapi4${majver}${minver}linux${X64}" )
+		# FMOD Ex version 4.44 unified 32-bit and 64-bit linux packages into one.
+		if( NOT majver EQUAL "44" )
+			set( FMOD_DIR_VERSIONS ${FMOD_DIR_VERSIONS} "${CMAKE_HOME_DIRECTORY}/fmodapi4${majver}${minver}linux${X64}" )
+		else()
+			set( FMOD_DIR_VERSIONS ${FMOD_DIR_VERSIONS} "${CMAKE_HOME_DIRECTORY}/fmodapi4${majver}${minver}linux" )
+		endif()
 	endforeach()
 	foreach( dir ${FMOD_DIR_VERSIONS} )
 		set( FMOD_LOCAL_INC_DIRS ${FMOD_LOCAL_INC_DIRS} "${dir}/api/inc" )
@@ -164,6 +171,12 @@ else()
 		set( FMOD_INC_PATH_SUFFIXES PATH_SUFFIXES inc )
 		set( FMOD_LIB_PATH_SUFFIXES PATH_SUFFIXES lib )
 		set( NO_GTK ON )
+
+		# Prevent inclusion of fp.h and FixMath.h from Carbon framework
+		# Declarations from these files are not used but cause the following conflicts:
+		#  - redefinition of 'FixedToFloat' and 'FloatToFixed' macros
+		#  - redefinition of 'pi' as different kind of symbol
+		add_definitions( -D__FP__ -D__FIXMATH__ )
 	else()
 		option( NO_GTK "Disable GTK+ dialogs (Not applicable to Windows)" )
 		option( VALGRIND "Add special Valgrind sequences to self-modifying code" )
@@ -342,7 +355,7 @@ if( NOT NO_ASM )
 	#	string( REGEX REPLACE ".*version ([0-9]+[.][0-9]+).*" "\\1" NASM_VER "${NASM_VER_STRING}" )
 	#	if( NOT NASM_VER LESS 2 )
 	#		message( SEND_ERROR "NASM version should be 2 or later. (Installed version is ${NASM_VER}.)" )
-	#	endif( NOT NASM_VER LESS 2 )
+	#	endif()
 endif()
 
 if( NOT NO_ASM )
@@ -417,7 +430,7 @@ if (NOT ZDOOM_USE_SSE2)
 			set( SSE1_ENABLE -arch:SSE )
 			set( SSE2_ENABLE -arch:SSE2 )
 			set( SSE_MATTERS YES )
-		endif( )
+		endif()
 	endif()
 endif()
 
@@ -446,7 +459,7 @@ if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 		set( CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -pg" )
 		set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -pg" )
 	endif()
-	
+
 	set( REL_CXX_FLAGS "-fno-rtti" )
 	if( NOT PROFILE AND NOT APPLE )
 		# On OS X frame pointers are required for exception handling, at least with Clang
@@ -456,12 +469,36 @@ if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 	set( CMAKE_CXX_FLAGS_MINSIZEREL "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_MINSIZEREL}" )
 	set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${REL_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}" )
 
-	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "4.5")
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "4.5")
 		set( CMAKE_C_FLAGS "-Wno-unused-result ${CMAKE_C_FLAGS}" )
 		set( CMAKE_CXX_FLAGS "-Wno-unused-result ${CMAKE_CXX_FLAGS}" )
 	endif()
-	set( CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers ${CMAKE_C_FLAGS}" )
-	set( CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers ${CMAKE_CXX_FLAGS}" )
+	set( CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers -ffp-contract=off ${CMAKE_C_FLAGS}" )
+	set( CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers -ffp-contract=off ${CMAKE_CXX_FLAGS}" )
+
+	# Use the highest C++ standard available since VS2015 compiles with C++14
+	# but we only require C++11.  The recommended way to do this in CMake is to
+	# probably to use target_compile_features, but I don't feel like maintaining
+	# a list of features we use.
+	CHECK_CXX_COMPILER_FLAG( "-std=gnu++14" CAN_DO_CPP14 )
+	if ( CAN_DO_CPP14 )
+		set ( CMAKE_CXX_FLAGS "-std=gnu++14 ${CMAKE_CXX_FLAGS}" )
+	else ()
+		CHECK_CXX_COMPILER_FLAG( "-std=gnu++1y" CAN_DO_CPP1Y )
+		if ( CAN_DO_CPP1Y )
+			set ( CMAKE_CXX_FLAGS "-std=gnu++1y ${CMAKE_CXX_FLAGS}" )
+		else ()
+			CHECK_CXX_COMPILER_FLAG( "-std=gnu++11" CAN_DO_CPP11 )
+			if ( CAN_DO_CPP11 )
+				set ( CMAKE_CXX_FLAGS "-std=gnu++11 ${CMAKE_CXX_FLAGS}" )
+			else ()
+				CHECK_CXX_COMPILER_FLAG( "-std=gnu++0x" CAN_DO_CPP0X )
+				if ( CAN_DO_CPP0X )
+					set ( CMAKE_CXX_FLAGS "-std=gnu++0x ${CMAKE_CXX_FLAGS}" )
+				endif ()
+			endif ()
+		endif ()
+	endif ()
 
 	# Remove extra warnings when using the official DirectX headers.
 	# Also, TDM-GCC 4.4.0 no longer accepts glibc-style printf formats as valid,
@@ -515,24 +552,8 @@ if( UNIX )
 			message( STATUS "Could not find clock_gettime. Timing statistics will not be available." )
 			add_definitions( -DNO_CLOCK_GETTIME )
 		endif()
-	else( NOT CLOCK_GETTIME_IN_RT )
-		set( ZDOOM_LIBS ${ZDOOM_LIBS} rt )
-	endif()
-endif()
-
-CHECK_CXX_SOURCE_COMPILES(
-	"#include <stdarg.h>
-	int main() { va_list list1, list2; va_copy(list1, list2); return 0; }"
-	HAS_VA_COPY )
-if( NOT HAS_VA_COPY )
-	CHECK_CXX_SOURCE_COMPILES(
-		"#include <stdarg.h>
-		int main() { va_list list1, list2; __va_copy(list1, list2); return 0; }"
-		HAS___VA_COPY )
-	if( HAS___VA_COPY )
-		add_definitions( -Dva_copy=__va_copy )
 	else()
-		add_definitions( -DNO_VA_COPY )
+		set( ZDOOM_LIBS ${ZDOOM_LIBS} rt )
 	endif()
 endif()
 
@@ -563,12 +584,12 @@ if( MPG123_FOUND )
     set( ZDOOM_LIBS ${ZDOOM_LIBS} "${MPG123_LIBRARIES}" )
     include_directories( "${MPG123_INCLUDE_DIR}" )
 endif()
-if( NOT DYN_FLUIDSYNTH)
+if( NOT DYN_FLUIDSYNTH )
 	if( FLUIDSYNTH_FOUND )
 		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FLUIDSYNTH_LIBRARIES}" )
 		include_directories( "${FLUIDSYNTH_INCLUDE_DIR}" )
 	endif()
-else( NOT DYN_FLUIDSYNTH )
+else()
 	set( ZDOOM_LIBS ${ZDOOM_LIBS} ${CMAKE_DL_LIBS} )
 endif()
 
@@ -616,6 +637,7 @@ set( PLAT_COCOA_SOURCES
 	posix/cocoa/i_input.mm
 	posix/cocoa/i_joystick.cpp
 	posix/cocoa/i_main.mm
+	posix/cocoa/i_main_except.cpp
 	posix/cocoa/i_system.mm
 	posix/cocoa/i_timer.cpp
 	posix/cocoa/i_video.mm
@@ -652,6 +674,7 @@ elseif( APPLE )
 
 	set_source_files_properties( posix/osx/zdoom.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources )
 	set_source_files_properties( "${FMOD_LIBRARY}" PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks )
+	set_source_files_properties( posix/osx/iwadpicker_cocoa.mm PROPERTIES COMPILE_FLAGS -fobjc-exceptions )
 else()
 	set( SYSTEM_SOURCES_DIR posix posix/sdl )
 	set( SYSTEM_SOURCES ${PLAT_POSIX_SOURCES} ${PLAT_SDL_SOURCES} )
@@ -677,15 +700,11 @@ else()
 endif()
 
 add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.h
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/xlat/xlat_parser.y .
-	COMMAND lemon xlat_parser.y
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMAND lemon -C${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/xlat/xlat_parser.y
 	DEPENDS lemon ${CMAKE_CURRENT_SOURCE_DIR}/xlat/xlat_parser.y )
 
 add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/zcc-parse.c ${CMAKE_CURRENT_BINARY_DIR}/zcc-parse.h
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/zscript/zcc-parse.lemon .
-	COMMAND lemon zcc-parse.lemon
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMAND lemon -C${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/zscript/zcc-parse.lemon
 	DEPENDS lemon ${CMAKE_CURRENT_SOURCE_DIR}/zscript/zcc-parse.lemon )
 
 add_custom_command( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h
@@ -858,8 +877,7 @@ set( NOT_COMPILED_SOURCE_FILES
 	asm_x86_64/tmap3.s
 )
 
-# Enable fast math for some sources
-set( FASTMATH_SOURCES
+set( FASTMATH_PCH_SOURCES
 	r_swrenderer.cpp
 	r_3dfloors.cpp
 	r_bsp.cpp
@@ -895,12 +913,35 @@ set( FASTMATH_SOURCES
 	oplsynth/fmopl.cpp
 	oplsynth/mlopl.cpp
 	oplsynth/mlopl_io.cpp
-	oplsynth/music_opldumper_mididevice.cpp
-	oplsynth/music_opl_mididevice.cpp
-	oplsynth/opl_mus_player.cpp
 	oplsynth/dosbox/opl.cpp
 	oplsynth/OPL3.cpp
 	oplsynth/nukedopl3.cpp
+	timidity/common.cpp
+	timidity/instrum.cpp
+	timidity/instrum_dls.cpp
+	timidity/instrum_font.cpp
+	timidity/instrum_sf2.cpp
+	timidity/mix.cpp
+	timidity/playmidi.cpp
+	timidity/resample.cpp
+	timidity/timidity.cpp
+	wildmidi/file_io.cpp
+	wildmidi/gus_pat.cpp
+	wildmidi/reverb.cpp
+	wildmidi/wm_error.cpp
+	r_data/colormaps.cpp
+	r_data/r_translate.cpp
+)
+# This is disabled for now because I cannot find a way to give the .pch file a different name.
+# Visual C++ 2015 seems hell-bent of only allowing one .pch file with the same name as the executable.
+#enable_precompiled_headers( g_pch2.h FASTMATH_PCH_SOURCES )
+
+# Enable fast math for some sources
+set( FASTMATH_SOURCES
+	${FASTMATH_PCH_SOURCES}
+	oplsynth/music_opldumper_mididevice.cpp
+	oplsynth/music_opl_mididevice.cpp
+	oplsynth/opl_mus_player.cpp
 	sound/fmodsound.cpp
 	sound/i_music.cpp
 	sound/i_sound.cpp
@@ -925,32 +966,10 @@ set( FASTMATH_SOURCES
 	sound/oalsound.cpp
 	sound/sndfile_decoder.cpp
 	sound/music_pseudo_mididevice.cpp
-	timidity/common.cpp
-	timidity/instrum.cpp
-	timidity/instrum_dls.cpp
-	timidity/instrum_font.cpp
-	timidity/instrum_sf2.cpp
-	timidity/mix.cpp
-	timidity/playmidi.cpp
-	timidity/resample.cpp
-	timidity/timidity.cpp
-	wildmidi/file_io.cpp
-	wildmidi/gus_pat.cpp
-	wildmidi/reverb.cpp
 	wildmidi/wildmidi_lib.cpp
-	wildmidi/wm_error.cpp
-	r_data/colormaps.cpp
-	r_data/r_translate.cpp
 )
-add_executable( zdoom WIN32 MACOSX_BUNDLE
-	${HEADER_FILES}
-	${NOT_COMPILED_SOURCE_FILES}
-	__autostart.cpp
-	${ASM_SOURCES}
-	${SYSTEM_SOURCES}
-	${X86_SOURCES}
-	${FASTMATH_SOURCES}
-	x86.cpp
+
+set (PCH_SOURCES
 	actorptrselect.cpp
 	am_map.cpp
 	b_bot.cpp
@@ -1011,7 +1030,6 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	m_misc.cpp
 	m_png.cpp
 	m_random.cpp
-	m_specialpaths.cpp
 	memarena.cpp
 	md5.cpp
 	name.cpp
@@ -1043,7 +1061,9 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	p_pillar.cpp
 	p_plats.cpp
 	p_pspr.cpp
+	p_pusher.cpp
 	p_saveg.cpp
+	p_scroll.cpp
 	p_sectors.cpp
 	p_setup.cpp
 	p_sight.cpp
@@ -1071,8 +1091,6 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	statistics.cpp
 	stats.cpp
 	stringtable.cpp
-	strnatcmp.c
-	tables.cpp
 	teaminfo.cpp
 	tempfiles.cpp
 	v_blend.cpp
@@ -1086,7 +1104,6 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	w_wad.cpp
 	wi_stuff.cpp
 	zstrformat.cpp
-	zstring.cpp
 	g_doom/a_doommisc.cpp
 	g_heretic/a_hereticmisc.cpp
 	g_hexen/a_hexenmisc.cpp
@@ -1140,7 +1157,6 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	resourcefiles/file_pak.cpp
 	resourcefiles/file_directory.cpp
 	resourcefiles/resourcefile.cpp
-	sfmt/SFMT.cpp
 	textures/animations.cpp
 	textures/anim_switches.cpp
 	textures/automaptexture.cpp
@@ -1185,6 +1201,7 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	r_data/voxels.cpp
 	r_data/renderstyle.cpp
 	r_data/r_interpolate.cpp
+	sfmt/SFMT.cpp
 	zscript/ast.cpp
 	zscript/vmbuilder.cpp
 	zscript/vmdisasm.cpp
@@ -1193,6 +1210,38 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	zscript/zcc_compile.cpp
 	zscript/zcc_expr.cpp
 	zscript/zcc_parser.cpp
+)
+enable_precompiled_headers( g_pch.h PCH_SOURCES )
+
+add_executable( zdoom WIN32 MACOSX_BUNDLE
+	${HEADER_FILES}
+	${NOT_COMPILED_SOURCE_FILES}
+	__autostart.cpp
+	${ASM_SOURCES}
+	${SYSTEM_SOURCES}
+	${X86_SOURCES}
+	${FASTMATH_SOURCES}
+	${PCH_SOURCES}
+	x86.cpp
+	m_specialpaths.cpp
+	strnatcmp.c
+	zstring.cpp
+	math/asin.c
+	math/atan.c
+	math/const.c
+	math/cosh.c
+	math/exp.c
+	math/isnan.c
+	math/log.c
+	math/log10.c
+	math/mtherr.c
+	math/polevl.c
+	math/sin.c
+	math/sinh.c
+	math/sqrt.c
+	math/tan.c
+	math/tanh.c
+	math/fastsin.cpp
 	zzautozend.cpp
 )
 
@@ -1326,6 +1375,7 @@ source_group("Games\\Hexen Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR
 source_group("Games\\Raven Shared" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_raven/.+")
 source_group("Games\\Strife Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_strife/.+")
 source_group("Intermission" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/intermission/.+")
+source_group("Math" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/math/.+")
 source_group("Menu" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/menu/.+")
 source_group("Render Core\\Render Headers" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/r_.+\\.h$")
 source_group("Render Core\\Render Sources" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/r_.+\\.cpp$")
@@ -1343,5 +1393,5 @@ source_group("Shared Game" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_sh
 source_group("Versioning" FILES version.h win32/zdoom.rc)
 source_group("Win32 Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/win32/.+")
 source_group("Xlat" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/xlat/.+" FILES ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.h)
-source_group("ZScript" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/zscript/.+")
+source_group("ZScript" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/zscript/.+" FILES ${CMAKE_CURRENT_BINARY_DIR}/zcc-parse.c ${CMAKE_CURRENT_BINARY_DIR}/zcc-parse.h)
 source_group("Source Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h sc_man_scanner.re)

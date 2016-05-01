@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-
+#include <float.h>
 #include "p_local.h"
 #include "p_effect.h"
 #include "c_console.h"
@@ -57,7 +57,7 @@ bool P_CheckTickerPaused ()
 			 ConsoleState == c_down || ConsoleState == c_falling)
 		 && !demoplayback
 		 && !demorecording
-		 && players[consoleplayer].viewz != 1
+		 && players[consoleplayer].viewz != NO_VALUE
 		 && wipegamestate == gamestate)
 	{
 		S_PauseSound (!(level.flags2 & LEVEL2_PAUSE_MUSIC_IN_MENUS), false);
@@ -112,6 +112,7 @@ void P_Ticker (void)
 		S_ResumeSound (false);
 
 	P_ResetSightCounters (false);
+	R_ClearInterpolationPath();
 
 	// Since things will be moving, it's okay to interpolate them in the renderer.
 	r_NoInterpolate = false;

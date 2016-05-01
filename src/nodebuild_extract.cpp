@@ -64,8 +64,7 @@ void FNodeBuilder::Extract (node_t *&outNodes, int &nodeCount,
 
 	for (i = 0; i < vertCount; ++i)
 	{
-		outVerts[i].x = Vertices[i].x;
-		outVerts[i].y = Vertices[i].y;
+		outVerts[i].set(Vertices[i].x, Vertices[i].y);
 	}
 
 	subCount = Subsectors.Size();
@@ -93,6 +92,13 @@ void FNodeBuilder::Extract (node_t *&outNodes, int &nodeCount,
 			{
 				D(Printf(PRINT_LOG, "  node %d\n", outNodes[i].intchildren[j]));
 				outNodes[i].children[j] = outNodes + outNodes[i].intchildren[j];
+			}
+		}
+		for (int j = 0; j < 2; ++j)
+		{
+			for (int k = 0; k < 4; ++k)
+			{
+				outNodes[i].bbox[j][k] = FIXED2FLOAT(outNodes[i].nb_bbox[j][k]);
 			}
 		}
 	}
@@ -169,8 +175,7 @@ void FNodeBuilder::ExtractMini (FMiniBSP *bsp)
 	bsp->Verts.Resize(Vertices.Size());
 	for (i = 0; i < Vertices.Size(); ++i)
 	{
-		bsp->Verts[i].x = Vertices[i].x;
-		bsp->Verts[i].y = Vertices[i].y;
+		bsp->Verts[i].set(Vertices[i].x, Vertices[i].y);
 	}
 
 	bsp->Subsectors.Resize(Subsectors.Size());
@@ -194,6 +199,13 @@ void FNodeBuilder::ExtractMini (FMiniBSP *bsp)
 			{
 				D(Printf(PRINT_LOG, "  node %d\n", bsp->Nodes[i].intchildren[j]));
 				bsp->Nodes[i].children[j] = &bsp->Nodes[bsp->Nodes[i].intchildren[j]];
+			}
+		}
+		for (int j = 0; j < 2; ++j)
+		{
+			for (int k = 0; k < 4; ++k)
+			{
+				bsp->Nodes[i].bbox[j][k] = FIXED2FLOAT(bsp->Nodes[i].nb_bbox[j][k]);
 			}
 		}
 	}
@@ -400,14 +412,14 @@ int FNodeBuilder::CloseSubsector (TArray<glseg_t> &segs, int subsector, vertex_t
 	{
 		Printf(PRINT_LOG, "  Seg %5d%c(%5d,%5d)-(%5d,%5d)  [%08x,%08x]-[%08x,%08x]\n", i,
 			segs[i].linedef == NULL ? '+' : ' ',
-			segs[i].v1->x>>16,
-			segs[i].v1->y>>16,
-			segs[i].v2->x>>16,
-			segs[i].v2->y>>16,
-			segs[i].v1->x,
-			segs[i].v1->y,
-			segs[i].v2->x,
-			segs[i].v2->y);
+			segs[i].v1->fixX()>>16,
+			segs[i].v1->fixY()>>16,
+			segs[i].v2->fixX()>>16,
+			segs[i].v2->fixY()>>16,
+			segs[i].v1->fixX(),
+			segs[i].v1->fixY(),
+			segs[i].v2->fixX(),
+			segs[i].v2->fixY());
 	}
 #endif
 

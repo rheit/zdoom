@@ -55,7 +55,6 @@
 #include "p_lnspec.h"
 #include "p_acs.h"
 #include "p_terrain.h"
-#include "portal.h"
 
 static void CopyPlayer (player_t *dst, player_t *src, const char *name);
 static void ReadOnePlayer (FArchive &arc, bool skipload);
@@ -342,29 +341,12 @@ void P_SerializeWorld (FArchive &arc)
 	{
 		arc << sec->floorplane
 			<< sec->ceilingplane;
-		if (SaveVersion < 3223)
-		{
-			BYTE bytelight;
-			arc << bytelight;
-			sec->lightlevel = bytelight;
-		}
-		else
-		{
-			arc << sec->lightlevel;
-		}
+		arc << sec->lightlevel;
 		arc << sec->special;
-		if (SaveVersion < 4523)
-		{
-			short tag;
-			arc << tag;
-		}
 		arc << sec->soundtraversed
 			<< sec->seqType
 			<< sec->friction
 			<< sec->movefactor
-			<< sec->floordata
-			<< sec->ceilingdata
-			<< sec->lightingdata
 			<< sec->stairlock
 			<< sec->prevsec
 			<< sec->nextsec
@@ -373,63 +355,17 @@ void P_SerializeWorld (FArchive &arc)
 			<< sec->heightsec
 			<< sec->bottommap << sec->midmap << sec->topmap
 			<< sec->gravity;
-		if (SaveVersion >= 4530)
-		{
-			P_SerializeTerrain(arc, sec->terrainnum[0]);
-			P_SerializeTerrain(arc, sec->terrainnum[1]);
-		}
-		if (SaveVersion >= 4529)
-		{
-			arc << sec->damageamount;
-		}
-		else
-		{
-			short dmg;
-			arc << dmg;
-			sec->damageamount = dmg;
-		}
-		if (SaveVersion >= 4528)
-		{
-			arc << sec->damageinterval
-				<< sec->leakydamage
-				<< sec->damagetype;
-		}
-		else
-		{
-			short damagemod;
-			arc << damagemod;
-			sec->damagetype = MODtoDamageType(damagemod);
-			if (sec->damageamount < 20)
-			{
-				sec->leakydamage = 0;
-				sec->damageinterval = 32;
-			}
-			else if (sec->damageamount < 50)
-			{
-				sec->leakydamage = 5;
-				sec->damageinterval = 32;
-			}
-			else
-			{
-				sec->leakydamage = 256;
-				sec->damageinterval = 1;
-			}
-		}
-
-		arc << sec->SoundTarget
-			<< sec->SecActTarget
+		P_SerializeTerrain(arc, sec->terrainnum[0]);
+		P_SerializeTerrain(arc, sec->terrainnum[1]);
+		arc << sec->damageamount;
+		arc << sec->damageinterval
+			<< sec->leakydamage
+			<< sec->damagetype
 			<< sec->sky
 			<< sec->MoreFlags
 			<< sec->Flags
-			<< sec->SkyBoxes[sector_t::floor] << sec->SkyBoxes[sector_t::ceiling]
+			<< sec->Portals[sector_t::floor] << sec->Portals[sector_t::ceiling]
 			<< sec->ZoneNumber;
-		if (SaveVersion < 4529)
-		{
-			short secretsector;
-			arc << secretsector;
-			if (secretsector) sec->Flags |= SECF_WASSECRET;
-			P_InitSectorSpecial(sec, sec->special, true);
-		}
 		arc	<< sec->interpolations[0]
 			<< sec->interpolations[1]
 			<< sec->interpolations[2]
@@ -460,13 +396,8 @@ void P_SerializeWorld (FArchive &arc)
 		arc << li->flags
 			<< li->activation
 			<< li->special
-			<< li->Alpha;
+			<< li->alpha;
 
-		if (SaveVersion < 4523)
-		{
-			int id;
-			arc << id;
-		}
 		if (P_IsACSSpecial(li->special))
 		{
 			P_SerializeACSScriptNumber(arc, li->args[0], false);
@@ -477,12 +408,7 @@ void P_SerializeWorld (FArchive &arc)
 		}
 		arc << li->args[1] << li->args[2] << li->args[3] << li->args[4];
 
-		if (SaveVersion >= 4532)
-		{
-			arc << li->portalindex;
-		}
-		else li->portalindex = UINT_MAX;
-
+		arc << li->portalindex;
 		for (j = 0; j < 2; j++)
 		{
 			if (li->sidedef[j] == NULL)
@@ -497,7 +423,6 @@ void P_SerializeWorld (FArchive &arc)
 				<< si->LeftSide
 				<< si->RightSide
 				<< si->Index;
-			DBaseDecal::SerializeChain (arc, &si->AttachedDecals);
 		}
 	}
 
@@ -518,15 +443,38 @@ void P_SerializeWorld (FArchive &arc)
 		arc << zn->Environment;
 	}
 
-	if (SaveVersion >= 4532)
-	{
-		arc << linePortals;
-	}
-	else
-	{
-		linePortals.Clear();
-	}
+	arc << linePortals << sectorPortals;
 	P_CollectLinkedPortals();
+}
+
+void P_SerializeWorldActors(FArchive &arc)
+{
+	int i;
+	sector_t *sec;
+	line_t *line;
+
+	for (i = 0, sec = sectors; i < numsectors; i++, sec++)
+	{
+		arc << sec->SoundTarget
+			<< sec->SecActTarget
+			<< sec->floordata
+			<< sec->ceilingdata
+			<< sec->lightingdata;
+	}
+	for (auto &s : sectorPortals)
+	{
+		arc << s.mSkybox;
+	}
+	for (i = 0, line = lines; i < numlines; i++, line++)
+	{
+		for (int s = 0; s < 2; s++)
+		{
+			if (line->sidedef[s] != NULL)
+			{
+				DBaseDecal::SerializeChain(arc, &line->sidedef[s]->AttachedDecals);
+			}
+		}
+	}
 }
 
 void extsector_t::Serialize(FArchive &arc)
@@ -542,15 +490,15 @@ void extsector_t::Serialize(FArchive &arc)
 
 FArchive &operator<< (FArchive &arc, side_t::part &p)
 {
-	arc << p.xoffset << p.yoffset << p.interpolation << p.texture 
-		<< p.xscale << p.yscale;// << p.Light;
+	arc << p.xOffset << p.yOffset << p.interpolation << p.texture 
+		<< p.xScale << p.yScale;// << p.Light;
 	return arc;
 }
 
 FArchive &operator<< (FArchive &arc, sector_t::splane &p)
 {
-	arc << p.xform.xoffs << p.xform.yoffs << p.xform.xscale << p.xform.yscale 
-		<< p.xform.angle << p.xform.base_yoffs << p.xform.base_angle
+	arc << p.xform.xOffs << p.xform.yOffs << p.xform.xScale << p.xform.yScale 
+		<< p.xform.Angle << p.xform.baseyOffs << p.xform.baseAngle
 		<< p.Flags << p.Light << p.Texture << p.TexZ << p.alpha;
 	return arc;
 }
@@ -566,6 +514,7 @@ FArchive &operator<< (FArchive &arc, sector_t::splane &p)
 
 void P_SerializeThinkers (FArchive &arc, bool hubLoad)
 {
+	arc.EnableThinkers();
 	DImpactDecal::SerializeTime (arc);
 	DThinker::SerializeAll (arc, hubLoad);
 }
@@ -615,15 +564,14 @@ void P_SerializePolyobjs (FArchive &arc)
 		arc << seg << po_NumPolyobjs;
 		for(i = 0, po = polyobjs; i < po_NumPolyobjs; i++, po++)
 		{
-			arc << po->tag << po->angle << po->StartSpot.x <<
-				po->StartSpot.y << po->interpolation;
+			arc << po->tag << po->Angle << po->StartSpot.pos << po->interpolation << po->bBlocked << po->bHasPortals;
   		}
 	}
 	else
 	{
 		int data;
-		angle_t angle;
-		fixed_t deltaX, deltaY;
+		DAngle angle;
+		DVector2 delta;
 
 		arc << data;
 		if (data != ASEG_POLYOBJS)
@@ -641,12 +589,13 @@ void P_SerializePolyobjs (FArchive &arc)
 			{
 				I_Error ("UnarchivePolyobjs: Invalid polyobj tag");
 			}
-			arc << angle;
+			arc << angle << delta << po->interpolation;
+			arc << po->bBlocked;
+			arc << po->bHasPortals;
+
 			po->RotatePolyobj (angle, true);
-			arc << deltaX << deltaY << po->interpolation;
-			deltaX -= po->StartSpot.x;
-			deltaY -= po->StartSpot.y;
-			po->MovePolyobj (deltaX, deltaY, true);
+			delta -= po->StartSpot.pos;
+			po->MovePolyobj (delta, true);
 		}
 	}
 }

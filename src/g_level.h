@@ -125,7 +125,7 @@ struct FMapOptInfo
 	bool old;
 };
 
-enum ELevelFlags
+enum ELevelFlags : unsigned int
 {
 	LEVEL_NOINTERMISSION		= 0x00000001,
 	LEVEL_NOINVENTORYBAR		= 0x00000002,	// This effects Doom only, since it's the only one without a standard inventory bar.
@@ -304,8 +304,8 @@ struct level_info_t
 	DWORD		outsidefog;
 	int			cdtrack;
 	unsigned int cdid;
-	float		gravity;
-	float		aircontrol;
+	double		gravity;
+	double		aircontrol;
 	int			WarpTrans;
 	int			airsupply;
 	DWORD		compatflags, compatflags2;
@@ -329,7 +329,7 @@ struct level_info_t
 	FString		SoundInfo;
 	FString		SndSeq;
 
-	float		teamdamage;
+	double		teamdamage;
 
 	FOptData	optdata;
 	FMusicMap	MusicMap;
@@ -377,13 +377,13 @@ struct level_info_t
 // [RH] These get zeroed every tic and are updated by thinkers.
 struct FSectorScrollValues
 {
-	fixed_t ScrollX, ScrollY;
+	DVector2 Scroll;
 };
 
 struct FLevelLocals
 {
 	void Tick ();
-	void AddScroller (DScroller *, int secnum);
+	void AddScroller (int secnum);
 
 	int			time;			// time in the hub
 	int			maptime;		// time in the map
@@ -429,13 +429,11 @@ struct FLevelLocals
 	int			total_monsters;
 	int			killed_monsters;
 
-	float		gravity;
-	fixed_t		aircontrol;
-	fixed_t		airfriction;
+	double		gravity;
+	double		aircontrol;
+	double		airfriction;
 	int			airsupply;
 	int			DefaultEnvironment;		// Default sound environment.
-
-	TObjPtr<class ASkyViewpoint> DefaultSkybox;
 
 	FSectorScrollValues	*Scrolls;		// NULL if no DScrollers in this level
 
@@ -444,7 +442,7 @@ struct FLevelLocals
 
 	bool		FromSnapshot;			// The current map was restored from a snapshot
 
-	float		teamdamage;
+	double		teamdamage;
 
 	bool		IsJumpingAllowed() const;
 	bool		IsCrouchingAllowed() const;
@@ -545,28 +543,33 @@ void G_ClearHubInfo();
 
 enum ESkillProperty
 {
-	SKILLP_AmmoFactor,
-	SKILLP_DropAmmoFactor,
-	SKILLP_DamageFactor,
 	SKILLP_FastMonsters,
 	SKILLP_Respawn,
 	SKILLP_RespawnLimit,
-	SKILLP_Aggressiveness,
 	SKILLP_DisableCheats,
 	SKILLP_AutoUseHealth,
 	SKILLP_SpawnFilter,
 	SKILLP_EasyBossBrain,
 	SKILLP_ACSReturn,
-	SKILLP_MonsterHealth,
-	SKILLP_FriendlyHealth,
 	SKILLP_NoPain,
-	SKILLP_ArmorFactor,
-	SKILLP_HealthFactor,
 	SKILLP_EasyKey,
 	SKILLP_SlowMonsters,
 	SKILLP_Infight,
 };
+enum EFSkillProperty	// floating point properties
+{
+	SKILLP_AmmoFactor,
+	SKILLP_DropAmmoFactor,
+	SKILLP_ArmorFactor,
+	SKILLP_HealthFactor,
+	SKILLP_DamageFactor,
+	SKILLP_Aggressiveness,
+	SKILLP_MonsterHealth,
+	SKILLP_FriendlyHealth,
+};
+
 int G_SkillProperty(ESkillProperty prop);
+double G_SkillProperty(EFSkillProperty prop);
 const char * G_SkillName();
 
 typedef TMap<FName, FString> SkillMenuNames;
@@ -576,8 +579,11 @@ typedef TMap<FName, FName> SkillActorReplacement;
 struct FSkillInfo
 {
 	FName Name;
-	fixed_t AmmoFactor, DoubleAmmoFactor, DropAmmoFactor;
-	fixed_t DamageFactor;
+	double AmmoFactor, DoubleAmmoFactor, DropAmmoFactor;
+	double DamageFactor;
+	double ArmorFactor;
+	double HealthFactor;
+
 	bool FastMonsters;
 	bool SlowMonsters;
 	bool DisableCheats;
@@ -587,7 +593,7 @@ struct FSkillInfo
 	bool EasyKey;
 	int RespawnCounter;
 	int RespawnLimit;
-	fixed_t Aggressiveness;
+	double Aggressiveness;
 	int SpawnFilter;
 	int ACSReturn;
 	FString MenuName;
@@ -599,12 +605,10 @@ struct FSkillInfo
 	FString TextColor;
 	SkillActorReplacement Replace;
 	SkillActorReplacement Replaced;
-	fixed_t MonsterHealth;
-	fixed_t FriendlyHealth;
+	double MonsterHealth;
+	double FriendlyHealth;
 	bool NoPain;
 	int Infighting;
-	fixed_t ArmorFactor;
-	fixed_t HealthFactor;
 
 	FSkillInfo() {}
 	FSkillInfo(const FSkillInfo &other)

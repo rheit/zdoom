@@ -120,6 +120,7 @@ FScanner &FScanner::operator=(const FScanner &other)
 	CMode = other.CMode;
 	Escape = other.Escape;
 	StateMode = other.StateMode;
+	StateOptions = other.StateOptions;
 
 	// Copy public members
 	if (other.String == other.StringBuffer)
@@ -277,6 +278,7 @@ void FScanner::PrepareScript ()
 	CMode = false;
 	Escape = true;
 	StateMode = 0;
+	StateOptions = false;
 	StringBuffer[0] = '\0';
 	BigStringBuffer = "";
 }
@@ -409,15 +411,19 @@ void FScanner::SetEscape (bool esc)
 //   * ;
 //   * } - Automatically exits state mode after it's seen.
 //
-// Quoted strings are returned as TOK_NonWhitespace, minus the quotes. In
-// addition, any two consecutive sequences of TOK_NonWhitespace also exit
-// state mode.
+// Quoted strings are returned as TOK_NonWhitespace, minus the quotes. Once
+// two consecutive sequences of TOK_NonWhitespace have been encountered
+// (which would be the state's sprite and frame specifiers), nearly normal
+// processing resumes, with the exception that various identifiers
+// used for state options will be returned as tokens and not identifiers.
+// This ends once a ';' or '{' character is encountered.
 //
 //==========================================================================
 
 void FScanner::SetStateMode(bool stately)
 {
 	StateMode = stately ? 2 : 0;
+	StateOptions = stately;
 }
 
 //==========================================================================
@@ -934,7 +940,7 @@ int FScanner::GetMessageLine()
 //
 //==========================================================================
 
-void STACK_ARGS FScanner::ScriptError (const char *message, ...)
+void FScanner::ScriptError (const char *message, ...)
 {
 	FString composed;
 
@@ -960,7 +966,7 @@ void STACK_ARGS FScanner::ScriptError (const char *message, ...)
 //
 //==========================================================================
 
-void STACK_ARGS FScanner::ScriptMessage (const char *message, ...)
+void FScanner::ScriptMessage (const char *message, ...)
 {
 	FString composed;
 
@@ -1032,7 +1038,7 @@ FScriptPosition &FScriptPosition::operator=(const FScriptPosition &other)
 //
 //==========================================================================
 
-void STACK_ARGS FScriptPosition::Message (int severity, const char *message, ...) const
+void FScriptPosition::Message (int severity, const char *message, ...) const
 {
 	FString composed;
 

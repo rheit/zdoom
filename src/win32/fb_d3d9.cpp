@@ -2762,17 +2762,14 @@ void D3DFB::DrawPixel(int x, int y, int palcolor, uint32 color)
 //
 //==========================================================================
 
-void STACK_ARGS D3DFB::DrawTextureV (FTexture *img, double x, double y, uint32 tags_first, va_list tags)
+void D3DFB::DrawTextureParms (FTexture *img, DrawParms &parms)
 {
 	if (In2D < 2)
 	{
-		Super::DrawTextureV(img, x, y, tags_first, tags);
+		Super::DrawTextureParms(img, parms);
 		return;
 	}
-
-	DrawParms parms;
-
-	if (!InScene || !ParseDrawTextureTags(img, x, y, tags_first, tags, &parms, true))
+	if (!InScene)
 	{
 		return;
 	}
@@ -2808,10 +2805,11 @@ void STACK_ARGS D3DFB::DrawTextureV (FTexture *img, double x, double y, uint32 t
 	}
 	if (parms.windowleft > 0 || parms.windowright < parms.texwidth)
 	{
+		double wi = MIN(parms.windowright, parms.texwidth);
 		x0 += parms.windowleft * xscale;
 		u0 = float(u0 + parms.windowleft * uscale);
-		x1 -= (parms.texwidth - parms.windowright) * xscale;
-		u1 = float(u1 - (parms.texwidth - parms.windowright) * uscale);
+		x1 -= (parms.texwidth - wi) * xscale;
+		u1 = float(u1 - (parms.texwidth - wi) * uscale);
 	}
 
 #if 0
@@ -3071,10 +3069,11 @@ void D3DFB::FlatFill(int left, int top, int right, int bottom, FTexture *src, bo
 
 void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 	double originx, double originy, double scalex, double scaley,
-	angle_t rotation, FDynamicColormap *colormap, int lightlevel)
+	DAngle rotation, FDynamicColormap *colormap, int lightlevel)
 {
 	// Use an equation similar to player sprites to determine shade
-	fixed_t shade = LIGHT2SHADE(lightlevel) - 12*FRACUNIT;
+	double fadelevel = clamp((LIGHT2SHADE(lightlevel)/65536. - 12) / NUMCOLORMAPS, 0.0, 1.0);
+	
 	BufferedTris *quad;
 	FBVERTEX *verts;
 	D3DTex *tex;
@@ -3083,8 +3082,7 @@ void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 	D3DCOLOR color0, color1;
 	float ox, oy;
 	float cosrot, sinrot;
-	float rot = float(rotation * M_PI / float(1u << 31));
-	bool dorotate = rot != 0;
+	bool dorotate = rotation != 0;
 
 	if (npoints < 3)
 	{ // This is no polygon.
@@ -3105,8 +3103,8 @@ void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 		return;
 	}
 
-	cosrot = cos(rot);
-	sinrot = sin(rot);
+	cosrot = (float)cos(rotation.Radians());
+	sinrot = (float)sin(rotation.Radians());
 
 	CheckQuadBatch(npoints - 2, npoints);
 	quad = &QuadExtra[QuadBatchPos];
@@ -3129,7 +3127,6 @@ void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 			quad->ShaderNum = BQS_InGameColormap;
 			quad->Desat = colormap->Desaturate;
 			color0 = D3DCOLOR_ARGB(255, colormap->Color.r, colormap->Color.g, colormap->Color.b);
-			double fadelevel = clamp(shade / (NUMCOLORMAPS * 65536.0), 0.0, 1.0);
 			color1 = D3DCOLOR_ARGB(DWORD((1 - fadelevel) * 255),
 				DWORD(colormap->Fade.r * fadelevel),
 				DWORD(colormap->Fade.g * fadelevel),
@@ -3535,7 +3532,7 @@ bool D3DFB::SetStyle(D3DTex *tex, DrawParms &parms, D3DCOLOR &color0, D3DCOLOR &
 	}
 	else
 	{
-		alpha = clamp<fixed_t> (parms.alpha, 0, FRACUNIT) / 65536.f;
+		alpha = clamp(parms.Alpha, 0.f, 1.f);
 	}
 
 	style.CheckFuzz();

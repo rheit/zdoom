@@ -39,6 +39,7 @@
 
 #include "dobject.h"
 #include "i_system.h"
+#include "farchive.h"
 #include "actor.h"
 #include "templates.h"
 #include "autosegs.h"
@@ -79,8 +80,6 @@ PName *TypeName;
 PSound *TypeSound;
 PColor *TypeColor;
 PStatePointer *TypeState;
-PFixed *TypeFixed;
-PAngle *TypeAngle;
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
@@ -386,13 +385,163 @@ bool PType::VisitedNodeSet::Check(const PType *node)
 
 //==========================================================================
 //
+// PType :: WriteValue
+//
+//==========================================================================
+
+void PType::WriteValue(FArchive &ar, const void *addr) const
+{
+	assert(0 && "Cannot write value for this type");
+}
+
+//==========================================================================
+//
+// PType :: ReadValue
+//
+//==========================================================================
+
+bool PType::ReadValue(FArchive &ar, void *addr) const
+{
+	assert(0 && "Cannot read value for this type");
+	SkipValue(ar);
+	return false;
+}
+
+//==========================================================================
+//
+// PType :: SkipValue												STATIC
+//
+//==========================================================================
+
+void PType::SkipValue(FArchive &ar)
+{
+	BYTE tag;
+	ar << tag;
+	SkipValue(ar, tag);
+}
+
+void PType::SkipValue(FArchive &ar, int tag)
+{
+	assert(ar.IsLoading() && "SkipValue passed an archive that is writing");
+	BYTE buff[8];
+
+	switch (tag)
+	{
+	case VAL_Zero: case VAL_One:
+		break;
+
+	case VAL_Int8: case VAL_UInt8:
+		ar.Read(buff, 1);
+		break;
+
+	case VAL_Int16: case VAL_UInt16:
+		ar.Read(buff, 2);
+		break;
+
+	case VAL_Int32: case VAL_UInt32: case VAL_Float32:
+		ar.Read(buff, 4);
+		break;
+
+	case VAL_Int64: case VAL_UInt64: case VAL_Float64:
+		ar.Read(buff, 8);
+		break;
+
+	case VAL_Name:
+		ar.ReadName();
+		break;
+
+	case VAL_Object:
+	{
+		DObject *skipper;
+		ar << skipper;
+		break;
+	}
+	case VAL_State:
+	{
+		FState *skipper;
+		ar << skipper;
+		break;
+	}
+	case VAL_String:
+	{
+		FString skipper;
+		ar << skipper;
+		break;
+	}
+	case VAL_Array:
+	{
+		DWORD count = ar.ReadCount();
+		while (count-- > 0)
+		{
+			SkipValue(ar);
+		}
+		break;
+	}
+	case VAL_Struct:
+	{
+		const char *label;
+		for (label = ar.ReadName(); label != NULL; label = ar.ReadName())
+		{
+			SkipValue(ar);
+		}
+		break;
+	}
+	case VAL_Class:
+	{
+		PClass *type;
+		for (ar.UserReadClass(type); type != NULL; ar.UserReadClass(type))
+		{
+			SkipValue(ar, VAL_Struct);
+		}
+		break;
+	}
+	}
+}
+
+//==========================================================================
+//
+// PType :: SetDefaultValue
+//
+//==========================================================================
+
+void PType::SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *stroffs) const
+{
+}
+
+//==========================================================================
+//
+// PType :: InitializeValue
+//
+//==========================================================================
+
+void PType::InitializeValue(void *addr, const void *def) const
+{
+}
+
+//==========================================================================
+//
+// PType :: DestroyValue
+//
+//==========================================================================
+
+void PType::DestroyValue(void *addr) const
+{
+}
+
+//==========================================================================
+//
 // PType :: SetValue
 //
 //==========================================================================
 
 void PType::SetValue(void *addr, int val)
 {
-	assert(0 && "Cannot set value for this type");
+	assert(0 && "Cannot set int value for this type");
+}
+
+void PType::SetValue(void *addr, double val)
+{
+	assert(0 && "Cannot set float value for this type");
 }
 
 //==========================================================================
@@ -402,6 +551,12 @@ void PType::SetValue(void *addr, int val)
 //==========================================================================
 
 int PType::GetValueInt(void *addr) const
+{
+	assert(0 && "Cannot get value for this type");
+	return 0;
+}
+
+double PType::GetValueFloat(void *addr) const
 {
 	assert(0 && "Cannot get value for this type");
 	return 0;
@@ -496,7 +651,7 @@ void PType::StaticInit()
 	RUNTIME_CLASS(PSound)->TypeTableType = RUNTIME_CLASS(PSound);
 	RUNTIME_CLASS(PColor)->TypeTableType = RUNTIME_CLASS(PColor);
 	RUNTIME_CLASS(PPointer)->TypeTableType = RUNTIME_CLASS(PPointer);
-	RUNTIME_CLASS(PClassPointer)->TypeTableType = RUNTIME_CLASS(PPointer);	// not sure about this yet
+	RUNTIME_CLASS(PClassPointer)->TypeTableType = RUNTIME_CLASS(PClassPointer);
 	RUNTIME_CLASS(PEnum)->TypeTableType = RUNTIME_CLASS(PEnum);
 	RUNTIME_CLASS(PArray)->TypeTableType = RUNTIME_CLASS(PArray);
 	RUNTIME_CLASS(PDynArray)->TypeTableType = RUNTIME_CLASS(PDynArray);
@@ -506,9 +661,7 @@ void PType::StaticInit()
 	RUNTIME_CLASS(PPrototype)->TypeTableType = RUNTIME_CLASS(PPrototype);
 	RUNTIME_CLASS(PClass)->TypeTableType = RUNTIME_CLASS(PClass);
 	RUNTIME_CLASS(PStatePointer)->TypeTableType = RUNTIME_CLASS(PStatePointer);
-	RUNTIME_CLASS(PFixed)->TypeTableType = RUNTIME_CLASS(PFixed);
-	RUNTIME_CLASS(PAngle)->TypeTableType = RUNTIME_CLASS(PAngle);
-
+	
 	// Create types and add them type the type table.
 	TypeTable.AddType(TypeError = new PErrorType);
 	TypeTable.AddType(TypeVoid = new PVoidType);
@@ -526,8 +679,6 @@ void PType::StaticInit()
 	TypeTable.AddType(TypeSound = new PSound);
 	TypeTable.AddType(TypeColor = new PColor);
 	TypeTable.AddType(TypeState = new PStatePointer);
-	TypeTable.AddType(TypeFixed = new PFixed);
-	TypeTable.AddType(TypeAngle = new PAngle);
 
 	GlobalSymbols.AddSymbol(new PSymbolType(NAME_sByte, TypeSInt8));
 	GlobalSymbols.AddSymbol(new PSymbolType(NAME_Byte, TypeUInt8));
@@ -545,8 +696,6 @@ void PType::StaticInit()
 	GlobalSymbols.AddSymbol(new PSymbolType(NAME_Sound, TypeSound));
 	GlobalSymbols.AddSymbol(new PSymbolType(NAME_Color, TypeColor));
 	GlobalSymbols.AddSymbol(new PSymbolType(NAME_State, TypeState));
-	GlobalSymbols.AddSymbol(new PSymbolType(NAME_Fixed, TypeFixed));
-	GlobalSymbols.AddSymbol(new PSymbolType(NAME_Angle, TypeAngle));
 }
 
 
@@ -653,6 +802,173 @@ PInt::PInt(unsigned int size, bool unsign)
 
 //==========================================================================
 //
+// PInt :: WriteValue
+//
+// Write the value using the minimum byte size needed to represent it. This
+// means that the value as written is not necessarily of the same type as
+// stored, but the signedness information is preserved.
+//
+//==========================================================================
+
+void PInt::WriteValue(FArchive &ar, const void *addr) const
+{
+	BYTE bval;
+
+	// The process for bytes is the same whether signed or unsigned, since
+	// they can't be compacted into a representation with fewer bytes.
+	if (Size == 1)
+	{
+		bval = *(BYTE *)addr;
+	}
+	else if (Unsigned)
+	{
+		unsigned val;
+		if (Size == 8)
+		{
+			QWORD qval = *(QWORD *)addr;
+			if (qval & 0xFFFFFFFF00000000llu)
+			{ // Value needs 64 bits
+				ar.WriteByte(VAL_UInt64);
+				ar.WriteInt64(qval);
+				return;
+			}
+			// Value can fit in 32 bits or less
+			val = (unsigned)qval;
+			goto check_u32;
+		}
+		else if (Size == 4)
+		{
+			val = *(DWORD *)addr;
+check_u32:	if (val & 0xFFFF0000u)
+			{ // Value needs 32 bits
+				ar.WriteByte(VAL_UInt32);
+				ar.WriteInt32(val);
+				return;
+			}
+			// Value can fit in 16 bits or less
+			goto check_u16;
+		}
+		else// if (Size == 2)
+		{
+			val = *(WORD *)addr;
+check_u16:	if (val & 0xFFFFFF00u)
+			{ // Value needs 16 bits
+				ar.WriteByte(VAL_UInt16);
+				ar.WriteInt16(val);
+				return;
+			}
+			// Value can fit in 8 bits
+			bval = (BYTE)val;
+		}
+	}
+	else // Signed
+	{
+		int val;
+		if (Size == 8)
+		{
+			SQWORD qval = *(SQWORD *)addr;
+			INT_MIN;
+			if (qval < (-0x7FFFFFFF - 1) || qval > 0x7FFFFFFF)
+			{ // Value needs 64 bits
+				ar.WriteByte(VAL_Int64);
+				ar.WriteInt64(qval);
+				return;
+			}
+			// Value can fit in 32 bits or less
+			val = (int)qval;
+			goto check_s32;
+		}
+		else if (Size == 4)
+		{
+			val = *(SDWORD *)addr;
+check_s32:	if (val < -0x8000 || val > 0x7FFF)
+			{ // Value needs 32 bits
+				ar.WriteByte(VAL_Int32);
+				ar.WriteInt32(val);
+				return;
+			}
+			// Value can fit in 16 bits or less
+			goto check_s16;
+		}
+		else// if (Size == 2)
+		{
+			val = *(SWORD *)addr;
+check_s16:	if (val < -0x80 || val > 0x7F)
+			{ // Value needs 16 bits
+				ar.WriteByte(VAL_Int16);
+				ar.WriteInt16(val);
+				return;
+			}
+			// Value can fit in 8 bits
+			bval = (BYTE)val;
+		}
+	}
+	// If we get here, the value fits in a byte. Values of 0 and 1 are
+	// optimized away into the tag so they don't require any extra space
+	// to store.
+	if (bval & 0xFE)
+	{
+		BYTE out[2] = { Unsigned ? VAL_UInt8 : VAL_Int8, bval };
+		ar.Write(out, 2);
+	}
+	else
+	{
+		ar.WriteByte(VAL_Zero + bval);
+	}
+}
+
+//==========================================================================
+//
+// PInt :: ReadValue
+//
+//==========================================================================
+
+bool PInt::ReadValue(FArchive &ar, void *addr) const
+{
+	union
+	{
+		QWORD uval;
+		SQWORD sval;
+	};
+	BYTE tag;
+	union
+	{
+		BYTE val8;
+		WORD val16;
+		DWORD val32;
+		float single;
+		double dbl;
+	};
+
+	ar << tag;
+	switch (tag)
+	{
+	case VAL_Zero:		uval = 0; break;
+	case VAL_One:		uval = 1; break;
+	case VAL_Int8:		ar << val8;	sval = (SBYTE)val8;	break;
+	case VAL_UInt8:		ar << val8; uval = val8; break;
+	case VAL_Int16:		ar << val16; sval = (SWORD)val16; break;
+	case VAL_UInt16:	ar << val16; uval = val16; break;
+	case VAL_Int32:		ar << val32; sval = (SDWORD)val32; break;
+	case VAL_UInt32:	ar << val32; uval = val32; break;
+	case VAL_Int64:		ar << sval; break;
+	case VAL_UInt64:	ar << uval; break;
+	case VAL_Float32:	ar << single; sval = (SQWORD)single; break;
+	case VAL_Float64:	ar << dbl; sval = (SQWORD)dbl; break;
+	default:			SkipValue(ar, tag); return false;		// Incompatible type
+	}
+	switch (Size)
+	{
+	case 1:	*(BYTE *)addr = (BYTE)uval; break;
+	case 2: *(WORD *)addr = (WORD)uval; break;
+	case 4: *(DWORD *)addr = (DWORD)uval; break;
+	case 8: *(QWORD *)addr = uval; break;
+	}
+	return true;
+}
+
+//==========================================================================
+//
 // PInt :: SetValue
 //
 //==========================================================================
@@ -680,6 +996,11 @@ void PInt::SetValue(void *addr, int val)
 	{
 		assert(0 && "Unhandled integer size");
 	}
+}
+
+void PInt::SetValue(void *addr, double val)
+{
+	SetValue(addr, (int)val);
 }
 
 //==========================================================================
@@ -712,6 +1033,17 @@ int PInt::GetValueInt(void *addr) const
 		assert(0 && "Unhandled integer size");
 		return 0;
 	}
+}
+
+//==========================================================================
+//
+// PInt :: GetValueFloat
+//
+//==========================================================================
+
+double PInt::GetValueFloat(void *addr) const
+{
+	return GetValueInt(addr);
 }
 
 //==========================================================================
@@ -922,11 +1254,105 @@ void PFloat::SetSymbols(const PFloat::SymbolInitI *sym, size_t count)
 
 //==========================================================================
 //
+// PFloat :: WriteValue
+//
+//==========================================================================
+
+void PFloat::WriteValue(FArchive &ar, const void *addr) const
+{
+	float singleprecision;
+	if (Size == 8)
+	{
+		// If it can be written as single precision without information
+		// loss, then prefer that over writing a full-sized double.
+		double doubleprecision = *(double *)addr;
+		singleprecision = (float)doubleprecision;
+		if (singleprecision != doubleprecision)
+		{
+			ar.WriteByte(VAL_Float64);
+			ar << doubleprecision;
+		}
+	}
+	else
+	{
+		singleprecision = *(float *)addr;
+	}
+	ar.WriteByte(VAL_Float32);
+	ar << singleprecision;
+}
+
+//==========================================================================
+//
+// PFloat :: ReadValue
+//
+//==========================================================================
+
+static bool ReadValueDbl(FArchive &ar, double *addr, unsigned tag)
+{
+	double val;
+	union
+	{
+		BYTE val8;
+		WORD val16;
+		DWORD val32;
+		QWORD val64;
+		fixed_t fix;
+		float single;
+		angle_t ang;
+	};
+
+	switch (tag)
+	{
+	case VAL_Zero:		val = 0; break;
+	case VAL_One:		val = 1; break;
+	case VAL_Int8:		ar << val8;	val = (SBYTE)val8;	break;
+	case VAL_UInt8:		ar << val8; val = val8; break;
+	case VAL_Int16:		ar << val16; val = (SWORD)val16; break;
+	case VAL_UInt16:	ar << val16; val = val16; break;
+	case VAL_Int32:		ar << val32; val = (SDWORD)val32; break;
+	case VAL_UInt32:	ar << val32; val = val32; break;
+	case VAL_Int64:		ar << val64; val = (double)(SQWORD)val64; break;
+	case VAL_UInt64:	ar << val64; val = (double)val64; break;
+	case VAL_Float32:	ar << single; val = single; break;
+	case VAL_Float64:	ar << val; break;
+	default:			PType::SkipValue(ar, tag); return false;	// Incompatible type
+	}
+	*(double *)addr = val;
+	return true;
+}
+
+bool PFloat::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	double val;
+	if (ReadValueDbl(ar, &val, tag))
+	{
+		if (Size == 4)
+		{
+			*(float *)addr = (float)val;
+		}
+		else
+		{
+			*(double *)addr = val;
+		}
+		return true;
+	}
+	return false;
+}
+
+//==========================================================================
+//
 // PFloat :: SetValue
 //
 //==========================================================================
 
 void PFloat::SetValue(void *addr, int val)
+{
+	return SetValue(addr, (double)val);
+}
+
+void PFloat::SetValue(void *addr, double val)
 {
 	assert(((intptr_t)addr & (Align - 1)) == 0 && "unaligned address");
 	if (Size == 4)
@@ -948,15 +1374,26 @@ void PFloat::SetValue(void *addr, int val)
 
 int PFloat::GetValueInt(void *addr) const
 {
+	return xs_ToInt(GetValueFloat(addr));
+}
+
+//==========================================================================
+//
+// PFloat :: GetValueFloat
+//
+//==========================================================================
+
+double PFloat::GetValueFloat(void *addr) const
+{
 	assert(((intptr_t)addr & (Align - 1)) == 0 && "unaligned address");
 	if (Size == 4)
 	{
-		return xs_ToInt(*(float *)addr);
+		return *(float *)addr;
 	}
 	else
 	{
 		assert(Size == 8);
-		return xs_ToInt(*(double *)addr);
+		return *(double *)addr;
 	}
 }
 
@@ -1037,6 +1474,82 @@ int PString::GetRegType() const
 	return REGT_STRING;
 }
 
+//==========================================================================
+//
+// PString :: WriteValue
+//
+//==========================================================================
+
+void PString::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_String);
+	ar.WriteString(*(const FString *)addr);
+}
+
+//==========================================================================
+//
+// PString :: ReadValue
+//
+//==========================================================================
+
+bool PString::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	if (tag == VAL_String)
+	{
+		ar << *(FString *)addr;
+	}
+	else if (tag == VAL_Name)
+	{
+		const char *str = ar.ReadName();
+		*(FString *)addr = str;
+	}
+	else
+	{
+		SkipValue(ar, tag);
+		return false;
+	}
+	return true;
+}
+
+//==========================================================================
+//
+// PString :: SetDefaultValue
+//
+//==========================================================================
+
+void PString::SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special) const
+{
+	new((BYTE *)base + offset) FString;
+	if (special != NULL)
+	{
+		special->Push(std::make_pair(this, offset));
+	}
+}
+
+//==========================================================================
+//
+// PString :: InitializeValue
+//
+//==========================================================================
+
+void PString::InitializeValue(void *addr, const void *def) const
+{
+	new(addr) FString(*(FString *)def);
+}
+
+//==========================================================================
+//
+// PString :: DestroyValue
+//
+//==========================================================================
+
+void PString::DestroyValue(void *addr) const
+{
+	((FString *)addr)->~FString();
+}
+
 /* PName ******************************************************************/
 
 IMPLEMENT_CLASS(PName)
@@ -1051,6 +1564,46 @@ PName::PName()
 : PInt(sizeof(FName), true)
 {
 	assert(sizeof(FName) == __alignof(FName));
+}
+
+//==========================================================================
+//
+// PName :: WriteValue
+//
+//==========================================================================
+
+void PName::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_Name);
+	ar.WriteName(((const FName *)addr)->GetChars());
+}
+
+//==========================================================================
+//
+// PName :: ReadValue
+//
+//==========================================================================
+
+bool PName::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	if (tag == VAL_Name)
+	{
+		*(FName *)addr = FName(ar.ReadName());
+	}
+	else if (tag == VAL_String)
+	{
+		FString str;
+		ar << str;
+		*(FName *)addr = FName(str);
+	}
+	else
+	{
+		SkipValue(ar, tag);
+		return false;
+	}
+	return true;
 }
 
 /* PSound *****************************************************************/
@@ -1069,6 +1622,48 @@ PSound::PSound()
 	assert(sizeof(FSoundID) == __alignof(FSoundID));
 }
 
+//==========================================================================
+//
+// PSound :: WriteValue
+//
+//==========================================================================
+
+void PSound::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_Name);
+	ar.WriteName(*(const FSoundID *)addr);
+}
+
+//==========================================================================
+//
+// PSound :: ReadValue
+//
+//==========================================================================
+
+bool PSound::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+
+	ar << tag;
+	if (tag == VAL_Name)
+	{
+		const char *str = ar.ReadName();
+		*(FSoundID *)addr = FSoundID(str);
+	}
+	else if (tag == VAL_String)
+	{
+		FString str;
+		ar << str;
+		*(FSoundID *)addr = FSoundID(str);
+	}
+	else
+	{
+		SkipValue(ar, tag);
+		return false;
+	}
+	return true;
+}
+
 /* PColor *****************************************************************/
 
 IMPLEMENT_CLASS(PColor)
@@ -1083,128 +1678,6 @@ PColor::PColor()
 : PInt(sizeof(PalEntry), true)
 {
 	assert(sizeof(PalEntry) == __alignof(PalEntry));
-}
-
-/* PFixed *****************************************************************/
-
-IMPLEMENT_CLASS(PFixed)
-
-//==========================================================================
-//
-// PFixed Default Constructor
-//
-//==========================================================================
-
-PFixed::PFixed()
-: PFloat(sizeof(fixed_t))
-{
-}
-
-//==========================================================================
-//
-// PFixed :: SetValue
-//
-//==========================================================================
-
-void PFixed::SetValue(void *addr, int val)
-{
-	assert(((intptr_t)addr & (Align - 1)) == 0 && "unaligned address");
-	*(fixed_t *)addr = val << FRACBITS;
-}
-
-//==========================================================================
-//
-// PFixed :: GetValueInt
-//
-//==========================================================================
-
-int PFixed::GetValueInt(void *addr) const
-{
-	assert(((intptr_t)addr & (Align - 1)) == 0 && "unaligned address");
-	return *(fixed_t *)addr >> FRACBITS;
-}
-
-//==========================================================================
-//
-// PFixed :: GetStoreOp
-//
-//==========================================================================
-
-int PFixed::GetStoreOp() const
-{
-	return OP_SX;
-}
-
-//==========================================================================
-//
-// PFixed :: GetLoadOp
-//
-//==========================================================================
-
-int PFixed::GetLoadOp() const
-{
-	return OP_LX;
-}
-
-/* PAngle *****************************************************************/
-
-IMPLEMENT_CLASS(PAngle)
-
-//==========================================================================
-//
-// PAngle Default Constructor
-//
-//==========================================================================
-
-PAngle::PAngle()
-: PFloat(sizeof(angle_t))
-{
-}
-
-//==========================================================================
-//
-// PAngle :: SetValue
-//
-//==========================================================================
-
-void PAngle::SetValue(void *addr, int val)
-{
-	assert(((intptr_t)addr & (Align - 1)) == 0 && "unaligned address");
-	*(angle_t *)addr = Scale(val, ANGLE_90, 90);
-}
-
-//==========================================================================
-//
-// PAngle :: GetValueInt
-//
-//==========================================================================
-
-int PAngle::GetValueInt(void *addr) const
-{
-	assert(((intptr_t)addr & (Align - 1)) == 0 && "unaligned address");
-	return *(angle_t *)addr / ANGLE_1;
-}
-
-//==========================================================================
-//
-// PAngle :: GetStoreOp
-//
-//==========================================================================
-
-int PAngle::GetStoreOp() const
-{
-	return OP_SANG;
-}
-
-//==========================================================================
-//
-// PAngle :: GetLoadOp
-//
-//==========================================================================
-
-int PAngle::GetLoadOp() const
-{
-	return OP_LANG;
 }
 
 /* PStatePointer **********************************************************/
@@ -1253,6 +1726,37 @@ int PStatePointer::GetLoadOp() const
 int PStatePointer::GetRegType() const
 {
 	return REGT_POINTER;
+}
+
+//==========================================================================
+//
+// PStatePointer :: WriteValue
+//
+//==========================================================================
+
+void PStatePointer::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_State);
+	ar << *(FState **)addr;
+}
+
+//==========================================================================
+//
+// PStatePointer :: ReadValue
+//
+//==========================================================================
+
+bool PStatePointer::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	if (tag == VAL_State)
+	{
+		ar << *(FState **)addr;
+		return true;
+	}
+	SkipValue(ar, tag);
+	return false;
 }
 
 /* PPointer ***************************************************************/
@@ -1344,6 +1848,45 @@ void PPointer::GetTypeIDs(intptr_t &id1, intptr_t &id2) const
 
 //==========================================================================
 //
+// PPointer :: WriteValue
+//
+//==========================================================================
+
+void PPointer::WriteValue(FArchive &ar, const void *addr) const
+{
+	if (PointedType->IsKindOf(RUNTIME_CLASS(PClass)))
+	{
+		ar.WriteByte(VAL_Object);
+		ar << *(DObject **)addr;
+	}
+	else
+	{
+		assert(0 && "Pointer points to a type we don't handle");
+		I_Error("Attempt to save pointer to unhandled type");
+	}
+}
+
+//==========================================================================
+//
+// PPointer :: ReadValue
+//
+//==========================================================================
+
+bool PPointer::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	if (tag == VAL_Object && PointedType->IsKindOf(RUNTIME_CLASS(PClass)))
+	{
+		ar << *(DObject **)addr;
+		return true;
+	}
+	SkipValue(ar, tag);
+	return false;
+}
+
+//==========================================================================
+//
 // NewPointer
 //
 // Returns a PPointer to an object of the specified type
@@ -1430,11 +1973,11 @@ void PClassPointer::GetTypeIDs(intptr_t &id1, intptr_t &id2) const
 PClassPointer *NewClassPointer(PClass *restrict)
 {
 	size_t bucket;
-	PType *ptype = TypeTable.FindType(RUNTIME_CLASS(PPointer), (intptr_t)RUNTIME_CLASS(PClass), (intptr_t)restrict, &bucket);
+	PType *ptype = TypeTable.FindType(RUNTIME_CLASS(PClassPointer), (intptr_t)RUNTIME_CLASS(PClass), (intptr_t)restrict, &bucket);
 	if (ptype == NULL)
 	{
 		ptype = new PClassPointer(restrict);
-		TypeTable.AddType(ptype, RUNTIME_CLASS(PPointer), (intptr_t)RUNTIME_CLASS(PClass), (intptr_t)restrict, bucket);
+		TypeTable.AddType(ptype, RUNTIME_CLASS(PClassPointer), (intptr_t)RUNTIME_CLASS(PClass), (intptr_t)restrict, bucket);
 	}
 	return static_cast<PClassPointer *>(ptype);
 }
@@ -1545,6 +2088,75 @@ void PArray::GetTypeIDs(intptr_t &id1, intptr_t &id2) const
 {
 	id1 = (intptr_t)ElementType;
 	id2 = ElementCount;
+}
+
+//==========================================================================
+//
+// PArray :: WriteValue
+//
+//==========================================================================
+
+void PArray::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_Array);
+	ar.WriteCount(ElementCount);
+	const BYTE *addrb = (const BYTE *)addr;
+	for (unsigned i = 0; i < ElementCount; ++i)
+	{
+		ElementType->WriteValue(ar, addrb);
+		addrb += ElementSize;
+	}
+}
+
+//==========================================================================
+//
+// PArray :: ReadValue
+//
+//==========================================================================
+
+bool PArray::ReadValue(FArchive &ar, void *addr) const
+{
+	bool readsomething = false;
+	BYTE tag;
+
+	ar << tag;
+	if (tag == VAL_Array)
+	{
+		unsigned count = ar.ReadCount();
+		unsigned i;
+		BYTE *addrb = (BYTE *)addr;
+		for (i = 0; i < MIN(count, ElementCount); ++i)
+		{
+			readsomething |= ElementType->ReadValue(ar, addrb);
+			addrb += ElementSize;
+		}
+		if (i < ElementCount)
+		{
+			DPrintf("Array on disk (%u) is bigger than in memory (%u)\n",
+				count, ElementCount);
+			for (; i < ElementCount; ++i)
+			{
+				SkipValue(ar);
+			}
+		}
+		return readsomething;
+	}
+	SkipValue(ar, tag);
+	return false;
+}
+
+//==========================================================================
+//
+// PArray :: SetDefaultValue
+//
+//==========================================================================
+
+void PArray::SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special) const
+{
+	for (unsigned i = 0; i < ElementCount; ++i)
+	{
+		ElementType->SetDefaultValue(base, offset + i*ElementSize, special);
+	}
 }
 
 //==========================================================================
@@ -1802,6 +2414,112 @@ PStruct::PStruct(FName name, DObject *outer)
 
 //==========================================================================
 //
+// PStruct :: SetDefaultValue
+//
+//==========================================================================
+
+void PStruct::SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special) const
+{
+	for (const PField *field : Fields)
+	{
+		if (!(field->Flags & VARF_Native))
+		{
+			field->Type->SetDefaultValue(base, offset + field->Offset, special);
+		}
+	}
+}
+
+//==========================================================================
+//
+// PStruct :: WriteValue
+//
+//==========================================================================
+
+void PStruct::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_Struct);
+	WriteFields(ar, addr, Fields);
+}
+
+//==========================================================================
+//
+// PStruct :: ReadValue
+//
+//==========================================================================
+
+bool PStruct::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	if (tag == VAL_Struct)
+	{
+		return ReadFields(ar, addr);
+	}
+	SkipValue(ar, tag);
+	return true;
+}
+
+//==========================================================================
+//
+// PStruct :: WriteFields											STATIC
+//
+//==========================================================================
+
+void PStruct::WriteFields(FArchive &ar, const void *addr, const TArray<PField *> &fields)
+{
+	for (unsigned i = 0; i < fields.Size(); ++i)
+	{
+		const PField *field = fields[i];
+		// Skip fields with native serialization
+		if (!(field->Flags & VARF_Native))
+		{
+			ar.WriteName(field->SymbolName);
+			field->Type->WriteValue(ar, (const BYTE *)addr + field->Offset);
+		}
+	}
+	ar.WriteName(NULL);
+}
+
+//==========================================================================
+//
+// PStruct :: ReadFields
+//
+//==========================================================================
+
+bool PStruct::ReadFields(FArchive &ar, void *addr) const
+{
+	bool readsomething = false;
+	const char *label = ar.ReadName();
+	if (label == NULL)
+	{ // If there is nothing to restore, we count it as success.
+		return true;
+	}
+	for (; label != NULL; label = ar.ReadName())
+	{
+		const PSymbol *sym = Symbols.FindSymbol(FName(label, true), true);
+		if (sym == NULL)
+		{
+			DPrintf("Cannot find field %s in %s\n",
+				label, TypeName.GetChars());
+			SkipValue(ar);
+		}
+		else if (!sym->IsKindOf(RUNTIME_CLASS(PField)))
+		{
+			DPrintf("Symbol %s in %s is not a field\n",
+				label, TypeName.GetChars());
+			SkipValue(ar);
+		}
+		else
+		{
+			readsomething |= static_cast<const PField *>(sym)->Type->ReadValue(ar,
+				(BYTE *)addr + static_cast<const PField *>(sym)->Offset);
+		}
+	}
+	return readsomething;
+}
+
+//==========================================================================
+//
 // PStruct :: AddField
 //
 // Appends a new field to the end of a struct. Returns either the new field
@@ -2014,13 +2732,96 @@ END_POINTERS
 
 //==========================================================================
 //
+// PClass :: WriteValue
+//
+// Similar to PStruct's version, except it also needs to traverse parent
+// classes.
+//
+//==========================================================================
+
+static void RecurseWriteFields(const PClass *type, FArchive &ar, const void *addr)
+{
+	if (type != NULL)
+	{
+		RecurseWriteFields(type->ParentClass, ar, addr);
+		// Don't write this part if it has no non-native variables
+		for (unsigned i = 0; i < type->Fields.Size(); ++i)
+		{
+			if (!(type->Fields[i]->Flags & VARF_Native))
+			{
+				// Tag this section with the class it came from in case
+				// a more-derived class has variables that shadow a less-
+				// derived class. Whether or not that is a language feature
+				// that will actually be allowed remains to be seen.
+				ar.UserWriteClass(const_cast<PClass *>(type));
+				PStruct::WriteFields(ar, addr, type->Fields);
+				break;
+			}
+		}
+	}
+}
+
+void PClass::WriteValue(FArchive &ar, const void *addr) const
+{
+	ar.WriteByte(VAL_Class);
+	RecurseWriteFields(this, ar, addr);
+	ar.UserWriteClass(NULL);
+}
+
+//==========================================================================
+//
+// PClass :: ReadValue
+//
+//==========================================================================
+
+bool PClass::ReadValue(FArchive &ar, void *addr) const
+{
+	BYTE tag;
+	ar << tag;
+	if (tag != VAL_Class)
+	{
+		SkipValue(ar, tag);
+		return false;
+	}
+	else
+	{
+		bool readsomething = false;
+		PClass *type;
+		for (ar.UserReadClass(type); type != NULL; ar.UserReadClass(type))
+		{
+			// Only read it if the type is related to this one.
+			const PClass *parent;
+			for (parent = this; parent != NULL; parent = parent->ParentClass)
+			{
+				if (parent == type)
+				{
+					break;
+				}
+			}
+			if (parent != NULL)
+			{
+				readsomething |= type->ReadFields(ar, addr);
+			}
+			else
+			{
+				DPrintf("Unknown superclass %s of class %s\n",
+					type->TypeName.GetChars(), TypeName.GetChars());
+				SkipValue(ar, VAL_Struct);
+			}
+		}
+		return readsomething;
+	}
+}
+
+//==========================================================================
+//
 // cregcmp
 //
 // Sorter to keep built-in types in a deterministic order. (Needed?)
 //
 //==========================================================================
 
-static int STACK_ARGS cregcmp (const void *a, const void *b) NO_SANITIZE
+static int cregcmp (const void *a, const void *b) NO_SANITIZE
 {
 	const PClass *class1 = *(const PClass **)a;
 	const PClass *class2 = *(const PClass **)b;
@@ -2277,6 +3078,26 @@ void PClass::InsertIntoHash ()
 
 //==========================================================================
 //
+// PClass :: FindParentClass
+//
+// Finds a parent class that matches the given name, including itself.
+//
+//==========================================================================
+
+const PClass *PClass::FindParentClass(FName name) const
+{
+	for (const PClass *type = this; type != NULL; type = type->ParentClass)
+	{
+		if (type->TypeName == name)
+		{
+			return type;
+		}
+	}
+	return NULL;
+}
+
+//==========================================================================
+//
 // PClass :: FindClass
 //
 // Find a type, passed the name as a name.
@@ -2314,7 +3135,60 @@ DObject *PClass::CreateNew() const
 
 	ConstructNative (mem);
 	((DObject *)mem)->SetClass (const_cast<PClass *>(this));
+	if (Defaults != NULL)
+	{
+		InitializeSpecials(mem);
+	}
 	return (DObject *)mem;
+}
+
+//==========================================================================
+//
+// PClass :: InitializeSpecials
+//
+// Initialize special fields (e.g. strings) of a newly-created instance.
+//
+//==========================================================================
+
+void PClass::InitializeSpecials(void *addr) const
+{
+	// Once we reach a native class, we can stop going up the family tree,
+	// since native classes handle initialization natively.
+	if (!bRuntimeClass)
+	{
+		return;
+	}
+	assert(ParentClass != NULL);
+	ParentClass->InitializeSpecials(addr);
+	for (auto tao : SpecialInits)
+	{
+		tao.first->InitializeValue((BYTE*)addr + tao.second, Defaults + tao.second);
+	}
+}
+
+//==========================================================================
+//
+// PClass :: DestroySpecials
+//
+// Destroy special fields (e.g. strings) of an instance that is about to be
+// deleted.
+//
+//==========================================================================
+
+void PClass::DestroySpecials(void *addr) const
+{
+	// Once we reach a native class, we can stop going up the family tree,
+	// since native classes handle deinitialization natively.
+	if (!bRuntimeClass)
+	{
+		return;
+	}
+	assert(ParentClass != NULL);
+	ParentClass->DestroySpecials(addr);
+	for (auto tao : SpecialInits)
+	{
+		tao.first->DestroyValue((BYTE *)addr + tao.second);
+	}
 }
 
 //==========================================================================
@@ -2403,22 +3277,25 @@ PClass *PClass::CreateDerivedClass(FName name, unsigned int size)
 
 //==========================================================================
 //
-// PClass:: Extend
-//
-// Add <extension> bytes to the end of this class. Returns the previous
-// size of the class.
+// PClass :: AddField
 //
 //==========================================================================
 
-unsigned int PClass::Extend(unsigned int extension)
+PField *PClass::AddField(FName name, PType *type, DWORD flags)
 {
-	assert(this->bRuntimeClass);
-
-	unsigned int oldsize = Size;
-	Size += extension;
+	unsigned oldsize = Size;
+	PField *field = Super::AddField(name, type, flags);
+	if (field != NULL)
+	{
 	Defaults = (BYTE *)M_Realloc(Defaults, Size);
-	memset(Defaults + oldsize, 0, extension);
-	return oldsize;
+	memset(Defaults + oldsize, 0, Size - oldsize);
+		// If this is a native class, then we must not initialize and
+		// destroy any of its members. We do, however, initialize the
+		// default instance since it's not a normal instance of the class.
+		type->SetDefaultValue(Defaults, field->Offset,
+			bRuntimeClass ? &SpecialInits : NULL);
+	}
+	return field;
 }
 
 //==========================================================================
@@ -2711,6 +3588,7 @@ END_POINTERS
 IMPLEMENT_POINTY_CLASS(PSymbolVMFunction)
  DECLARE_POINTER(Function)
 END_POINTERS
+IMPLEMENT_CLASS(PSymbolTreeNode)
 
 //==========================================================================
 //
@@ -2773,6 +3651,22 @@ PSymbol *PSymbolTable::FindSymbol (FName symname, bool searchparents) const
 	return value != NULL ? *value : NULL;
 }
 
+PSymbol *PSymbolTable::FindSymbolInTable(FName symname, PSymbolTable *&symtable)
+{
+	PSymbol * const *value = Symbols.CheckKey(symname);
+	if (value == NULL)
+	{
+		if (ParentSymbolTable != NULL)
+		{
+			return ParentSymbolTable->FindSymbolInTable(symname, symtable);
+		}
+		symtable = NULL;
+		return NULL;
+	}
+	symtable = this;
+	return *value;
+}
+
 PSymbol *PSymbolTable::AddSymbol (PSymbol *sym)
 {
 	// Symbols that already exist are not inserted.
@@ -2782,4 +3676,20 @@ PSymbol *PSymbolTable::AddSymbol (PSymbol *sym)
 	}
 	Symbols.Insert(sym->SymbolName, sym);
 	return sym;
+}
+
+PSymbol *PSymbolTable::ReplaceSymbol(PSymbol *newsym)
+{
+	// If a symbol with a matching name exists, take its place and return it.
+	PSymbol **symslot = Symbols.CheckKey(newsym->SymbolName);
+	if (symslot != NULL)
+	{
+		PSymbol *oldsym = *symslot;
+		*symslot = newsym;
+		return oldsym;
+	}
+	// Else, just insert normally and return NULL since there was no
+	// symbol to replace.
+	Symbols.Insert(newsym->SymbolName, newsym);
+	return NULL;
 }

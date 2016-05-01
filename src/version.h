@@ -61,22 +61,22 @@ const char *GetVersionString();
 // Protocol version used in demos.
 // Bump it if you change existing DEM_ commands or add new ones.
 // Otherwise, it should be safe to leave it alone.
-#define DEMOGAMEVERSION 0x21D
+#define DEMOGAMEVERSION 0x21E
 
 // Minimum demo version we can play.
 // Bump it whenever you change or remove existing DEM_ commands.
-#define MINDEMOVERSION 0x21D
+#define MINDEMOVERSION 0x21E
 
 // SAVEVER is the version of the information stored in level snapshots.
 // Note that SAVEVER is not directly comparable to VERSION.
 // SAVESIG should match SAVEVER.
 
 // MINSAVEVER is the minimum level snapshot version that can be loaded.
-#define MINSAVEVER	3100
+#define MINSAVEVER	4545
 
 // Use 4500 as the base git save version, since it's higher than the
 // SVN revision ever got.
-#define SAVEVER 4533
+#define SAVEVER 4545
 
 #define SAVEVERSTRINGIFY2(x) #x
 #define SAVEVERSTRINGIFY(x) SAVEVERSTRINGIFY2(x)

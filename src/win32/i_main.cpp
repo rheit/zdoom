@@ -199,7 +199,7 @@ void popterm ()
 //
 //==========================================================================
 
-static void STACK_ARGS call_terms (void)
+static void call_terms (void)
 {
 	while (NumTerms > 0)
 	{
@@ -208,7 +208,7 @@ static void STACK_ARGS call_terms (void)
 }
 
 #ifdef _MSC_VER
-static int STACK_ARGS NewFailure (size_t size)
+static int NewFailure (size_t size)
 {
 	I_FatalError ("Failed to allocate %d bytes from process heap", size);
 	return 0;
@@ -1080,10 +1080,10 @@ void DoomSpecificInfo (char *buffer, size_t bufflen)
 		}
 		else
 		{
-			buffer += mysnprintf (buffer, buffend - buffer, "\r\n\r\nviewx = %d", viewx);
-			buffer += mysnprintf (buffer, buffend - buffer, "\r\nviewy = %d", viewy);
-			buffer += mysnprintf (buffer, buffend - buffer, "\r\nviewz = %d", viewz);
-			buffer += mysnprintf (buffer, buffend - buffer, "\r\nviewangle = %x", viewangle);
+			buffer += mysnprintf (buffer, buffend - buffer, "\r\n\r\nviewx = %f", ViewPos.X);
+			buffer += mysnprintf (buffer, buffend - buffer, "\r\nviewy = %f", ViewPos.Y);
+			buffer += mysnprintf (buffer, buffend - buffer, "\r\nviewz = %f", ViewPos.Z);
+			buffer += mysnprintf (buffer, buffend - buffer, "\r\nviewangle = %f", ViewAngle);
 		}
 	}
 	*buffer++ = '\r';

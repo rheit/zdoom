@@ -88,9 +88,11 @@ bool P_MorphPlayer (player_t *activator, player_t *p, PClassPlayerPawn *spawntyp
 		actor->RemoveFromHash ();
 		actor->tid = 0;
 	}
-	morphed->angle = actor->angle;
+	morphed->Angles.Yaw = actor->Angles.Yaw;
 	morphed->target = actor->target;
 	morphed->tracer = actor;
+	morphed->FriendPlayer = actor->FriendPlayer;
+	morphed->DesignatedTeam = actor->DesignatedTeam;
 	morphed->Score = actor->Score;
 	p->PremorphWeapon = p->ReadyWeapon;
 	morphed->special2 = actor->flags & ~MF_JUSTHIT;
@@ -120,7 +122,7 @@ bool P_MorphPlayer (player_t *activator, player_t *p, PClassPlayerPawn *spawntyp
 	p->MorphExitFlash = (exit_flash) ? exit_flash : RUNTIME_CLASS(ATeleportFog);
 	p->health = morphed->health;
 	p->mo = morphed;
-	p->velx = p->vely = 0;
+	p->Vel.X = p->Vel.Y = 0;
 	morphed->ObtainInventory (actor);
 	// Remove all armor
 	for (item = morphed->Inventory; item != NULL; )
@@ -168,7 +170,6 @@ bool P_UndoPlayerMorph (player_t *activator, player_t *player, int unmorphflag, 
 	AWeapon *beastweap;
 	APlayerPawn *mo;
 	APlayerPawn *pmo;
-	angle_t angle;
 
 	pmo = player->mo;
 	// [MH]
@@ -223,15 +224,13 @@ bool P_UndoPlayerMorph (player_t *activator, player_t *player, int unmorphflag, 
 		mo->tid = pmo->tid;
 		mo->AddToHash ();
 	}
-	mo->angle = pmo->angle;
+	mo->Angles.Yaw = pmo->Angles.Yaw;
 	mo->player = player;
 	mo->reactiontime = 18;
 	mo->flags = ActorFlags::FromInt (pmo->special2) & ~MF_JUSTHIT;
-	mo->velx = 0;
-	mo->vely = 0;
-	player->velx = 0;
-	player->vely = 0;
-	mo->velz = pmo->velz;
+	mo->Vel.X = mo->Vel.Y = 0;
+	player->Vel.Zero();
+	mo->Vel.Z = pmo->Vel.Z;
 	if (!(pmo->special2 & MF_JUSTHIT))
 	{
 		mo->renderflags &= ~RF_INVISIBLE;
@@ -307,11 +306,10 @@ bool P_UndoPlayerMorph (player_t *activator, player_t *player, int unmorphflag, 
 		}
 	}
 
-	angle = mo->angle >> ANGLETOFINESHIFT;
 	AActor *eflash = NULL;
 	if (exit_flash != NULL)
 	{
-		eflash = Spawn(exit_flash, pmo->Vec3Offset(20*finecosine[angle], 20*finesine[angle], TELEFOGHEIGHT), ALLOW_REPLACE);
+		eflash = Spawn(exit_flash, pmo->Vec3Angle(20., mo->Angles.Yaw, TELEFOGHEIGHT), ALLOW_REPLACE);
 		if (eflash)	eflash->target = mo;
 	}
 	mo->SetupWeaponSlots();		// Use original class's weapon slots.
@@ -385,9 +383,9 @@ bool P_MorphMonster (AActor *actor, PClassActor *spawntype, int duration, int st
 	morphed = static_cast<AMorphedMonster *>(Spawn (spawntype, actor->Pos(), NO_REPLACE));
 	DObject::StaticPointerSubstitution (actor, morphed);
 	morphed->tid = actor->tid;
-	morphed->angle = actor->angle;
+	morphed->Angles.Yaw = actor->Angles.Yaw;
 	morphed->UnmorphedMe = actor;
-	morphed->alpha = actor->alpha;
+	morphed->Alpha = actor->Alpha;
 	morphed->RenderStyle = actor->RenderStyle;
 	morphed->Score = actor->Score;
 
@@ -450,7 +448,7 @@ bool P_UndoMonsterMorph (AMorphedMonster *beast, bool force)
 		beast->UnmorphTime = level.time + 5*TICRATE; // Next try in 5 seconds
 		return false;
 	}
-	actor->angle = beast->angle;
+	actor->Angles.Yaw = beast->Angles.Yaw;
 	actor->target = beast->target;
 	actor->FriendPlayer = beast->FriendPlayer;
 	actor->flags = beast->FlagsSave & ~MF_JUSTHIT;
@@ -461,9 +459,7 @@ bool P_UndoMonsterMorph (AMorphedMonster *beast, bool force)
 	if (!(beast->FlagsSave & MF_JUSTHIT))
 		actor->renderflags &= ~RF_INVISIBLE;
 	actor->health = actor->SpawnHealth();
-	actor->velx = beast->velx;
-	actor->vely = beast->vely;
-	actor->velz = beast->velz;
+	actor->Vel = beast->Vel;
 	actor->tid = beast->tid;
 	actor->special = beast->special;
 	actor->Score = beast->Score;
@@ -518,7 +514,7 @@ bool P_MorphedDeath(AActor *actor, AActor **morphed, int *morphedstyle, int *mor
 		AActor *realme = actor->player->mo->tracer;
 		int realstyle = actor->player->MorphStyle;
 		int realhealth = actor->health;
-		if (P_UndoPlayerMorph(actor->player, actor->player, !!(actor->player->MorphStyle & MORPH_UNDOBYDEATHFORCED)))
+		if (P_UndoPlayerMorph(actor->player, actor->player, 0, !!(actor->player->MorphStyle & MORPH_UNDOBYDEATHFORCED)))
 		{
 			*morphed = realme;
 			*morphedstyle = realstyle;

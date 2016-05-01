@@ -66,9 +66,9 @@ DEFINE_ACTION_FUNCTION(AActor, A_PotteryExplode)
 		if (mo)
 		{
 			mo->SetState (mo->SpawnState + (pr_pottery()%5));
-			mo->velz = ((pr_pottery()&7)+5)*(3*FRACUNIT/4);
-			mo->velx = (pr_pottery.Random2())<<(FRACBITS-6);
-			mo->vely = (pr_pottery.Random2())<<(FRACBITS-6);
+			mo->Vel.X = pr_pottery.Random2() / 64.;
+			mo->Vel.Y = pr_pottery.Random2() / 64.;
+			mo->Vel.Z = ((pr_pottery() & 7) + 5) * 0.75;
 		}
 	}
 	S_Sound (mo, CHAN_BODY, "PotteryExplode", 1, ATTN_NORM);
@@ -117,7 +117,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PotteryCheck)
 		if (playeringame[i])
 		{
 			AActor *pmo = players[i].mo;
-			if (P_CheckSight (self, pmo) && (absangle(pmo->AngleTo(self) - pmo->angle) <= ANGLE_45))
+			if (P_CheckSight (self, pmo) && (absangle(pmo->AngleTo(self), pmo->Angles.Yaw) <= 45))
 			{ // Previous state (pottery bit waiting state)
 				self->SetState (self->state - 1);
 				return 0;
@@ -141,7 +141,7 @@ IMPLEMENT_CLASS (AZCorpseLynchedNoHeart)
 void AZCorpseLynchedNoHeart::PostBeginPlay ()
 {
 	Super::PostBeginPlay ();
-	Spawn ("BloodPool", X(), Y(), floorz, ALLOW_REPLACE);
+	Spawn ("BloodPool", PosAtZ(floorz), ALLOW_REPLACE);
 }
 
 //============================================================================
@@ -156,7 +156,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CorpseBloodDrip)
 
 	if (pr_drip() <= 128)
 	{
-		Spawn ("CorpseBloodDrip", self->PosPlusZ(self->height/2), ALLOW_REPLACE);
+		Spawn ("CorpseBloodDrip", self->PosPlusZ(self->Height / 2), ALLOW_REPLACE);
 	}
 	return 0;
 }
@@ -180,9 +180,9 @@ DEFINE_ACTION_FUNCTION(AActor, A_CorpseExplode)
 		if (mo)
 		{
 			mo->SetState (mo->SpawnState + (pr_foo()%3));
-			mo->velz = ((pr_foo()&7)+5)*(3*FRACUNIT/4);
-			mo->velx = pr_foo.Random2()<<(FRACBITS-6);
-			mo->vely = pr_foo.Random2()<<(FRACBITS-6);
+			mo->Vel.X = pr_foo.Random2() / 64.;
+			mo->Vel.Y = pr_foo.Random2() / 64.;
+			mo->Vel.Z = ((pr_foo() & 7) + 5) * 0.75;
 		}
 	}
 	// Spawn a skull
@@ -190,9 +190,9 @@ DEFINE_ACTION_FUNCTION(AActor, A_CorpseExplode)
 	if (mo)
 	{
 		mo->SetState (mo->SpawnState + 3);
-		mo->velz = ((pr_foo()&7)+5)*(3*FRACUNIT/4);
-		mo->velx = pr_foo.Random2()<<(FRACBITS-6);
-		mo->vely = pr_foo.Random2()<<(FRACBITS-6);
+		mo->Vel.X = pr_foo.Random2() / 64.;
+		mo->Vel.Y = pr_foo.Random2() / 64.;
+		mo->Vel.Z = ((pr_foo() & 7) + 5) * 0.75;
 	}
 	S_Sound (self, CHAN_BODY, self->DeathSound, 1, ATTN_IDLE);
 	self->Destroy ();
@@ -214,15 +214,15 @@ DEFINE_ACTION_FUNCTION(AActor, A_LeafSpawn)
 
 	for (i = (pr_leaf()&3)+1; i; i--)
 	{
-		fixed_t xo = (pr_leaf.Random2() << 14);
-		fixed_t yo = (pr_leaf.Random2() << 14);
-		fixed_t zo = (pr_leaf() << 14);
+		double xo = pr_leaf.Random2() / 4.;
+		double yo = pr_leaf.Random2() / 4.;
+		double zo = pr_leaf() / 4.;
 		mo = Spawn (pr_leaf()&1 ? PClass::FindActor ("Leaf1") : PClass::FindActor ("Leaf2"),
 			self->Vec3Offset(xo, yo, zo), ALLOW_REPLACE);
 
 		if (mo)
 		{
-			P_ThrustMobj (mo, self->angle, (pr_leaf()<<9)+3*FRACUNIT);
+			mo->Thrust(pr_leaf() / 128. + 3);
 			mo->target = self;
 			mo->special1 = 0;
 		}
@@ -242,7 +242,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LeafThrust)
 
 	if (pr_leafthrust() <= 96)
 	{
-		self->velz += (pr_leafthrust()<<9)+FRACUNIT;
+		self->Vel.Z += pr_leafthrust() / 128. + 1;
 	}
 	return 0;
 }
@@ -263,18 +263,18 @@ DEFINE_ACTION_FUNCTION(AActor, A_LeafCheck)
 		self->SetState (NULL);
 		return 0;
 	}
-	angle_t ang = self->target ? self->target->angle : self->angle;
+	DAngle ang = self->target ? self->target->Angles.Yaw : self->Angles.Yaw;
 	if (pr_leafcheck() > 64)
 	{
-		if (!self->velx && !self->vely)
+		if (self->Vel.X == 0 && self->Vel.Y == 0)
 		{
-			P_ThrustMobj (self, ang, (pr_leafcheck()<<9)+FRACUNIT);
+			self->Thrust(ang, pr_leafcheck() / 128. + 1);
 		}
 		return 0;
 	}
 	self->SetState (self->SpawnState + 7);
-	self->velz = (pr_leafcheck()<<9)+FRACUNIT;
-	P_ThrustMobj (self, ang, (pr_leafcheck()<<9)+2*FRACUNIT);
+	self->Vel.Z = pr_leafcheck() / 128. + 1;
+	self->Thrust(ang, pr_leafcheck() / 128. + 2);
 	self->flags |= MF_MISSILE;
 	return 0;
 }
@@ -289,7 +289,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PoisonShroom)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	self->tics = 128+(pr_shroom()<<1);
+	self->tics = 128 + (pr_shroom() << 1);
 	return 0;
 }
 
@@ -308,16 +308,16 @@ DEFINE_ACTION_FUNCTION(AActor, A_SoAExplode)
 
 	for (i = 0; i < 10; i++)
 	{
-		fixed_t xo = ((pr_soaexplode() - 128) << 12);
-		fixed_t yo = ((pr_soaexplode() - 128) << 12);
-		fixed_t zo = (pr_soaexplode()*self->height / 256);
+		double xo = (pr_soaexplode() - 128) / 16.;
+		double yo = (pr_soaexplode() - 128) / 16.;
+		double zo = pr_soaexplode()*self->Height / 256.;
 		mo = Spawn ("ZArmorChunk", self->Vec3Offset(xo, yo, zo), ALLOW_REPLACE);
 		if (mo)
 		{
 			mo->SetState (mo->SpawnState + i);
-			mo->velz = ((pr_soaexplode()&7)+5)*FRACUNIT;
-			mo->velx = pr_soaexplode.Random2()<<(FRACBITS-6);
-			mo->vely = pr_soaexplode.Random2()<<(FRACBITS-6);
+			mo->Vel.X = pr_soaexplode.Random2() / 64.;
+			mo->Vel.Y = pr_soaexplode.Random2() / 64.;
+			mo->Vel.Z = (pr_soaexplode() & 7) + 5;
 		}
 	}
 	// Spawn an item?
@@ -350,7 +350,7 @@ void AZBell::Activate (AActor *activator)
 {
 	if (health > 0)
 	{
-		P_DamageMobj (this, activator, activator, 10, NAME_Melee); // 'ring' the bell
+		P_DamageMobj (this, activator, activator, 10, NAME_Melee, DMG_THRUSTLESS); // 'ring' the bell
 	}
 }
 
@@ -365,7 +365,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BellReset1)
 	PARAM_ACTION_PROLOGUE;
 
 	self->flags |= MF_NOGRAVITY;
-	self->height <<= 2;
+	self->Height *= 4;
 	if (self->special)
 	{ // Initiate death action
 		P_ExecuteSpecial(self->special, NULL, NULL, false, self->args[0],

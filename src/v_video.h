@@ -35,6 +35,7 @@
 #define __V_VIDEO_H__
 
 #include "doomtype.h"
+#include "vectors.h"
 
 #include "doomdef.h"
 #include "dobject.h"
@@ -62,8 +63,6 @@ class FTexture;
 
 #define TAG_DONE	(0)  /* Used to indicate the end of the Tag list */
 #define TAG_END		(0)  /* Ditto									*/
-#define TAG_IGNORE	(1)  /* Ignore this Tag							*/
-#define TAG_MORE	(2)  /* Ends this list and continues with the	*/
 						 /* list pointed to in ti_Data 				*/
 
 #define TAG_USER	((DWORD)(1u<<30))
@@ -74,6 +73,7 @@ enum
 	DTA_DestWidth,		// width of area to draw to
 	DTA_DestHeight,		// height of area to draw to
 	DTA_Alpha,			// alpha value for translucency
+	DTA_AlphaF,			// alpha value for translucency
 	DTA_FillColor,		// color to stencil onto the destination (RGB is the color for truecolor drawers, A is the palette index for paletted drawers)
 	DTA_Translation,	// translation table to recolor the source
 	DTA_AlphaChannel,	// bool: the source is an alpha channel; used with DTA_FillColor
@@ -100,6 +100,7 @@ enum
 	DTA_ClipRight,		// don't draw anything at or to the right of this column (on dest, not source)
 	DTA_Masked,			// true(default)=use masks from texture, false=ignore masks
 	DTA_HUDRules,		// use fullscreen HUD rules to position and size textures
+	DTA_HUDRulesC,		// only used internally for marking HUD_HorizCenter
 	DTA_KeepRatio,		// doesn't adjust screen size for DTA_Virtual* if the aspect ratio is not 4:3
 	DTA_RenderStyle,	// same as render style for actors
 	DTA_ColorOverlay,	// DWORD: ARGB to overlay on top of image; limited to black for software
@@ -135,6 +136,45 @@ class FFont;
 struct FRemapTable;
 class player_t;
 typedef uint32 angle_t;
+
+struct DrawParms
+{
+	double x, y;
+	double texwidth;
+	double texheight;
+	double destwidth;
+	double destheight;
+	double virtWidth;
+	double virtHeight;
+	double windowleft;
+	double windowright;
+	int cleanmode;
+	int dclip;
+	int uclip;
+	int lclip;
+	int rclip;
+	double top;
+	double left;
+	float Alpha;
+	uint32 fillcolor;
+	FRemapTable *remap;
+	uint32 colorOverlay;
+	INTBOOL alphaChannel;
+	INTBOOL flipX;
+	fixed_t shadowAlpha;
+	int shadowColor;
+	INTBOOL keepratio;
+	INTBOOL masked;
+	INTBOOL bilinear;
+	FRenderStyle style;
+	struct FSpecialColormap *specialcolormap;
+	struct FColormapStyle *colormapstyle;
+	int scalex, scaley;
+	int cellx, celly;
+	int maxstrlen;
+	bool fortext;
+	bool virtBottom;
+};
 
 //
 // VIDEO
@@ -178,7 +218,7 @@ public:
 
 	// Fill a simple polygon with a texture
 	virtual void FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
-		double originx, double originy, double scalex, double scaley, angle_t rotation,
+		double originx, double originy, double scalex, double scaley, DAngle rotation,
 		struct FDynamicColormap *colormap, int lightlevel);
 
 	// Set an area to a specified color
@@ -205,7 +245,8 @@ public:
 	// Text drawing functions -----------------------------------------------
 
 	// 2D Texture drawing
-	void STACK_ARGS DrawTexture (FTexture *img, double x, double y, int tags, ...);
+	bool SetTextureParms(DrawParms *parms, FTexture *img, double x, double y) const;
+	void DrawTexture (FTexture *img, double x, double y, int tags, ...);
 	void FillBorder (FTexture *img);	// Fills the border around a 4:3 part of the screen on non-4:3 displays
 	void VirtualToRealCoords(double &x, double &y, double &w, double &h, double vwidth, double vheight, bool vbottom=false, bool handleaspect=true) const;
 
@@ -213,47 +254,12 @@ public:
 	void VirtualToRealCoordsFixed(fixed_t &x, fixed_t &y, fixed_t &w, fixed_t &h, int vwidth, int vheight, bool vbottom=false, bool handleaspect=true) const;
 	void VirtualToRealCoordsInt(int &x, int &y, int &w, int &h, int vwidth, int vheight, bool vbottom=false, bool handleaspect=true) const;
 
-	// 2D Text drawing
-	void STACK_ARGS DrawText (FFont *font, int normalcolor, int x, int y, const char *string, ...);
-#ifndef DrawText	// See WinUser.h for the definition of DrawText as a macro
-	void STACK_ARGS DrawTextA (FFont *font, int normalcolor, int x, int y, const char *string, ...);
+#ifdef DrawText
+#undef DrawText	// See WinUser.h for the definition of DrawText as a macro
 #endif
-	void DrawTextV (FFont *font, int normalcolor, int x, int y, const char *string, va_list tags);
-	void STACK_ARGS DrawChar (FFont *font, int normalcolor, int x, int y, BYTE character, ...);
-
-	struct DrawParms
-	{
-		double x, y;
-		double texwidth;
-		double texheight;
-		double destwidth;
-		double destheight;
-		double virtWidth;
-		double virtHeight;
-		double windowleft;
-		double windowright;
-		int dclip;
-		int uclip;
-		int lclip;
-		int rclip;
-		double top;
-		double left;
-		fixed_t alpha;
-		uint32 fillcolor;
-		FRemapTable *remap;
-		const BYTE *translation;
-		uint32 colorOverlay;
-		INTBOOL alphaChannel;
-		INTBOOL flipX;
-		fixed_t shadowAlpha;
-		int shadowColor;
-		INTBOOL keepratio;
-		INTBOOL masked;
-		INTBOOL bilinear;
-		FRenderStyle style;
-		struct FSpecialColormap *specialcolormap;
-		struct FColormapStyle *colormapstyle;
-	};
+	// 2D Text drawing
+	void DrawText (FFont *font, int normalcolor, int x, int y, const char *string, int tag_first, ...);
+	void DrawChar (FFont *font, int normalcolor, int x, int y, BYTE character, int tag_first, ...);
 
 protected:
 	BYTE *Buffer;
@@ -263,8 +269,9 @@ protected:
 	int LockCount;
 
 	bool ClipBox (int &left, int &top, int &width, int &height, const BYTE *&src, const int srcpitch) const;
-	virtual void STACK_ARGS DrawTextureV (FTexture *img, double x, double y, uint32 tag, va_list tags);
-	bool ParseDrawTextureTags (FTexture *img, double x, double y, uint32 tag, va_list tags, DrawParms *parms, bool hw) const;
+	void DrawTextureV(FTexture *img, double x, double y, uint32 tag, va_list tags) = delete;
+	virtual void DrawTextureParms(FTexture *img, DrawParms &parms);
+	bool ParseDrawTextureTags (FTexture *img, double x, double y, uint32 tag, va_list tags, DrawParms *parms, bool fortext) const;
 
 	DCanvas() {}
 
@@ -503,8 +510,14 @@ extern "C" void ASM_PatchPitch (void);
 
 int CheckRatio (int width, int height, int *trueratio=NULL);
 static inline int CheckRatio (double width, double height) { return CheckRatio(int(width), int(height)); }
-extern const int BaseRatioSizes[5][4];
+extern const int BaseRatioSizes[7][4];
 
+inline bool IsRatioWidescreen(int ratio) {
+    return (ratio & 3)!=0;
+}
 
+inline bool Is54Aspect(int ratio) {
+    return ratio == 4;
+}
 
 #endif // __V_VIDEO_H__

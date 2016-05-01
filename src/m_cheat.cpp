@@ -138,7 +138,7 @@ void cht_DoCheat (player_t *player, int cheat)
 			player->cheats &= ~CF_NOCLIP;
 			msg = GStrings("STSTR_NCOFF");
 		}
-		if (player->mo->velx == 0) player->mo->velx = 1;	// force some lateral movement so that internal variables are up to date
+		if (player->mo->Vel.X == 0) player->mo->Vel.X = MinVel;	// force some lateral movement so that internal variables are up to date
 		break;
 
 	case CHT_NOVELOCITY:
@@ -333,7 +333,7 @@ void cht_DoCheat (player_t *player, int cheat)
 				player->mo->flags6 = player->mo->GetDefault()->flags6;
 				player->mo->flags7 = player->mo->GetDefault()->flags7;
 				player->mo->renderflags &= ~RF_INVISIBLE;
-				player->mo->height = player->mo->GetDefault()->height;
+				player->mo->Height = player->mo->GetDefault()->Height;
 				player->mo->radius = player->mo->GetDefault()->radius;
 				player->mo->special1 = 0;	// required for the Hexen fighter's fist attack. 
 											// This gets set by AActor::Die as flag for the wimpy death and must be reset here.
@@ -469,8 +469,8 @@ void cht_DoCheat (player_t *player, int cheat)
 		{
 			// Don't allow this in deathmatch even with cheats enabled, because it's
 			// a very very cheap kill.
-			P_LineAttack (player->mo, player->mo->angle, PLAYERMISSILERANGE,
-				P_AimLineAttack (player->mo, player->mo->angle, PLAYERMISSILERANGE), TELEFRAG_DAMAGE,
+			P_LineAttack (player->mo, player->mo->Angles.Yaw, PLAYERMISSILERANGE,
+				P_AimLineAttack (player->mo, player->mo->Angles.Yaw, PLAYERMISSILERANGE), TELEFRAG_DAMAGE,
 				NAME_MDK, NAME_BulletPuff);
 		}
 		break;
@@ -575,47 +575,6 @@ const char *cht_Morph (player_t *player, PClassPlayerPawn *morphclass, bool quic
 	return "";
 }
 
-void GiveSpawner (player_t *player, PClassInventory *type, int amount)
-{
-	if (player->mo == NULL || player->health <= 0)
-	{
-		return;
-	}
-
-	AInventory *item = static_cast<AInventory *>
-		(Spawn (type, player->mo->X(), player->mo->Y(), player->mo->Z(), NO_REPLACE));
-	if (item != NULL)
-	{
-		if (amount > 0)
-		{
-			if (type->IsDescendantOf (RUNTIME_CLASS(ABasicArmorPickup)))
-			{
-				if (static_cast<ABasicArmorPickup*>(item)->SaveAmount != 0)
-				{
-					static_cast<ABasicArmorPickup*>(item)->SaveAmount *= amount;
-				}
-				else
-				{
-					static_cast<ABasicArmorPickup*>(item)->SaveAmount *= amount;
-				}
-			}
-			else if (type->IsDescendantOf (RUNTIME_CLASS(ABasicArmorBonus)))
-			{
-				static_cast<ABasicArmorBonus*>(item)->SaveAmount *= amount;
-			}
-			else
-			{
-				item->Amount = MIN (amount, item->MaxAmount);
-			}
-		}
-		item->ClearCounters();
-		if (!item->CallTryPickup (player->mo))
-		{
-			item->Destroy ();
-		}
-	}
-}
-
 void cht_Give (player_t *player, const char *name, int amount)
 {
 	enum { ALL_NO, ALL_YES, ALL_YESYES } giveall;
@@ -644,26 +603,12 @@ void cht_Give (player_t *player, const char *name, int amount)
 	{
 		if (amount > 0)
 		{
-			if (player->mo)
-			{
-				player->mo->health += amount;
-	  			player->health = player->mo->health;
-			}
-			else
-			{
-				player->health += amount;
-			}
+			player->mo->health += amount;
+			player->health = player->mo->health;
 		}
 		else
 		{
-			if (player->mo != NULL)
-			{
-				player->health = player->mo->health = player->mo->GetMaxHealth();
-			}
-			else
-			{
-				player->health = deh.GodHealth;
-			}
+			player->health = player->mo->health = player->mo->GetMaxHealth();
 		}
 	}
 
@@ -673,7 +618,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 		type = PClass::FindActor(gameinfo.backpacktype);
 		if (type != NULL)
 		{
-			GiveSpawner (player, static_cast<PClassInventory *>(type), 1);
+			player->mo->GiveInventory(static_cast<PClassInventory *>(type), 1, true);
 		}
 
 		if (!giveall)
@@ -694,7 +639,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 				AInventory *ammo = player->mo->FindInventory(atype);
 				if (ammo == NULL)
 				{
-					ammo = static_cast<AInventory *>(Spawn (atype, 0, 0, 0, NO_REPLACE));
+					ammo = static_cast<AInventory *>(Spawn (atype));
 					ammo->AttachToOwner (player->mo);
 					ammo->Amount = ammo->MaxAmount;
 				}
@@ -713,9 +658,9 @@ void cht_Give (player_t *player, const char *name, int amount)
 	{
 		if (gameinfo.gametype != GAME_Hexen)
 		{
-			ABasicArmorPickup *armor = Spawn<ABasicArmorPickup> (0,0,0, NO_REPLACE);
+			ABasicArmorPickup *armor = Spawn<ABasicArmorPickup> ();
 			armor->SaveAmount = 100*deh.BlueAC;
-			armor->SavePercent = gameinfo.Armor2Percent > 0? gameinfo.Armor2Percent : FRACUNIT/2;
+			armor->SavePercent = gameinfo.Armor2Percent > 0? gameinfo.Armor2Percent : 0.5;
 			if (!armor->CallTryPickup (player->mo))
 			{
 				armor->Destroy ();
@@ -725,7 +670,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 		{
 			for (i = 0; i < 4; ++i)
 			{
-				AHexenArmor *armor = Spawn<AHexenArmor> (0,0,0, NO_REPLACE);
+				AHexenArmor *armor = Spawn<AHexenArmor> ();
 				armor->health = i;
 				armor->Amount = 0;
 				if (!armor->CallTryPickup (player->mo))
@@ -748,7 +693,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 				AKey *key = (AKey *)GetDefaultByType (PClassActor::AllActorClasses[i]);
 				if (key->KeyNumber != 0)
 				{
-					key = static_cast<AKey *>(Spawn(static_cast<PClassActor *>(PClassActor::AllActorClasses[i]), 0,0,0, NO_REPLACE));
+					key = static_cast<AKey *>(Spawn(static_cast<PClassActor *>(PClassActor::AllActorClasses[i])));
 					if (!key->CallTryPickup (player->mo))
 					{
 						key->Destroy ();
@@ -778,7 +723,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 					AWeapon *def = (AWeapon*)GetDefaultByType (type);
 					if (giveall == ALL_YESYES || !(def->WeaponFlags & WIF_CHEATNOTWEAPON))
 					{
-						GiveSpawner (player, static_cast<PClassInventory *>(type), 1);
+						player->mo->GiveInventory(static_cast<PClassInventory *>(type), 1, true);
 					}
 				}
 			}
@@ -805,7 +750,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 					// Do not give replaced items unless using "give everything"
 					if (giveall == ALL_YESYES || type->GetReplacement() == type)
 					{
-						GiveSpawner (player, static_cast<PClassInventory *>(type), amount <= 0 ? def->MaxAmount : amount);
+						player->mo->GiveInventory(static_cast<PClassInventory *>(type), amount <= 0 ? def->MaxAmount : amount, true);
 					}
 				}
 			}
@@ -827,7 +772,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 					// Do not give replaced items unless using "give everything"
 					if (giveall == ALL_YESYES || type->GetReplacement() == type)
 					{
-						GiveSpawner (player, static_cast<PClassInventory *>(type), amount <= 0 ? def->MaxAmount : amount);
+						player->mo->GiveInventory(static_cast<PClassInventory *>(type), amount <= 0 ? def->MaxAmount : amount, true);
 					}
 				}
 			}
@@ -847,7 +792,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 	}
 	else
 	{
-		GiveSpawner (player, static_cast<PClassInventory *>(type), amount);
+		player->mo->GiveInventory(static_cast<PClassInventory *>(type), amount, true);
 	}
 	return;
 }
@@ -927,7 +872,7 @@ void cht_Take (player_t *player, const char *name, int amount)
 				AInventory *ammo = player->mo->FindInventory(static_cast<PClassActor *>(type));
 
 				if (ammo)
-					ammo->Amount = 0;
+					ammo->DepleteOrDestroy();
 			}
 		}
 
@@ -943,10 +888,10 @@ void cht_Take (player_t *player, const char *name, int amount)
 
 			if (type->IsDescendantOf (RUNTIME_CLASS (AArmor)))
 			{
-				AActor *armor = player->mo->FindInventory(static_cast<PClassActor *>(type));
+				AInventory *armor = player->mo->FindInventory(static_cast<PClassActor *>(type));
 
 				if (armor)
-					armor->Destroy ();
+					armor->DepleteOrDestroy();
 			}
 		}
 
@@ -1071,8 +1016,8 @@ public:
 		Pawn->flags |= MF_SHOOTABLE;
 		Pawn->flags2 &= ~MF2_INVULNERABLE;
 		// Store the player's current damage factor, to restore it later.
-		fixed_t plyrdmgfact = Pawn->DamageFactor;
-		Pawn->DamageFactor = 65536;
+		double plyrdmgfact = Pawn->DamageFactor;
+		Pawn->DamageFactor = 1.;
 		P_DamageMobj (Pawn, Pawn, Pawn, TELEFRAG_DAMAGE, NAME_Suicide);
 		Pawn->DamageFactor = plyrdmgfact;
 		if (Pawn->health <= 0)

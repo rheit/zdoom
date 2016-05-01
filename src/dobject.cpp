@@ -257,46 +257,50 @@ DObject::DObject (PClass *inClass)
 
 DObject::~DObject ()
 {
-	if (!(ObjectFlags & OF_Cleanup) && !PClass::bShutdown)
+	if (!PClass::bShutdown)
 	{
-		DObject **probe;
 		PClass *type = GetClass();
-
-		if (!(ObjectFlags & OF_YesReallyDelete))
+		if (!(ObjectFlags & OF_Cleanup) && !PClass::bShutdown)
 		{
-			Printf ("Warning: '%s' is freed outside the GC process.\n",
-				type != NULL ? type->TypeName.GetChars() : "==some object==");
-		}
+			DObject **probe;
 
-		// Find all pointers that reference this object and NULL them.
-		StaticPointerSubstitution(this, NULL);
-
-		// Now unlink this object from the GC list.
-		for (probe = &GC::Root; *probe != NULL; probe = &((*probe)->ObjNext))
-		{
-			if (*probe == this)
+			if (!(ObjectFlags & OF_YesReallyDelete))
 			{
-				*probe = ObjNext;
-				if (&ObjNext == GC::SweepPos)
-				{
-					GC::SweepPos = probe;
-				}
-				break;
+				Printf("Warning: '%s' is freed outside the GC process.\n",
+					type != NULL ? type->TypeName.GetChars() : "==some object==");
 			}
-		}
 
-		// If it's gray, also unlink it from the gray list.
-		if (this->IsGray())
-		{
-			for (probe = &GC::Gray; *probe != NULL; probe = &((*probe)->GCNext))
+			// Find all pointers that reference this object and NULL them.
+			StaticPointerSubstitution(this, NULL);
+
+			// Now unlink this object from the GC list.
+			for (probe = &GC::Root; *probe != NULL; probe = &((*probe)->ObjNext))
 			{
 				if (*probe == this)
 				{
-					*probe = GCNext;
+					*probe = ObjNext;
+					if (&ObjNext == GC::SweepPos)
+					{
+						GC::SweepPos = probe;
+					}
 					break;
 				}
 			}
+
+			// If it's gray, also unlink it from the gray list.
+			if (this->IsGray())
+			{
+				for (probe = &GC::Gray; *probe != NULL; probe = &((*probe)->GCNext))
+				{
+					if (*probe == this)
+					{
+						*probe = GCNext;
+						break;
+					}
+				}
+			}
 		}
+		type->DestroySpecials(this);
 	}
 }
 
@@ -380,6 +384,15 @@ size_t DObject::StaticPointerSubstitution (DObject *old, DObject *notOld)
 			changed += players[i].FixPointers (old, notOld);
 	}
 
+	for (auto &s : sectorPortals)
+	{
+		if (s.mSkybox == old)
+		{
+			s.mSkybox = static_cast<ASkyViewpoint*>(notOld);
+			changed++;
+		}
+	}
+
 	// Go through sectors.
 	if (sectors != NULL)
 	{
@@ -388,8 +401,6 @@ size_t DObject::StaticPointerSubstitution (DObject *old, DObject *notOld)
 #define SECTOR_CHECK(f,t) \
 	if (sectors[i].f.p == static_cast<t *>(old)) { sectors[i].f = static_cast<t *>(notOld); changed++; }
 			SECTOR_CHECK( SoundTarget, AActor );
-			SECTOR_CHECK( SkyBoxes[sector_t::ceiling], ASkyViewpoint );
-			SECTOR_CHECK( SkyBoxes[sector_t::floor], ASkyViewpoint );
 			SECTOR_CHECK( SecActTarget, ASectorAction );
 			SECTOR_CHECK( floordata, DSectorEffect );
 			SECTOR_CHECK( ceilingdata, DSectorEffect );
@@ -417,46 +428,15 @@ void DObject::SerializeUserVars(FArchive &arc)
 
 	if (arc.IsStoring())
 	{
-		// Write all user variables.
-		for (; symt != NULL; symt = symt->ParentSymbolTable)
-		{
-			PSymbolTable::MapType::Iterator it(symt->Symbols);
-			PSymbolTable::MapType::Pair *pair;
-
-			while (it.NextPair(pair))
-			{
-				PField *var = dyn_cast<PField>(pair->Value);
-				if (var != NULL && !(var->Flags & VARF_Native))
-				{
-					PType *type = var->Type;
-					PArray *arraytype = dyn_cast<PArray>(type);
-					if (arraytype == NULL)
-					{
-						count = 1;
-					}
-					else
-					{
-						count = arraytype->ElementCount;
-						type = arraytype->ElementType;
-					}
-					assert(type == TypeSInt32);
-					varloc = (int *)(reinterpret_cast<BYTE *>(this) + var->Offset);
-
-					arc << var->SymbolName;
-					arc.WriteCount(count);
-					for (j = 0; j < count; ++j)
-					{
-						arc << varloc[j];
-					}
-				}
-			}
-		}
-		// Write terminator.
-		varname = NAME_None;
-		arc << varname;
+		// Write all fields that aren't serialized by native code.
+		GetClass()->WriteValue(arc, this);
+	}
+	else if (SaveVersion >= 4535)
+	{
+		GetClass()->ReadValue(arc, this);
 	}
 	else
-	{
+	{ // Old version that only deals with ints
 		// Read user variables until 'None' is encountered.
 		arc << varname;
 		while (varname != NAME_None)

@@ -58,7 +58,6 @@
 #include "v_font.h"
 #include "r_data/colormaps.h"
 #include "farchive.h"
-#include "portal.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -68,6 +67,7 @@
 #define TEST_Z 2164524 
 #define TEST_ANGLE 2468347904 
 #endif
+
 
 // TYPES -------------------------------------------------------------------
 
@@ -87,14 +87,15 @@ static void R_ShutdownRenderer();
 extern short *openings;
 extern bool r_fakingunderwater;
 extern "C" int fuzzviewheight;
+extern subsector_t *InSubsector;
+extern bool r_showviewer;
 
 
 // PRIVATE DATA DECLARATIONS -----------------------------------------------
 
-static float CurrentVisibility = 8.f;
-static fixed_t MaxVisForWall;
-static fixed_t MaxVisForFloor;
-extern bool r_showviewer;
+static double CurrentVisibility = 8.f;
+static double MaxVisForWall;
+static double MaxVisForFloor;
 bool r_dontmaplines;
 
 // PUBLIC DATA DEFINITIONS -------------------------------------------------
@@ -102,34 +103,31 @@ bool r_dontmaplines;
 CVAR (String, r_viewsize, "", CVAR_NOSET)
 CVAR (Bool, r_shadercolormaps, true, CVAR_ARCHIVE)
 
-fixed_t			r_BaseVisibility;
-fixed_t			r_WallVisibility;
-fixed_t			r_FloorVisibility;
+double			r_BaseVisibility;
+double			r_WallVisibility;
+double			r_FloorVisibility;
 float			r_TiltVisibility;
-fixed_t			r_SpriteVisibility;
-fixed_t			r_ParticleVisibility;
-fixed_t			r_SkyVisibility;
+double			r_SpriteVisibility;
+double			r_ParticleVisibility;
 
-fixed_t			GlobVis;
+double			GlobVis;
 fixed_t			viewingrangerecip;
-fixed_t			FocalLengthX;
-fixed_t			FocalLengthY;
-float			FocalLengthXfloat;
+double			FocalLengthX;
+double			FocalLengthY;
 FDynamicColormap*basecolormap;		// [RH] colormap currently drawing with
 int				fixedlightlev;
 lighttable_t	*fixedcolormap;
 FSpecialColormap *realfixedcolormap;
-float			WallTMapScale2;
+double			WallTMapScale2;
 
 
 bool			bRenderingToCanvas;	// [RH] True if rendering to a special canvas
-fixed_t			globaluclip, globaldclip;
-fixed_t 		centerxfrac;
-fixed_t 		centeryfrac;
-fixed_t			yaspectmul;
-fixed_t			baseyaspectmul;		// yaspectmul without a forced aspect ratio
-float			iyaspectmulfloat;
-fixed_t			InvZtoScale;
+double			globaluclip, globaldclip;
+double			CenterX, CenterY;
+double			YaspectMul;
+double			BaseYaspectMul;		// yaspectmul without a forced aspect ratio
+double			IYaspectMul;
+double			InvZtoScale;
 
 // just for profiling purposes
 int 			linecount;
@@ -157,7 +155,7 @@ void (*spanfunc) (void);
 void (*hcolfunc_pre) (void);
 void (*hcolfunc_post1) (int hx, int sx, int yl, int yh);
 void (*hcolfunc_post2) (int hx, int sx, int yl, int yh);
-void (STACK_ARGS *hcolfunc_post4) (int sx, int yl, int yh);
+void (*hcolfunc_post4) (int sx, int yl, int yh);
 
 cycle_t WallCycles, PlaneCycles, MaskedCycles, WallScanCycles;
 
@@ -169,79 +167,35 @@ static int lastcenteryfrac;
 
 //==========================================================================
 //
-// viewangletox
-//
-// Used solely for construction the xtoviewangle table.
-//
-//==========================================================================
-
-static inline int viewangletox(int i)
-{
-	if (finetangent[i] > FRACUNIT*2)
-	{
-		return -1;
-	}
-	else if (finetangent[i] < -FRACUNIT*2)
-	{
-		return viewwidth+1;
-	}
-	else
-	{
-		int t = FixedMul(finetangent[i], FocalLengthX);
-		t = (centerxfrac - t + FRACUNIT-1) >> FRACBITS;
-		return clamp(t, -1, viewwidth+1);
-	}
-}
-
-//==========================================================================
-//
 // R_InitTextureMapping
 //
 //==========================================================================
 
 void R_InitTextureMapping ()
 {
-	int i, x;
+	int i;
 
-	// Calc focallength so FieldOfView fineangles covers viewwidth.
-	FocalLengthX = FixedDiv (centerxfrac, FocalTangent);
-	FocalLengthY = Scale (centerxfrac, yaspectmul, FocalTangent);
-	FocalLengthXfloat = (float)FocalLengthX / 65536.f;
+	// Calc focallength so FieldOfView angles cover viewwidth.
+	FocalLengthX = CenterX / FocalTangent;
+	FocalLengthY = FocalLengthX * YaspectMul;
 
 	// This is 1/FocalTangent before the widescreen extension of FOV.
-	viewingrangerecip = DivScale32(1, finetangent[FINEANGLES/4+(FieldOfView/2)]);
+	viewingrangerecip = FLOAT2FIXED(1. / tan(FieldOfView.Radians() / 2));
 
-	// [RH] Do not generate viewangletox, because texture mapping is no
-	// longer done with trig, so it's not needed.
 
 	// Now generate xtoviewangle for sky texture mapping.
-	// We do this with a hybrid approach: The center 90 degree span is
-	// constructed as per the original code:
-	//   Scan xtoviewangle to find the smallest view angle that maps to x.
-	//   (viewangletox is sorted in non-increasing order.)
-	//   This reduces the chances of "doubling-up" of texture columns in
-	//   the drawn sky texture.
-	// The remaining arcs are done with tantoangle instead.
+	// [RH] Do not generate viewangletox, because texture mapping is no
+	// longer done with trig, so it's not needed.
+	const double slopestep = FocalTangent / centerx;
+	double slope;
 
-	const int t1 = MAX<int>(centerx - (FocalLengthX >> FRACBITS), 0);
-	const int t2 = MIN<int>(centerx + (FocalLengthX >> FRACBITS), viewwidth);
-	const fixed_t dfocus = FocalLengthX >> DBITS;
-
-	for (i = 0, x = t2; x >= t1; --x)
+	for (i = centerx, slope = 0; i <= viewwidth; i++, slope += slopestep)
 	{
-		while(viewangletox(i) > x)
-		{
-			++i;
-		}
-		xtoviewangle[x] = (i << ANGLETOFINESHIFT) - ANGLE_90;
+		xtoviewangle[i] = angle_t((2 * M_PI - atan(slope)) * (ANGLE_180 / M_PI));
 	}
-	for (x = t2 + 1; x <= viewwidth; ++x)
+	for (i = 0; i < centerx; i++)
 	{
-		xtoviewangle[x] = ANGLE_270 + tantoangle[dfocus / (x - centerx)];
-	}
-	for (x = 0; x < t1; ++x)
-	{
-		xtoviewangle[x] = (angle_t)(-(signed)xtoviewangle[viewwidth - x]);
+		xtoviewangle[i] = 0 - xtoviewangle[viewwidth - i - 1];
 	}
 }
 
@@ -253,10 +207,10 @@ void R_InitTextureMapping ()
 //
 //==========================================================================
 
-void R_SetVisibility (float vis)
+void R_SetVisibility(double vis)
 {
 	// Allow negative visibilities, just for novelty's sake
-	vis = clamp (vis, -204.7f, 204.7f);	// (205 and larger do not work in 5:4 aspect ratio)
+	vis = clamp(vis, -204.7, 204.7);	// (205 and larger do not work in 5:4 aspect ratio)
 
 	CurrentVisibility = vis;
 
@@ -267,7 +221,7 @@ void R_SetVisibility (float vis)
 		return;
 	}
 
-	r_BaseVisibility = xs_RoundToInt(vis * 65536.f);
+	r_BaseVisibility = vis;
 
 	// Prevent overflow on walls
 	if (r_BaseVisibility < 0 && r_BaseVisibility < -MaxVisForWall)
@@ -277,8 +231,8 @@ void R_SetVisibility (float vis)
 	else
 		r_WallVisibility = r_BaseVisibility;
 
-	r_WallVisibility = FixedMul (Scale (InvZtoScale, SCREENWIDTH*BaseRatioSizes[WidescreenRatio][1],
-		viewwidth*SCREENHEIGHT*3), FixedMul (r_WallVisibility, FocalTangent));
+	r_WallVisibility = (InvZtoScale * SCREENWIDTH*BaseRatioSizes[WidescreenRatio][1] /
+		(viewwidth*SCREENHEIGHT*3)) * (r_WallVisibility * FocalTangent);
 
 	// Prevent overflow on floors/ceilings. Note that the calculation of
 	// MaxVisForFloor means that planes less than two units from the player's
@@ -291,9 +245,9 @@ void R_SetVisibility (float vis)
 	else
 		r_FloorVisibility = r_BaseVisibility;
 
-	r_FloorVisibility = Scale (160*FRACUNIT, r_FloorVisibility, FocalLengthY);
+	r_FloorVisibility = 160.0 * r_FloorVisibility / FocalLengthY;
 
-	r_TiltVisibility = vis * (float)FocalTangent * (16.f * 320.f) / (float)viewwidth;
+	r_TiltVisibility = float(vis * FocalTangent * (16.f * 320.f) / viewwidth);
 	r_SpriteVisibility = r_WallVisibility;
 }
 
@@ -303,7 +257,7 @@ void R_SetVisibility (float vis)
 //
 //==========================================================================
 
-float R_GetVisibility ()
+double R_GetVisibility()
 {
 	return CurrentVisibility;
 }
@@ -326,7 +280,7 @@ CCMD (r_visibility)
 	}
 	else if (!netgame)
 	{
-		R_SetVisibility ((float)atof (argv[1]));
+		R_SetVisibility(atof(argv[1]));
 	}
 	else
 	{
@@ -355,16 +309,15 @@ void R_SWRSetWindow(int windowSize, int fullWidth, int fullHeight, int stHeight,
 	}
 
 	fuzzviewheight = viewheight - 2;	// Maximum row the fuzzer can draw to
-	halfviewwidth = (viewwidth >> 1) - 1;
 
 	lastcenteryfrac = 1<<30;
-	centerxfrac = centerx<<FRACBITS;
-	centeryfrac = centery<<FRACBITS;
+	CenterX = centerx;
+	CenterY = centery;
 
 	virtwidth = virtwidth2 = fullWidth;
 	virtheight = virtheight2 = fullHeight;
 
-	if (trueratio & 4)
+	if (Is54Aspect(trueratio))
 	{
 		virtheight2 = virtheight2 * BaseRatioSizes[trueratio][3] / 48;
 	}
@@ -373,7 +326,7 @@ void R_SWRSetWindow(int windowSize, int fullWidth, int fullHeight, int stHeight,
 		virtwidth2 = virtwidth2 * BaseRatioSizes[trueratio][3] / 48;
 	}
 
-	if (WidescreenRatio & 4)
+	if (Is54Aspect(WidescreenRatio))
 	{
 		virtheight = virtheight * BaseRatioSizes[WidescreenRatio][3] / 48;
 	}
@@ -382,30 +335,30 @@ void R_SWRSetWindow(int windowSize, int fullWidth, int fullHeight, int stHeight,
 		virtwidth = virtwidth * BaseRatioSizes[WidescreenRatio][3] / 48;
 	}
 
-	baseyaspectmul = Scale(320 << FRACBITS, virtheight2, r_Yaspect * virtwidth2);
-	yaspectmul = Scale ((320<<FRACBITS), virtheight, r_Yaspect * virtwidth);
-	iyaspectmulfloat = (float)virtwidth * r_Yaspect / 320.f / (float)virtheight;
-	InvZtoScale = yaspectmul * centerx;
+	BaseYaspectMul = 320.0 * virtheight2 / (r_Yaspect * virtwidth2);
+	YaspectMul = 320.0 * virtheight / (r_Yaspect * virtwidth);
+	IYaspectMul = (double)virtwidth * r_Yaspect / 320.0 / virtheight;
+	InvZtoScale = YaspectMul * CenterX;
 
-	WallTMapScale2 = iyaspectmulfloat * 64.f / (float)centerx;
+	WallTMapScale2 = IYaspectMul / CenterX;
 
 	// psprite scales
-	pspritexscale = (centerxwide << FRACBITS) / 160;
-	pspriteyscale = FixedMul (pspritexscale, yaspectmul);
-	pspritexiscale = FixedDiv (FRACUNIT, pspritexscale);
+	pspritexscale = centerxwide / 160.0;
+	pspriteyscale = pspritexscale * YaspectMul;
+	pspritexiscale = 1 / pspritexscale;
 
 	// thing clipping
 	clearbufshort (screenheightarray, viewwidth, (short)viewheight);
 
 	R_InitTextureMapping ();
 
-	MaxVisForWall = FixedMul (Scale (InvZtoScale, SCREENWIDTH*r_Yaspect,
-		viewwidth*SCREENHEIGHT), FocalTangent);
-	MaxVisForWall = FixedDiv (0x7fff0000, MaxVisForWall);
-	MaxVisForFloor = Scale (FixedDiv (0x7fff0000, viewheight<<(FRACBITS-2)), FocalLengthY, 160*FRACUNIT);
+	MaxVisForWall = (InvZtoScale * (SCREENWIDTH*r_Yaspect) /
+		(viewwidth*SCREENHEIGHT * FocalTangent));
+	MaxVisForWall = 32767.0 / MaxVisForWall;
+	MaxVisForFloor = 32767.0 / (viewheight * FocalLengthY / 160);
 
 	// Reset r_*Visibility vars
-	R_SetVisibility (R_GetVisibility ());
+	R_SetVisibility(R_GetVisibility());
 }
 
 //==========================================================================
@@ -488,10 +441,8 @@ static void R_ShutdownRenderer()
 
 void R_CopyStackedViewParameters()
 {
-	stacked_viewx = viewx;
-	stacked_viewy = viewy;
-	stacked_viewz = viewz;
-	stacked_angle = viewangle;
+	stacked_viewpos = ViewPos;
+	stacked_angle = ViewAngle;
 	stacked_extralight = extralight;
 	stacked_visibility = R_GetVisibility();
 }
@@ -550,61 +501,60 @@ void R_SetupColormap(player_t *player)
 
 void R_SetupFreelook()
 {
-	{
-		fixed_t dy;
+	double dy;
 		
-		if (camera != NULL)
-		{
-			dy = FixedMul (FocalLengthY, finetangent[(ANGLE_90-viewpitch)>>ANGLETOFINESHIFT]);
-		}
-		else
-		{
-			dy = 0;
-		}
+	if (camera != NULL)
+	{
+		dy = FocalLengthY * (-ViewPitch).Tan();
+	}
+	else
+	{
+		dy = 0;
+	}
 
-		centeryfrac = (viewheight << (FRACBITS-1)) + dy;
-		centery = centeryfrac >> FRACBITS;
-		globaluclip = FixedDiv (-centeryfrac, InvZtoScale);
-		globaldclip = FixedDiv ((viewheight<<FRACBITS)-centeryfrac, InvZtoScale);
+	CenterY = (viewheight / 2.0) + dy;
+	centery = xs_ToInt(CenterY);
+	globaluclip = -CenterY / InvZtoScale;
+	globaldclip = (viewheight - CenterY) / InvZtoScale;
 
-		//centeryfrac &= 0xffff0000;
-		int e, i;
+	//centeryfrac &= 0xffff0000;
+	int e, i;
 
-		i = 0;
-		e = viewheight;
-		fixed_t focus = FocalLengthY;
-		fixed_t den;
-		if (i < centery)
+	i = 0;
+	e = viewheight;
+	float focus = float(FocalLengthY);
+	float den;
+	float cy = float(CenterY);
+	if (i < centery)
+	{
+		den = cy - i - 0.5f;
+		if (e <= centery)
 		{
-			den = centeryfrac - (i << FRACBITS) - FRACUNIT/2;
-			if (e <= centery)
-			{
-				do {
-					yslope[i] = FixedDiv (focus, den);
-					den -= FRACUNIT;
-				} while (++i < e);
-			}
-			else
-			{
-				do {
-					yslope[i] = FixedDiv (focus, den);
-					den -= FRACUNIT;
-				} while (++i < centery);
-				den = (i << FRACBITS) - centeryfrac + FRACUNIT/2;
-				do {
-					yslope[i] = FixedDiv (focus, den);
-					den += FRACUNIT;
-				} while (++i < e);
-			}
-		}
-		else
-		{
-			den = (i << FRACBITS) - centeryfrac + FRACUNIT/2;
 			do {
-				yslope[i] = FixedDiv (focus, den);
-				den += FRACUNIT;
+				yslope[i] = focus / den;
+				den -= 1;
 			} while (++i < e);
 		}
+		else
+		{
+			do {
+				yslope[i] = focus / den;
+				den -= 1;
+			} while (++i < centery);
+			den = i - cy + 0.5f;
+			do {
+				yslope[i] = focus / den;
+				den += 1;
+			} while (++i < e);
+		}
+	}
+	else
+	{
+		den = i - cy + 0.5f;
+		do {
+			yslope[i] = focus / den;
+			den += 1;
+		} while (++i < e);
 	}
 }
 
@@ -687,10 +637,10 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 		return;
 	}
 
-	angle_t startang = viewangle;
-	fixed_t startx = viewx;
-	fixed_t starty = viewy;
-	fixed_t startz = viewz;
+	DAngle startang = ViewAngle;
+	DVector3 startpos = ViewPos;
+	DVector3 savedpath[2] = { ViewPath[0], ViewPath[1] };
+	ActorRenderFlags savedvisibility = camera? camera->renderflags & RF_INVISIBLE : ActorRenderFlags::FromInt(0);
 
 	CurrentPortalUniq++;
 
@@ -702,47 +652,62 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 		vertex_t *v1 = pds->src->v1;
 
 		// Reflect the current view behind the mirror.
-		if (pds->src->dx == 0)
+		if (pds->src->Delta().X == 0)
 		{ // vertical mirror
-			viewx = v1->x - startx + v1->x;
+			ViewPos.X = v1->fX() - startpos.X + v1->fX();
 		}
-		else if (pds->src->dy == 0)
+		else if (pds->src->Delta().Y == 0)
 		{ // horizontal mirror
-			viewy = v1->y - starty + v1->y;
+			ViewPos.Y = v1->fY() - startpos.Y + v1->fY();
 		}
 		else
-		{ // any mirror--use floats to avoid integer overflow
+		{ // any mirror
 			vertex_t *v2 = pds->src->v2;
 
-			double dx = FIXED2DBL(v2->x - v1->x);
-			double dy = FIXED2DBL(v2->y - v1->y);
-			double x1 = FIXED2DBL(v1->x);
-			double y1 = FIXED2DBL(v1->y);
-			double x = FIXED2DBL(startx);
-			double y = FIXED2DBL(starty);
+			double dx = v2->fX() - v1->fX();
+			double dy = v2->fY() - v1->fY();
+			double x1 = v1->fX();
+			double y1 = v1->fY();
+			double x = startpos.X;
+			double y = startpos.Y;
 
 			// the above two cases catch len == 0
 			double r = ((x - x1)*dx + (y - y1)*dy) / (dx*dx + dy*dy);
 
-			viewx = FLOAT2FIXED((x1 + r * dx)*2 - x);
-			viewy = FLOAT2FIXED((y1 + r * dy)*2 - y);
+			ViewPos.X = (x1 + r * dx)*2 - x;
+			ViewPos.Y = (y1 + r * dy)*2 - y;
 		}
-		viewangle = 2*R_PointToAngle2 (pds->src->v1->x, pds->src->v1->y,
-									   pds->src->v2->x, pds->src->v2->y) - startang;
-
+		ViewAngle = pds->src->Delta().Angle() - startang;
 	}
 	else
 	{
-		P_TranslatePortalXY(pds->src, pds->dst, viewx, viewy);
-		P_TranslatePortalZ(pds->src, pds->dst, viewz);
-		P_TranslatePortalAngle(pds->src, pds->dst, viewangle);
+		P_TranslatePortalXY(pds->src, ViewPos.X, ViewPos.Y);
+		P_TranslatePortalZ(pds->src, ViewPos.Z);
+		P_TranslatePortalAngle(pds->src, ViewAngle);
+		P_TranslatePortalXY(pds->src, ViewPath[0].X, ViewPath[0].Y);
+		P_TranslatePortalXY(pds->src, ViewPath[1].X, ViewPath[1].Y);
+
+		if (!r_showviewer && camera)
+		{
+			double distp = (ViewPath[0] - ViewPath[1]).Length();
+			if (distp > EQUAL_EPSILON)
+			{
+				double dist1 = (ViewPos - ViewPath[0]).Length();
+				double dist2 = (ViewPos - ViewPath[1]).Length();
+
+				if (dist1 + dist2 < distp + 1)
+				{
+					camera->renderflags |= RF_INVISIBLE;
+				}
+			}
+		}
 	}
 
-	viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
-	viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
+	ViewSin = ViewAngle.Sin();
+	ViewCos = ViewAngle.Cos();
 
-	viewtansin = FixedMul (FocalTangent, viewsin);
-	viewtancos = FixedMul (FocalTangent, viewcos);
+	ViewTanSin = FocalTangent * ViewSin;
+	ViewTanCos = FocalTangent * ViewCos;
 
 	R_CopyStackedViewParameters();
 
@@ -773,15 +738,17 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 	memcpy (ceilingclip + pds->x1, &pds->ceilingclip[0], pds->len*sizeof(*ceilingclip));
 	memcpy (floorclip + pds->x1, &pds->floorclip[0], pds->len*sizeof(*floorclip));
 
+	InSubsector = NULL;
 	R_RenderBSPNode (nodes + numnodes - 1);
 	R_3D_ResetClip(); // reset clips (floor/ceiling)
+	if (!savedvisibility && camera) camera->renderflags &= ~RF_INVISIBLE;
 
 	PlaneCycles.Clock();
 	R_DrawPlanes ();
-	R_DrawSkyBoxes ();
+	R_DrawPortals ();
 	PlaneCycles.Unclock();
 
-	fixed_t vzp = viewz;
+	double vzp = ViewPos.Z;
 
 	int prevuniq = CurrentPortalUniq;
 	// depth check is in another place right now
@@ -810,10 +777,10 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 
 	CurrentPortal = prevpds;
 	MirrorFlags = prevmf;
-	viewangle = startang;
-	viewx = startx;
-	viewy = starty;
-	viewz = startz;
+	ViewAngle = startang;
+	ViewPos = startpos;
+	ViewPath[0] = savedpath[0];
+	ViewPath[1] = savedpath[1];
 }
 
 //==========================================================================
@@ -917,6 +884,7 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 	}
 	// Link the polyobjects right before drawing the scene to reduce the amounts of calls to this function
 	PO_LinkToSubsectors();
+	InSubsector = NULL;
 	R_RenderBSPNode (nodes + numnodes - 1);	// The head node is the last node output.
 	R_3D_ResetClip(); // reset clips (floor/ceiling)
 	camera->renderflags = savedflags;
@@ -928,7 +896,7 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 	{
 		PlaneCycles.Clock();
 		R_DrawPlanes ();
-		R_DrawSkyBoxes ();
+		R_DrawPortals ();
 		PlaneCycles.Unclock();
 
 		// [RH] Walk through mirrors

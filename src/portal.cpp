@@ -37,8 +37,8 @@
 */
 
 
-#include "portal.h"
 #include "p_local.h"
+#include "p_blockmap.h"
 #include "p_lnspec.h"
 #include "r_bsp.h"
 #include "r_segs.h"
@@ -53,14 +53,18 @@
 #include "p_maputl.h"
 #include "p_spec.h"
 #include "p_checkposition.h"
+#include "math/cmath.h"
 
 // simulation recurions maximum
 CVAR(Int, sv_portal_recursions, 4, CVAR_ARCHIVE|CVAR_SERVERINFO)
 
 FDisplacementTable Displacements;
+FPortalBlockmap PortalBlockmap;
 
 TArray<FLinePortal> linePortals;
 TArray<FLinePortal*> linkedPortals;	// only the linked portals, this is used to speed up looking for them in P_CollectConnectedGroups.
+
+TArray<FSectorPortal> sectorPortals;
 
 //============================================================================
 //
@@ -94,7 +98,104 @@ struct FPortalBits
 	}
 };
 
+//============================================================================
+//
+// BuildBlockmap
+//
+//============================================================================
 
+static void BuildBlockmap()
+{
+	PortalBlockmap.Clear();
+	PortalBlockmap.Create(bmapwidth, bmapheight);
+	for (int y = 0; y < bmapheight; y++)
+	{
+		for (int x = 0; x < bmapwidth; x++)
+		{
+			int offset = y*bmapwidth + x;
+			int *list = blockmaplump + *(blockmap + offset) + 1;
+			FPortalBlock &block = PortalBlockmap(x, y);
+
+			while (*list != -1)
+			{
+				line_t *ld = &lines[*list++];
+				FLinePortal *port = ld->getPortal();
+				if (port && port->mType != PORTT_VISUAL)
+				{
+					PortalBlockmap.containsLines = true;
+					block.portallines.Push(ld);
+					block.neighborContainsLines = true;
+					if (ld->getPortal()->mType == PORTT_LINKED) block.containsLinkedPortals = true;
+					if (x > 0) PortalBlockmap(x - 1, y).neighborContainsLines = true;
+					if (y > 0) PortalBlockmap(x, y - 1).neighborContainsLines = true;
+					if (x < PortalBlockmap.dx - 1) PortalBlockmap(x + 1, y).neighborContainsLines = true;
+					if (y < PortalBlockmap.dy - 1) PortalBlockmap(x, y + 1).neighborContainsLines = true;
+				}
+				else
+				{
+
+					bool yes = ld->frontsector->PortalIsLinked(sector_t::ceiling) || ld->frontsector->PortalIsLinked(sector_t::floor);
+					if (ld->backsector)
+					{
+						yes |= ld->backsector->PortalIsLinked(sector_t::ceiling) || ld->backsector->PortalIsLinked(sector_t::floor);
+					}
+					block.containsLinkedPortals |= yes;
+					PortalBlockmap.hasLinkedSectorPortals |= yes;
+
+				}
+			}
+		}
+	}
+}
+
+//===========================================================================
+//
+// FLinePortalTraverse :: AddLineIntercepts.
+//
+// Similar to AddLineIntercepts but checks the portal blockmap for line-to-line portals
+//
+//===========================================================================
+
+void FLinePortalTraverse::AddLineIntercepts(int bx, int by)
+{
+	if (by < 0 || by >= bmapheight || bx < 0 || bx >= bmapwidth) return;
+
+	FPortalBlock &block = PortalBlockmap(bx, by);
+
+	for (unsigned i = 0; i<block.portallines.Size(); i++)
+	{
+		line_t *ld = block.portallines[i];
+		double frac;
+		divline_t dl;
+
+		if (ld->validcount == validcount) continue;	// already processed
+
+		if (P_PointOnDivlineSide (ld->v1->fPos(), &trace) ==
+			P_PointOnDivlineSide (ld->v2->fPos(), &trace))
+		{
+			continue;		// line isn't crossed
+		}
+		P_MakeDivline (ld, &dl);
+		if (P_PointOnDivlineSide(trace.x, trace.y, &dl) != 0 ||
+			P_PointOnDivlineSide(trace.x + trace.dx, trace.y + trace.dy, &dl) != 1)
+		{
+			continue;		// line isn't crossed from the front side
+		}
+
+		// hit the line
+		P_MakeDivline(ld, &dl);
+		frac = P_InterceptVector(&trace, &dl);
+		if (frac < 0 || frac > 1.) continue;	// behind source
+
+		intercept_t newintercept;
+
+		newintercept.frac = frac;
+		newintercept.isaline = true;
+		newintercept.done = false;
+		newintercept.d.line = ld;
+		intercepts.Push(newintercept);
+	}
+}
 
 //============================================================================
 //
@@ -106,12 +207,30 @@ FArchive &operator<< (FArchive &arc, FLinePortal &port)
 {
 	arc << port.mOrigin
 		<< port.mDestination
-		<< port.mXDisplacement
-		<< port.mYDisplacement
+		<< port.mDisplacement
 		<< port.mType
 		<< port.mFlags
 		<< port.mDefFlags
 		<< port.mAlign;
+	return arc;
+}
+
+//============================================================================
+//
+// Save a sector portal for savegames.
+//
+//============================================================================
+
+FArchive &operator<< (FArchive &arc, FSectorPortal &port)
+{
+	arc << port.mType
+		<< port.mFlags
+		<< port.mPartner
+		<< port.mPlane
+		<< port.mOrigin
+		<< port.mDestination
+		<< port.mDisplacement
+		<< port.mPlaneZ;
 	return arc;
 }
 
@@ -138,6 +257,26 @@ static line_t *FindDestination(line_t *src, int tag)
 		}
 	}
 	return NULL;
+}
+
+
+//============================================================================
+//
+//
+//
+//============================================================================
+
+static void SetRotation(FLinePortal *port)
+{
+	if (port != NULL && port->mDestination != NULL)
+	{
+	line_t *dst = port->mDestination;
+	line_t *line = port->mOrigin;
+	DAngle angle = dst->Delta().Angle() - line->Delta().Angle() + 180.;
+	port->mSinRot = sindeg(angle.Degrees);	// Here precision matters so use the slower but more precise versions.
+	port->mCosRot = cosdeg(angle.Degrees);
+	port->mAngleDiff = angle;
+	}
 }
 
 //============================================================================
@@ -181,9 +320,12 @@ void P_SpawnLinePortal(line_t* line)
 		if (port->mDestination != NULL)
 		{
 			port->mDefFlags = port->mType == PORTT_VISUAL ? PORTF_VISIBLE : port->mType == PORTT_TELEPORT ? PORTF_TYPETELEPORT : PORTF_TYPEINTERACTIVE;
-
-
 		}
+
+		// Get the angle between the two linedefs, for rotating
+		// orientation and velocity. Rotate 180 degrees, and flip
+		// the position across the exit linedef, if reversed.
+		SetRotation(port);
 	}
 	else if (line->args[2] == PORTT_LINKEDEE && line->args[0] == 0)
 	{
@@ -193,7 +335,7 @@ void P_SpawnLinePortal(line_t* line)
 
 		for (int i = 0; i < numlines; i++)
 		{
-			if (tagManager.GetFirstLineID(&lines[i]) == mytag && lines[i].args[0] == 1)
+			if (tagManager.GetFirstLineID(&lines[i]) == mytag && lines[i].args[0] == 1 && lines[i].special == Line_SetPortal)
 			{
 				line->portalindex = linePortals.Reserve(1);
 				FLinePortal *port = &linePortals.Last();
@@ -204,6 +346,7 @@ void P_SpawnLinePortal(line_t* line)
 				port->mType = PORTT_LINKED;
 				port->mAlign = PORG_ABSOLUTE;
 				port->mDefFlags = PORTF_TYPEINTERACTIVE;
+				SetRotation(port);
 
 				// we need to create the backlink here, too.
 				lines[i].portalindex = linePortals.Reserve(1);
@@ -216,6 +359,7 @@ void P_SpawnLinePortal(line_t* line)
 				port->mAlign = PORG_ABSOLUTE;
 				port->mDefFlags = PORTF_TYPEINTERACTIVE;
 
+				SetRotation(port);
 			}
 		}
 	}
@@ -261,8 +405,7 @@ void P_UpdatePortal(FLinePortal *port)
 			}
 			else
 			{
-				port->mXDisplacement = port->mDestination->v2->x - port->mOrigin->v1->x;
-				port->mYDisplacement = port->mDestination->v2->y - port->mOrigin->v1->y;
+				port->mDisplacement = port->mDestination->v2->fPos() - port->mOrigin->v1->fPos();
 			}
 		}
  	}
@@ -302,6 +445,8 @@ void P_FinalizePortals()
 		P_UpdatePortal(port);
 	}
 	P_CollectLinkedPortals();
+	BuildBlockmap();
+	P_CreateLinkedPortals();
 }
 
 //============================================================================
@@ -333,9 +478,10 @@ static bool ChangePortalLine(line_t *line, int destid)
 		else
 		{
 			port->mFlags = port->mDefFlags;
-			portd->mFlags = portd->mDefFlags;
 		}
+		SetRotation(portd);
 	}
+	SetRotation(port);
 	return true;
 }
 
@@ -362,82 +508,74 @@ bool P_ChangePortal(line_t *ln, int thisid, int destid)
 
 //============================================================================
 //
-// Calculate the intersection between two lines.
-// [ZZ] lots of floats here to avoid overflowing a lot
+// clears all portal data for a new level start
 //
 //============================================================================
 
-bool P_IntersectLines(fixed_t o1x, fixed_t o1y, fixed_t p1x, fixed_t p1y,
-				      fixed_t o2x, fixed_t o2y, fixed_t p2x, fixed_t p2y,
-				      fixed_t& rx, fixed_t& ry)
+void P_ClearPortals()
 {
-	double xx = FIXED2DBL(o2x) - FIXED2DBL(o1x);
-	double xy = FIXED2DBL(o2y) - FIXED2DBL(o1y);
-
-	double d1x = FIXED2DBL(p1x) - FIXED2DBL(o1x);
-	double d1y = FIXED2DBL(p1y) - FIXED2DBL(o1y);
-
-	if (d1x > d1y)
-	{
-		d1y = d1y / d1x * 32767.0f;
-		d1x = 32767.0;
-	}
-	else
-	{
-		d1x = d1x / d1y * 32767.0f;
-		d1y = 32767.0;
-	}
-
-	double d2x = FIXED2DBL(p2x) - FIXED2DBL(o2x);
-	double d2y = FIXED2DBL(p2y) - FIXED2DBL(o2y);
-
-	double cross = d1x*d2y - d1y*d2x;
-	if (fabs(cross) < 1e-8)
-		return false;
-
-	double t1 = (xx * d2y - xy * d2x)/cross;
-	rx = o1x + FLOAT2FIXED(d1x * t1);
-	ry = o1y + FLOAT2FIXED(d1y * t1);
-	return true;
-}
-
-inline int P_PointOnLineSideExplicit (fixed_t x, fixed_t y, fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2)
-{
-	return DMulScale32 (y-y1, x2-x1, x1-x, y2-y1) > 0;
+	Displacements.Create(1);
+	linePortals.Clear();
+	linkedPortals.Clear();
+	sectorPortals.Resize(2);
+	// The first entry must always be the default skybox. This is what every sector gets by default.
+	memset(&sectorPortals[0], 0, sizeof(sectorPortals[0]));
+	sectorPortals[0].mType = PORTS_SKYVIEWPOINT;
+	sectorPortals[0].mFlags = PORTSF_SKYFLATONLY;
+	// The second entry will be the default sky. This is for forcing a regular sky through the skybox picker
+	memset(&sectorPortals[1], 0, sizeof(sectorPortals[0]));
+	sectorPortals[1].mType = PORTS_SKYVIEWPOINT;
+	sectorPortals[1].mFlags = PORTSF_SKYFLATONLY;
 }
 
 //============================================================================
 //
 // check if this line is between portal and the viewer. clip away if it is.
-// (this may need some fixing)
 //
 //============================================================================
 
-bool P_ClipLineToPortal(line_t* line, line_t* portal, fixed_t viewx, fixed_t viewy, bool partial, bool samebehind)
+inline int P_GetLineSide(const DVector2 &pos, const line_t *line)
 {
-	bool behind1 = !!P_PointOnLineSidePrecise(line->v1->x, line->v1->y, portal);
-	bool behind2 = !!P_PointOnLineSidePrecise(line->v2->x, line->v2->y, portal);
+	double v = (pos.Y - line->v1->fY()) * line->Delta().X + (line->v1->fX() - pos.X) * line->Delta().Y;
+	return v < -1. / 65536. ? -1 : v > 1. / 65536 ? 1 : 0;
+}
 
-	// [ZZ] update 16.12.2014: if a vertex equals to one of portal's vertices, it's treated as being behind the portal.
-	//                         this is required in order to clip away diagonal lines around the portal (example: 1-sided triangle shape with a mirror on it's side)
-	if ((line->v1->x == portal->v1->x && line->v1->y == portal->v1->y) ||
-		(line->v1->x == portal->v2->x && line->v1->y == portal->v2->y))
-			behind1 = samebehind;
-	if ((line->v2->x == portal->v1->x && line->v2->y == portal->v1->y) ||
-		(line->v2->x == portal->v2->x && line->v2->y == portal->v2->y))
-			behind2 = samebehind;
+bool P_ClipLineToPortal(line_t* line, line_t* portal, DVector2 view, bool partial, bool samebehind)
+{
+	int behind1 = P_GetLineSide(line->v1->fPos(), portal);
+	int behind2 = P_GetLineSide(line->v2->fPos(), portal);
 
-	if (behind1 && behind2)
+	if (behind1 == 0 && behind2 == 0)
 	{
-		// line is behind the portal plane. now check if it's in front of two view plane borders (i.e. if it will get in the way of rendering)
-		fixed_t dummyx, dummyy;
-		bool infront1 = P_IntersectLines(line->v1->x, line->v1->y, line->v2->x, line->v2->y, viewx, viewy, portal->v1->x, portal->v1->y, dummyx, dummyy);
-		bool infront2 = P_IntersectLines(line->v1->x, line->v1->y, line->v2->x, line->v2->y, viewx, viewy, portal->v2->x, portal->v2->y, dummyx, dummyy);
-		if (infront1 && infront2)
-			return true;
+		// The line is parallel to the portal and cannot possibly be visible.
+		return true;
 	}
+	// If one point lies on the same straight line than the portal, the other vertex will determine sidedness alone.
+	else if (behind2 == 0) behind2 = behind1;
+	else if (behind1 == 0) behind1 = behind2;
 
-	return false;
+	if (behind1 > 0 && behind2 > 0)
+	{
+		// The line is behind the portal, i.e. between viewer and portal line, and must be rejected
+		return true;
+	}
+	else if (behind1 < 0 && behind2 < 0)
+	{
+		// The line is in front of the portal, i.e. the portal is between viewer and line. This line must not be rejected
+		return false;
+	}
+	else
+	{
+		// The line intersects with the portal straight, so we need to do another check to see how both ends of the portal lie in relation to the viewer.
+		int viewside = P_GetLineSide(view, line); 
+		int p1side = P_GetLineSide(portal->v1->fPos(), line);
+		int p2side = P_GetLineSide(portal->v2->fPos(), line);
+		// Do the same handling of points on the portal straight as above.
+		if (p1side == 0) p1side = p2side;
+		else if (p2side == 0) p2side = p1side;
+		// If the portal is on the other side of the line than the viewpoint, there is no possibility to see this line inside the portal.
+		return (p1side == p2side && viewside != p1side);
+	}
 }
 
 //============================================================================
@@ -446,37 +584,22 @@ bool P_ClipLineToPortal(line_t* line, line_t* portal, fixed_t viewx, fixed_t vie
 //
 //============================================================================
 
-void P_TranslatePortalXY(line_t* src, line_t* dst, fixed_t& x, fixed_t& y)
+void P_TranslatePortalXY(line_t* src, double& x, double& y)
 {
-	if (!src || !dst)
-		return;
+	if (!src) return;
+	FLinePortal *port = src->getPortal();
+	if (!port) return;
 
-	fixed_t nposx, nposy;	// offsets from line
-
-	// Get the angle between the two linedefs, for rotating
-	// orientation and velocity. Rotate 180 degrees, and flip
-	// the position across the exit linedef, if reversed.
-	angle_t angle =
-			R_PointToAngle2(0, 0, dst->dx, dst->dy) -
-			R_PointToAngle2(0, 0, src->dx, src->dy);
-
-	angle += ANGLE_180;
-
-	// Sine, cosine of angle adjustment
-	fixed_t s = finesine[angle>>ANGLETOFINESHIFT];
-	fixed_t c = finecosine[angle>>ANGLETOFINESHIFT];
-
-	fixed_t tx, ty;
-
-	nposx = x - src->v1->x;
-	nposy = y - src->v1->y;
+	// offsets from line
+	double nposx = x - src->v1->fX();
+	double nposy = y - src->v1->fY();
 
 	// Rotate position along normal to match exit linedef
-	tx = FixedMul(nposx, c) - FixedMul(nposy, s);
-	ty = FixedMul(nposy, c) + FixedMul(nposx, s);
+	double tx = nposx * port->mCosRot - nposy * port->mSinRot;
+	double ty = nposy * port->mCosRot + nposx * port->mSinRot;
 
-	tx += dst->v2->x;
-	ty += dst->v2->y;
+	tx += port->mDestination->v2->fX();
+	ty += port->mDestination->v2->fY();
 
 	x = tx;
 	y = ty;
@@ -488,22 +611,16 @@ void P_TranslatePortalXY(line_t* src, line_t* dst, fixed_t& x, fixed_t& y)
 //
 //============================================================================
 
-void P_TranslatePortalVXVY(line_t* src, line_t* dst, fixed_t& vx, fixed_t& vy)
+void P_TranslatePortalVXVY(line_t* src, double &velx, double &vely)
 {
-	angle_t angle =
-		R_PointToAngle2(0, 0, dst->dx, dst->dy) -
-		R_PointToAngle2(0, 0, src->dx, src->dy);
+	if (!src) return;
+	FLinePortal *port = src->getPortal();
+	if (!port) return;
 
-	angle += ANGLE_180;
-
-	// Sine, cosine of angle adjustment
-	fixed_t s = finesine[angle>>ANGLETOFINESHIFT];
-	fixed_t c = finecosine[angle>>ANGLETOFINESHIFT];
-
-	fixed_t orig_velx = vx;
-	fixed_t orig_vely = vy;
-	vx = FixedMul(orig_velx, c) - FixedMul(orig_vely, s);
-	vy = FixedMul(orig_vely, c) + FixedMul(orig_velx, s);
+	double orig_velx = velx;
+	double orig_vely = vely;
+	velx = orig_velx * port->mCosRot - orig_vely * port->mSinRot;
+	vely = orig_vely * port->mCosRot - orig_velx * port->mSinRot;
 }
 
 //============================================================================
@@ -512,20 +629,12 @@ void P_TranslatePortalVXVY(line_t* src, line_t* dst, fixed_t& vx, fixed_t& vy)
 //
 //============================================================================
 
-void P_TranslatePortalAngle(line_t* src, line_t* dst, angle_t& angle)
+void P_TranslatePortalAngle(line_t* src, DAngle& angle)
 {
-	if (!src || !dst)
-		return;
-
-	// Get the angle between the two linedefs, for rotating
-	// orientation and velocity. Rotate 180 degrees, and flip
-	// the position across the exit linedef, if reversed.
-	angle_t xangle =
-			R_PointToAngle2(0, 0, dst->dx, dst->dy) -
-			R_PointToAngle2(0, 0, src->dx, src->dy);
-
-	xangle += ANGLE_180;
-	angle += xangle;
+	if (!src) return;
+	FLinePortal *port = src->getPortal();
+	if (!port) return;
+	angle = (angle + port->mAngleDiff).Normalized360();
 }
 
 //============================================================================
@@ -534,20 +643,22 @@ void P_TranslatePortalAngle(line_t* src, line_t* dst, angle_t& angle)
 //
 //============================================================================
 
-void P_TranslatePortalZ(line_t* src, line_t* dst, fixed_t& z)
+void P_TranslatePortalZ(line_t* src, double& z)
 {
 	// args[2] = 0 - no adjustment
 	// args[2] = 1 - adjust by floor difference
 	// args[2] = 2 - adjust by ceiling difference
 
+	// This cannot be precalculated because heights may change.
+	line_t *dst = src->getPortalDestination();
 	switch (src->getPortalAlignment())
 	{
 	case PORG_FLOOR:
-		z = z - src->frontsector->floorplane.ZatPoint(src->v1->x, src->v1->y) + dst->frontsector->floorplane.ZatPoint(dst->v2->x, dst->v2->y);
+		z = z - src->frontsector->floorplane.ZatPoint(src->v1) + dst->frontsector->floorplane.ZatPoint(dst->v2);
 		return;
 
 	case PORG_CEILING:
-		z = z - src->frontsector->ceilingplane.ZatPoint(src->v1->x, src->v1->y) + dst->frontsector->ceilingplane.ZatPoint(dst->v2->x, dst->v2->y);
+		z = z - src->frontsector->ceilingplane.ZatPoint(src->v1) + dst->frontsector->ceilingplane.ZatPoint(dst->v2);
 		return;
 
 	default:
@@ -557,154 +668,142 @@ void P_TranslatePortalZ(line_t* src, line_t* dst, fixed_t& z)
 
 //============================================================================
 //
-// calculate shortest distance from a point (x,y) to a linedef
+// P_GetSkyboxPortal
+//
+// Gets a portal for a SkyViewpoint
+// If none exists yet, it will create a new one.
 //
 //============================================================================
 
-fixed_t P_PointLineDistance(line_t* line, fixed_t x, fixed_t y)
+unsigned P_GetSkyboxPortal(ASkyViewpoint *actor)
 {
-	angle_t angle = R_PointToAngle2(0, 0, line->dx, line->dy);
-	angle += ANGLE_180;
-
-	fixed_t dx = line->v1->x - x;
-	fixed_t dy = line->v1->y - y;
-
-	fixed_t s = finesine[angle>>ANGLETOFINESHIFT];
-	fixed_t c = finecosine[angle>>ANGLETOFINESHIFT];
-
-	fixed_t d2x = FixedMul(dx, c) - FixedMul(dy, s);
-
-	return abs(d2x);
-}
-
-void P_NormalizeVXVY(fixed_t& vx, fixed_t& vy)
-{
-	double _vx = FIXED2DBL(vx);
-	double _vy = FIXED2DBL(vy);
-	double len = sqrt(_vx*_vx+_vy*_vy);
-	vx = FLOAT2FIXED(_vx/len);
-	vy = FLOAT2FIXED(_vy/len);
-}
-
-//============================================================================
-//
-// portal tracer code
-//
-//============================================================================
-
-PortalTracer::PortalTracer(fixed_t startx, fixed_t starty, fixed_t endx, fixed_t endy)
-{
-	this->startx = startx;
-	this->starty = starty;
-	this->endx = endx;
-	this->endy = endy;
-	intx = endx;
-	inty = endy;
-	intxIn = intx;
-	intyIn = inty;
-	z = 0;
-	angle = 0;
-	depth = 0;
-	frac = 0;
-	in = NULL;
-	out = NULL;
-	vx = 0;
-	vy = 0;
-}
-
-bool PortalTracer::TraceStep()
-{
-	if (depth > sv_portal_recursions)
-		return false;
-
-	this->in = NULL;
-	this->out = NULL;
-	this->vx = 0;
-	this->vy = 0;
-
-	int oDepth = depth;
-
-	fixed_t dirx = endx-startx;
-	fixed_t diry = endy-starty;
-	P_NormalizeVXVY(dirx, diry);
-
-	dirx = 0;
-	diry = 0;
-
-	FPathTraverse it(startx-dirx, starty-diry, endx+dirx, endy+diry, PT_ADDLINES | PT_COMPATIBLE);
-
-	intercept_t *in;
-	while ((in = it.Next()))
+	if (actor == NULL) return 1;	// this means a regular sky.
+	for (unsigned i = 0;i<sectorPortals.Size();i++)
 	{
-		line_t* li;
-
-		if (in->isaline)
-		{
-			li = in->d.line;
-
-			if (li->isLinePortal())
-			{
-				if (P_PointOnLineSide(startx-dirx, starty-diry, li))
-					continue; // we're at the back side of this line
-
-				line_t* out = li->getPortalDestination();
-
-				this->in = li;
-				this->out = out;
-
-				// we only know that we crossed it, but we also need to know WHERE we crossed it
-				fixed_t vx = it.Trace().dx;
-				fixed_t vy = it.Trace().dy;
-
-				fixed_t x = it.Trace().x + FixedMul(vx, in->frac);
-				fixed_t y = it.Trace().y + FixedMul(vy, in->frac);
-
-				P_NormalizeVXVY(vx, vy);
-
-				this->vx = vx;
-				this->vy = vy;
-
-				// teleport our trace
-
-				if (!out->backsector)
-				{
-					intx = x + vx;
-					inty = y + vy;
-				}
-				else
-				{
-					intx = x - vx;
-					inty = y - vy;
-				}
-
-				//P_TranslateCoordinatesAndAngle(li, out, startx, starty, noangle);
-				//P_TranslateCoordinatesAndAngle(li, out, endx, endy, angle);
-				//if (hdeltaZ)
-				//	P_TranslateZ(li, out, deltaZ);
-				//P_TranslateCoordinatesAndAngle(li, out, vx, vy, noangle);
-
-				P_TranslatePortalXY(li, out, startx, starty);
-				P_TranslatePortalVXVY(li, out, this->vx, this->vy);
-				intxIn = intx;
-				intyIn = inty;
-				P_TranslatePortalXY(li, out, intx, inty);
-				P_TranslatePortalXY(li, out, endx, endy);
-				P_TranslatePortalAngle(li, out, angle);
-				P_TranslatePortalZ(li, out, z);
-				frac += in->frac;
-				depth++;
-				break; // breaks to outer loop
-			}
-
-			if (!(li->flags & ML_TWOSIDED) || (li->flags & ML_BLOCKEVERYTHING))
-				return false; // stop tracing, 2D blocking line
-		}
+		if (sectorPortals[i].mSkybox == actor) return i;
 	}
-
-	//Printf("returning %d; vx = %.2f; vy = %.2f\n", (oDepth != depth), FIXED2DBL(this->vx), FIXED2DBL(this->vy));
-
-	return (oDepth != depth); // if a portal has been found, return false
+	unsigned i = sectorPortals.Reserve(1);
+	memset(&sectorPortals[i], 0, sizeof(sectorPortals[i]));
+	sectorPortals[i].mType = PORTS_SKYVIEWPOINT;
+	sectorPortals[i].mFlags = actor->GetClass()->IsDescendantOf(RUNTIME_CLASS(ASkyCamCompat)) ? 0 : PORTSF_SKYFLATONLY;
+	sectorPortals[i].mSkybox = actor;
+	sectorPortals[i].mDestination = actor->Sector;
+	return i;
 }
+
+//============================================================================
+//
+// P_GetPortal
+//
+// Creates a portal struct for a linedef-based portal
+//
+//============================================================================
+
+unsigned P_GetPortal(int type, int plane, sector_t *from, sector_t *to, const DVector2 &displacement)
+{
+	unsigned i = sectorPortals.Reserve(1);
+	memset(&sectorPortals[i], 0, sizeof(sectorPortals[i]));
+	sectorPortals[i].mType = type;
+	sectorPortals[i].mPlane = plane;
+	sectorPortals[i].mOrigin = from;
+	sectorPortals[i].mDestination = to;
+	sectorPortals[i].mDisplacement = displacement;
+	sectorPortals[i].mPlaneZ = type == PORTS_LINKEDPORTAL? from->GetPlaneTexZ(plane) : FLT_MAX;
+	return i;
+}
+
+//============================================================================
+//
+// P_GetStackPortal
+//
+// Creates a portal for a stacked sector thing
+//
+//============================================================================
+
+unsigned P_GetStackPortal(AActor *point, int plane)
+{
+	unsigned i = sectorPortals.Reserve(1);
+	memset(&sectorPortals[i], 0, sizeof(sectorPortals[i]));
+	sectorPortals[i].mType = PORTS_STACKEDSECTORTHING;
+	sectorPortals[i].mPlane = plane;
+	sectorPortals[i].mOrigin = point->target->Sector;
+	sectorPortals[i].mDestination = point->Sector;
+	sectorPortals[i].mPlaneZ = FLT_MAX;
+	sectorPortals[i].mSkybox = point;
+	return i;
+}
+
+
+//============================================================================
+//
+// P_GetOffsetPosition
+//
+// Offsets a given coordinate if the trace from the origin crosses an 
+// interactive line-to-line portal.
+//
+//============================================================================
+
+DVector2 P_GetOffsetPosition(double x, double y, double dx, double dy)
+{
+	DVector2 dest(x + dx, y + dy);
+	if (PortalBlockmap.containsLines)
+	{
+		double actx = x, acty = y;
+		// Try some easily discoverable early-out first. If we know that the trace cannot possibly find a portal, this saves us from calling the traverser completely for vast parts of the map.
+		if (dx < 128 && dy < 128)
+		{
+			int blockx = GetBlockX(actx);
+			int blocky = GetBlockY(acty);
+			if (blockx < 0 || blocky < 0 || blockx >= bmapwidth || blocky >= bmapheight || !PortalBlockmap(blockx, blocky).neighborContainsLines) return dest;
+		}
+
+		bool repeat;
+		do
+		{
+			FLinePortalTraverse it;
+			it.init(actx, acty, dx, dy, PT_ADDLINES|PT_DELTA);
+			intercept_t *in;
+
+			repeat = false;
+			while ((in = it.Next()))
+			{
+				// hit a portal line.
+				line_t *line = in->d.line;
+				FLinePortal *port = line->getPortal();
+
+				// Teleport portals are intentionally ignored since skipping this stuff is their entire reason for existence.
+				if (port->mFlags & PORTF_INTERACTIVE)
+				{
+					DVector2 hit = it.InterceptPoint(in);
+
+					if (port->mType == PORTT_LINKED)
+					{
+						// optimized handling for linked portals where we only need to add an offset.
+						hit += port->mDisplacement;
+						dest += port->mDisplacement;
+					}
+					else
+					{
+						// interactive ones are more complex because the vector may be rotated.
+						// Note: There is no z-translation here, there's just too much code in the engine that wouldn't be able to handle interactive portals with a height difference.
+						P_TranslatePortalXY(line, hit.X, hit.Y);
+						P_TranslatePortalXY(line, dest.X, dest.Y);
+					}
+					// update the fields, end this trace and restart from the new position
+					dx = dest.X - hit.X;
+					dy = dest.Y - hit.Y;
+					actx = hit.X;
+					acty = hit.Y;
+					repeat = true;
+				}
+
+				break;
+			}
+		} while (repeat);
+	}
+	return dest;
+}
+
 
 //============================================================================
 //
@@ -754,36 +853,35 @@ static bool CollectSectors(int groupid, sector_t *origin)
 //
 //============================================================================
 
-static void AddDisplacementForPortal(AStackPoint *portal)
+static void AddDisplacementForPortal(FSectorPortal *portal)
 {
-	int thisgroup = portal->Mate->Sector->PortalGroup;
-	int othergroup = portal->Sector->PortalGroup;
+	int thisgroup = portal->mOrigin->PortalGroup;
+	int othergroup = portal->mDestination->PortalGroup;
 	if (thisgroup == othergroup)
 	{
-		Printf("Portal between sectors %d and %d has both sides in same group and will be disabled\n", portal->Sector->sectornum, portal->Mate->Sector->sectornum);
-		portal->special1 = portal->Mate->special1 = SKYBOX_PORTAL;
+		Printf("Portal between sectors %d and %d has both sides in same group and will be disabled\n", portal->mOrigin->sectornum, portal->mDestination->sectornum);
+		portal->mType = PORTS_PORTAL;
 		return;
 	}
 	if (thisgroup <= 0 || thisgroup >= Displacements.size || othergroup <= 0 || othergroup >= Displacements.size)
 	{
-		Printf("Portal between sectors %d and %d has invalid group and will be disabled\n", portal->Sector->sectornum, portal->Mate->Sector->sectornum);
-		portal->special1 = portal->Mate->special1 = SKYBOX_PORTAL;
+		Printf("Portal between sectors %d and %d has invalid group and will be disabled\n", portal->mOrigin->sectornum, portal->mDestination->sectornum);
+		portal->mType = PORTS_PORTAL;
 		return;
 	}
 
 	FDisplacement & disp = Displacements(thisgroup, othergroup);
 	if (!disp.isSet)
 	{
-		disp.x = portal->scaleX;
-		disp.y = portal->scaleY;
+		disp.pos = portal->mDisplacement;
 		disp.isSet = true;
 	}
 	else
 	{
-		if (disp.x != portal->scaleX || disp.y != portal->scaleY)
+		if (disp.pos != portal->mDisplacement)
 		{
-			Printf("Portal between sectors %d and %d has displacement mismatch and will be disabled\n", portal->Sector->sectornum, portal->Mate->Sector->sectornum);
-			portal->special1 = portal->Mate->special1 = SKYBOX_PORTAL;
+			Printf("Portal between sectors %d and %d has displacement mismatch and will be disabled\n", portal->mOrigin->sectornum, portal->mDestination->sectornum);
+			portal->mType = PORTS_PORTAL;
 			return;
 		}
 	}
@@ -810,13 +908,12 @@ static void AddDisplacementForPortal(FLinePortal *portal)
 	FDisplacement & disp = Displacements(thisgroup, othergroup);
 	if (!disp.isSet)
 	{
-		disp.x = portal->mXDisplacement;
-		disp.y = portal->mYDisplacement;
+		disp.pos = portal->mDisplacement;
 		disp.isSet = true;
 	}
 	else
 	{
-		if (disp.x != portal->mXDisplacement || disp.y != portal->mYDisplacement)
+		if (disp.pos != portal->mDisplacement)
 		{
 			Printf("Portal between lines %d and %d has displacement mismatch\n", int(portal->mOrigin - lines), int(portal->mDestination - lines));
 			portal->mType = linePortals[portal->mDestination->portalindex].mType = PORTT_TELEPORT;
@@ -857,15 +954,14 @@ static bool ConnectGroups()
 							FDisplacement &dispxz = Displacements(x, z);
 							if (dispxz.isSet)
 							{
-								if (dispxy.x + dispyz.x != dispxz.x || dispxy.y + dispyz.y != dispxz.y)
+								if (dispxy.pos.X + dispyz.pos.X != dispxz.pos.X || dispxy.pos.Y + dispyz.pos.Y != dispxz.pos.Y)
 								{
 									bogus = true;
 								}
 							}
 							else
 							{
-								dispxz.x = dispxy.x + dispyz.x;
-								dispxz.y = dispxy.y + dispyz.y;
+								dispxz.pos = dispxy.pos + dispyz.pos;
 								dispxz.isSet = true;
 								dispxz.indirect = indirect;
 								changed = true;
@@ -896,56 +992,43 @@ static bool ConnectGroups()
 
 void P_CreateLinkedPortals()
 {
-	TThinkerIterator<AStackPoint> it;
-	AStackPoint *mo;
-	TArray<AStackPoint *> orgs;
-	int id = 0;
+	TArray<FSectorPortal *> orgs;
+	int id = 1;
 	bool bogus = false;
 
-	while ((mo = it.Next()))
+	for(auto &s : sectorPortals)
 	{
-		if (mo->special1 == SKYBOX_LINKEDPORTAL)
+		if (s.mType == PORTS_LINKEDPORTAL)
 		{
-			if (mo->Mate != NULL)
-			{
-				orgs.Push(mo);
-				mo->reactiontime = ++id;
-			}
-			else
-			{
-				// this should never happen, but if it does, the portal needs to be removed
-				mo->Destroy();
-			}
+			orgs.Push(&s);
 		}
 	}
-	if (orgs.Size() == 0)
+	id = 1;
+	if (orgs.Size() != 0)
 	{
-		return;
-	}
-	for (int i = 0; i < numsectors; i++)
-	{
-		for (int j = 0; j < 2; j++)
+		for (int i = 0; i < numsectors; i++)
 		{
-			ASkyViewpoint *box = sectors[i].SkyBoxes[j];
-			if (box != NULL && box->special1 == SKYBOX_LINKEDPORTAL)
+			for (int j = 0; j < 2; j++)
 			{
-				secplane_t &plane = j == 0 ? sectors[i].floorplane : sectors[i].ceilingplane;
-				if (plane.a || plane.b)
+				if (sectors[i].GetPortalType(j) == PORTS_LINKEDPORTAL)
 				{
-					// The engine cannot deal with portals on a sloped plane.
-					sectors[i].SkyBoxes[j] = NULL;
-					Printf("Portal on %s of sector %d is sloped and will be disabled\n", j==0? "floor":"ceiling", i);
+					secplane_t &plane = j == 0 ? sectors[i].floorplane : sectors[i].ceilingplane;
+					if (plane.isSlope())
+					{
+						// The engine cannot deal with portals on a sloped plane.
+						sectors[i].ClearPortal(j);
+						Printf("Portal on %s of sector %d is sloped and will be disabled\n", j == 0 ? "floor" : "ceiling", i);
+					}
 				}
 			}
 		}
-	}
 
-	// Group all sectors, starting at each portal origin.
-	id = 1;
-	for (unsigned i = 0; i < orgs.Size(); i++)
-	{
-		if (CollectSectors(id, orgs[i]->Sector)) id++;
-		if (CollectSectors(id, orgs[i]->Mate->Sector)) id++;
+		// Group all sectors, starting at each portal origin.
+		for (unsigned i = 0; i < orgs.Size(); i++)
+		{
+			if (CollectSectors(id, orgs[i]->mOrigin)) id++;
+			if (CollectSectors(id, orgs[i]->mDestination)) id++;
+		}
 	}
 	for (unsigned i = 0; i < linePortals.Size(); i++)
 	{
@@ -962,17 +1045,9 @@ void P_CreateLinkedPortals()
 	{
 		for (int j = 0; j < 2; j++)
 		{
-			ASkyViewpoint *box = sectors[i].SkyBoxes[j];
-			if (box != NULL)
+			if (sectors[i].GetPortalType(j) == PORTS_LINKEDPORTAL && sectors[i].PortalGroup == 0)
 			{
-				if (box->special1 == SKYBOX_LINKEDPORTAL && sectors[i].PortalGroup == 0)
-				{
-					// Note: the linked actor will be on the other side of the portal.
-					// To get this side's group we will have to look at the mate object.
-					CollectSectors(box->Mate->Sector->PortalGroup, &sectors[i]);
-					// We cannot process the backlink here because all we can access is the anchor object
-					// If necessary that will have to be done for the other side's portal.
-				}
+				CollectSectors(sectors[i].GetOppositePortalGroup(j), &sectors[i]);
 			}
 		}
 	}
@@ -995,7 +1070,7 @@ void P_CreateLinkedPortals()
 			FDisplacement &dispxy = Displacements(x, y);
 			FDisplacement &dispyx = Displacements(y, x);
 			if (dispxy.isSet && dispyx.isSet &&
-				(dispxy.x != -dispyx.x || dispxy.y != -dispyx.y))
+				(dispxy.pos.X != -dispyx.pos.X || dispxy.pos.Y != -dispyx.pos.Y))
 			{
 				int sec1 = -1, sec2 = -1;
 				for (int i = 0; i < numsectors && (sec1 == -1 || sec2 == -1); i++)
@@ -1042,8 +1117,57 @@ void P_CreateLinkedPortals()
 	{
 		sectors[i].CheckPortalPlane(sector_t::floor);
 		sectors[i].CheckPortalPlane(sector_t::ceiling);
+		// set a flag on each line connecting to a plane portal sector. This is used to reduce the amount of checks in P_CheckSight.
+		if (sectors[i].PortalIsLinked(sector_t::floor) || sectors[i].PortalIsLinked(sector_t::ceiling))
+		{
+			for (int j = 0; j < sectors[i].linecount; j++)
+			{
+				sectors[i].lines[j]->flags |= ML_PORTALCONNECT;
+			}
+		}
+		if (sectors[i].PortalIsLinked(sector_t::ceiling) && sectors[i].PortalIsLinked(sector_t::floor))
+		{
+			double cz = sectors[i].GetPortalPlaneZ(sector_t::ceiling);
+			double fz = sectors[i].GetPortalPlaneZ(sector_t::floor);
+			if (cz < fz)
+			{
+				// This is a fatal condition. We have to remove one of the two portals. Choose the one that doesn't match the current plane
+				Printf("Error in sector %d: Ceiling portal at z=%f is below floor portal at z=%f\n", i, cz, fz);
+				double cp = -sectors[i].ceilingplane.fD();
+				double fp = sectors[i].floorplane.fD();
+				if (cp < fp || fz == fp)
+				{
+					sectors[i].ClearPortal(sector_t::ceiling);
+				}
+				else
+				{
+					sectors[i].ClearPortal(sector_t::floor);
+				}
+			}
+		}
+		// mark all sector planes that check out ok for everything.
+		if (sectors[i].PortalIsLinked(sector_t::floor)) sectors[i].planes[sector_t::floor].Flags |= PLANEF_LINKED;
+		if (sectors[i].PortalIsLinked(sector_t::ceiling)) sectors[i].planes[sector_t::ceiling].Flags |= PLANEF_LINKED;
 	}
-	//BuildBlockmap();
+	if (linkedPortals.Size() > 0)
+	{
+		// We need to relink all actors that may touch a linked line portal
+		TThinkerIterator<AActor> it;
+		AActor *actor;
+		while ((actor = it.Next()))
+		{
+			if (!(actor->flags & MF_NOBLOCKMAP))
+			{
+				FPortalGroupArray check(FPortalGroupArray::PGA_NoSectorPortals);
+				P_CollectConnectedGroups(actor->Sector->PortalGroup, actor->Pos(), actor->Top(), actor->radius, check);
+				if (check.Size() > 0)
+				{
+					actor->UnlinkFromWorld();
+					actor->LinkToWorld();
+				}
+			}
+		}
+	}
 }
 
 
@@ -1054,87 +1178,143 @@ void P_CreateLinkedPortals()
 //
 //============================================================================
 
-bool P_CollectConnectedGroups(AActor *actor, fixed_t newx, fixed_t newy, FPortalGroupArray &out)
+bool P_CollectConnectedGroups(int startgroup, const DVector3 &position, double upperz, double checkradius, FPortalGroupArray &out)
 {
 	// Keep this temporary work stuff static. This function can never be called recursively
 	// and this would have to be reallocated for each call otherwise.
 	static FPortalBits processMask;
 	static TArray<FLinePortal*> foundPortals;
+	static TArray<int> groupsToCheck;
 
 	bool retval = false;
-	if (linkedPortals.Size() == 0)
+	out.inited = true;
+
+	processMask.setSize(Displacements.size);
+	if (Displacements.size == 1)
 	{
-		// If there are no portals, all sectors are in group 0.
-		out.Add(0);
+		processMask.setBit(startgroup);
 		return false;
 	}
-	processMask.setSize(linkedPortals.Size());
-	processMask.clear();
-	foundPortals.Clear();
 
-	int thisgroup = actor->Sector->PortalGroup;
-	processMask.setBit(thisgroup);
-	out.Add(thisgroup);
-
-	for (unsigned i = 0; i < linkedPortals.Size(); i++)
+	if (linkedPortals.Size() != 0)
 	{
-		line_t *ld = linkedPortals[i]->mOrigin;
-		int othergroup = ld->frontsector->PortalGroup;
-		FDisplacement &disp = Displacements(thisgroup, othergroup);
-		if (!disp.isSet) continue;	// no connection.
+		processMask.clear();
+		foundPortals.Clear();
 
-		FBoundingBox box(newx + disp.x, newy + disp.y, actor->radius);
+		int thisgroup = startgroup;
+		processMask.setBit(thisgroup);
+		//out.Add(thisgroup);
 
-		if (box.Right() <= ld->bbox[BOXLEFT]
-			|| box.Left() >= ld->bbox[BOXRIGHT]
-			|| box.Top() <= ld->bbox[BOXBOTTOM]
-			|| box.Bottom() >= ld->bbox[BOXTOP])
-			continue;	// not touched
-
-		if (box.BoxOnLineSide(linkedPortals[i]->mOrigin) != -1) continue;	// not touched
-		foundPortals.Push(linkedPortals[i]);
-	}
-	bool foundone = true;
-	while (foundone)
-	{
-		foundone = false;
-		for (int i = foundPortals.Size() - 1; i >= 0; i--)
+		for (unsigned i = 0; i < linkedPortals.Size(); i++)
 		{
-			if (processMask.getBit(foundPortals[i]->mOrigin->frontsector->PortalGroup) && 
-				!processMask.getBit(foundPortals[i]->mDestination->frontsector->PortalGroup))
+			line_t *ld = linkedPortals[i]->mOrigin;
+			int othergroup = ld->frontsector->PortalGroup;
+			FDisplacement &disp = Displacements(thisgroup, othergroup);
+			if (!disp.isSet) continue;	// no connection.
+
+			FBoundingBox box(position.X + disp.pos.X, position.Y + disp.pos.Y, checkradius);
+
+			if (!box.inRange(ld) || box.BoxOnLineSide(linkedPortals[i]->mOrigin) != -1) continue;	// not touched
+			foundPortals.Push(linkedPortals[i]);
+		}
+		bool foundone = true;
+		while (foundone)
+		{
+			foundone = false;
+			for (int i = foundPortals.Size() - 1; i >= 0; i--)
 			{
-				processMask.setBit(foundPortals[i]->mDestination->frontsector->PortalGroup);
-				out.Add(foundPortals[i]->mDestination->frontsector->PortalGroup);
-				foundone = true;
-				retval = true;
-				foundPortals.Delete(i);
+				if (processMask.getBit(foundPortals[i]->mOrigin->frontsector->PortalGroup) &&
+					!processMask.getBit(foundPortals[i]->mDestination->frontsector->PortalGroup))
+				{
+					processMask.setBit(foundPortals[i]->mDestination->frontsector->PortalGroup);
+					out.Add(foundPortals[i]->mDestination->frontsector->PortalGroup);
+					foundone = true;
+					retval = true;
+					foundPortals.Delete(i);
+				}
 			}
 		}
 	}
-	sector_t *sec = P_PointInSector(newx, newy);
-	sector_t *wsec = sec;
-	while (!wsec->PortalBlocksMovement(sector_t::ceiling) && actor->Top() > wsec->SkyBoxes[sector_t::ceiling]->threshold)
+	if (out.method != FPortalGroupArray::PGA_NoSectorPortals)
 	{
-		sector_t *othersec = wsec->SkyBoxes[sector_t::ceiling]->Sector;
-		FDisplacement &disp = Displacements(actor->Sector->PortalGroup, othersec->PortalGroup);
-		fixed_t dx = newx + disp.x;
-		fixed_t dy = newx + disp.y;
-		processMask.setBit(othersec->PortalGroup);
-		out.Add(othersec->PortalGroup);
-		wsec = P_PointInSector(dx, dy);	// get upper sector at the exact spot we want to check and repeat
-		retval = true;
-	}
-	wsec = sec;
-	while (!wsec->PortalBlocksMovement(sector_t::floor) && actor->Z() < wsec->SkyBoxes[sector_t::floor]->threshold)
-	{
-		sector_t *othersec = wsec->SkyBoxes[sector_t::ceiling]->Sector;
-		FDisplacement &disp = Displacements(actor->Sector->PortalGroup, othersec->PortalGroup);
-		fixed_t dx = newx + disp.x;
-		fixed_t dy = newx + disp.y;
-		processMask.setBit(othersec->PortalGroup);
-		out.Add(othersec->PortalGroup);
-		wsec = P_PointInSector(dx, dy);	// get lower sector at the exact spot we want to check and repeat
-		retval = true;
+		sector_t *sec = P_PointInSector(position);
+		sector_t *wsec = sec;
+		while (!wsec->PortalBlocksMovement(sector_t::ceiling) && upperz > wsec->GetPortalPlaneZ(sector_t::ceiling))
+		{
+			int othergroup = wsec->GetOppositePortalGroup(sector_t::ceiling);
+			DVector2 pos = Displacements.getOffset(startgroup, othergroup) + position;
+			processMask.setBit(othergroup);
+			out.Add(othergroup | FPortalGroupArray::UPPER);
+			wsec = P_PointInSector(pos);	// get upper sector at the exact spot we want to check and repeat
+			retval = true;
+		}
+		wsec = sec;
+		while (!wsec->PortalBlocksMovement(sector_t::floor) && position.Z < wsec->GetPortalPlaneZ(sector_t::floor))
+		{
+			int othergroup = wsec->GetOppositePortalGroup(sector_t::floor);
+			DVector2 pos = Displacements.getOffset(startgroup, othergroup) + position;
+			processMask.setBit(othergroup | FPortalGroupArray::LOWER);
+			out.Add(othergroup);
+			wsec = P_PointInSector(pos);	// get lower sector at the exact spot we want to check and repeat
+			retval = true;
+		}
+		if (out.method == FPortalGroupArray::PGA_Full3d && PortalBlockmap.hasLinkedSectorPortals)
+		{
+			groupsToCheck.Clear();
+			groupsToCheck.Push(startgroup);
+			int thisgroup = startgroup;
+			for (unsigned i = 0; i < groupsToCheck.Size();i++)
+			{
+				DVector2 disp = Displacements.getOffset(startgroup, thisgroup & ~FPortalGroupArray::FLAT);
+				FBoundingBox box(position.X + disp.X, position.Y + disp.Y, checkradius);
+				FBlockLinesIterator it(box);
+				line_t *ld;
+				while ((ld = it.Next()))
+				{
+					if (!box.inRange(ld) || box.BoxOnLineSide(ld) != -1)
+						continue;
+
+					if (!(thisgroup & FPortalGroupArray::LOWER))
+					{
+						for (int s = 0; s < 2; s++)
+						{
+							sector_t *sec = s ? ld->backsector : ld->frontsector;
+							if (sec && !(sec->PortalBlocksMovement(sector_t::ceiling)))
+							{
+								if (sec->GetPortalPlaneZ(sector_t::ceiling) < upperz)
+								{
+									int grp = sec->GetOppositePortalGroup(sector_t::ceiling);
+									if (!(processMask.getBit(grp)))
+									{
+										processMask.setBit(grp);
+										groupsToCheck.Push(grp | FPortalGroupArray::UPPER);
+									}
+								}
+							}
+						}
+					}
+					if (!(thisgroup & FPortalGroupArray::UPPER))
+					{
+						for (int s = 0; s < 2; s++)
+						{
+							sector_t *sec = s ? ld->backsector : ld->frontsector;
+							if (sec && !(sec->PortalBlocksMovement(sector_t::floor)))
+							{
+								if (sec->GetPortalPlaneZ(sector_t::floor) > position.Z)
+								{
+									int grp = sec->GetOppositePortalGroup(sector_t::floor);
+									if (!(processMask.getBit(grp)))
+									{
+										processMask.setBit(grp);
+										groupsToCheck.Push(grp | FPortalGroupArray::LOWER);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 	return retval;
 }
@@ -1153,7 +1333,7 @@ CCMD(dumplinktable)
 		for (int y = 1; y < Displacements.size; y++)
 		{
 			FDisplacement &disp = Displacements(x, y);
-			Printf("%c%c(%6d, %6d)", TEXTCOLOR_ESCAPE, 'C' + disp.indirect, disp.x >> FRACBITS, disp.y >> FRACBITS);
+			Printf("%c%c(%6d, %6d)", TEXTCOLOR_ESCAPE, 'C' + disp.indirect, int(disp.pos.X), int(disp.pos.Y));
 		}
 		Printf("\n");
 	}

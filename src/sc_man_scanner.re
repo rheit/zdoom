@@ -49,22 +49,24 @@ std2:
 	TOK2 = (NWS\STOP1);
 	TOKC2 = (NWS\STOPC);
 */
-#define RET(x)	TokenType = x; goto normal_token;
+#define RET(x)	TokenType = (x); goto normal_token;
 	if (tokens && StateMode != 0)
 	{
 	/*!re2c
 		"/*"						{ goto comment; }	/* C comment */
 		"//" (any\"\n")* "\n"		{ goto newline; }	/* C++ comment */
+		("#region"|"#endregion") (any\"\n")* "\n"
+									{ goto newline; }	/* Region blocks [mxd] */
 
 		(["](([\\]["])|[^"])*["])	{ RET(TK_StringConst); }
 		'stop'						{ RET(TK_Stop); }
 		'wait'						{ RET(TK_Wait); }
 		'fail'						{ RET(TK_Fail); }
 		'loop'						{ RET(TK_Loop); }
-		'goto'						{ StateMode = 0; RET(TK_Goto); }
+		'goto'						{ StateMode = 0; StateOptions = false; RET(TK_Goto); }
 		":"							{ RET(':'); }
 		";"							{ RET(';'); }
-		"}"							{ StateMode = 0; RET('}'); }
+		"}"							{ StateMode = 0; StateOptions = false; RET('}'); }
 		
 		WSP+						{ goto std1; }
 		"\n"						{ goto newline; }
@@ -80,6 +82,8 @@ std2:
 	/*!re2c
 		"/*"						{ goto comment; }	/* C comment */
 		"//" (any\"\n")* "\n"		{ goto newline; }	/* C++ comment */
+		("#region"|"#endregion") (any\"\n")* "\n"
+									{ goto newline; }	/* Region blocks [mxd] */
 
 		/* C Keywords */
 		'break'						{ RET(TK_Break); }
@@ -177,16 +181,17 @@ std2:
 		'action'					{ RET(TK_Action); }
 		'readonly'					{ RET(TK_ReadOnly); }
 
+		/* Actor state options */
+		'bright'					{ RET(StateOptions ? TK_Bright : TK_Identifier); }
+		'fast'						{ RET(StateOptions ? TK_Fast : TK_Identifier); }
+		'slow'						{ RET(StateOptions ? TK_Slow : TK_Identifier); }
+		'nodelay'					{ RET(StateOptions ? TK_NoDelay : TK_Identifier); }
+		'canraise'					{ RET(StateOptions ? TK_CanRaise : TK_Identifier); }
+		'offset'					{ RET(StateOptions ? TK_Offset : TK_Identifier); }
+		'light'						{ RET(StateOptions ? TK_Light : TK_Identifier); }
+		
 		/* other DECORATE top level keywords */
 		'#include'					{ RET(TK_Include); }
-		'fixed_t'					{ RET(TK_Fixed_t); }
-		'angle_t'					{ RET(TK_Angle_t); }
-		'abs'						{ RET(TK_Abs); }
-		'random'					{ RET(TK_Random); }
-		'random2'					{ RET(TK_Random2); }
-		'frandom'					{ RET(TK_FRandom); }
-		'randompick'				{ RET(TK_RandomPick); }
-		'frandompick'				{ RET(TK_FRandomPick); }
 
 		L (L|D)*					{ RET(TK_Identifier); }
 
@@ -230,8 +235,8 @@ std2:
 		"<>="						{ RET(TK_LtGtEq); }
 		"**"						{ RET(TK_MulMul); }
 		"::"						{ RET(TK_ColonColon); }
-		";"							{ RET(';'); }
-		"{"							{ RET('{'); }
+		";"							{ StateOptions = false; RET(';'); }
+		"{"							{ StateOptions = false; RET('{'); }
 		"}"							{ RET('}'); }
 		","							{ RET(','); }
 		":"							{ RET(':'); }
@@ -269,6 +274,8 @@ std2:
 	/*!re2c
 		"/*"						{ goto comment; }	/* C comment */
 		("//"|";") (any\"\n")* "\n"	{ goto newline; }	/* C++/Hexen comment */
+		("#region"|"#endregion") (any\"\n")* "\n"
+									{ goto newline; }	/* Region blocks [mxd] */
 
 		WSP+						{ goto std1; }		/* whitespace */
 		"\n"						{ goto newline; }
@@ -287,6 +294,8 @@ std2:
 	/*!re2c
 		"/*"					{ goto comment; }	/* C comment */
 		"//" (any\"\n")* "\n"	{ goto newline; }	/* C++ comment */
+		("#region"|"#endregion") (any\"\n")* "\n"
+									{ goto newline; }	/* Region blocks [mxd] */
 
 		WSP+					{ goto std1; }		/* whitespace */
 		"\n"					{ goto newline; }

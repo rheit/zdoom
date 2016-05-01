@@ -127,7 +127,7 @@ FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool c
 			v = MAKEARGB(1, RPART(c), GPART(c), BPART(c));
 		}
 		ExpVal val;
-		val.Type = VAL_Color;
+		val.Type = TypeColor;
 		val.Int = v;
 		x = new FxConstant(val, sc);
 	}
@@ -473,7 +473,7 @@ static void ParseNativeFunction(FScanner &sc, PClassActor *cls)
 		FScriptPosition::ErrorCounter++;
 	}
 
-	// Read the type and make sure it's int or float.
+	// Read the type and make sure it's acceptable.
 	sc.MustGetAnyToken();
 	switch (sc.TokenType)
 	{
@@ -486,16 +486,11 @@ static void ParseNativeFunction(FScanner &sc, PClassActor *cls)
 		rets.Push(TypeFloat64);
 		break;
 
-	case TK_Angle_t:
-		rets.Push(TypeAngle);
-		break;
-
-	case TK_Fixed_t:
-		rets.Push(TypeFixed);
-		break;
-
 	case TK_State:
 		rets.Push(TypeState);
+		break;
+
+	case TK_Void:
 		break;
 
 	case TK_Identifier:
@@ -531,14 +526,14 @@ static void ParseUserVariable (FScanner &sc, PSymbolTable *symt, PClassActor *cl
 		sc.ScriptError("Native classes may not have user variables");
 	}
 
-	// Read the type and make sure it's int.
+	// Read the type and make sure it's acceptable.
 	sc.MustGetAnyToken();
-	if (sc.TokenType != TK_Int)
+	if (sc.TokenType != TK_Int && sc.TokenType != TK_Float)
 	{
-		sc.ScriptMessage("User variables must be of type int");
+		sc.ScriptMessage("User variables must be of type 'int' or 'float'");
 		FScriptPosition::ErrorCounter++;
 	}
-	type = TypeSInt32;
+	type = sc.TokenType == TK_Int ? (PType *)TypeSInt32 : (PType *)TypeFloat64;
 
 	sc.MustGetToken(TK_Identifier);
 	// For now, restrict user variables to those that begin with "user_" to guarantee
@@ -584,11 +579,9 @@ static void ParseUserVariable (FScanner &sc, PSymbolTable *symt, PClassActor *cl
 	}
 	sc.MustGetToken(';');
 
-	PField *sym = new PField(symname, type, 0);
-	sym->Offset = cls->Extend(sizeof(int) * maxelems);
-	if (symt->AddSymbol(sym) == NULL)
+	PField *sym = cls->AddField(symname, type, 0);
+	if (sym == NULL)
 	{
-		delete sym;
 		sc.ScriptMessage ("'%s' is already defined in '%s'.",
 			symname.GetChars(), cls ? cls->TypeName.GetChars() : "Global");
 		FScriptPosition::ErrorCounter++;
@@ -826,6 +819,7 @@ static bool ParsePropertyParams(FScanner &sc, FPropertyInfo *prop, AActor *defau
 			conv.s = NULL;
 			pref.s = NULL;
 			pref.i = -1;
+			bag.ScriptPosition = sc;
 			switch ((*p) & 223)
 			{
 			case 'X':	// Expression in parentheses or number.
@@ -1283,8 +1277,8 @@ static void ParseDamageDefinition(FScanner &sc)
 		if (sc.Compare("FACTOR"))
 		{
 			sc.MustGetFloat();
-			dtd.DefaultFactor = FLOAT2FIXED(sc.Float);
-			if (!dtd.DefaultFactor) dtd.ReplaceFactor = true; // Multiply by 0 yields 0: FixedMul(damage, FixedMul(factor, 0)) is more wasteful than FixedMul(factor, 0)
+			dtd.DefaultFactor = sc.Float;
+			if (dtd.DefaultFactor == 0) dtd.ReplaceFactor = true;
 		}
 		else if (sc.Compare("REPLACEFACTOR"))
 		{

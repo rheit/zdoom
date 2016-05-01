@@ -58,7 +58,6 @@
 #include "r_3dfloors.h"
 #include "v_palette.h"
 #include "r_data/colormaps.h"
-#include "portal.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -66,6 +65,8 @@
 
 //EXTERN_CVAR (Int, tx)
 //EXTERN_CVAR (Int, ty)
+
+extern subsector_t *InSubsector;
 
 static void R_DrawSkyStriped (visplane_t *pl);
 
@@ -90,16 +91,16 @@ visplane_t 				*ceilingplane;
 // Empirically verified to be fairly uniform:
 
 #define visplane_hash(picnum,lightlevel,height) \
-  ((unsigned)((picnum)*3+(lightlevel)+((height).d)*7) & (MAXVISPLANES-1))
+  ((unsigned)((picnum)*3+(lightlevel)+(FLOAT2FIXED((height).fD()))*7) & (MAXVISPLANES-1))
 
 // These are copies of the main parameters used when drawing stacked sectors.
 // When you change the main parameters, you should copy them here too *unless*
 // you are changing them to draw a stacked sector. Otherwise, stacked sectors
 // won't draw in skyboxes properly.
 int stacked_extralight;
-float stacked_visibility;
-fixed_t stacked_viewx, stacked_viewy, stacked_viewz;
-angle_t stacked_angle;
+double stacked_visibility;
+DVector3 stacked_viewpos;
+DAngle stacked_angle;
 
 
 //
@@ -122,7 +123,7 @@ short					ceilingclip[MAXWIDTH];
 // texture mapping
 //
 
-static fixed_t			planeheight;
+static double			planeheight;
 
 extern "C" {
 //
@@ -140,14 +141,14 @@ fixed_t					pviewx, pviewy;
 void R_DrawTiltedPlane_ASM (int y, int x1);
 }
 
-fixed_t 				yslope[MAXHEIGHT];
+float 					yslope[MAXHEIGHT];
 static fixed_t			xscale, yscale;
-static DWORD			xstepscale, ystepscale;
-static DWORD			basexfrac, baseyfrac;
+static double			xstepscale, ystepscale;
+static double			basexfrac, baseyfrac;
 
 #ifdef X86_ASM
 extern "C" void R_SetSpanSource_ASM (const BYTE *flat);
-extern "C" void STACK_ARGS R_SetSpanSize_ASM (int xbits, int ybits);
+extern "C" void R_SetSpanSize_ASM (int xbits, int ybits);
 extern "C" void R_SetSpanColormap_ASM (BYTE *colormap);
 extern "C" void R_SetTiltedSpanSource_ASM (const BYTE *flat);
 extern "C" BYTE *ds_curcolormap, *ds_cursource, *ds_curtiltedsource;
@@ -204,7 +205,7 @@ void R_DeinitPlanes ()
 void R_MapPlane (int y, int x1)
 {
 	int x2 = spanend[y];
-	fixed_t distance;
+	double distance;
 
 #ifdef RANGECHECK
 	if (x2 < x1 || x1<0 || x2>=viewwidth || (unsigned)y>=(unsigned)viewheight)
@@ -216,18 +217,18 @@ void R_MapPlane (int y, int x1)
 	// [RH] Notice that I dumped the caching scheme used by Doom.
 	// It did not offer any appreciable speedup.
 
-	distance = FixedMul (planeheight, yslope[y]);
+	distance = planeheight * yslope[y];
 
-	ds_xstep = FixedMul (distance, xstepscale);
-	ds_ystep = FixedMul (distance, ystepscale);
-	ds_xfrac = FixedMul (distance, basexfrac) + pviewx;
-	ds_yfrac = FixedMul (distance, baseyfrac) + pviewy;
+	ds_xstep = xs_ToFixed(32-ds_xbits, distance * xstepscale);
+	ds_ystep = xs_ToFixed(32-ds_ybits, distance * ystepscale);
+	ds_xfrac = xs_ToFixed(32-ds_xbits, distance * basexfrac) + pviewx;
+	ds_yfrac = xs_ToFixed(32-ds_ybits, distance * baseyfrac) + pviewy;
 
 	if (plane_shade)
 	{
 		// Determine lighting based on the span's distance from the viewer.
 		ds_colormap = basecolormap->Maps + (GETPALOOKUP (
-			FixedMul (GlobVis, abs (centeryfrac - (y << FRACBITS))), planeshade) << COLORMAPSHIFT);
+			GlobVis * fabs(CenterY - y), planeshade) << COLORMAPSHIFT);
 	}
 
 #ifdef X86_ASM
@@ -252,9 +253,9 @@ void R_MapPlane (int y, int x1)
 //==========================================================================
 
 extern "C" {
-void STACK_ARGS R_CalcTiltedLighting (fixed_t lval, fixed_t lend, int width)
+void R_CalcTiltedLighting (double lval, double lend, int width)
 {
-	fixed_t lstep;
+	double lstep;
 	BYTE *lightfiller;
 	BYTE *basecolormapdata = basecolormap->Maps;
 	int i = 0;
@@ -286,21 +287,21 @@ void STACK_ARGS R_CalcTiltedLighting (fixed_t lval, fixed_t lend, int width)
 		}
 		if (width > 0)
 		{
-			lval = planeshade - lval;
-			lend = planeshade - lend;
+			lval = FIXED2DBL(planeshade) - lval;
+			lend = FIXED2DBL(planeshade) - lend;
 			lstep = (lend - lval) / width;
 			if (lstep < 0)
 			{ // Going from dark to light
-				if (lval < FRACUNIT)
+				if (lval < 1.)
 				{ // All bright
 					lightfiller = basecolormapdata;
 				}
 				else
 				{
-					if (lval >= NUMCOLORMAPS*FRACUNIT)
+					if (lval >= NUMCOLORMAPS)
 					{ // Starts beyond the dark end
 						BYTE *clight = basecolormapdata + ((NUMCOLORMAPS-1) << COLORMAPSHIFT);
-						while (lval >= NUMCOLORMAPS*FRACUNIT && i <= width)
+						while (lval >= NUMCOLORMAPS && i <= width)
 						{
 							tiltlighting[i++] = clight;
 							lval += lstep;
@@ -310,7 +311,7 @@ void STACK_ARGS R_CalcTiltedLighting (fixed_t lval, fixed_t lend, int width)
 					}
 					while (i <= width && lval >= 0)
 					{
-						tiltlighting[i++] = basecolormapdata + ((lval >> FRACBITS) << COLORMAPSHIFT);
+						tiltlighting[i++] = basecolormapdata + (xs_ToInt(lval) << COLORMAPSHIFT);
 						lval += lstep;
 					}
 					lightfiller = basecolormapdata;
@@ -318,7 +319,7 @@ void STACK_ARGS R_CalcTiltedLighting (fixed_t lval, fixed_t lend, int width)
 			}
 			else
 			{ // Going from light to dark
-				if (lval >= (NUMCOLORMAPS-1)*FRACUNIT)
+				if (lval >= (NUMCOLORMAPS-1))
 				{ // All dark
 					lightfiller = basecolormapdata + ((NUMCOLORMAPS-1) << COLORMAPSHIFT);
 				}
@@ -331,9 +332,9 @@ void STACK_ARGS R_CalcTiltedLighting (fixed_t lval, fixed_t lend, int width)
 					}
 					if (i > width)
 						return;
-					while (i <= width && lval < (NUMCOLORMAPS-1)*FRACUNIT)
+					while (i <= width && lval < (NUMCOLORMAPS-1))
 					{
-						tiltlighting[i++] = basecolormapdata + ((lval >> FRACBITS) << COLORMAPSHIFT);
+						tiltlighting[i++] = basecolormapdata + (xs_ToInt(lval) << COLORMAPSHIFT);
 						lval += lstep;
 					}
 					lightfiller = basecolormapdata + ((NUMCOLORMAPS-1) << COLORMAPSHIFT);
@@ -370,7 +371,7 @@ void R_MapTiltedPlane (int y, int x1)
 	{
 		uz = (iz + plane_sz[0]*width) * planelightfloat;
 		vz = iz * planelightfloat;
-		R_CalcTiltedLighting (xs_RoundToInt(vz), xs_RoundToInt(uz), width);
+		R_CalcTiltedLighting (vz, uz, width);
 	}
 
 	uz = plane_su[2] + plane_su[1]*(centery-y) + plane_su[0]*(x1-centerx);
@@ -580,36 +581,35 @@ static visplane_t *new_visplane (unsigned hash)
 // killough 2/28/98: Add offsets
 //==========================================================================
 
-visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightlevel, fixed_t alpha, bool additive,
-						 fixed_t xoffs, fixed_t yoffs,
-						 fixed_t xscale, fixed_t yscale, angle_t angle,
-						 int sky, ASkyViewpoint *skybox)
+visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightlevel, double Alpha, bool additive,
+						const FTransform &xxform,
+						 int sky, FSectorPortal *portal)
 {
 	secplane_t plane;
 	visplane_t *check;
 	unsigned hash;						// killough
 	bool isskybox;
+	const FTransform *xform = &xxform;
+	fixed_t alpha = FLOAT2FIXED(Alpha);
+	//angle_t angle = (xform.Angle + xform.baseAngle).BAMs();
 
 	if (picnum == skyflatnum)	// killough 10/98
 	{ // most skies map together
+		FTransform nulltransform;
 		lightlevel = 0;
-		xoffs = 0;
-		yoffs = 0;
-		xscale = 0;
-		yscale = 0;
-		angle = 0;
-		alpha = 0;
+		xform = &nulltransform;
+		nulltransform.xOffs = nulltransform.yOffs = nulltransform.baseyOffs = 0;
+		nulltransform.xScale = nulltransform.yScale = 1;
+		nulltransform.Angle = nulltransform.baseAngle = 0.0;
 		additive = false;
-		plane.a = plane.b = plane.d = 0;
 		// [RH] Map floor skies and ceiling skies to separate visplanes. This isn't
 		// always necessary, but it is needed if a floor and ceiling sky are in the
 		// same column but separated by a wall. If they both try to reside in the
 		// same visplane, then only the floor sky will be drawn.
-		plane.c = height.c;
-		plane.ic = height.ic;
-		isskybox = skybox != NULL && !skybox->bInSkybox;
+		plane.set(0., 0., height.fC(), 0.);
+		isskybox = portal != NULL && !(portal->mFlags & PORTSF_INSKYBOX);
 	}
-	else if (skybox != NULL && skybox->bAlways && !skybox->bInSkybox)
+	else if (portal != NULL && !(portal->mFlags & PORTSF_INSKYBOX))
 	{
 		plane = height;
 		isskybox = true;
@@ -623,8 +623,8 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 		// and ->alpha is for stacked sectors
 		if (fake3D & (FAKE3D_FAKEFLOOR|FAKE3D_FAKECEILING)) sky = 0x80000000 | fakeAlpha;
 		else sky = 0;	// not skyflatnum so it can't be a sky
-		skybox = NULL;
-		alpha = FRACUNIT;
+		portal = NULL;
+		alpha = OPAQUE;
 	}
 
 	// New visplane algorithm uses hash table -- killough
@@ -634,19 +634,17 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 	{
 		if (isskybox)
 		{
-			if (skybox == check->skybox && plane == check->height)
+			if (portal == check->portal && plane == check->height)
 			{
-				if (skybox->Mate != NULL)
+				if (portal->mType != PORTS_SKYVIEWPOINT)
 				{ // This skybox is really a stacked sector, so we need to
 				  // check even more.
 					if (check->extralight == stacked_extralight &&
 						check->visibility == stacked_visibility &&
-						check->viewx == stacked_viewx &&
-						check->viewy == stacked_viewy &&
-						check->viewz == stacked_viewz &&
+						check->viewpos == stacked_viewpos &&
 						(
 							// headache inducing logic... :(
-							(!(skybox->flags & MF_JUSTATTACKED)) ||
+							(portal->mType != PORTS_STACKEDSECTORTHING) ||
 							(
 								check->Alpha == alpha &&
 								check->Additive == additive &&
@@ -654,12 +652,8 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 									(plane == check->height &&
 									 picnum == check->picnum &&
 									 lightlevel == check->lightlevel &&
-									 xoffs == check->xoffs &&	// killough 2/28/98: Add offset checks
-									 yoffs == check->yoffs &&
 									 basecolormap == check->colormap &&	// [RH] Add more checks
-									 xscale == check->xscale &&
-									 yscale == check->yscale &&
-									 angle == check->angle
+									 *xform == check->xform
 									)
 								) &&
 								check->viewangle == stacked_angle
@@ -680,19 +674,13 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 		if (plane == check->height &&
 			picnum == check->picnum &&
 			lightlevel == check->lightlevel &&
-			xoffs == check->xoffs &&	// killough 2/28/98: Add offset checks
-			yoffs == check->yoffs &&
 			basecolormap == check->colormap &&	// [RH] Add more checks
-			xscale == check->xscale &&
-			yscale == check->yscale &&
-			angle == check->angle && 
+			*xform == check->xform &&
 			sky == check->sky &&
 			CurrentPortalUniq == check->CurrentPortalUniq &&
 			MirrorFlags == check->MirrorFlags &&
 			CurrentSkybox == check->CurrentSkybox &&
-			viewx == check->viewx &&
-			viewy == check->viewy &&
-			viewz == check->viewz
+			ViewPos == check->viewpos
 			)
 		{
 		  return check;
@@ -704,21 +692,15 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 	check->height = plane;
 	check->picnum = picnum;
 	check->lightlevel = lightlevel;
-	check->xoffs = xoffs;				// killough 2/28/98: Save offsets
-	check->yoffs = yoffs;
-	check->xscale = xscale;
-	check->yscale = yscale;
-	check->angle = angle;
+	check->xform = *xform;
 	check->colormap = basecolormap;		// [RH] Save colormap
 	check->sky = sky;
-	check->skybox = skybox;
+	check->portal = portal;
 	check->left = viewwidth;			// Was SCREENWIDTH -- killough 11/98
 	check->right = 0;
 	check->extralight = stacked_extralight;
 	check->visibility = stacked_visibility;
-	check->viewx = stacked_viewx;
-	check->viewy = stacked_viewy;
-	check->viewz = stacked_viewz;
+	check->viewpos = stacked_viewpos;
 	check->viewangle = stacked_angle;
 	check->Alpha = alpha;
 	check->Additive = additive;
@@ -782,7 +764,7 @@ visplane_t *R_CheckPlane (visplane_t *pl, int start, int stop)
 		// make a new visplane
 		unsigned hash;
 
-		if (pl->skybox != NULL && !pl->skybox->bInSkybox && (pl->picnum == skyflatnum || pl->skybox->bAlways) && viewactive)
+		if (pl->portal != NULL && !(pl->portal->mFlags & PORTSF_INSKYBOX) && viewactive)
 		{
 			hash = MAXVISPLANES;
 		}
@@ -795,18 +777,12 @@ visplane_t *R_CheckPlane (visplane_t *pl, int start, int stop)
 		new_pl->height = pl->height;
 		new_pl->picnum = pl->picnum;
 		new_pl->lightlevel = pl->lightlevel;
-		new_pl->xoffs = pl->xoffs;			// killough 2/28/98
-		new_pl->yoffs = pl->yoffs;
-		new_pl->xscale = pl->xscale;		// [RH] copy these, too
-		new_pl->yscale = pl->yscale;
-		new_pl->angle = pl->angle;
+		new_pl->xform = pl->xform;
 		new_pl->colormap = pl->colormap;
-		new_pl->skybox = pl->skybox;
+		new_pl->portal = pl->portal;
 		new_pl->extralight = pl->extralight;
 		new_pl->visibility = pl->visibility;
-		new_pl->viewx = pl->viewx;
-		new_pl->viewy = pl->viewy;
-		new_pl->viewz = pl->viewz;
+		new_pl->viewpos = pl->viewpos;
 		new_pl->viewangle = pl->viewangle;
 		new_pl->sky = pl->sky;
 		new_pl->Alpha = pl->Alpha;
@@ -851,13 +827,13 @@ inline void R_MakeSpans (int x, int t1, int b1, int t2, int b2, void (*mapfunc)(
 static FTexture *frontskytex, *backskytex;
 static angle_t skyflip;
 static int frontpos, backpos;
-static fixed_t frontyScale;
+static double frontyScale;
 static fixed_t frontcyl, backcyl;
-static fixed_t skymid;
+static double skymid;
 static angle_t skyangle;
-int frontiScale;
+static double frontiScale;
 
-extern fixed_t swall[MAXWIDTH];
+extern float swall[MAXWIDTH];
 extern fixed_t lwall[MAXWIDTH];
 extern fixed_t rw_offset;
 extern FTexture *rw_pic;
@@ -925,13 +901,16 @@ static const BYTE *R_GetTwoSkyColumns (FTexture *fronttex, int x)
 static void R_DrawSky (visplane_t *pl)
 {
 	int x;
+	float swal;
 
  	if (pl->left >= pl->right)
 		return;
 
-	dc_iscale = skyiscale;
-
-	clearbuf (swall+pl->left, pl->right-pl->left, dc_iscale<<2);
+	swal = skyiscale;
+	for (x = pl->left; x < pl->right; ++x)
+	{
+		swall[x] = swal;
+	}
 
 	if (MirrorFlags & RF_XFLIP)
 	{
@@ -956,8 +935,8 @@ static void R_DrawSky (visplane_t *pl)
 	rw_pic = frontskytex;
 	rw_offset = 0;
 
-	frontyScale = rw_pic->yScale;
-	dc_texturemid = MulScale16 (skymid, frontyScale);
+	frontyScale = rw_pic->Scale.Y;
+	dc_texturemid = skymid * frontyScale;
 
 	if (1 << frontskytex->HeightBits == frontskytex->GetHeight())
 	{ // The texture tiles nicely
@@ -970,38 +949,26 @@ static void R_DrawSky (visplane_t *pl)
 	}
 	else
 	{ // The texture does not tile nicely
-		frontyScale = DivScale16 (skyscale, frontyScale);
-		frontiScale = DivScale32 (1, frontyScale);
-		// Sodding crap. Fixed point sucks when you want precision.
-		// TODO (if I'm feeling adventurous): Rewrite the renderer to use floating point
-		// coordinates to keep as much precision as possible until the final
-		// rasterization stage so fudges like this aren't needed.
-		if (viewheight <= 600)
-		{
-			skymid -= FRACUNIT;
-		}
+		frontyScale *= skyscale;
+		frontiScale = 1 / frontyScale;
 		R_DrawSkyStriped (pl);
 	}
 }
 
 static void R_DrawSkyStriped (visplane_t *pl)
 {
-	fixed_t centerysave = centeryfrac;
-	short drawheight = (short)MulScale16 (frontskytex->GetHeight(), frontyScale);
-	fixed_t topfrac;
-	fixed_t iscale = frontiScale;
+	short drawheight = short(frontskytex->GetHeight() * frontyScale);
+	double topfrac;
+	double iscale = frontiScale;
 	short top[MAXWIDTH], bot[MAXWIDTH];
 	short yl, yh;
 	int x;
 
-	// So that I don't have to worry about fractional precision, chop off the
-	// fractional part of centeryfrac.
-	centeryfrac = centery << FRACBITS;
-	topfrac = (skymid + iscale * (1-centery)) % (frontskytex->GetHeight() << FRACBITS);
-	if (topfrac < 0) topfrac += frontskytex->GetHeight() << FRACBITS;
+	topfrac = fmod(skymid + iscale * (1 - CenterY), frontskytex->GetHeight());
+	if (topfrac < 0) topfrac += frontskytex->GetHeight();
 	yl = 0;
-	yh = (short)MulScale32 ((frontskytex->GetHeight() << FRACBITS) - topfrac, frontyScale);
-	dc_texturemid = topfrac - iscale * (1-centery);
+	yh = short((frontskytex->GetHeight() - topfrac) * frontyScale);
+	dc_texturemid = topfrac - iscale * (1 - CenterY);
 
 	while (yl < viewheight)
 	{
@@ -1014,13 +981,12 @@ static void R_DrawSkyStriped (visplane_t *pl)
 		{
 			lastskycol[x] = 0xffffffff;
 		}
-		wallscan (pl->left, pl->right, top, bot, swall, lwall, rw_pic->yScale,
+		wallscan (pl->left, pl->right, top, bot, swall, lwall, rw_pic->Scale.Y,
 			backskytex == NULL ? R_GetOneSkyColumn : R_GetTwoSkyColumns);
 		yl = yh;
 		yh += drawheight;
 		dc_texturemid = iscale * (centery-yl-1);
 	}
-	centeryfrac = centerysave;
 }
 
 //==========================================================================
@@ -1060,15 +1026,15 @@ int R_DrawPlanes ()
 }
 
 // kg3D - draw all visplanes with "height"
-void R_DrawHeightPlanes(fixed_t height)
+void R_DrawHeightPlanes(double height)
 {
 	visplane_t *pl;
 	int i;
 
 	ds_color = 3;
 
-	fixed_t oViewX = viewx, oViewY = viewy, oViewZ = viewz;
-	angle_t oViewAngle = viewangle;
+	DVector3 oViewPos = ViewPos;
+	DAngle oViewAngle = ViewAngle;
 
 	for (i = 0; i < MAXVISPLANES; i++)
 	{
@@ -1078,20 +1044,15 @@ void R_DrawHeightPlanes(fixed_t height)
 			if(pl->CurrentSkybox != CurrentSkybox || pl->CurrentPortalUniq != CurrentPortalUniq)
 				continue;
 			if(pl->sky < 0 && pl->height.Zat0() == height) {
-				viewx = pl->viewx;
-				viewy = pl->viewy;
-				viewz = pl->viewz;
-				viewangle = pl->viewangle;
+				ViewPos = pl->viewpos;
+				ViewAngle = pl->viewangle;
 				MirrorFlags = pl->MirrorFlags;
 				R_DrawSinglePlane (pl, pl->sky & 0x7FFFFFFF, pl->Additive, true);
 			}
 		}
 	}
-
-	viewx = oViewX;
-	viewy = oViewY;
-	viewz = oViewZ;
-	viewangle = oViewAngle;
+	ViewPos = oViewPos;
+	ViewAngle = oViewAngle;
 }
 
 
@@ -1105,8 +1066,6 @@ void R_DrawHeightPlanes(fixed_t height)
 
 void R_DrawSinglePlane (visplane_t *pl, fixed_t alpha, bool additive, bool masked)
 {
-//	pl->angle = pa<<ANGLETOFINESHIFT;
-
 	if (pl->left >= pl->right)
 		return;
 
@@ -1137,20 +1096,20 @@ void R_DrawSinglePlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 			masked = false;
 		}
 		R_SetupSpanBits(tex);
-		pl->xscale = MulScale16 (pl->xscale, tex->xScale);
-		pl->yscale = MulScale16 (pl->yscale, tex->yScale);
+		double xscale = pl->xform.xScale * tex->Scale.X;
+		double yscale = pl->xform.yScale * tex->Scale.Y;
 		ds_source = tex->GetPixels ();
 
 		basecolormap = pl->colormap;
 		planeshade = LIGHT2SHADE(pl->lightlevel);
 
-		if (r_drawflat || ((pl->height.a == 0 && pl->height.b == 0) && !tilt))
+		if (r_drawflat || (!pl->height.isSlope() && !tilt))
 		{
-			R_DrawNormalPlane (pl, alpha, additive, masked);
+			R_DrawNormalPlane(pl, xscale, yscale, alpha, additive, masked);
 		}
 		else
 		{
-			R_DrawTiltedPlane (pl, alpha, additive, masked);
+			R_DrawTiltedPlane(pl, xscale, yscale, alpha, additive, masked);
 		}
 	}
 	NetUpdate ();
@@ -1158,7 +1117,7 @@ void R_DrawSinglePlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 
 //==========================================================================
 //
-// R_DrawSkyBoxes
+// R_DrawPortals
 //
 // Draws any recorded sky boxes and then frees them.
 //
@@ -1179,12 +1138,12 @@ void R_DrawSinglePlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 CVAR (Bool, r_skyboxes, true, 0)
 static int numskyboxes;
 
-void R_DrawSkyBoxes ()
+void R_DrawPortals ()
 {
 	static TArray<size_t> interestingStack;
 	static TArray<ptrdiff_t> drawsegStack;
 	static TArray<ptrdiff_t> visspriteStack;
-	static TArray<fixed_t> viewxStack, viewyStack, viewzStack;
+	static TArray<DVector3> viewposStack;
 	static TArray<visplane_t *> visplaneStack;
 
 	numskyboxes = 0;
@@ -1196,15 +1155,13 @@ void R_DrawSkyBoxes ()
 	CurrentPortalInSkybox = true;
 
 	int savedextralight = extralight;
-	fixed_t savedx = viewx;
-	fixed_t savedy = viewy;
-	fixed_t savedz = viewz;
-	angle_t savedangle = viewangle;
+	DVector3 savedpos = ViewPos;
+	DAngle savedangle = ViewAngle;
 	ptrdiff_t savedvissprite_p = vissprite_p - vissprites;
 	ptrdiff_t savedds_p = ds_p - drawsegs;
 	ptrdiff_t savedlastopening = lastopening;
 	size_t savedinteresting = FirstInterestingDrawseg;
-	float savedvisibility = R_GetVisibility ();
+	double savedvisibility = R_GetVisibility();
 	AActor *savedcamera = camera;
 	sector_t *savedsector = viewsector;
 
@@ -1219,7 +1176,7 @@ void R_DrawSkyBoxes ()
 		visplanes[MAXVISPLANES] = pl->next;
 		pl->next = NULL;
 
-		if (pl->right < pl->left || !r_skyboxes || numskyboxes == MAX_SKYBOX_PLANES)
+		if (pl->right < pl->left || !r_skyboxes || numskyboxes == MAX_SKYBOX_PLANES || pl->portal == NULL)
 		{
 			R_DrawSinglePlane (pl, OPAQUE, false, false);
 			*freehead = pl;
@@ -1229,37 +1186,51 @@ void R_DrawSkyBoxes ()
 
 		numskyboxes++;
 
-		ASkyViewpoint *sky = pl->skybox;
-		ASkyViewpoint *mate = sky->Mate;
-
-		if (mate == NULL)
+		FSectorPortal *port = pl->portal;
+		switch (port->mType)
+		{
+		case PORTS_SKYVIEWPOINT:
 		{
 			// Don't let gun flashes brighten the sky box
+			ASkyViewpoint *sky = barrier_cast<ASkyViewpoint*>(port->mSkybox);
 			extralight = 0;
-			R_SetVisibility (sky->args[0] * 0.25f);
+			R_SetVisibility(sky->args[0] * 0.25f);
 
-			fixedvec3 viewpos = sky->InterpolatedPosition(r_TicFrac);
-			viewx = viewpos.x;
-			viewy = viewpos.y;
-			viewz = viewpos.z;
-			viewangle = savedangle + sky->PrevAngle + FixedMul(r_TicFrac, sky->angle - sky->PrevAngle);
+			ViewPos = sky->InterpolatedPosition(r_TicFracF);
+			ViewAngle = savedangle + (sky->PrevAngles.Yaw + deltaangle(sky->PrevAngles.Yaw, sky->Angles.Yaw) * r_TicFracF);
 
 			R_CopyStackedViewParameters();
-		}
-		else
-		{
-			extralight = pl->extralight;
-			R_SetVisibility (pl->visibility);
-			viewx = pl->viewx - sky->Mate->X() + sky->X();
-			viewy = pl->viewy - sky->Mate->Y() + sky->Y();
-			viewz = pl->viewz;
-			viewangle = pl->viewangle;
+			break;
 		}
 
-		sky->bInSkybox = true;
-		if (mate != NULL) mate->bInSkybox = true;
-		camera = sky;
-		viewsector = sky->Sector;
+		case PORTS_STACKEDSECTORTHING:
+		case PORTS_PORTAL:
+		case PORTS_LINKEDPORTAL:
+			extralight = pl->extralight;
+			R_SetVisibility (pl->visibility);
+			ViewPos.X = pl->viewpos.X + port->mDisplacement.X;
+			ViewPos.Y = pl->viewpos.Y + port->mDisplacement.Y;
+			ViewPos.Z = pl->viewpos.Z;
+			ViewAngle = pl->viewangle;
+			break;
+
+		case PORTS_HORIZON:
+		case PORTS_PLANE:
+			// not implemented yet
+
+		default:
+			R_DrawSinglePlane(pl, OPAQUE, false, false);
+			*freehead = pl;
+			freehead = &pl->next;
+			numskyboxes--;
+			continue;
+		}
+
+		port->mFlags |= PORTSF_INSKYBOX;
+		if (port->mPartner > 0) sectorPortals[port->mPartner].mFlags |= PORTSF_INSKYBOX;
+		camera = NULL;
+		viewsector = port->mDestination;
+		assert(viewsector != NULL);
 		R_SetViewAngle ();
 		validcount++;	// Make sure we see all sprites
 
@@ -1310,17 +1281,16 @@ void R_DrawSkyBoxes ()
 		drawsegStack.Push (diffnum);
 		diffnum = firstvissprite - vissprites;
 		visspriteStack.Push (diffnum);
-		viewxStack.Push (viewx);
-		viewyStack.Push (viewy);
-		viewzStack.Push (viewz);
+		viewposStack.Push(ViewPos);
 		visplaneStack.Push (pl);
 
+		InSubsector = NULL;
 		R_RenderBSPNode (nodes + numnodes - 1);
 		R_3D_ResetClip(); // reset clips (floor/ceiling)
 		R_DrawPlanes ();
 
-		sky->bInSkybox = false;
-		if (mate != NULL) mate->bInSkybox = false;
+		port->mFlags &= ~PORTSF_INSKYBOX;
+		if (port->mPartner > 0) sectorPortals[port->mPartner].mFlags &= ~PORTSF_INSKYBOX;
 	}
 
 	// Draw all the masked textures in a second pass, in the reverse order they
@@ -1334,9 +1304,9 @@ void R_DrawSkyBoxes ()
 		firstdrawseg = drawsegs + pd;
 		visspriteStack.Pop (pd);
 		firstvissprite = vissprites + pd;
-		viewxStack.Pop (viewx);	// Masked textures and planes need the view
-		viewyStack.Pop (viewy); // coordinates restored for proper positioning.
-		viewzStack.Pop (viewz);
+
+		// Masked textures and planes need the view coordinates restored for proper positioning.
+		viewposStack.Pop(ViewPos);
 
 		R_DrawMasked ();
 
@@ -1362,12 +1332,10 @@ void R_DrawSkyBoxes ()
 
 	camera = savedcamera;
 	viewsector = savedsector;
-	viewx = savedx;
-	viewy = savedy;
-	viewz = savedz;
-	R_SetVisibility (savedvisibility);
+	ViewPos = savedpos;
+	R_SetVisibility(savedvisibility);
 	extralight = savedextralight;
-	viewangle = savedangle;
+	ViewAngle = savedangle;
 	R_SetViewAngle ();
 
 	CurrentPortalInSkybox = false;
@@ -1407,7 +1375,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 	}
 	sky2tex = sky2texture;
 	skymid = skytexturemid;
-	skyangle = viewangle;
+	skyangle = ViewAngle.BAMs();
 
 	if (pl->picnum == skyflatnum)
 	{
@@ -1464,10 +1432,10 @@ void R_DrawSkyPlane (visplane_t *pl)
 			// to allow sky rotation as well as careful positioning.
 			// However, the offset is scaled very small, so that it
 			// allows a long-period of sky rotation.
-			skyangle += s->GetTextureXOffset(pos);
+			skyangle += FLOAT2FIXED(s->GetTextureXOffset(pos));
 
 			// Vertical offset allows careful sky positioning.
-			skymid = s->GetTextureYOffset(pos) - 28*FRACUNIT;
+			skymid = s->GetTextureYOffset(pos) - 28;
 
 			// We sometimes flip the picture horizontally.
 			//
@@ -1476,10 +1444,11 @@ void R_DrawSkyPlane (visplane_t *pl)
 			// allow old sky textures to be used.
 			skyflip = l->args[2] ? 0u : ~0u;
 
-			frontcyl = MAX(frontskytex->GetWidth(), frontskytex->xScale >> (16 - 10));
+			int frontxscale = int(frontskytex->Scale.X * 1024);
+			frontcyl = MAX(frontskytex->GetWidth(), frontxscale);
 			if (skystretch)
 			{
-				skymid = Scale(skymid, frontskytex->GetScaledHeight(), SKYSTRETCH_HEIGHT);
+				skymid = skymid * frontskytex->GetScaledHeightDouble() / SKYSTRETCH_HEIGHT;
 			}
 		}
 	}
@@ -1512,7 +1481,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 //
 //==========================================================================
 
-void R_DrawNormalPlane (visplane_t *pl, fixed_t alpha, bool additive, bool masked)
+void R_DrawNormalPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t alpha, bool additive, bool masked)
 {
 #ifdef X86_ASM
 	if (ds_source != ds_cursource)
@@ -1526,47 +1495,58 @@ void R_DrawNormalPlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 		return;
 	}
 
-	angle_t planeang = pl->angle;
-	xscale = pl->xscale << (16 - ds_xbits);
-	yscale = pl->yscale << (16 - ds_ybits);
+	double planeang = (pl->xform.Angle + pl->xform.baseAngle).Radians();
+	double xstep, ystep, leftxfrac, leftyfrac, rightxfrac, rightyfrac;
+	double x;
+
+	xscale = xs_ToFixed(32 - ds_xbits, _xscale);
+	yscale = xs_ToFixed(32 - ds_ybits, _yscale);
 	if (planeang != 0)
 	{
-		double rad = ANGLE2RAD(planeang);
-		double cosine = cos(rad), sine = sin(rad);
-
-		pviewx = xs_RoundToInt(pl->xoffs + viewx * cosine - viewy * sine);
-		pviewy = xs_RoundToInt(pl->yoffs - viewx * sine - viewy * cosine);
+		double cosine = cos(planeang), sine = sin(planeang);
+		pviewx = FLOAT2FIXED(pl->xform.xOffs + ViewPos.X * cosine - ViewPos.Y * sine);
+		pviewy = FLOAT2FIXED(pl->xform.yOffs - ViewPos.X * sine - ViewPos.Y * cosine);
 	}
 	else
 	{
-		pviewx = pl->xoffs + viewx;
-		pviewy = pl->yoffs - viewy;
+		pviewx = FLOAT2FIXED(pl->xform.xOffs + ViewPos.X);
+		pviewy = FLOAT2FIXED(pl->xform.yOffs - ViewPos.Y);
 	}
 
 	pviewx = FixedMul (xscale, pviewx);
 	pviewy = FixedMul (yscale, pviewy);
 	
 	// left to right mapping
-	planeang = (viewangle - ANG90 + planeang) >> ANGLETOFINESHIFT;
+	planeang += (ViewAngle - 90).Radians();
+
 	// Scale will be unit scale at FocalLengthX (normally SCREENWIDTH/2) distance
-	xstepscale = Scale (xscale, finecosine[planeang], FocalLengthX);
-	ystepscale = Scale (yscale, -finesine[planeang], FocalLengthX);
+	xstep = cos(planeang) / FocalLengthX;
+	ystep = -sin(planeang) / FocalLengthX;
 
 	// [RH] flip for mirrors
 	if (MirrorFlags & RF_XFLIP)
 	{
-		xstepscale = (DWORD)(-(SDWORD)xstepscale);
-		ystepscale = (DWORD)(-(SDWORD)ystepscale);
+		xstep = -xstep;
+		ystep = -ystep;
 	}
 
-	int x = pl->right - halfviewwidth - 1;
-	planeang = (planeang + (ANG90 >> ANGLETOFINESHIFT)) & FINEMASK;
-	basexfrac = FixedMul (xscale, finecosine[planeang]) + x*xstepscale;
-	baseyfrac = FixedMul (yscale, -finesine[planeang]) + x*ystepscale;
+	planeang += M_PI/2;
+	double cosine = cos(planeang), sine = -sin(planeang);
+	x = pl->right - centerx - 0.5;
+	rightxfrac = _xscale * (cosine + x * xstep);
+	rightyfrac = _yscale * (sine + x * ystep);
+	x = pl->left - centerx - 0.5;
+	leftxfrac = _xscale * (cosine + x * xstep);
+	leftyfrac = _yscale * (sine + x * ystep);
 
-	planeheight = abs (FixedMul (pl->height.d, -pl->height.ic) - viewz);
+	basexfrac = rightxfrac;
+	baseyfrac = rightyfrac;
+	xstepscale = (rightxfrac - leftxfrac) / (pl->right - pl->left);
+	ystepscale = (rightyfrac - leftyfrac) / (pl->right - pl->left);
 
-	GlobVis = FixedDiv (r_FloorVisibility, planeheight);
+	planeheight = fabs(pl->height.Zat0() - ViewPos.Z);
+
+	GlobVis = r_FloorVisibility / planeheight;
 	if (fixedlightlev >= 0)
 		ds_colormap = basecolormap->Maps + fixedlightlev, plane_shade = false;
 	else if (fixedcolormap)
@@ -1630,7 +1610,7 @@ void R_DrawNormalPlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 //
 //==========================================================================
 
-void R_DrawTiltedPlane (visplane_t *pl, fixed_t alpha, bool additive, bool masked)
+void R_DrawTiltedPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t alpha, bool additive, bool masked)
 {
 	static const float ifloatpow2[16] =
 	{
@@ -1644,7 +1624,7 @@ void R_DrawTiltedPlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 	double lxscale, lyscale;
 	double xscale, yscale;
 	FVector3 p, m, n;
-	double ang;
+	double ang, planeang, cosine, sine;
 	double zeroheight;
 
 	if (alpha <= 0)
@@ -1652,60 +1632,64 @@ void R_DrawTiltedPlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 		return;
 	}
 
-	double vx = FIXED2DBL(viewx);
-	double vy = FIXED2DBL(viewy);
-	double vz = FIXED2DBL(viewz);
-
-	lxscale = FIXED2DBL(pl->xscale) * ifloatpow2[ds_xbits];
-	lyscale = FIXED2DBL(pl->yscale) * ifloatpow2[ds_ybits];
+	lxscale = _xscale * ifloatpow2[ds_xbits];
+	lyscale = _yscale * ifloatpow2[ds_ybits];
 	xscale = 64.f / lxscale;
 	yscale = 64.f / lyscale;
-	zeroheight = pl->height.ZatPoint(vx, vy);
+	zeroheight = pl->height.ZatPoint(ViewPos);
 
-	pviewx = MulScale (pl->xoffs, pl->xscale, ds_xbits);
-	pviewy = MulScale (pl->yoffs, pl->yscale, ds_ybits);
+	pviewx = xs_ToFixed(32 - ds_xbits, pl->xform.xOffs * pl->xform.xScale);
+	pviewy = xs_ToFixed(32 - ds_ybits, pl->xform.yOffs * pl->xform.yScale);
+	planeang = (pl->xform.Angle + pl->xform.baseAngle).Radians();
 
 	// p is the texture origin in view space
 	// Don't add in the offsets at this stage, because doing so can result in
 	// errors if the flat is rotated.
-	ang = ANGLE2RAD(ANG270 - viewangle);
-	p[0] = vx * cos(ang) - vy * sin(ang);
-	p[2] = vx * sin(ang) + vy * cos(ang);
-	p[1] = pl->height.ZatPoint(0.0, 0.0) - vz;
+	ang = M_PI*3/2 - ViewAngle.Radians();
+	cosine = cos(ang), sine = sin(ang);
+	p[0] = ViewPos.X * cosine - ViewPos.Y * sine;
+	p[2] = ViewPos.X * sine + ViewPos.Y * cosine;
+	p[1] = pl->height.ZatPoint(0.0, 0.0) - ViewPos.Z;
 
 	// m is the v direction vector in view space
-	ang = ANGLE2RAD(ANG180 - viewangle - pl->angle);
-	m[0] = yscale * cos(ang);
-	m[2] = yscale * sin(ang);
-//	m[1] = FIXED2FLOAT(pl->height.ZatPoint (0, iyscale) - pl->height.ZatPoint (0,0));
+	ang = ang - M_PI / 2 - planeang;
+	cosine = cos(ang), sine = sin(ang);
+	m[0] = yscale * cosine;
+	m[2] = yscale * sine;
+//	m[1] = pl->height.ZatPointF (0, iyscale) - pl->height.ZatPointF (0,0));
 //	VectorScale2 (m, 64.f/VectorLength(m));
 
 	// n is the u direction vector in view space
-	ang += PI/2;
+#if 0
+	//let's use the sin/cosine we already know instead of computing new ones
+	ang += M_PI/2
 	n[0] = -xscale * cos(ang);
 	n[2] = -xscale * sin(ang);
-//	n[1] = FIXED2FLOAT(pl->height.ZatPoint (ixscale, 0) - pl->height.ZatPoint (0,0));
+#else
+	n[0] = xscale * sine;
+	n[2] = -xscale * cosine;
+#endif
+//	n[1] = pl->height.ZatPointF (ixscale, 0) - pl->height.ZatPointF (0,0));
 //	VectorScale2 (n, 64.f/VectorLength(n));
 
 	// This code keeps the texture coordinates constant across the x,y plane no matter
 	// how much you slope the surface. Use the commented-out code above instead to keep
 	// the textures a constant size across the surface's plane instead.
-	ang = ANGLE2RAD(pl->angle);
-	m[1] = pl->height.ZatPoint(vx + yscale * sin(ang), vy + yscale * cos(ang)) - zeroheight;
-	ang += PI/2;
-	n[1] = pl->height.ZatPoint(vx + xscale * sin(ang), vy + xscale * cos(ang)) - zeroheight;
+	cosine = cos(planeang), sine = sin(planeang);
+	m[1] = pl->height.ZatPoint(ViewPos.X + yscale * sine, ViewPos.Y + yscale * cosine) - zeroheight;
+	n[1] = pl->height.ZatPoint(ViewPos.X - xscale * cosine, ViewPos.Y + xscale * sine) - zeroheight;
 
 	plane_su = p ^ m;
 	plane_sv = p ^ n;
 	plane_sz = m ^ n;
 
-	plane_su.Z *= FocalLengthXfloat;
-	plane_sv.Z *= FocalLengthXfloat;
-	plane_sz.Z *= FocalLengthXfloat;
+	plane_su.Z *= FocalLengthX;
+	plane_sv.Z *= FocalLengthX;
+	plane_sz.Z *= FocalLengthX;
 
-	plane_su.Y *= iyaspectmulfloat;
-	plane_sv.Y *= iyaspectmulfloat;
-	plane_sz.Y *= iyaspectmulfloat;
+	plane_su.Y *= IYaspectMul;
+	plane_sv.Y *= IYaspectMul;
+	plane_sz.Y *= IYaspectMul;
 
 	// Premultiply the texture vectors with the scale factors
 	plane_su *= 4294967296.f;
@@ -1718,9 +1702,9 @@ void R_DrawTiltedPlane (visplane_t *pl, fixed_t alpha, bool additive, bool maske
 		plane_sz[0] = -plane_sz[0];
 	}
 
-	planelightfloat = (r_TiltVisibility * lxscale * lyscale) / (fabs(pl->height.ZatPoint(FIXED2DBL(viewx), FIXED2DBL(viewy)) - FIXED2DBL(viewz))) / 65536.0;
+	planelightfloat = (r_TiltVisibility * lxscale * lyscale) / (fabs(pl->height.ZatPoint(ViewPos) - ViewPos.Z)) / 65536.f;
 
-	if (pl->height.c > 0)
+	if (pl->height.fC() > 0)
 		planelightfloat = -planelightfloat;
 
 	if (fixedlightlev >= 0)

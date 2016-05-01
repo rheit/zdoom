@@ -18,8 +18,6 @@ static FRandom pr_snoutattack ("SnoutAttack");
 static FRandom pr_pigattack ("PigAttack");
 static FRandom pr_pigplayerthink ("PigPlayerThink");
 
-extern void AdjustPlayerAngle (AActor *, AActor *);
-
 // Pig player ---------------------------------------------------------------
 
 class APigPlayer : public APlayerPawn
@@ -37,7 +35,7 @@ void APigPlayer::MorphPlayerThink ()
 	{
 		return;
 	}
-	if(!(velx | vely) && pr_pigplayerthink() < 64)
+	if(Vel.X == 0 && Vel.Y == 0 && pr_pigplayerthink() < 64)
 	{ // Snout sniff
 		if (player->ReadyWeapon != NULL)
 		{
@@ -62,12 +60,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_SnoutAttack)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	angle_t angle;
+	DAngle angle;
 	int damage;
-	int slope;
+	DAngle slope;
 	player_t *player;
 	AActor *puff;
-	AActor *linetarget;
+	FTranslatedLineTarget t;
 
 	if (NULL == (player = self->player))
 	{
@@ -75,13 +73,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_SnoutAttack)
 	}
 
 	damage = 3+(pr_snoutattack()&3);
-	angle = player->mo->angle;
-	slope = P_AimLineAttack(player->mo, angle, MELEERANGE, &linetarget);
-	puff = P_LineAttack(player->mo, angle, MELEERANGE, slope, damage, NAME_Melee, "SnoutPuff", true, &linetarget);
+	angle = player->mo->Angles.Yaw;
+	slope = P_AimLineAttack(player->mo, angle, MELEERANGE);
+	puff = P_LineAttack(player->mo, angle, MELEERANGE, slope, damage, NAME_Melee, "SnoutPuff", true, &t);
 	S_Sound(player->mo, CHAN_VOICE, "PigActive", 1, ATTN_NORM);
-	if(linetarget)
+	if(t.linetarget)
 	{
-		AdjustPlayerAngle(player->mo, linetarget);
+		AdjustPlayerAngle(player->mo, &t);
 		if(puff != NULL)
 		{ // Bit something
 			S_Sound(player->mo, CHAN_VOICE, "PigAttack", 1, ATTN_NORM);
@@ -103,7 +101,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PigPain)
 	CALL_ACTION(A_Pain, self);
 	if (self->Z() <= self->floorz)
 	{
-		self->velz = FRACUNIT*7/2;
+		self->Vel.Z = 3.5;
 	}
 	return 0;
 }
