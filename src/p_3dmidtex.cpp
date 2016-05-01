@@ -153,7 +153,7 @@ void P_Attach3dMidtexLinesToSector(sector_t *sector, int lineid, int tag, bool c
 		{
 			line_t *ln = &lines[line];
 
-			if (ln->frontsector == NULL || ln->backsector == NULL || !(ln->flags & ML_3DMIDTEX))
+			if (ln->frontsector == nullptr || ln->backsector == nullptr || !(ln->flags & ML_3DMIDTEX))
 			{
 				// Only consider two-sided lines with the 3DMIDTEX flag
 				continue;
@@ -173,7 +173,7 @@ void P_Attach3dMidtexLinesToSector(sector_t *sector, int lineid, int tag, bool c
 
 				if (lineid != 0 && !tagManager.LineHasID(ln, lineid)) continue;
 
-				if (ln->frontsector == NULL || ln->backsector == NULL || !(ln->flags & ML_3DMIDTEX))
+				if (ln->frontsector == nullptr || ln->backsector == nullptr || !(ln->flags & ML_3DMIDTEX))
 				{
 					// Only consider two-sided lines with the 3DMIDTEX flag
 					continue;
@@ -223,7 +223,7 @@ void P_Attach3dMidtexLinesToSector(sector_t *sector, int lineid, int tag, bool c
 //============================================================================
 bool P_GetMidTexturePosition(const line_t *line, int sideno, double *ptextop, double *ptexbot)
 {
-	if (line->sidedef[0]==NULL || line->sidedef[1]==NULL) return false;
+	if (line->sidedef[0]==nullptr || line->sidedef[1]==nullptr) return false;
 	
 	side_t *side = line->sidedef[sideno];
 	FTextureID texnum = side->GetTexture(side_t::mid);

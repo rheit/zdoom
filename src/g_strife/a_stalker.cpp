@@ -63,7 +63,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_StalkerAttack)
 	{
 		self->SetState (self->FindState("Drop"));
 	}
-	else if (self->target != NULL)
+	else if (self->target != nullptr)
 	{
 		A_FaceTarget (self);
 		if (self->CheckMeleeRange ())

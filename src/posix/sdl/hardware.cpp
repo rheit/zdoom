@@ -60,12 +60,12 @@ void I_ShutdownGraphics ()
 	if (screen)
 	{
 		DFrameBuffer *s = screen;
-		screen = NULL;
+		screen = nullptr;
 		s->ObjectFlags |= OF_YesReallyDelete;
 		delete s;
 	}
 	if (Video)
-		delete Video, Video = NULL;
+		delete Video, Video = nullptr;
 
 	SDL_QuitSubSystem (SDL_INIT_VIDEO);
 }
@@ -86,7 +86,7 @@ void I_InitGraphics ()
 	ticker.SetGenericRepDefault (val, CVAR_Bool);
 
 	Video = new SDLVideo (0);
-	if (Video == NULL)
+	if (Video == nullptr)
 		I_FatalError ("Failed to initialize display");
 
 	atterm (I_ShutdownGraphics);
@@ -96,12 +96,12 @@ void I_InitGraphics ()
 
 static void I_DeleteRenderer()
 {
-	if (Renderer != NULL) delete Renderer;
+	if (Renderer != nullptr) delete Renderer;
 }
 
 void I_CreateRenderer()
 {
-	if (Renderer == NULL)
+	if (Renderer == nullptr)
 	{
 		Renderer = new FSoftwareRenderer;
 		atterm(I_DeleteRenderer);
@@ -130,8 +130,8 @@ DFrameBuffer *I_SetMode (int &width, int &height, DFrameBuffer *old)
 	}
 	DFrameBuffer *res = Video->CreateFrameBuffer (width, height, fs, old);
 
-	/* Right now, CreateFrameBuffer cannot return NULL
-	if (res == NULL)
+	/* Right now, CreateFrameBuffer cannot return nullptr
+	if (res == nullptr)
 	{
 		I_FatalError ("Mode %dx%d is unavailable\n", width, height);
 	}
@@ -144,7 +144,7 @@ bool I_CheckResolution (int width, int height, int bits)
 	int twidth, theight;
 
 	Video->StartModeIterator (bits, screen ? screen->IsFullscreen() : fullscreen);
-	while (Video->NextMode (&twidth, &theight, NULL))
+	while (Video->NextMode (&twidth, &theight, nullptr))
 	{
 		if (width == twidth && height == theight)
 			return true;
@@ -162,7 +162,7 @@ void I_ClosestResolution (int *width, int *height, int bits)
 	for (iteration = 0; iteration < 2; iteration++)
 	{
 		Video->StartModeIterator (bits, screen ? screen->IsFullscreen() : fullscreen);
-		while (Video->NextMode (&twidth, &theight, NULL))
+		while (Video->NextMode (&twidth, &theight, nullptr))
 		{
 			if (twidth == *width && theight == *height)
 				return;
@@ -225,7 +225,7 @@ void I_SetFPSLimit(int limit)
 		FPSLimitEvent.sigev_signo = 0;
 		FPSLimitEvent.sigev_value.sival_int = 0;
 		FPSLimitEvent.sigev_notify_function = FPSLimitNotify;
-		FPSLimitEvent.sigev_notify_attributes = NULL;
+		FPSLimitEvent.sigev_notify_attributes = nullptr;
 
 		SEMAPHORE_INIT(FPSLimitSemaphore, 0, 0)
 	}
@@ -251,7 +251,7 @@ void I_SetFPSLimit(int limit)
 			Printf("Failed to create FPS limitter event\n");
 		itimerspec period = { {0, 0}, {0, 0} };
 		period.it_value.tv_nsec = period.it_interval.tv_nsec = 1000000000 / limit;
-		if(timer_settime(FPSLimitTimer, 0, &period, NULL) == -1)
+		if(timer_settime(FPSLimitTimer, 0, &period, nullptr) == -1)
 			Printf("Failed to set FPS limitter timer\n");
 		DPrintf("FPS timer set to %u ms\n", (unsigned int) period.it_interval.tv_nsec / 1000000);
 	}
@@ -312,7 +312,7 @@ CCMD (vid_listmodes)
 	int width, height, bits;
 	bool letterbox;
 
-	if (Video == NULL)
+	if (Video == nullptr)
 	{
 		return;
 	}

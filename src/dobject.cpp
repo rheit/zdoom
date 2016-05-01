@@ -51,10 +51,10 @@
 
 ClassReg DObject::RegistrationInfo =
 {
-	NULL,							// MyClass
+	nullptr,							// MyClass
 	"DObject",						// Name
-	NULL,							// ParentType
-	NULL,							// Pointers
+	nullptr,							// ParentType
+	nullptr,							// Pointers
 	&DObject::InPlaceConstructor,	// ConstructNative
 	sizeof(DObject),				// SizeOf
 	CLASSREG_PClass,				// MetaClassNum
@@ -77,14 +77,14 @@ CCMD (dumpactors)
 	{
 		PClass *cls = PClass::AllClasses[i];
 		PClassActor *acls = dyn_cast<PClassActor>(cls);
-		if (acls != NULL)
+		if (acls != nullptr)
 		{
 			Printf("%s\t%i\t%i\t%s\t%s\n",
 				acls->TypeName.GetChars(), acls->DoomEdNum,
 				acls->SpawnID, filters[acls->GameFilter & 31],
 				acls->SourceLumpName.GetChars());
 		}
-		else if (cls != NULL)
+		else if (cls != nullptr)
 		{
 			Printf("%s\tn/a\tn/a\tn/a\tEngine (not an actor type)\n", cls->TypeName.GetChars());
 		}
@@ -107,7 +107,7 @@ CCMD (dumpclasses)
 
 		static DumpInfo *FindType (DumpInfo *root, const PClass *type)
 		{
-			if (root == NULL)
+			if (root == nullptr)
 			{
 				return root;
 			}
@@ -115,26 +115,26 @@ CCMD (dumpclasses)
 			{
 				return root;
 			}
-			if (root->Next != NULL)
+			if (root->Next != nullptr)
 			{
 				return FindType (root->Next, type);
 			}
-			if (root->Children != NULL)
+			if (root->Children != nullptr)
 			{
 				return FindType (root->Children, type);
 			}
-			return NULL;
+			return nullptr;
 		}
 
 		static DumpInfo *AddType (DumpInfo **root, const PClass *type)
 		{
 			DumpInfo *info, *parentInfo;
 
-			if (*root == NULL)
+			if (*root == nullptr)
 			{
 				info = new DumpInfo;
 				info->Type = type;
-				info->Next = NULL;
+				info->Next = nullptr;
 				info->Children = *root;
 				*root = info;
 				return info;
@@ -150,13 +150,13 @@ CCMD (dumpclasses)
 			else
 			{
 				parentInfo = FindType (*root, type->ParentClass);
-				if (parentInfo == NULL)
+				if (parentInfo == nullptr)
 				{
 					parentInfo = AddType (root, type->ParentClass);
 				}
 			}
 			// Has this type already been added?
-			for (info = parentInfo->Children; info != NULL; info = info->Next)
+			for (info = parentInfo->Children; info != nullptr; info = info->Next)
 			{
 				if (info->Type == type)
 				{
@@ -166,7 +166,7 @@ CCMD (dumpclasses)
 			info = new DumpInfo;
 			info->Type = type;
 			info->Next = parentInfo->Children;
-			info->Children = NULL;
+			info->Children = nullptr;
 			parentInfo->Children = info;
 			return info;
 		}
@@ -174,11 +174,11 @@ CCMD (dumpclasses)
 		static void PrintTree (DumpInfo *root, int level)
 		{
 			Printf ("%*c%s\n", level, ' ', root->Type->TypeName.GetChars());
-			if (root->Children != NULL)
+			if (root->Children != nullptr)
 			{
 				PrintTree (root->Children, level + 2);
 			}
-			if (root->Next != NULL)
+			if (root->Next != nullptr)
 			{
 				PrintTree (root->Next, level);
 			}
@@ -186,11 +186,11 @@ CCMD (dumpclasses)
 
 		static void FreeTree (DumpInfo *root)
 		{
-			if (root->Children != NULL)
+			if (root->Children != nullptr)
 			{
 				FreeTree (root->Children);
 			}
-			if (root->Next != NULL)
+			if (root->Next != nullptr)
 			{
 				FreeTree (root->Next);
 			}
@@ -200,13 +200,13 @@ CCMD (dumpclasses)
 
 	unsigned int i;
 	int shown, omitted;
-	DumpInfo *tree = NULL;
-	const PClass *root = NULL;
+	DumpInfo *tree = nullptr;
+	const PClass *root = nullptr;
 
 	if (argv.argc() > 1)
 	{
 		root = PClass::FindClass (argv[1]);
-		if (root == NULL)
+		if (root == nullptr)
 		{
 			Printf ("Class '%s' not found\n", argv[1]);
 			return;
@@ -214,11 +214,11 @@ CCMD (dumpclasses)
 	}
 
 	shown = omitted = 0;
-	DumpInfo::AddType (&tree, root != NULL ? root : RUNTIME_CLASS(DObject));
+	DumpInfo::AddType (&tree, root != nullptr ? root : RUNTIME_CLASS(DObject));
 	for (i = 0; i < PClass::AllClasses.Size(); i++)
 	{
 		PClass *cls = PClass::AllClasses[i];
-		if (root == NULL || cls == root || cls->IsDescendantOf(root))
+		if (root == nullptr || cls == root || cls->IsDescendantOf(root))
 		{
 			DumpInfo::AddType (&tree, cls);
 //			Printf (" %s\n", PClass::m_Types[i]->Name + 1);
@@ -267,14 +267,14 @@ DObject::~DObject ()
 			if (!(ObjectFlags & OF_YesReallyDelete))
 			{
 				Printf("Warning: '%s' is freed outside the GC process.\n",
-					type != NULL ? type->TypeName.GetChars() : "==some object==");
+					type != nullptr ? type->TypeName.GetChars() : "==some object==");
 			}
 
-			// Find all pointers that reference this object and NULL them.
-			StaticPointerSubstitution(this, NULL);
+			// Find all pointers that reference this object and nullptr them.
+			StaticPointerSubstitution(this, nullptr);
 
 			// Now unlink this object from the GC list.
-			for (probe = &GC::Root; *probe != NULL; probe = &((*probe)->ObjNext))
+			for (probe = &GC::Root; *probe != nullptr; probe = &((*probe)->ObjNext))
 			{
 				if (*probe == this)
 				{
@@ -290,7 +290,7 @@ DObject::~DObject ()
 			// If it's gray, also unlink it from the gray list.
 			if (this->IsGray())
 			{
-				for (probe = &GC::Gray; *probe != NULL; probe = &((*probe)->GCNext))
+				for (probe = &GC::Gray; *probe != nullptr; probe = &((*probe)->GCNext))
 				{
 					if (*probe == this)
 					{
@@ -315,7 +315,7 @@ size_t DObject::PropagateMark()
 	if (!PClass::bShutdown)
 	{
 		const size_t *offsets = info->FlatPointers;
-		if (offsets == NULL)
+		if (offsets == nullptr)
 		{
 			const_cast<PClass *>(info)->BuildFlatPointers();
 			offsets = info->FlatPointers;
@@ -335,7 +335,7 @@ size_t DObject::PointerSubstitution (DObject *old, DObject *notOld)
 	const PClass *info = GetClass();
 	const size_t *offsets = info->FlatPointers;
 	size_t changed = 0;
-	if (offsets == NULL)
+	if (offsets == nullptr)
 	{
 		const_cast<PClass *>(info)->BuildFlatPointers();
 		offsets = info->FlatPointers;
@@ -360,7 +360,7 @@ size_t DObject::StaticPointerSubstitution (DObject *old, DObject *notOld)
 
 	// Go through all objects.
 	i = 0;DObject *last=0;
-	for (probe = GC::Root; probe != NULL; probe = probe->ObjNext)
+	for (probe = GC::Root; probe != nullptr; probe = probe->ObjNext)
 	{
 		i++;
 		changed += probe->PointerSubstitution(old, notOld);
@@ -394,7 +394,7 @@ size_t DObject::StaticPointerSubstitution (DObject *old, DObject *notOld)
 	}
 
 	// Go through sectors.
-	if (sectors != NULL)
+	if (sectors != nullptr)
 	{
 		for (i = 0; i < numsectors; ++i)
 		{
@@ -422,7 +422,7 @@ void DObject::SerializeUserVars(FArchive &arc)
 	PSymbolTable *symt;
 	FName varname;
 	DWORD count, j;
-	int *varloc = NULL;
+	int *varloc = nullptr;
 
 	symt = &GetClass()->Symbols;
 
@@ -444,11 +444,11 @@ void DObject::SerializeUserVars(FArchive &arc)
 			PField *var = dyn_cast<PField>(symt->FindSymbol(varname, true));
 			DWORD wanted = 0;
 
-			if (var != NULL && !(var->Flags & VARF_Native))
+			if (var != nullptr && !(var->Flags & VARF_Native))
 			{
 				PType *type = var->Type;
 				PArray *arraytype = dyn_cast<PArray>(type);
-				if (arraytype != NULL)
+				if (arraytype != nullptr)
 				{
 					wanted = arraytype->ElementCount;
 					type = arraytype->ElementType;

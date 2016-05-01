@@ -48,7 +48,7 @@ public:
 	void ClearConfig ();
 	FConfigFile &operator= (const FConfigFile &other);
 
-	bool HaveSections () { return Sections != NULL; }
+	bool HaveSections () { return Sections != nullptr; }
 	void CreateSectionAtStart (const char *name);
 	void MoveSectionToStart (const char *name);
 	void SetSectionNote (const char *section, const char *note);

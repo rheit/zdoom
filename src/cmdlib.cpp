@@ -98,15 +98,15 @@ char *copystring (const char *s)
 //
 // ncopystring
 //
-// If the string has no content, returns NULL. Otherwise, returns a copy.
+// If the string has no content, returns nullptr. Otherwise, returns a copy.
 //
 //============================================================================
 
 char *ncopystring (const char *string)
 {
-	if (string == NULL || string[0] == 0)
+	if (string == nullptr || string[0] == 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 	return copystring (string);
 }
@@ -172,7 +172,7 @@ bool FileExists (const char *filename)
 	struct stat buff;
 
 	// [RH] Empty filenames are never there
-	if (filename == NULL || *filename == 0)
+	if (filename == nullptr || *filename == 0)
 		return false;
 
 	return stat(filename, &buff) == 0 && !(buff.st_mode & S_IFDIR);
@@ -188,7 +188,7 @@ bool FileExists (const char *filename)
 
 bool DirEntryExists(const char *pathname)
 {
-	if (pathname == NULL || *pathname == 0)
+	if (pathname == nullptr || *pathname == 0)
 		return false;
 
 	struct stat info;
@@ -397,7 +397,7 @@ bool IsNum (const char *str)
 
 bool CheckWildcards (const char *pattern, const char *text)
 {
-	if (pattern == NULL || text == NULL)
+	if (pattern == nullptr || text == nullptr)
 		return true;
 
 	while (*pattern)
@@ -464,7 +464,7 @@ const char *myasctime ()
 
 	time (&clock);
 	lt = localtime (&clock);
-	if (lt != NULL)
+	if (lt != nullptr)
 	{
 		return asctime (lt);
 	}
@@ -489,8 +489,8 @@ void DoCreatePath(const char *fn)
 	char p[PATH_MAX];
 	int i;
 
-	_splitpath(fn,drive,path,NULL,NULL);
-	_makepath(p,drive,path,NULL,NULL);
+	_splitpath(fn,drive,path,nullptr,nullptr);
+	_makepath(p,drive,path,nullptr,nullptr);
 	i=(int)strlen(p);
 	if (p[i-1]=='/' || p[i-1]=='\\') p[i-1]=0;
 	if (*path) DoCreatePath(p);
@@ -525,7 +525,7 @@ void CreatePath(const char *fn)
 	do
 	{
 		p = strchr(p + 1, '/');
-		if (p != NULL)
+		if (p != nullptr)
 		{
 			*p = '\0';
 		}
@@ -540,7 +540,7 @@ void CreatePath(const char *fn)
 			free(copy);
 			return;
 		}
-exists:	if (p != NULL)
+exists:	if (p != nullptr)
 		{
 			*p = '/';
 		}
@@ -759,7 +759,7 @@ FString strbin1 (const char *start)
 char *CleanseString(char *str)
 {
 	char *escape = strrchr(str, TEXTCOLOR_ESCAPE);
-	if (escape != NULL)
+	if (escape != nullptr)
 	{
 		if (escape[1] == '\0')
 		{
@@ -768,7 +768,7 @@ char *CleanseString(char *str)
 		else if (escape[1] == '[')
 		{
 			char *close = strchr(escape + 2, ']');
-			if (close == NULL)
+			if (close == nullptr)
 			{
 				*escape = '\0';
 			}
@@ -794,18 +794,18 @@ FString ExpandEnvVars(const char *searchpathstring)
 		"_"
 		"abcdefghijklmnopqrstuvwxyz";
 
-	if (searchpathstring == NULL)
+	if (searchpathstring == nullptr)
 		return FString("");
 
 	const char *dollar = strchr(searchpathstring, '$');
-	if (dollar == NULL)
+	if (dollar == nullptr)
 	{
 		return FString(searchpathstring);
 	}
 
 	const char *nextchars = searchpathstring;
 	FString out = FString(searchpathstring, dollar - searchpathstring);
-	while ( (dollar != NULL) && (*nextchars != 0) )
+	while ( (dollar != nullptr) && (*nextchars != 0) )
 	{
 		size_t length = strspn(dollar + 1, envvarnamechars);
 		if (length != 0)
@@ -818,7 +818,7 @@ FString ExpandEnvVars(const char *searchpathstring)
 			else
 			{
 				char *varvalue = getenv(varname);
-				if ( (varvalue != NULL) && (strlen(varvalue) != 0) )
+				if ( (varvalue != nullptr) && (strlen(varvalue) != 0) )
 				{
 					out += varvalue;
 				}
@@ -830,7 +830,7 @@ FString ExpandEnvVars(const char *searchpathstring)
 		}
 		nextchars = dollar + length + 1;
 		dollar = strchr(nextchars, '$');
-		if (dollar != NULL)
+		if (dollar != nullptr)
 		{
 			out += FString(nextchars, dollar - nextchars);
 		}
@@ -856,7 +856,7 @@ FString NicePath(const char *path)
 #ifdef _WIN32
 	return ExpandEnvVars(path);
 #else
-	if (path == NULL || *path == '\0')
+	if (path == nullptr || *path == '\0')
 	{
 		return FString("");
 	}
@@ -876,14 +876,14 @@ FString NicePath(const char *path)
 	else
 	{ // Get somebody else's home directory
 		slash = strchr(path, '/');
-		if (slash == NULL)
+		if (slash == nullptr)
 		{
 			slash = path + strlen(path);
 		}
 		FString who(path, slash - path);
 		pwstruct = getpwnam(who);
 	}
-	if (pwstruct == NULL)
+	if (pwstruct == nullptr)
 	{
 		return ExpandEnvVars(path);
 	}
@@ -964,18 +964,18 @@ void ScanDirectory(TArray<FFileList> &list, const char *dirpath)
 // ScanDirectory
 // Solaris version
 //
-// Given NULL-terminated array of directory paths, create trees for them.
+// Given nullptr-terminated array of directory paths, create trees for them.
 //
 //==========================================================================
 
 void ScanDirectory(TArray<FFileList> &list, const char *dirpath)
 {
 	DIR *directory = opendir(dirpath);
-	if(directory == NULL)
+	if(directory == nullptr)
 		return;
 
 	struct dirent *file;
-	while((file = readdir(directory)) != NULL)
+	while((file = readdir(directory)) != nullptr)
 	{
 		if(file->d_name[0] == '.') //File is hidden or ./.. directory so ignore it.
 			continue;
@@ -1010,19 +1010,19 @@ void ScanDirectory(TArray<FFileList> &list, const char *dirpath)
 
 void ScanDirectory(TArray<FFileList> &list, const char *dirpath)
 {
-	char * const argv[] = {new char[strlen(dirpath)+1], NULL };
+	char * const argv[] = {new char[strlen(dirpath)+1], nullptr };
 	memcpy(argv[0], dirpath, strlen(dirpath)+1);
 	FTS *fts;
 	FTSENT *ent;
 
-	fts = fts_open(argv, FTS_LOGICAL, NULL);
-	if (fts == NULL)
+	fts = fts_open(argv, FTS_LOGICAL, nullptr);
+	if (fts == nullptr)
 	{
 		I_Error("Failed to start directory traversal: %s\n", strerror(errno));
 		delete[] argv[0];
 		return;
 	}
-	while ((ent = fts_read(fts)) != NULL)
+	while ((ent = fts_read(fts)) != nullptr)
 	{
 		if (ent->fts_info == FTS_D && ent->fts_name[0] == '.')
 		{

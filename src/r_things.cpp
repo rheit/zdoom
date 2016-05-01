@@ -163,28 +163,28 @@ void R_DeinitSprites()
 		delete vissprites[i];
 	}
 	free (vissprites);
-	vissprites = NULL;
-	vissprite_p = lastvissprite = NULL;
+	vissprites = nullptr;
+	vissprite_p = lastvissprite = nullptr;
 	MaxVisSprites = 0;
 
 	// Free vissprites sorter
-	if (spritesorter != NULL)
+	if (spritesorter != nullptr)
 	{
 		delete[] spritesorter;
 		spritesortersize = 0;
-		spritesorter = NULL;
+		spritesorter = nullptr;
 	}
 
 	// Free offscreen buffer
-	if (OffscreenColorBuffer != NULL)
+	if (OffscreenColorBuffer != nullptr)
 	{
 		delete[] OffscreenColorBuffer;
-		OffscreenColorBuffer = NULL;
+		OffscreenColorBuffer = nullptr;
 	}
-	if (OffscreenCoverageBuffer != NULL)
+	if (OffscreenCoverageBuffer != nullptr)
 	{
 		delete OffscreenCoverageBuffer;
-		OffscreenCoverageBuffer = NULL;
+		OffscreenCoverageBuffer = nullptr;
 	}
 	OffscreenBufferHeight = OffscreenBufferWidth = 0;
 }
@@ -538,7 +538,7 @@ void R_DrawWallSprite(vissprite_t *spr)
 	rw_light = rw_lightleft + (x1 - spr->wallc.sx1) * rw_lightstep;
 	if (fixedlightlev >= 0)
 		dc_colormap = usecolormap->Maps + fixedlightlev;
-	else if (fixedcolormap != NULL)
+	else if (fixedcolormap != nullptr)
 		dc_colormap = fixedcolormap;
 	else if (!foggy && (spr->renderflags & RF_FULLBRIGHT))
 		dc_colormap = usecolormap->Maps;
@@ -691,7 +691,7 @@ void R_DrawVisVoxel(vissprite_t *spr, int minslabz, int maxslabz, short *cliptop
 			{
 				rt_initcols(OffscreenColorBuffer + x * OffscreenBufferHeight);
 			}
-			for (FCoverageBuffer::Span *span = OffscreenCoverageBuffer->Spans[x]; span != NULL; span = span->NextSpan)
+			for (FCoverageBuffer::Span *span = OffscreenCoverageBuffer->Spans[x]; span != nullptr; span = span->NextSpan)
 			{
 				if (flags & DVF_SPANSONLY)
 				{
@@ -751,7 +751,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	sector_t*			heightsec;			// killough 3/27/98
 
 	// Don't waste time projecting sprites that are definitely not visible.
-	if (thing == NULL ||
+	if (thing == nullptr ||
 		(thing->renderflags & RF_INVISIBLE) ||
 		!thing->RenderStyle.IsVisible(thing->Alpha) ||
 		!thing->IsVisibleToPlayer())
@@ -768,8 +768,8 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	DVector3 pos = thing->InterpolatedPosition(r_TicFracF);
 	pos.Z += thing->GetBobOffset(r_TicFracF);
 
-	tex = NULL;
-	voxel = NULL;
+	tex = nullptr;
+	voxel = nullptr;
 
 	int spritenum = thing->sprite;
 	DVector2 spriteScale = thing->Scale;
@@ -779,7 +779,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 		spriteScale.Y = -spriteScale.Y;
 		renderflags ^= RF_YFLIP;
 	}
-	if (thing->player != NULL)
+	if (thing->player != nullptr)
 	{
 		P_CheckPlayerSprite(thing, spritenum, spriteScale);
 	}
@@ -864,7 +864,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 		spriteScale.X = -spriteScale.X;
 		renderflags ^= RF_XFLIP;
 	}
-	if (voxel == NULL && (tex == NULL || tex->UseType == FTexture::TEX_Null))
+	if (voxel == nullptr && (tex == nullptr || tex->UseType == FTexture::TEX_Null))
 	{
 		return;
 	}
@@ -882,7 +882,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	tz = tr_x * ViewTanCos + tr_y * ViewTanSin;
 
 	// thing is behind view plane?
-	if (voxel == NULL && tz < MINZ)
+	if (voxel == nullptr && tz < MINZ)
 		return;
 
 	tx = tr_x * ViewSin - tr_y * ViewCos;
@@ -896,13 +896,13 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 
 	// too far off the side?
 	// if it's a voxel, it can be further off the side
-	if ((voxel == NULL && (fabs(tx / 64) > fabs(tz))) ||
-		(voxel != NULL && (fabs(tx / 128) > abs(tz))))
+	if ((voxel == nullptr && (fabs(tx / 64) > fabs(tz))) ||
+		(voxel != nullptr && (fabs(tx / 128) > abs(tz))))
 	{
 		return;
 	}
 
-	if (voxel == NULL)
+	if (voxel == nullptr)
 	{
 		// [RH] Added scaling
 		int scaled_to = tex->GetScaledTopOffset();
@@ -927,7 +927,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 
 	heightsec = thing->Sector->GetHeightSec();
 
-	if (heightsec != NULL)	// only clip things which are in special sectors
+	if (heightsec != nullptr)	// only clip things which are in special sectors
 	{
 		if (fakeside == FAKED_AboveCeiling)
 		{
@@ -948,7 +948,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 		}
 	}
 
-	if (voxel == NULL)
+	if (voxel == nullptr)
 	{
 		xscale = CenterX / tz;
 
@@ -1060,7 +1060,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	vis->bInMirror = MirrorFlags & RF_XFLIP;
 	vis->bSplitSprite = false;
 
-	if (voxel != NULL)
+	if (voxel != nullptr)
 	{
 		vis->voxel = voxel->Voxel;
 		vis->bIsVoxel = true;
@@ -1106,7 +1106,7 @@ void R_ProjectSprite (AActor *thing, int fakeside, F3DFloor *fakefloor, F3DFloor
 	}
 
 	// get light level
-	if (fixedcolormap != NULL)
+	if (fixedcolormap != nullptr)
 	{ // fixed map
 		vis->Style.colormap = fixedcolormap;
 	}
@@ -1182,7 +1182,7 @@ static void R_ProjectWallSprite(AActor *thing, const DVector3 &pos, FTextureID p
 	vis->idepth = float(1 / tz);
 	vis->depth = (float)tz;
 	vis->sector = thing->Sector;
-	vis->heightsec = NULL;
+	vis->heightsec = nullptr;
 	vis->gpos = { (float)pos.X, (float)pos.Y, (float)pos.Z };
 	vis->gzb = (float)gzb;
 	vis->gzt = (float)gzt;
@@ -1195,8 +1195,8 @@ static void R_ProjectWallSprite(AActor *thing, const DVector3 &pos, FTextureID p
 	vis->Translation = thing->Translation;
 	vis->FakeFlatStat = 0;
 	vis->Style.Alpha = float(thing->Alpha);
-	vis->fakefloor = NULL;
-	vis->fakeceiling = NULL;
+	vis->fakefloor = nullptr;
+	vis->fakeceiling = nullptr;
 	vis->ColormapNum = 0;
 	vis->bInMirror = MirrorFlags & RF_XFLIP;
 	vis->pic = pic;
@@ -1217,14 +1217,14 @@ static void R_ProjectWallSprite(AActor *thing, const DVector3 &pos, FTextureID p
 void R_AddSprites (sector_t *sec, int lightlevel, int fakeside)
 {
 	AActor *thing;
-	F3DFloor *fakeceiling = NULL;
-	F3DFloor *fakefloor = NULL;
+	F3DFloor *fakeceiling = nullptr;
+	F3DFloor *fakefloor = nullptr;
 
 	// BSP is traversed by subsector.
 	// A sector might have been split into several
 	//	subsectors during BSP building.
 	// Thus we check whether it was already added.
-	if (sec->thinglist == NULL || sec->validcount == validcount)
+	if (sec->thinglist == nullptr || sec->validcount == validcount)
 		return;
 
 	// Well, now it will be done.
@@ -1236,7 +1236,7 @@ void R_AddSprites (sector_t *sec, int lightlevel, int fakeside)
 	for (thing = sec->thinglist; thing; thing = thing->snext)
 	{
 		FIntCVar *cvar = thing->GetClass()->distancecheck;
-		if (cvar != NULL && *cvar >= 0)
+		if (cvar != nullptr && *cvar >= 0)
 		{
 			double dist = (thing->Pos() - ViewPos).LengthSquared();
 			double check = (double)**cvar;
@@ -1264,8 +1264,8 @@ void R_AddSprites (sector_t *sec, int lightlevel, int fakeside)
 			}
 		}	
 		R_ProjectSprite (thing, fakeside, fakefloor, fakeceiling);
-		fakeceiling = NULL;
-		fakefloor = NULL;
+		fakeceiling = nullptr;
+		fakefloor = nullptr;
 	}
 }
 
@@ -1290,7 +1290,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, double sx, double 
 
 	assert(pspnum >= 0 && pspnum < NUMPSPRITES);
 
-	if (avisp[0] == NULL)
+	if (avisp[0] == nullptr)
 	{
 		for (unsigned i = 0; i < countof(avis); ++i)
 		{
@@ -1347,12 +1347,12 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, double sx, double 
 		viewheight == RenderTarget->GetHeight() ||
 		(RenderTarget->GetWidth() > 320 && !st_scale)))
 	{	// Adjust PSprite for fullscreen views
-		AWeapon *weapon = NULL;
-		if (camera->player != NULL)
+		AWeapon *weapon = nullptr;
+		if (camera->player != nullptr)
 		{
 			weapon = camera->player->ReadyWeapon;
 		}
-		if (pspnum <= ps_flash && weapon != NULL && weapon->YAdjust != 0)
+		if (pspnum <= ps_flash && weapon != nullptr && weapon->YAdjust != 0)
 		{
 			if (RenderTarget != screen || viewheight == RenderTarget->GetHeight())
 			{
@@ -1391,7 +1391,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, double sx, double 
 		vis->startfrac += vis->xiscale*(vis->x1-x1);
 
 	noaccel = false;
-	FDynamicColormap *colormap_to_use = NULL;
+	FDynamicColormap *colormap_to_use = nullptr;
 	if (pspnum <= ps_flash)
 	{
 		vis->Style.Alpha = float(owner->Alpha);
@@ -1422,7 +1422,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, double sx, double 
 			}
 		}
 
-		if (realfixedcolormap != NULL)
+		if (realfixedcolormap != nullptr)
 		{ // fixed color
 			vis->Style.colormap = realfixedcolormap->Colormap;
 		}
@@ -1445,7 +1445,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, double sx, double 
 				vis->Style.colormap = mybasecolormap->Maps + (GETPALOOKUP (0, spriteshade) << COLORMAPSHIFT);
 			}
 		}
-		if (camera->Inventory != NULL)
+		if (camera->Inventory != nullptr)
 		{
 			lighttable_t *oldcolormap = vis->Style.colormap;
 			camera->Inventory->AlterWeaponSprite (&vis->Style);
@@ -1482,7 +1482,7 @@ void R_DrawPSprite (pspdef_t* psp, int pspnum, AActor *owner, double sx, double 
 		}
 		// If the main colormap has fixed lights, and this sprite is being drawn with that
 		// colormap, disable acceleration so that the lights can remain fixed.
-		if (!noaccel && realfixedcolormap == NULL &&
+		if (!noaccel && realfixedcolormap == nullptr &&
 			NormalLightHasFixedLights && mybasecolormap == &NormalLight &&
 			vis->pic->UseBasePalette())
 		{
@@ -1528,7 +1528,7 @@ void R_DrawPlayerSprites ()
 	int 		i;
 	int 		lightnum;
 	pspdef_t*	psp;
-	sector_t*	sec = NULL;
+	sector_t*	sec = nullptr;
 	static sector_t tempsec;
 	int			floorlight, ceilinglight;
 	F3DFloor *rover;
@@ -1582,7 +1582,7 @@ void R_DrawPlayerSprites ()
 	mfloorclip = screenheightarray;
 	mceilingclip = zeroarray;
 
-	if (camera->player != NULL)
+	if (camera->player != nullptr)
 	{
 		double centerhack = CenterY;
 		float ofsx, ofsy;
@@ -1597,7 +1597,7 @@ void R_DrawPlayerSprites ()
 			 i++, psp++)
 		{
 			// [RH] Don't draw the targeter's crosshair if the player already has a crosshair set.
-			if (psp->state && (i != ps_targetcenter || CrosshairImage == NULL))
+			if (psp->state && (i != ps_targetcenter || CrosshairImage == nullptr))
 			{
 				R_DrawPSprite (psp, i, camera, psp->sx + ofsx, psp->sy + ofsy);
 			}
@@ -1628,13 +1628,13 @@ void R_DrawRemainingPlayerSprites()
 		vissprite_t *vis;
 		
 		vis = VisPSprites[i];
-		VisPSprites[i] = NULL;
+		VisPSprites[i] = nullptr;
 
-		if (vis != NULL)
+		if (vis != nullptr)
 		{
 			FDynamicColormap *colormap = VisPSpritesBaseColormap[i];
 			bool flip = vis->xiscale < 0;
-			FSpecialColormap *special = NULL;
+			FSpecialColormap *special = nullptr;
 			PalEntry overlay = 0;
 			FColormapStyle colormapstyle;
 			bool usecolormapstyle = false;
@@ -1678,7 +1678,7 @@ void R_DrawRemainingPlayerSprites()
 				DTA_FillColor, vis->FillColor,
 				DTA_SpecialColormap, special,
 				DTA_ColorOverlay, overlay.d,
-				DTA_ColormapStyle, usecolormapstyle ? &colormapstyle : NULL,
+				DTA_ColormapStyle, usecolormapstyle ? &colormapstyle : nullptr,
 				TAG_DONE);
 		}
 	}
@@ -1745,7 +1745,7 @@ void R_SplitVisSprites ()
 	// Sort drawsegs from left to right
 	if (numdrawsegs > drawsegsortersize)
 	{
-		if (drawsegsorter != NULL)
+		if (drawsegsorter != nullptr)
 			delete[] drawsegsorter;
 		drawsegsortersize = numdrawsegs * 2;
 		drawsegsorter = new drawseg_t *[drawsegsortersize];
@@ -1862,7 +1862,7 @@ void R_SortVisSprites (bool (*compare)(vissprite_t *, vissprite_t *), size_t fir
 
 	if (spritesortersize < MaxVisSprites)
 	{
-		if (spritesorter != NULL)
+		if (spritesorter != nullptr)
 			delete[] spritesorter;
 		spritesorter = new vissprite_t *[MaxVisSprites];
 		spritesortersize = MaxVisSprites;
@@ -1907,7 +1907,7 @@ void R_DrawSprite (vissprite_t *spr)
 	FDynamicColormap *mybasecolormap;
 
 	// [RH] Check for particles
-	if (!spr->bIsVoxel && spr->pic == NULL)
+	if (!spr->bIsVoxel && spr->pic == nullptr)
 	{
 		// kg3D - reject invisible parts
 		if ((fake3D & FAKE3D_CLIPBOTTOM) && spr->gpos.Z <= sclipBottom) return;
@@ -1924,7 +1924,7 @@ void R_DrawSprite (vissprite_t *spr)
 		return;
 
 	// [RH] Sprites split behind a one-sided line can also be discarded.
-	if (spr->sector == NULL)
+	if (spr->sector == nullptr)
 		return;
 
 	// kg3D - reject invisible parts
@@ -1938,7 +1938,7 @@ void R_DrawSprite (vissprite_t *spr)
 		{
 			sclipTop = spr->sector->ceilingplane.ZatPoint(ViewPos);
 		}
-		sector_t *sec = NULL;
+		sector_t *sec = nullptr;
 		for (i = spr->sector->e->XFloor.lightlist.Size() - 1; i >= 0; i--)
 		{
 			if (sclipTop <= spr->sector->e->XFloor.lightlist[i].plane.Zat0()) 
@@ -2116,7 +2116,7 @@ void R_DrawSprite (vissprite_t *spr)
 		if (!spr->bIsVoxel)
 		{
 			double hz = sclipTop;
-			if (spr->fakeceiling != NULL)
+			if (spr->fakeceiling != nullptr)
 			{
 				double ceilingZ = spr->fakeceiling->bottom.plane->Zat0();
 				if (ViewPos.Z < ceilingZ && ceilingZ == sclipTop)
@@ -2138,7 +2138,7 @@ void R_DrawSprite (vissprite_t *spr)
 	// by the sector's floor and ceiling. (Not sure how/if to handle this
 	// with fake floors, since those already do clipping.)
 	if (spr->bSplitSprite &&
-		(spr->heightsec == NULL || (spr->heightsec->MoreFlags & SECF_IGNOREHEIGHTSEC)))
+		(spr->heightsec == nullptr || (spr->heightsec->MoreFlags & SECF_IGNOREHEIGHTSEC)))
 	{
 		fixed_t h = spr->sector->floorplane.ZatPoint (spr->gx, spr->gy);
 		h = (centeryfrac - FixedMul (h-viewz, scale)) >> FRACBITS;
@@ -2361,7 +2361,7 @@ void R_DrawMasked (void)
 	R_CollectPortals();
 	R_SortVisSprites (DrewAVoxel ? sv_compare2d : sv_compare, firstvissprite - vissprites);
 
-	if (height_top == NULL)
+	if (height_top == nullptr)
 	{ // kg3D - no visible 3D floors, normal rendering
 		R_DrawMaskedSingle(false);
 	}
@@ -2370,7 +2370,7 @@ void R_DrawMasked (void)
 		HeightLevel *hl;
 
 		// ceilings
-		for (hl = height_cur; hl != NULL && hl->height >= ViewPos.Z; hl = hl->prev)
+		for (hl = height_cur; hl != nullptr && hl->height >= ViewPos.Z; hl = hl->prev)
 		{
 			if (hl->next)
 			{
@@ -2391,7 +2391,7 @@ void R_DrawMasked (void)
 		sclipTop = height_top->height;
 		R_DrawMaskedSingle(true);
 		hl = height_top;
-		for (hl = height_top; hl != NULL && hl->height < ViewPos.Z; hl = hl->next)
+		for (hl = height_top; hl != nullptr && hl->height < ViewPos.Z; hl = hl->next)
 		{
 			R_DrawHeightPlanes(hl->height);
 			if (hl->next)
@@ -2421,7 +2421,7 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 	double	 			xscale, yscale;
 	int 				x1, x2, y1, y2;
 	vissprite_t*		vis;
-	sector_t*			heightsec = NULL;
+	sector_t*			heightsec = nullptr;
 	BYTE*				map;
 
 	// [ZZ] Particle not visible through the portal plane
@@ -2544,7 +2544,7 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int shade,
 	vis->x2 = x2;
 	vis->Translation = 0;
 	vis->startfrac = 255 & (particle->color >>24);
-	vis->pic = NULL;
+	vis->pic = nullptr;
 	vis->bIsVoxel = false;
 	vis->renderflags = particle->trans;
 	vis->FakeFlatStat = fakeside;
@@ -2715,7 +2715,7 @@ void R_DrawVoxel(const FVector3 &globalpos, FAngle viewangle,
 	}
 	if (k >= voxobj->NumMips) k = voxobj->NumMips - 1;
 
-	mip = &voxobj->Mips[k];		if (mip->SlabData == NULL) return;
+	mip = &voxobj->Mips[k];		if (mip->SlabData == nullptr) return;
 
 	minslabz >>= k;
 	maxslabz >>= k;
@@ -2996,7 +2996,7 @@ void R_DrawVoxel(const FVector3 &globalpos, FAngle viewangle,
 //==========================================================================
 
 FCoverageBuffer::FCoverageBuffer(int lists)
-	: Spans(NULL), FreeSpans(NULL)
+	: Spans(nullptr), FreeSpans(nullptr)
 {
 	NumLists = lists;
 	Spans = new Span *[lists];
@@ -3011,7 +3011,7 @@ FCoverageBuffer::FCoverageBuffer(int lists)
 
 FCoverageBuffer::~FCoverageBuffer()
 {
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		delete[] Spans;
 	}
@@ -3027,7 +3027,7 @@ void FCoverageBuffer::Clear()
 {
 	SpanArena.FreeAll();
 	memset(Spans, 0, sizeof(Span*)*NumLists);
-	FreeSpans = NULL;
+	FreeSpans = nullptr;
 }
 
 //==========================================================================
@@ -3047,13 +3047,13 @@ void FCoverageBuffer::InsertSpan(int listnum, int start, int stop)
 	Span **span_p = &Spans[listnum];
 	Span *span;
 
-	if (*span_p == NULL || (*span_p)->Start > stop)
+	if (*span_p == nullptr || (*span_p)->Start > stop)
 	{ // This list is empty or the first entry is after this one, so we can just insert the span.
 		goto addspan;
 	}
 
 	// Insert the new span in order, merging with existing ones.
-	while (*span_p != NULL)
+	while (*span_p != nullptr)
 	{
 		if ((*span_p)->Stop < start)							// =====		(existing span)
 		{ // Span ends before this one starts.					//		  ++++	(new span)
@@ -3074,14 +3074,14 @@ extend:		// Extend the existing span with the new one.		// ======
 
 			// Free up any spans we just covered up.
 			span_p = &(*span_p)->NextSpan;
-			while (*span_p != NULL && (*span_p)->Start <= stop && (*span_p)->Stop <= stop)
+			while (*span_p != nullptr && (*span_p)->Start <= stop && (*span_p)->Stop <= stop)
 			{
 				Span *span = *span_p;							// ======  ======
 				*span_p = span->NextSpan;						//     +++++++++++++
 				span->NextSpan = FreeSpans;
 				FreeSpans = span;
 			}
-			if (*span_p != NULL && (*span_p)->Start <= stop)	// =======         ========
+			if (*span_p != nullptr && (*span_p)->Start <= stop)	// =======         ========
 			{ // Our new span connects two existing spans.		//     ++++++++++++++
 			  // They should all be collapsed into a single span.
 				span->Stop = (*span_p)->Stop;
@@ -3119,10 +3119,10 @@ check:
 #ifdef _DEBUG
 	// Validate the span list: Spans must be in order, and there must be
 	// at least one pixel between spans.
-	for (span = Spans[listnum]; span != NULL; span = span->NextSpan)
+	for (span = Spans[listnum]; span != nullptr; span = span->NextSpan)
 	{
 		assert(span->Start < span->Stop);
-		if (span->NextSpan != NULL)
+		if (span->NextSpan != nullptr)
 		{
 			assert(span->Stop < span->NextSpan->Start);
 		}
@@ -3141,7 +3141,7 @@ FCoverageBuffer::Span *FCoverageBuffer::AllocSpan()
 {
 	Span *span;
 
-	if (FreeSpans != NULL)
+	if (FreeSpans != nullptr)
 	{
 		span = FreeSpans;
 		FreeSpans = span->NextSpan;
@@ -3165,19 +3165,19 @@ FCoverageBuffer::Span *FCoverageBuffer::AllocSpan()
 
 void R_CheckOffscreenBuffer(int width, int height, bool spansonly)
 {
-	if (OffscreenCoverageBuffer == NULL)
+	if (OffscreenCoverageBuffer == nullptr)
 	{
-		assert(OffscreenColorBuffer == NULL && "The color buffer cannot exist without the coverage buffer");
+		assert(OffscreenColorBuffer == nullptr && "The color buffer cannot exist without the coverage buffer");
 		OffscreenCoverageBuffer = new FCoverageBuffer(width);
 	}
 	else if (OffscreenCoverageBuffer->NumLists != (unsigned)width)
 	{
 		delete OffscreenCoverageBuffer;
 		OffscreenCoverageBuffer = new FCoverageBuffer(width);
-		if (OffscreenColorBuffer != NULL)
+		if (OffscreenColorBuffer != nullptr)
 		{
 			delete[] OffscreenColorBuffer;
-			OffscreenColorBuffer = NULL;
+			OffscreenColorBuffer = nullptr;
 		}
 	}
 	else
@@ -3187,7 +3187,7 @@ void R_CheckOffscreenBuffer(int width, int height, bool spansonly)
 
 	if (!spansonly)
 	{
-		if (OffscreenColorBuffer == NULL)
+		if (OffscreenColorBuffer == nullptr)
 		{
 			OffscreenColorBuffer = new BYTE[width * height];
 		}

@@ -97,7 +97,7 @@ OPLMIDIDevice::OPLMIDIDevice(const char *args)
 
 int OPLMIDIDevice::Open(void (*callback)(unsigned int, void *, DWORD, DWORD), void *userdata)
 {
-	if (io == NULL || 0 == (NumChips = io->OPLinit(opl_numchips, FullPan, true)))
+	if (io == nullptr || 0 == (NumChips = io->OPLinit(opl_numchips, FullPan, true)))
 	{
 		return 1;
 	}

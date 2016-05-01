@@ -698,13 +698,13 @@ public:
 	void Resume ();
 	void Stop ();
 	bool IsPlaying ();
-	bool IsValid () const { return m_Stream != NULL; }
+	bool IsValid () const { return m_Stream != nullptr; }
 	bool SetPosition (unsigned int pos);
 	bool SetSubsong (int subsong);
 	FString GetStats();
 
 protected:
-	StreamSong () : m_Stream(NULL) {}
+	StreamSong () : m_Stream(nullptr) {}
 
 	SoundStream *m_Stream;
 };

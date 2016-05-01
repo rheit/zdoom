@@ -142,7 +142,7 @@ FILE *dbg;
 // CODE --------------------------------------------------------------------
 
 Win32Video::Win32Video (int parm)
-: m_Modes (NULL),
+: m_Modes (nullptr),
   m_IsFullscreen (false),
   m_Adapter (D3DADAPTER_DEFAULT)
 {
@@ -157,19 +157,19 @@ Win32Video::~Win32Video ()
 {
 	FreeModes ();
 
-	if (DDraw != NULL)
+	if (DDraw != nullptr)
 	{
 		if (m_IsFullscreen)
 		{
-			DDraw->SetCooperativeLevel (NULL, DDSCL_NORMAL);
+			DDraw->SetCooperativeLevel (nullptr, DDSCL_NORMAL);
 		}
 		DDraw->Release();
-		DDraw = NULL;
+		DDraw = nullptr;
 	}
-	if (D3D != NULL)
+	if (D3D != nullptr)
 	{
 		D3D->Release();
-		D3D = NULL;
+		D3D = nullptr;
 	}
 
 	STOPLOG;
@@ -185,17 +185,17 @@ bool Win32Video::InitD3D9 ()
 	}
 
 	// Load the Direct3D 9 library.
-	if ((D3D9_dll = LoadLibraryA ("d3d9.dll")) == NULL)
+	if ((D3D9_dll = LoadLibraryA ("d3d9.dll")) == nullptr)
 	{
 		return false;
 	}
 
 	// Obtain an IDirect3D interface.
-	if ((direct3d_create_9 = (DIRECT3DCREATE9FUNC)GetProcAddress (D3D9_dll, "Direct3DCreate9")) == NULL)
+	if ((direct3d_create_9 = (DIRECT3DCREATE9FUNC)GetProcAddress (D3D9_dll, "Direct3DCreate9")) == nullptr)
 	{
 		goto closelib;
 	}
-	if ((D3D = direct3d_create_9 (D3D_SDK_VERSION)) == NULL)
+	if ((D3D = direct3d_create_9 (D3D_SDK_VERSION)) == nullptr)
 	{
 		goto closelib;
 	}
@@ -236,7 +236,7 @@ bool Win32Video::InitD3D9 ()
 		AddLowResModes ();
 	}
 	AddLetterboxModes ();
-	if (m_Modes == NULL)
+	if (m_Modes == nullptr)
 	{ // Too bad. We didn't find any modes for D3D9. We probably won't find any
 	  // for DDraw either...
 		goto d3drelease;
@@ -245,7 +245,7 @@ bool Win32Video::InitD3D9 ()
 
 d3drelease:
 	D3D->Release();
-	D3D = NULL;
+	D3D = nullptr;
 closelib:
 	FreeLibrary (D3D9_dll);
 	return false;
@@ -260,18 +260,18 @@ void Win32Video::InitDDraw ()
 	HRESULT dderr;
 
 	// Load the DirectDraw library.
-	if ((DDraw_dll = LoadLibraryA ("ddraw.dll")) == NULL)
+	if ((DDraw_dll = LoadLibraryA ("ddraw.dll")) == nullptr)
 	{
 		I_FatalError ("Could not load ddraw.dll");
 	}
 
 	// Obtain an IDirectDraw interface.
-	if ((directdraw_create = (DIRECTDRAWCREATEFUNC)GetProcAddress (DDraw_dll, "DirectDrawCreate")) == NULL)
+	if ((directdraw_create = (DIRECTDRAWCREATEFUNC)GetProcAddress (DDraw_dll, "DirectDrawCreate")) == nullptr)
 	{
 		I_FatalError ("The system file ddraw.dll is missing the DirectDrawCreate export");
 	}
 
-	dderr = directdraw_create (NULL, &ddraw1, NULL);
+	dderr = directdraw_create (nullptr, &ddraw1, nullptr);
 
 	if (FAILED(dderr))
 		I_FatalError ("Could not create DirectDraw object: %08lx", dderr);
@@ -280,7 +280,7 @@ void Win32Video::InitDDraw ()
 	if (FAILED(dderr))
 	{
 		ddraw1->Release ();
-		DDraw = NULL;
+		DDraw = nullptr;
 		I_FatalError ("Could not initialize IDirectDraw2 interface: %08lx", dderr);
 	}
 
@@ -290,17 +290,17 @@ void Win32Video::InitDDraw ()
 
 	DDraw->SetCooperativeLevel (Window, DDSCL_NORMAL);
 	FreeModes ();
-	dderr = DDraw->EnumDisplayModes (0, NULL, this, EnumDDModesCB);
+	dderr = DDraw->EnumDisplayModes (0, nullptr, this, EnumDDModesCB);
 	if (FAILED(dderr))
 	{
 		DDraw->Release ();
-		DDraw = NULL;
+		DDraw = nullptr;
 		I_FatalError ("Could not enumerate display modes: %08lx", dderr);
 	}
-	if (m_Modes == NULL)
+	if (m_Modes == nullptr)
 	{
 		DDraw->Release ();
-		DDraw = NULL;
+		DDraw = nullptr;
 		I_FatalError ("DirectDraw returned no display modes.\n\n"
 					"If you started " GAMENAME " from a fullscreen DOS box, run it from "
 					"a DOS window instead. If that does not work, you may need to reboot.");
@@ -335,7 +335,7 @@ bool Win32Video::GoFullscreen (bool yes)
 	int count;
 
 	// FIXME: Do this right for D3D. (This function is only called by the movie player when using D3D.)
-	if (D3D != NULL)
+	if (D3D != nullptr)
 	{
 		return yes;
 	}
@@ -387,7 +387,7 @@ void Win32Video::BlankForGDI ()
 
 void Win32Video::DumpAdapters()
 {
-	if (D3D == NULL)
+	if (D3D == nullptr)
 	{
 		Printf("Multi-monitor support requires Direct3D.\n");
 		return;
@@ -416,7 +416,7 @@ void Win32Video::DumpAdapters()
 		mi.cbSize = sizeof(mi);
 
 		TOptWin32Proc<BOOL(WINAPI*)(HMONITOR, LPMONITORINFO)> GetMonitorInfo("user32.dll", "GetMonitorInfoW");
-		assert(GetMonitorInfo != NULL); // Missing in NT4, but so is D3D
+		assert(GetMonitorInfo != nullptr); // Missing in NT4, but so is D3D
 		if (GetMonitorInfo.Call(hm, &mi))
 		{
 			mysnprintf(moreinfo, countof(moreinfo), " [%ldx%ld @ (%ld,%ld)]%s",
@@ -470,7 +470,7 @@ void Win32Video::AddLowResModes()
 {
 	ModeInfo *mode, *nextmode;
 
-	for (mode = m_Modes; mode != NULL; mode = nextmode)
+	for (mode = m_Modes; mode != nullptr; mode = nextmode)
 	{
 		nextmode = mode->next;
 		if (mode->realheight == mode->height &&
@@ -483,7 +483,7 @@ void Win32Video::AddLowResModes()
 			AddMode (mode->width / 2, mode->height / 2, mode->bits, mode->height / 2, 1);
 		}
 	}
-	for (mode = m_Modes; mode != NULL; mode = nextmode)
+	for (mode = m_Modes; mode != nullptr; mode = nextmode)
 	{
 		nextmode = mode->next;
 		if (mode->realheight == mode->height &&
@@ -503,7 +503,7 @@ void Win32Video::AddLetterboxModes ()
 {
 	ModeInfo *mode, *nextmode;
 
-	for (mode = m_Modes; mode != NULL; mode = nextmode)
+	for (mode = m_Modes; mode != nullptr; mode = nextmode)
 	{
 		nextmode = mode->next;
 		if (mode->realheight == mode->height && mode->height * 4/3 == mode->width)
@@ -568,7 +568,7 @@ void Win32Video::FreeModes ()
 		mode = mode->next;
 		delete tempmode;
 	}
-	m_Modes = NULL;
+	m_Modes = nullptr;
 }
 
 // For every mode, set its scaling factor. Modes that end up with too
@@ -581,7 +581,7 @@ void Win32Video::ScaleModes (int doubling)
 	prev = &m_Modes;
 	mode = m_Modes;
 
-	while (mode != NULL)
+	while (mode != nullptr)
 	{
 		assert(mode->doubling == 0);
 		mode->width >>= doubling;
@@ -621,7 +621,7 @@ bool Win32Video::NextMode (int *width, int *height, bool *letterbox)
 		{
 			*width = m_IteratorMode->width;
 			*height = m_IteratorMode->height;
-			if (letterbox != NULL) *letterbox = m_IteratorMode->realheight != m_IteratorMode->height;
+			if (letterbox != nullptr) *letterbox = m_IteratorMode->realheight != m_IteratorMode->height;
 			m_IteratorMode = m_IteratorMode->next;
 			return true;
 		}
@@ -640,7 +640,7 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 
 	LOG4 ("CreateFB %d %d %d %p\n", width, height, fullscreen, old);
 
-	if (old != NULL)
+	if (old != nullptr)
 	{ // Reuse the old framebuffer if its attributes are the same
 		BaseWinFB *fb = static_cast<BaseWinFB *> (old);
 		if (fb->Width == width &&
@@ -651,7 +651,7 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 		}
 		old->GetFlash (flashColor, flashAmount);
 		old->ObjectFlags |= OF_YesReallyDelete;
-		if (old == screen) screen = NULL;
+		if (old == screen) screen = nullptr;
 		delete old;
 	}
 	else
@@ -660,7 +660,7 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 		flashAmount = 0;
 	}
 
-	if (D3D != NULL)
+	if (D3D != nullptr)
 	{
 		fb = new D3DFB (m_Adapter, width, height, fullscreen);
 	}
@@ -677,11 +677,11 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 	// 3. Try in the opposite screen mode with the closest size
 	// This is a somewhat confusing mass of recursion here.
 
-	while (fb == NULL || !fb->IsValid ())
+	while (fb == nullptr || !fb->IsValid ())
 	{
 		static HRESULT hr;
 
-		if (fb != NULL)
+		if (fb != nullptr)
 		{
 			if (retry == 0)
 			{
@@ -696,7 +696,7 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 		{
 			LOG ("Could not create fb at all\n");
 		}
-		screen = NULL;
+		screen = nullptr;
 
 		LOG1 ("Retry number %d\n", retry);
 
@@ -726,7 +726,7 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 		}
 
 		++retry;
-		fb = static_cast<DDrawFB *>(CreateFrameBuffer (width, height, fullscreen, NULL));
+		fb = static_cast<DDrawFB *>(CreateFrameBuffer (width, height, fullscreen, nullptr));
 	}
 	retry = 0;
 
@@ -788,19 +788,19 @@ void I_SetFPSLimit(int limit)
 	}
 	if (limit == 0)
 	{ // no limit
-		if (FPSLimitEvent != NULL)
+		if (FPSLimitEvent != nullptr)
 		{
 			CloseHandle(FPSLimitEvent);
-			FPSLimitEvent = NULL;
+			FPSLimitEvent = nullptr;
 		}
 		DPrintf("FPS timer disabled\n");
 	}
 	else
 	{
-		if (FPSLimitEvent == NULL)
+		if (FPSLimitEvent == nullptr)
 		{
-			FPSLimitEvent = CreateEvent(NULL, FALSE, TRUE, NULL);
-			if (FPSLimitEvent == NULL)
+			FPSLimitEvent = CreateEvent(nullptr, FALSE, TRUE, nullptr);
+			if (FPSLimitEvent == nullptr)
 			{ // Could not create event, so cannot use timer.
 				Printf("Failed to create FPS limitter event\n");
 				return;
@@ -813,7 +813,7 @@ void I_SetFPSLimit(int limit)
 		if (FPSLimitTimer == 0)
 		{
 			CloseHandle(FPSLimitEvent);
-			FPSLimitEvent = NULL;
+			FPSLimitEvent = nullptr;
 			Printf("Failed to create FPS limitter timer\n");
 			return;
 		}

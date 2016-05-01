@@ -685,7 +685,7 @@ void OPL3::write(int array, int address, int data) {
         // Registers for each of the 36 Operators:
         default:
             int operatorOffset = address&0x1F;
-            if(operators[array][operatorOffset] == NULL) break;
+            if(operators[array][operatorOffset] == nullptr) break;
             switch(address&0xE0) {
                 // 0x20...0x35 keeps am,vib,egt,ksr,mult for each operator:                
                 case 0x20:
@@ -740,7 +740,7 @@ OPL3::~OPL3()
 	{
 		for (int operatorNumber = 0; operatorNumber < 0x20; operatorNumber++)
 		{
-			if (operators[array][operatorNumber] != NULL)
+			if (operators[array][operatorNumber] != nullptr)
 			{
 				delete operators[array][operatorNumber];
 			}
@@ -757,9 +757,9 @@ OPL3::~OPL3()
 	if (--InstanceCount == 0)
 	{
 		delete OPL3Data;
-		OPL3Data = NULL;
+		OPL3Data = nullptr;
 		delete OperatorData;
-		OperatorData = NULL;
+		OperatorData = nullptr;
 	}
 }
 

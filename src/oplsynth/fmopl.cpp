@@ -1649,7 +1649,7 @@ public:
 		{
 			int color;
 
-			if (OPL != NULL && (OPL->P_CH[i].SLOT[0].state != EG_OFF || OPL->P_CH[i].SLOT[1].state != EG_OFF))
+			if (OPL != nullptr && (OPL->P_CH[i].SLOT[0].state != EG_OFF || OPL->P_CH[i].SLOT[1].state != EG_OFF))
 			{
 				color = 'D';	// Green means in use
 			}

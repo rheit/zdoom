@@ -86,7 +86,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_WizAtk3)
 	}
 	PClassActor *fx = PClass::FindActor("WizardFX1");
 	mo = P_SpawnMissile (self, self->target, fx);
-	if (mo != NULL)
+	if (mo != nullptr)
 	{
 		P_SpawnMissileAngle(self, fx, mo->Angles.Yaw - 45. / 8, mo->Vel.Z);
 		P_SpawnMissileAngle(self, fx, mo->Angles.Yaw + 45. / 8, mo->Vel.Z);

@@ -517,13 +517,13 @@ EXTERN_CVAR(Int, compatmode)
 
 static int GetCompatibility(int mask)
 {
-	if (level.info == NULL) return mask;
+	if (level.info == nullptr) return mask;
 	else return (mask & ~level.info->compatmask) | (level.info->compatflags & level.info->compatmask);
 }
 
 static int GetCompatibility2(int mask)
 {
-	return (level.info == NULL) ? mask
+	return (level.info == nullptr) ? mask
 		: (mask & ~level.info->compatmask2) | (level.info->compatflags2 & level.info->compatmask2);
 }
 
@@ -644,7 +644,7 @@ void D_Display ()
 	bool wipe;
 	bool hw2d;
 
-	if (nodrawers || screen == NULL)
+	if (nodrawers || screen == nullptr)
 		return; 				// for comparative timing / profiling
 	
 	cycle_t cycles;
@@ -652,7 +652,7 @@ void D_Display ()
 	cycles.Reset();
 	cycles.Clock();
 
-	if (players[consoleplayer].camera == NULL)
+	if (players[consoleplayer].camera == nullptr)
 	{
 		players[consoleplayer].camera = players[consoleplayer].mo;
 	}
@@ -672,7 +672,7 @@ void D_Display ()
 			// Recalculate various view parameters.
 			setsizeneeded = true;
 			// Let the status bar know the screen size changed
-			if (StatusBar != NULL)
+			if (StatusBar != nullptr)
 			{
 				StatusBar->ScreenSizeChanged ();
 			}
@@ -689,7 +689,7 @@ void D_Display ()
 	RenderTarget = screen;
 
 	// change the view size if needed
-	if (setsizeneeded && StatusBar != NULL)
+	if (setsizeneeded && StatusBar != nullptr)
 	{
 		R_ExecuteSetViewSize ();
 	}
@@ -759,7 +759,7 @@ void D_Display ()
 			if (!gametic)
 				break;
 
-			if (StatusBar != NULL)
+			if (StatusBar != nullptr)
 			{
 				float blend[4] = { 0, 0, 0, 0 };
 				StatusBar->BlendView (blend);
@@ -866,7 +866,7 @@ void D_Display ()
 	{
 		FTextureID picnum = TexMan.CheckForTexture (D_DrawIcon, FTexture::TEX_MiscPatch);
 
-		D_DrawIcon = NULL;
+		D_DrawIcon = nullptr;
 		if (picnum.isValid())
 		{
 			FTexture *tex = TexMan[picnum];
@@ -972,7 +972,7 @@ void D_DoomLoop ()
 
 	// Clamp the timer to TICRATE until the playloop has been entered.
 	r_NoInterpolate = true;
-	Page = Advisory = NULL;
+	Page = Advisory = nullptr;
 
 	vid_cursor.Callback();
 
@@ -1050,14 +1050,14 @@ void D_PageTicker (void)
 
 void D_PageDrawer (void)
 {
-	if (Page != NULL)
+	if (Page != nullptr)
 	{
 		screen->DrawTexture (Page, 0, 0,
 			DTA_Fullscreen, true,
 			DTA_Masked, false,
 			DTA_BilinearFilter, true,
 			TAG_DONE);
-		screen->FillBorder (NULL);
+		screen->FillBorder (nullptr);
 	}
 	else
 	{
@@ -1067,7 +1067,7 @@ void D_PageDrawer (void)
 			screen->DrawText (SmallFont, CR_WHITE, 0, 0, "Page graphic goes here", TAG_DONE);
 		}
 	}
-	if (Advisory != NULL)
+	if (Advisory != nullptr)
 	{
 		screen->DrawTexture (Advisory, 4, 160, DTA_320x200, true, TAG_DONE);
 	}
@@ -1103,7 +1103,7 @@ void D_DoStrifeAdvanceDemo ()
 		"svox/voc91", "svox/voc92", "svox/voc93", "svox/voc94", "svox/voc95", "svox/voc96"
 	};
 	const char *const *voices = gameinfo.flags & GI_SHAREWARE ? teaserVoices : fullVoices;
-	const char *pagename = NULL;
+	const char *pagename = nullptr;
 
 	gamestate = GS_DEMOSCREEN;
 	PageBlank = false;
@@ -1198,10 +1198,10 @@ void D_DoStrifeAdvanceDemo ()
 
 	if (pagename)
 	{
-		if (Page != NULL)
+		if (Page != nullptr)
 		{
 			Page->Unload ();
-			Page = NULL;
+			Page = nullptr;
 		}
 		if (pagename[0])
 		{
@@ -1263,7 +1263,7 @@ void D_DoAdvanceDemo (void)
 		// fall through to case 1 if no advisory notice
 
 	case 1:
-		Advisory = NULL;
+		Advisory = nullptr;
 		if (!M_DemoNoPlay)
 		{
 			V_SetBorderNeedRefresh();
@@ -1308,7 +1308,7 @@ void D_DoAdvanceDemo (void)
 
 	if (pagename.IsNotEmpty())
 	{
-		if (Page != NULL)
+		if (Page != nullptr)
 		{
 			Page->Unload ();
 		}
@@ -1366,7 +1366,7 @@ void ParseCVarInfo()
 		while (sc.GetToken())
 		{
 			FString cvarname;
-			char *cvardefault = NULL;
+			char *cvardefault = nullptr;
 			ECVarType cvartype = CVAR_Dummy;
 			int cvarflags = CVAR_MOD|CVAR_ARCHIVE;
 			FBaseCVar *cvar;
@@ -1425,7 +1425,7 @@ void ParseCVarInfo()
 			}
 			// The next token must be the cvar name.
 			sc.MustGetToken(TK_Identifier);
-			if (FindCVar(sc.String, NULL) != NULL)
+			if (FindCVar(sc.String, nullptr) != nullptr)
 			{
 				sc.ScriptError("cvar '%s' already exists", sc.String);
 			}
@@ -1458,7 +1458,7 @@ void ParseCVarInfo()
 			}
 			// Now create the cvar.
 			cvar = C_CreateCVar(cvarname, cvartype, cvarflags);
-			if (cvardefault != NULL)
+			if (cvardefault != nullptr)
 			{
 				UCVarValue val;
 				val.String = cvardefault;
@@ -1485,7 +1485,7 @@ void ParseCVarInfo()
 
 bool D_AddFile (TArray<FString> &wadfiles, const char *file, bool check, int position)
 {
-	if (file == NULL || *file == '\0')
+	if (file == nullptr || *file == '\0')
 	{
 		return false;
 	}
@@ -1493,7 +1493,7 @@ bool D_AddFile (TArray<FString> &wadfiles, const char *file, bool check, int pos
 	if (check && !DirEntryExists (file))
 	{
 		const char *f = BaseFileSearch (file, ".wad");
-		if (f == NULL)
+		if (f == nullptr)
 		{
 			Printf ("Can't find '%s'\n", file);
 			return false;
@@ -1516,13 +1516,13 @@ bool D_AddFile (TArray<FString> &wadfiles, const char *file, bool check, int pos
 
 void D_AddWildFile (TArray<FString> &wadfiles, const char *value)
 {
-	if (value == NULL || *value == '\0')
+	if (value == nullptr || *value == '\0')
 	{
 		return;
 	}
 	const char *wadfile = BaseFileSearch (value, ".wad");
 
-	if (wadfile != NULL)
+	if (wadfile != nullptr)
 	{
 		D_AddFile (wadfiles, wadfile);
 	}
@@ -1535,11 +1535,11 @@ void D_AddWildFile (TArray<FString> &wadfiles, const char *value)
 
 		strcpy (path, value);
 		sep = strrchr (path, '/');
-		if (sep == NULL)
+		if (sep == nullptr)
 		{
 			sep = strrchr (path, '\\');
 #ifdef _WIN32
-			if (sep == NULL && path[1] == ':')
+			if (sep == nullptr && path[1] == ':')
 			{
 				sep = path + 1;
 			}
@@ -1552,7 +1552,7 @@ void D_AddWildFile (TArray<FString> &wadfiles, const char *value)
 			{
 				if (!(I_FindAttr(&findstate) & FA_DIREC))
 				{
-					if (sep == NULL)
+					if (sep == nullptr)
 					{
 						D_AddFile (wadfiles, I_FindName (&findstate));
 					}
@@ -1653,7 +1653,7 @@ static void D_AddDirectory (TArray<FString> &wadfiles, const char *dir)
 //
 // If a file does not exist at <file>, looks for it in the directories
 // specified in the config file. Returns the path to the file, if found,
-// or NULL if it could not be found.
+// or nullptr if it could not be found.
 //
 //==========================================================================
 
@@ -1661,9 +1661,9 @@ static const char *BaseFileSearch (const char *file, const char *ext, bool lookf
 {
 	static char wad[PATH_MAX];
 
-	if (file == NULL || *file == '\0')
+	if (file == nullptr || *file == '\0')
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (lookfirstinprogdir)
 	{
@@ -1680,7 +1680,7 @@ static const char *BaseFileSearch (const char *file, const char *ext, bool lookf
 		return wad;
 	}
 
-	if (GameConfig != NULL && GameConfig->SetSection ("FileSearch.Directories"))
+	if (GameConfig != nullptr && GameConfig->SetSection ("FileSearch.Directories"))
 	{
 		const char *key;
 		const char *value;
@@ -1705,13 +1705,13 @@ static const char *BaseFileSearch (const char *file, const char *ext, bool lookf
 	}
 
 	// Retry, this time with a default extension
-	if (ext != NULL)
+	if (ext != nullptr)
 	{
 		FString tmp = file;
 		DefaultExtension (tmp, ext);
-		return BaseFileSearch (tmp, NULL);
+		return BaseFileSearch (tmp, nullptr);
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -1805,7 +1805,7 @@ static FString ParseGameInfo(TArray<FString> &pwads, const char *fn, const char 
 				// before looking for it in the current directory.
 
 				FString checkpath;
-				if (lastSlash != NULL)
+				if (lastSlash != nullptr)
 				{
 					checkpath = FString(fn, (lastSlash - fn) + 1);
 					checkpath += sc.String;
@@ -1838,10 +1838,10 @@ static FString ParseGameInfo(TArray<FString> &pwads, const char *fn, const char 
 		else if (!nextKey.CompareNoCase("STARTUPCOLORS"))
 		{
 			sc.MustGetString();
-			DoomStartupInfo.FgColor = V_GetColor(NULL, sc.String);
+			DoomStartupInfo.FgColor = V_GetColor(nullptr, sc.String);
 			sc.MustGetStringName(",");
 			sc.MustGetString();
-			DoomStartupInfo.BkColor = V_GetColor(NULL, sc.String);
+			DoomStartupInfo.BkColor = V_GetColor(nullptr, sc.String);
 		}
 		else if (!nextKey.CompareNoCase("STARTUPTYPE"))
 		{
@@ -1910,7 +1910,7 @@ static FString CheckGameInfo(TArray<FString> & pwads)
 		else
 			resfile = FResourceFile::OpenDirectory(filename, true);
 
-		if (resfile != NULL)
+		if (resfile != nullptr)
 		{
 			DWORD cnt = resfile->LumpCount();
 			for(int i=cnt-1; i>=0; i--)
@@ -1956,7 +1956,7 @@ static void SetMapxxFlag()
 
 static void FinalGC()
 {
-	Args = NULL;
+	Args = nullptr;
 	GC::FinalGC = true;
 	GC::FullGC();
 	GC::DelSoftRootHead();	// the soft root head will not be collected by a GC so we have to do it explicitly
@@ -1997,7 +1997,7 @@ static void D_DoomInit()
 	Args->CollectFiles("-bex", ".bex");
 	Args->CollectFiles("-exec", ".cfg");
 	Args->CollectFiles("-playdemo", ".lmp");
-	Args->CollectFiles("-file", NULL);	// anything left goes after -file
+	Args->CollectFiles("-file", nullptr);	// anything left goes after -file
 
 	gamestate = GS_STARTUP;
 
@@ -2041,7 +2041,7 @@ static void AddAutoloadFiles(const char *autoname)
 		// voices. I never got around to writing the utility to do it, though.
 		// And I probably never will now. But I know at least one person uses
 		// it for something else, so this gets to stay here.
-		const char *wad = BaseFileSearch ("zvox.wad", NULL);
+		const char *wad = BaseFileSearch ("zvox.wad", nullptr);
 		if (wad)
 			D_AddFile (allwads, wad);
 	
@@ -2173,7 +2173,7 @@ static void CheckCmdLine()
 
 	// turbo option  // [RH] (now a cvar)
 	v = Args->CheckValue("-turbo");
-	if (v != NULL)
+	if (v != nullptr)
 	{
 		double amt = atof(v);
 		Printf ("turbo scale: %.0f%%\n", amt);
@@ -2183,7 +2183,7 @@ static void CheckCmdLine()
 	v = Args->CheckValue ("-timer");
 	if (v)
 	{
-		double time = strtod (v, NULL);
+		double time = strtod (v, nullptr);
 		Printf ("Levels will end after %g minute%s.\n", time, time > 1 ? "s" : "");
 		timelimit = (float)time;
 	}
@@ -2236,7 +2236,7 @@ void D_DoomMain (void)
 	{
 		execLogfile(logfile);
 	}
-	else if (batchout != NULL && *batchout != 0)
+	else if (batchout != nullptr && *batchout != 0)
 	{
 		batchrun = true;
 		execLogfile(batchout, true);
@@ -2272,8 +2272,8 @@ void D_DoomMain (void)
 
 	// [RH] Make sure zdoom.pk3 is always loaded,
 	// as it contains magic stuff we need.
-	wad = BaseFileSearch (BASEWAD, NULL, true);
-	if (wad == NULL)
+	wad = BaseFileSearch (BASEWAD, nullptr, true);
+	if (wad == nullptr)
 	{
 		I_FatalError ("Cannot find " BASEWAD);
 	}
@@ -2308,7 +2308,7 @@ void D_DoomMain (void)
 		// restart is initiated without a defined IWAD assume for now that it's not going to change.
 		if (iwad.IsEmpty()) iwad = lastIWAD;
 
-		if (iwad_man == NULL)
+		if (iwad_man == nullptr)
 		{
 			iwad_man = new FIWadManager;
 			iwad_man->ParseIWadInfos(basewad);
@@ -2333,7 +2333,7 @@ void D_DoomMain (void)
 		FExecList *exec;
 		execFiles = new DArgs;
 		GameConfig->AddAutoexec(execFiles, gameinfo.ConfigName);
-		exec = D_MultiExec(execFiles, NULL);
+		exec = D_MultiExec(execFiles, nullptr);
 
 		// Process .cfg files at the start of the command line.
 		execFiles = Args->GatherFiles ("-exec");
@@ -2343,7 +2343,7 @@ void D_DoomMain (void)
 		exec = C_ParseCmdLineParams(exec);
 
 		CopyFiles(allwads, pwads);
-		if (exec != NULL)
+		if (exec != nullptr)
 		{
 			exec->AddPullins(allwads);
 		}
@@ -2369,11 +2369,11 @@ void D_DoomMain (void)
 		ParseCVarInfo();
 
 		// Actually exec command line commands and exec files.
-		if (exec != NULL)
+		if (exec != nullptr)
 		{
 			exec->ExecCommands();
 			delete exec;
-			exec = NULL;
+			exec = nullptr;
 		}
 
 		// [RH] Initialize localizable strings.
@@ -2525,7 +2525,7 @@ void D_DoomMain (void)
 			for (p = 0; p < 5; ++p)
 			{
 				const char *str = GStrings[startupString[p]];
-				if (str != NULL && str[0] != '\0')
+				if (str != nullptr && str[0] != '\0')
 				{
 					Printf("%s\n", str);
 				}
@@ -2544,7 +2544,7 @@ void D_DoomMain (void)
 		FBaseCVar::EnableNoSet ();
 
 		delete iwad_man;	// now we won't need this anymore
-		iwad_man = NULL;
+		iwad_man = nullptr;
 
 		// [RH] Run any saved commands from the command line or autoexec.cfg now.
 		gamestate = GS_FULLCONSOLE;
@@ -2564,7 +2564,7 @@ void D_DoomMain (void)
 			}
 
 			delete StartScreen;
-			StartScreen = NULL;
+			StartScreen = nullptr;
 			S_Sound (CHAN_BODY, "misc/startupdone", 1, ATTN_NONE);
 
 			if (Args->CheckParm("-norun") || batchrun)
@@ -2573,7 +2573,7 @@ void D_DoomMain (void)
 			}
 
 			V_Init2();
-			UpdateJoystickMenu(NULL);
+			UpdateJoystickMenu(nullptr);
 
 			v = Args->CheckValue ("-loadgame");
 			if (v)
@@ -2585,7 +2585,7 @@ void D_DoomMain (void)
 			}
 
 			v = Args->CheckValue("-playdemo");
-			if (v != NULL)
+			if (v != nullptr)
 			{
 				singledemo = true;				// quit after one demo
 				G_DeferedPlayDemo (v);
@@ -2615,7 +2615,7 @@ void D_DoomMain (void)
 					if (StoredWarp.IsNotEmpty())
 					{
 						AddCommandString(StoredWarp.LockBuffer());
-						StoredWarp = NULL;
+						StoredWarp = nullptr;
 					}
 				}
 				else
@@ -2625,7 +2625,7 @@ void D_DoomMain (void)
 			}
 			else if (demorecording)
 			{
-				G_BeginRecording (NULL);
+				G_BeginRecording (nullptr);
 			}
 						
 			atterm (D_QuitNetGame);		// killough
@@ -2660,7 +2660,7 @@ void D_DoomMain (void)
 		P_FreeLevelData();
 		P_FreeExtraLevelData();
 
-		M_SaveDefaults(NULL);			// save config before the restart
+		M_SaveDefaults(nullptr);			// save config before the restart
 
 		// delete all data that cannot be left until reinitialization
 		V_ClearFonts();					// must clear global font pointers
@@ -2675,10 +2675,10 @@ void D_DoomMain (void)
 
 		// Delete the VM functions here. The garbage collector will not do this automatically because they are referenced from the global action function definitions.
 		FAutoSegIterator probe(ARegHead, ARegTail);
-		while (*++probe != NULL)
+		while (*++probe != nullptr)
 		{
 			AFuncDesc *afunc = (AFuncDesc *)*probe;
-			*(afunc->VMPointer) = NULL;
+			*(afunc->VMPointer) = nullptr;
 		}
 
 		ReleaseGlobalSymbols();

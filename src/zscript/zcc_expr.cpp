@@ -15,7 +15,7 @@ static void FtoD(ZCC_ExprConstant *expr, FSharedStringArena &str_arena);
 
 ZCC_OpInfoType ZCC_OpInfo[PEX_COUNT_OF] =
 {
-#define xx(a,z)	{ #a, NULL },
+#define xx(a,z)	{ #a, nullptr },
 #include "zcc_exprlist.h"
 };
 
@@ -47,17 +47,17 @@ static struct FreeOpInfoProtos
 
 void ZCC_OpInfoType::FreeAllProtos()
 {
-	for (ZCC_OpProto *proto = Protos, *next = NULL; proto != NULL; proto = next)
+	for (ZCC_OpProto *proto = Protos, *next = nullptr; proto != nullptr; proto = next)
 	{
 		next = proto->Next;
 		delete proto;
 	}
-	Protos = NULL;
+	Protos = nullptr;
 }
 
 void ZCC_OpInfoType::AddProto(PType *res, PType *optype, EvalConst1op evalconst)
 {
-	ZCC_OpProto *proto = new ZCC_OpProto(res, optype, NULL);
+	ZCC_OpProto *proto = new ZCC_OpProto(res, optype, nullptr);
 	proto->EvalConst1 = evalconst;
 	proto->Next = Protos;
 	Protos = proto;
@@ -65,7 +65,7 @@ void ZCC_OpInfoType::AddProto(PType *res, PType *optype, EvalConst1op evalconst)
 
 void ZCC_OpInfoType::AddProto(PType *res, PType *ltype, PType *rtype, EvalConst2op evalconst)
 {
-	assert(ltype != NULL);
+	assert(ltype != nullptr);
 	ZCC_OpProto *proto = new ZCC_OpProto(res, ltype, rtype);
 	proto->EvalConst2 = evalconst;
 	proto->Next = Protos;
@@ -84,18 +84,18 @@ void ZCC_OpInfoType::AddProto(PType *res, PType *ltype, PType *rtype, EvalConst2
 
 ZCC_OpProto *ZCC_OpInfoType::FindBestProto(PType *optype, const PType::Conversion **route, int &numslots)
 {
-	assert(optype != NULL);
+	assert(optype != nullptr);
 
 	const PType::Conversion *routes[2][CONVERSION_ROUTE_SIZE];
-	const PType::Conversion **best_route = NULL;
+	const PType::Conversion **best_route = nullptr;
 	int cur_route = 0;
-	ZCC_OpProto *best_proto = NULL;
+	ZCC_OpProto *best_proto = nullptr;
 	int best_dist = INT_MAX;
 
 	// Find the best prototype.
-	for (ZCC_OpProto *proto = Protos; best_dist != 0 && proto != NULL; proto = proto->Next)
+	for (ZCC_OpProto *proto = Protos; best_dist != 0 && proto != nullptr; proto = proto->Next)
 	{
-		if (proto->Type2 != NULL)
+		if (proto->Type2 != nullptr)
 		{ // Not a unary prototype.
 			continue;
 		}
@@ -109,7 +109,7 @@ ZCC_OpProto *ZCC_OpInfoType::FindBestProto(PType *optype, const PType::Conversio
 		}
 	}
 	// Copy best conversion route to the caller's array.
-	if (best_route != NULL && route != NULL && numslots > 0)
+	if (best_route != nullptr && route != nullptr && numslots > 0)
 	{
 		numslots = MIN(numslots, best_dist);
 		if (numslots > 0)
@@ -136,19 +136,19 @@ ZCC_OpProto *ZCC_OpInfoType::FindBestProto(
 	PType *left, const PType::Conversion **route1, int &numslots1,
 	PType *right, const PType::Conversion **route2, int &numslots2)
 {
-	assert(left != NULL && right != NULL);
+	assert(left != nullptr && right != nullptr);
 
 	const PType::Conversion *routes[2][2][CONVERSION_ROUTE_SIZE];
-	const PType::Conversion **best_route1 = NULL, **best_route2 = NULL;
+	const PType::Conversion **best_route1 = nullptr, **best_route2 = nullptr;
 	int cur_route1 = 0, cur_route2 = 0;
 	int best_dist1 = INT_MAX, best_dist2 = INT_MAX;
 
-	ZCC_OpProto *best_proto = NULL;
+	ZCC_OpProto *best_proto = nullptr;
 	int best_low_dist = INT_MAX;
 
-	for (ZCC_OpProto *proto = Protos; best_low_dist != 0 && proto != NULL; proto = proto->Next)
+	for (ZCC_OpProto *proto = Protos; best_low_dist != 0 && proto != nullptr; proto = proto->Next)
 	{
-		if (proto->Type2 == NULL)
+		if (proto->Type2 == nullptr)
 		{ // Not a binary prototype
 			continue;
 		}
@@ -184,7 +184,7 @@ ZCC_OpProto *ZCC_OpInfoType::FindBestProto(
 		}
 	}
 	// Copy best conversion route to the caller's arrays.
-	if (best_route1 != NULL && route1 != NULL && numslots1 > 0)
+	if (best_route1 != nullptr && route1 != nullptr && numslots1 > 0)
 	{
 		numslots1 = MIN(numslots1, best_dist1);
 		if (numslots1 > 0)
@@ -192,7 +192,7 @@ ZCC_OpProto *ZCC_OpInfoType::FindBestProto(
 			memcpy(route1, best_route1, sizeof(*route1) * numslots1);
 		}
 	}
-	if (best_route2 != NULL && route2 != NULL && numslots2 > 0)
+	if (best_route2 != nullptr && route2 != nullptr && numslots2 > 0)
 	{
 		numslots2 = MIN(numslots2, best_dist2);
 		if (numslots2 > 0)

@@ -272,7 +272,7 @@ static const RGBQUAD TextModePalette[16] =
 
 FStartupScreen *FStartupScreen::CreateInstance(int max_progress)
 {
-	FStartupScreen *scr = NULL;
+	FStartupScreen *scr = nullptr;
 	HRESULT hr;
 
 	if (!Args->CheckParm("-nostartup"))
@@ -292,13 +292,13 @@ FStartupScreen *FStartupScreen::CreateInstance(int max_progress)
 		{
 			scr = new FStrifeStartupScreen(max_progress, hr);
 		}
-		if (scr != NULL && FAILED(hr))
+		if (scr != nullptr && FAILED(hr))
 		{
 			delete scr;
-			scr = NULL;
+			scr = nullptr;
 		}
 	}
-	if (scr == NULL)
+	if (scr == nullptr)
 	{
 		scr = new FBasicStartupScreen(max_progress, true);
 	}
@@ -319,11 +319,11 @@ FBasicStartupScreen::FBasicStartupScreen(int max_progress, bool show_bar)
 	if (show_bar)
 	{
 		ProgressBar = CreateWindowEx(0, PROGRESS_CLASS,
-			NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+			nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
 			0, 0, 0, 0,
-			Window, 0, g_hInst, NULL);
+			Window, 0, g_hInst, nullptr);
 		SendMessage (ProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0,MaxPos));
-		LayoutMainWindow (Window, NULL);
+		LayoutMainWindow (Window, nullptr);
 	}
 	NetMaxPos = 0;
 	NetCurPos = 0;
@@ -340,11 +340,11 @@ FBasicStartupScreen::FBasicStartupScreen(int max_progress, bool show_bar)
 
 FBasicStartupScreen::~FBasicStartupScreen()
 {
-	if (ProgressBar != NULL)
+	if (ProgressBar != nullptr)
 	{
 		DestroyWindow (ProgressBar);
-		ProgressBar = NULL;
-		LayoutMainWindow (Window, NULL);
+		ProgressBar = nullptr;
+		LayoutMainWindow (Window, nullptr);
 	}
 	KillTimer(Window, 1337);
 }
@@ -381,24 +381,24 @@ void FBasicStartupScreen::Progress()
 void FBasicStartupScreen::NetInit(const char *message, int numplayers)
 {
 	NetMaxPos = numplayers;
-	if (NetStartPane == NULL)
+	if (NetStartPane == nullptr)
 	{
 		NetStartPane = CreateDialogParam (g_hInst, MAKEINTRESOURCE(IDD_NETSTARTPANE), Window, NetStartPaneProc, 0);
 		// We don't need two progress bars.
-		if (ProgressBar != NULL)
+		if (ProgressBar != nullptr)
 		{
 			DestroyWindow (ProgressBar);
-			ProgressBar = NULL;
+			ProgressBar = nullptr;
 		}
 		RECT winrect;
 		GetWindowRect (Window, &winrect);
-		SetWindowPos (Window, NULL, 0, 0,
+		SetWindowPos (Window, nullptr, 0, 0,
 			winrect.right - winrect.left, winrect.bottom - winrect.top + LayoutNetStartPane (NetStartPane, 0),
 			SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-		LayoutMainWindow (Window, NULL);
+		LayoutMainWindow (Window, nullptr);
 		SetFocus (NetStartPane);
 	}
-	if (NetStartPane != NULL)
+	if (NetStartPane != nullptr)
 	{
 		HWND ctl;
 
@@ -450,11 +450,11 @@ void FBasicStartupScreen::NetInit(const char *message, int numplayers)
 
 void FBasicStartupScreen::NetDone()
 {
-	if (NetStartPane != NULL)
+	if (NetStartPane != nullptr)
 	{
 		DestroyWindow (NetStartPane);
-		NetStartPane = NULL;
-		LayoutMainWindow (Window, NULL);
+		NetStartPane = nullptr;
+		LayoutMainWindow (Window, nullptr);
 	}
 }
 
@@ -498,7 +498,7 @@ void FBasicStartupScreen :: NetProgress(int count)
 	{
 		NetCurPos = count;
 	}
-	if (NetStartPane == NULL)
+	if (NetStartPane == nullptr)
 	{
 		return;
 	}
@@ -536,12 +536,12 @@ bool FBasicStartupScreen::NetLoop(bool (*timer_callback)(void *), void *userdata
 	BOOL bRet;
 	MSG msg;
 
-	if (SetTimer (Window, 1337, 500, NULL) == 0)
+	if (SetTimer (Window, 1337, 500, nullptr) == 0)
 	{
 		I_FatalError ("Could not set network synchronization timer.");
 	}
 
-	while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+	while ((bRet = GetMessage(&msg, nullptr, 0, 0)) != 0)
 	{
 		if (bRet == -1)
 		{
@@ -610,15 +610,15 @@ FGraphicalStartupScreen::FGraphicalStartupScreen(int max_progress)
 
 FGraphicalStartupScreen::~FGraphicalStartupScreen()
 {
-	if (StartupScreen != NULL)
+	if (StartupScreen != nullptr)
 	{
 		DestroyWindow (StartupScreen);
-		StartupScreen = NULL;
+		StartupScreen = nullptr;
 	}
-	if (StartupBitmap != NULL)
+	if (StartupBitmap != nullptr)
 	{
 		ST_Util_FreeBitmap (StartupBitmap);
-		StartupBitmap = NULL;
+		StartupBitmap = nullptr;
 	}
 }
 
@@ -646,7 +646,7 @@ FHexenStartupScreen::FHexenStartupScreen(int max_progress, HRESULT &hr)
 		netnotch_lump < 0 || Wads.LumpLength (netnotch_lump) != ST_NETNOTCH_WIDTH / 2 * ST_NETNOTCH_HEIGHT ||
 		notch_lump < 0 || Wads.LumpLength (notch_lump) != ST_NOTCH_WIDTH / 2 * ST_NOTCH_HEIGHT)
 	{
-		NetNotchBits = NotchBits = NULL;
+		NetNotchBits = NotchBits = nullptr;
 		return;
 	}
 
@@ -685,8 +685,8 @@ FHexenStartupScreen::FHexenStartupScreen(int max_progress, HRESULT &hr)
 	ST_Util_PlanarToChunky4 (ST_Util_BitsForBitmap(StartupBitmap), startup_screen + 48, 640, 480);
 
 	ST_Util_SizeWindowForBitmap (1);
-	LayoutMainWindow (Window, NULL);
-	InvalidateRect (StartupScreen, NULL, TRUE);
+	LayoutMainWindow (Window, nullptr);
+	InvalidateRect (StartupScreen, nullptr, TRUE);
 
 	if (!batchrun)
 	{
@@ -815,7 +815,7 @@ FHereticStartupScreen::FHereticStartupScreen(int max_progress, HRESULT &hr)
 	}
 
 	font = ST_Util_LoadFont (TEXT_FONT_NAME);
-	if (font == NULL)
+	if (font == nullptr)
 	{
 		DestroyWindow (StartupScreen);
 		return;
@@ -842,8 +842,8 @@ FHereticStartupScreen::FHereticStartupScreen(int max_progress, HRESULT &hr)
 	ST_Util_FreeFont (font);
 
 	ST_Util_SizeWindowForBitmap (1);
-	LayoutMainWindow (Window, NULL);
-	InvalidateRect (StartupScreen, NULL, TRUE);
+	LayoutMainWindow (Window, nullptr);
+	InvalidateRect (StartupScreen, nullptr, TRUE);
 	hr = S_OK;
 }
 
@@ -887,7 +887,7 @@ void FHereticStartupScreen::Progress()
 void FHereticStartupScreen::LoadingStatus(const char *message, int colors)
 {
 	BYTE *font = ST_Util_LoadFont (TEXT_FONT_NAME);
-	if (font != NULL)
+	if (font != nullptr)
 	{
 		int x;
 
@@ -913,7 +913,7 @@ void FHereticStartupScreen::LoadingStatus(const char *message, int colors)
 void FHereticStartupScreen::AppendStatusLine(const char *status)
 {
 	BYTE *font = ST_Util_LoadFont (TEXT_FONT_NAME);
-	if (font != NULL)
+	if (font != nullptr)
 	{
 		int x;
 
@@ -953,7 +953,7 @@ FStrifeStartupScreen::FStrifeStartupScreen(int max_progress, HRESULT &hr)
 	hr = E_FAIL;
 	for (i = 0; i < 4+2+1; ++i)
 	{
-		StartupPics[i] = NULL;
+		StartupPics[i] = nullptr;
 	}
 
 	if (startup_lump < 0 || Wads.LumpLength (startup_lump) != 64000 || !ST_Util_CreateStartupWindow())
@@ -987,8 +987,8 @@ FStrifeStartupScreen::FStrifeStartupScreen(int max_progress, HRESULT &hr)
 	// Make the startup image appear.
 	DrawStuff (0, 0);
 	ST_Util_SizeWindowForBitmap (2);
-	LayoutMainWindow (Window, NULL);
-	InvalidateRect (StartupScreen, NULL, TRUE);
+	LayoutMainWindow (Window, nullptr);
+	InvalidateRect (StartupScreen, nullptr, TRUE);
 
 	hr = S_OK;
 }
@@ -1005,11 +1005,11 @@ FStrifeStartupScreen::~FStrifeStartupScreen()
 {
 	for (int i = 0; i < 4+2+1; ++i)
 	{
-		if (StartupPics[i] != NULL)
+		if (StartupPics[i] != nullptr)
 		{
 			delete[] StartupPics[i];
 		}
-		StartupPics[i] = NULL;
+		StartupPics[i] = nullptr;
 	}
 }
 
@@ -1115,7 +1115,7 @@ void ST_Endoom()
 	}
 
 	font = ST_Util_LoadFont (TEXT_FONT_NAME);
-	if (font == NULL)
+	if (font == nullptr)
 	{
 		exit(0);
 	}
@@ -1137,15 +1137,15 @@ void ST_Endoom()
 	ST_Util_DrawTextScreen (StartupBitmap, endoom_screen, font);
 
 	// Make the title banner go away.
-	if (GameTitleWindow != NULL)
+	if (GameTitleWindow != nullptr)
 	{
 		DestroyWindow (GameTitleWindow);
-		GameTitleWindow = NULL;
+		GameTitleWindow = nullptr;
 	}
 
 	ST_Util_SizeWindowForBitmap (1);
-	LayoutMainWindow (Window, NULL);
-	InvalidateRect (StartupScreen, NULL, TRUE);
+	LayoutMainWindow (Window, nullptr);
+	InvalidateRect (StartupScreen, nullptr, TRUE);
 
 	// Does this screen need blinking?
 	for (i = 0; i < 80*25; ++i)
@@ -1156,7 +1156,7 @@ void ST_Endoom()
 			break;
 		}
 	}
-	if (blinking && SetTimer (Window, 0x5A15A, BLINK_PERIOD, NULL) == 0)
+	if (blinking && SetTimer (Window, 0x5A15A, BLINK_PERIOD, nullptr) == 0)
 	{
 		blinking = false;
 	}
@@ -1164,7 +1164,7 @@ void ST_Endoom()
 	// Wait until any key has been pressed or a quit message has been received
 	for (;;)
 	{
-		bRet = GetMessage (&mess, NULL, 0, 0);
+		bRet = GetMessage (&mess, nullptr, 0, 0);
 		if (bRet == 0 || bRet == -1 ||	// bRet == 0 means we received WM_QUIT
 			mess.message == WM_KEYDOWN || mess.message == WM_SYSKEYDOWN || mess.message == WM_LBUTTONDOWN)
 		{
@@ -1196,10 +1196,10 @@ void ST_Endoom()
 
 bool ST_Util_CreateStartupWindow ()
 {
-	StartupScreen = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", NULL,
+	StartupScreen = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", nullptr,
 		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_OWNERDRAW,
-		0, 0, 0, 0, Window, NULL, g_hInst, NULL);
-	if (StartupScreen == NULL)
+		0, 0, 0, 0, Window, nullptr, g_hInst, nullptr);
+	if (StartupScreen == nullptr)
 	{
 		return false;
 	}
@@ -1222,7 +1222,7 @@ void ST_Util_SizeWindowForBitmap (int scale)
 	int w, h, cx, cy, x, y;
 	RECT rect;
 
-	if (GameTitleWindow != NULL)
+	if (GameTitleWindow != nullptr)
 	{
 		GetClientRect (GameTitleWindow, &rect);
 	}
@@ -1240,7 +1240,7 @@ void ST_Util_SizeWindowForBitmap (int scale)
 	// puts it partially offscreen.
 	memset (&displaysettings, 0, sizeof(displaysettings));
 	displaysettings.dmSize = sizeof(displaysettings);
-	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &displaysettings);
+	EnumDisplaySettings (nullptr, ENUM_CURRENT_SETTINGS, &displaysettings);
 	GetWindowRect (Window, &rect);
 	cx = (rect.left + rect.right) / 2;
 	cy = (rect.top + rect.bottom) / 2;
@@ -1317,7 +1317,7 @@ void ST_Util_PlanarToChunky4 (BYTE *dest, const BYTE *src, int width, int height
 
 void ST_Util_DrawBlock (BITMAPINFO *bitmap_info, const BYTE *src, int x, int y, int bytewidth, int height)
 {
-	if (src == NULL)
+	if (src == nullptr)
 	{
 		return;
 	}
@@ -1507,17 +1507,17 @@ BYTE *ST_Util_LoadFont (const char *filename)
 	lumpnum = Wads.CheckNumForFullName (filename);
 	if (lumpnum < 0)
 	{ // font not found
-		return NULL;
+		return nullptr;
 	}
 	lumplen = Wads.LumpLength (lumpnum);
 	height = lumplen / 256;
 	if (height * 256 != lumplen)
 	{ // font is a bad size
-		return NULL;
+		return nullptr;
 	}
 	if (height < 6 || height > 36)
 	{ // let's be reasonable here
-		return NULL;
+		return nullptr;
 	}
 	font = new BYTE[lumplen + 1];
 	font[0] = height;	// Store font height in the first byte.

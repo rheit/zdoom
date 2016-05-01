@@ -170,7 +170,7 @@ bool Trace(const DVector3 &start, sector_t *sector, const DVector3 &direction, d
 	inf.limitz = inf.Start.Z;
 	memset(&res, 0, sizeof(res));
 
-	if ((flags & TRACE_ReportPortals) && callback != NULL)
+	if ((flags & TRACE_ReportPortals) && callback != nullptr)
 	{
 		tempResult.HitType = TRACE_CrossingPortal;
 		tempResult.HitPos = tempResult.SrcFromTarget = inf.Start;
@@ -179,7 +179,7 @@ bool Trace(const DVector3 &start, sector_t *sector, const DVector3 &direction, d
 	}
 	bool reslt = inf.TraceTraverse(inf.ptflags);
 
-	if ((flags & TRACE_ReportPortals) && callback != NULL)
+	if ((flags & TRACE_ReportPortals) && callback != nullptr)
 	{
 		tempResult.HitType = TRACE_CrossingPortal;
 		tempResult.HitPos = tempResult.SrcFromTarget = inf.Results->HitPos;
@@ -218,7 +218,7 @@ void FTraceInfo::EnterSectorPortal(FPathTraverse &pt, int position, double frac,
 	EnterDist = enterdist;
 	pt.PortalRelocate(entersec->GetPortal(position)->mDisplacement, ptflags, frac);
 
-	if ((TraceFlags & TRACE_ReportPortals) && TraceCallback != NULL)
+	if ((TraceFlags & TRACE_ReportPortals) && TraceCallback != nullptr)
 	{
 		enterdist = MaxDist * frac;
 		Results->HitType = TRACE_CrossingPortal;
@@ -258,7 +258,7 @@ void FTraceInfo::EnterLinePortal(FPathTraverse &pt, intercept_t *in)
 	Results->unlinked |= (port->mType != PORTT_LINKED);
 	pt.PortalRelocate(in, ptflags);
 
-	if ((TraceFlags & TRACE_ReportPortals) && TraceCallback != NULL)
+	if ((TraceFlags & TRACE_ReportPortals) && TraceCallback != nullptr)
 	{
 		enterdist = MaxDist * in->frac;
 		Results->HitType = TRACE_CrossingPortal;
@@ -299,7 +299,7 @@ void FTraceInfo::Setup3DFloors()
 			if (!(rover->flags&FF_EXISTS))
 				continue;
 
-			if (rover->flags&FF_SWIMMABLE && Results->Crossed3DWater == NULL)
+			if (rover->flags&FF_SWIMMABLE && Results->Crossed3DWater == nullptr)
 			{
 				if (Check3DFloorPlane(rover, false))
 				{
@@ -385,7 +385,7 @@ bool FTraceInfo::LineCheck(intercept_t *in, double dist, DVector3 hit)
 	}
 	else
 	{ // Dammit. Why does Doom have to allow non-closed sectors?
-		if (in->d.line->backsector == NULL)
+		if (in->d.line->backsector == nullptr)
 		{
 			lineside = 0;
 			CurSector = in->d.line->frontsector;
@@ -399,7 +399,7 @@ bool FTraceInfo::LineCheck(intercept_t *in, double dist, DVector3 hit)
 
 	if (!(in->d.line->flags & ML_TWOSIDED))
 	{
-		entersector = NULL;
+		entersector = nullptr;
 	}
 	else
 	{
@@ -425,15 +425,15 @@ bool FTraceInfo::LineCheck(intercept_t *in, double dist, DVector3 hit)
 	ff = CurSector->floorplane.ZatPoint(hit);
 	fc = CurSector->ceilingplane.ZatPoint(hit);
 
-	if (entersector != NULL)
+	if (entersector != nullptr)
 	{
 		bf = entersector->floorplane.ZatPoint(hit);
 		bc = entersector->ceilingplane.ZatPoint(hit);
 	}
 
 	sector_t *hsec = CurSector->GetHeightSec();
-	if (Results->CrossedWater == NULL &&
-		hsec != NULL &&
+	if (Results->CrossedWater == nullptr &&
+		hsec != nullptr &&
 		//CurSector->heightsec->waterzone &&
 		hit.Z <= hsec->floorplane.ZatPoint(hit))
 	{
@@ -458,14 +458,14 @@ bool FTraceInfo::LineCheck(intercept_t *in, double dist, DVector3 hit)
 		Results->HitType = TRACE_HitCeiling;
 		Results->HitTexture = CurSector->GetTexture(sector_t::ceiling);
 	}
-	else if (entersector == NULL ||
+	else if (entersector == nullptr ||
 		hit.Z < bf || hit.Z > bc ||
 		in->d.line->flags & WallMask)
 	{
 		// hit the wall
 		Results->HitType = TRACE_HitWall;
 		Results->Tier =
-			entersector == NULL ? TIER_Middle :
+			entersector == nullptr ? TIER_Middle :
 			hit.Z <= bf ? TIER_Lower :
 			hit.Z >= bc ? TIER_Upper : TIER_Middle;
 		if (TraceFlags & TRACE_Impact)
@@ -551,7 +551,7 @@ cont:
 		if (Results->HitType != TRACE_HitWall &&
 			!CheckSectorPlane(CurSector, Results->HitType == TRACE_HitFloor))
 		{ // trace is parallel to the plane (or right on it)
-			if (entersector == NULL)
+			if (entersector == nullptr)
 			{
 				Results->HitType = TRACE_HitWall;
 				Results->Tier = TIER_Middle;
@@ -587,7 +587,7 @@ cont:
 		}
 	}
 
-	if (TraceCallback != NULL && Results->HitType != TRACE_HitNone)
+	if (TraceCallback != nullptr && Results->HitType != TRACE_HitNone)
 	{
 		switch (TraceCallback(*Results, TraceCallbackData))
 		{
@@ -677,7 +677,7 @@ bool FTraceInfo::ThingCheck(intercept_t *in, double dist, DVector3 hit)
 		{
 			Results->HitType = TRACE_HitNone;
 		}
-		if (TraceCallback != NULL)
+		if (TraceCallback != nullptr)
 		{
 			switch (TraceCallback(*Results, TraceCallbackData))
 			{
@@ -702,7 +702,7 @@ cont1:
 	Results->Fraction = in->frac;
 	Results->Actor = in->d.thing;
 
-	if (TraceCallback != NULL)
+	if (TraceCallback != nullptr)
 	{
 		switch (TraceCallback(*Results, TraceCallbackData))
 		{
@@ -736,7 +736,7 @@ bool FTraceInfo::TraceTraverse (int ptflags)
 	while ((in = it.Next()))
 	{
 		// Deal with splashes in 3D floors (but only run once per sector, not each iteration - and stop if something was found.)
-		if (Results->Crossed3DWater == NULL && lastsplashsector != CurSector->sectornum)
+		if (Results->Crossed3DWater == nullptr && lastsplashsector != CurSector->sectornum)
 		{
 			for (auto rover : CurSector->e->XFloor.ffloors)
 			{
@@ -786,7 +786,7 @@ bool FTraceInfo::TraceTraverse (int ptflags)
 			if (in->d.line->isLinePortal() && P_PointOnLineSidePrecise(Start, in->d.line) == 0)
 			{
 				sector_t *entersector = in->d.line->backsector;
-				if (entersector == NULL || (hit.Z >= entersector->floorplane.ZatPoint(hit) && hit.Z <= entersector->ceilingplane.ZatPoint(hit)))
+				if (entersector == nullptr || (hit.Z >= entersector->floorplane.ZatPoint(hit) && hit.Z <= entersector->ceilingplane.ZatPoint(hit)))
 				{
 					FLinePortal *port = in->d.line->getPortal();
 					// The caller cannot handle portals without global offset.
@@ -822,8 +822,8 @@ bool FTraceInfo::TraceTraverse (int ptflags)
 	// check for intersection with floor/ceiling
 	Results->Sector = &sectors[CurSector->sectornum];
 
-	if (Results->CrossedWater == NULL &&
-		CurSector->heightsec != NULL &&
+	if (Results->CrossedWater == nullptr &&
+		CurSector->heightsec != nullptr &&
 		CurSector->heightsec->floorplane.ZatPoint(Results->HitPos) >= Results->HitPos.Z)
 	{
 		// Save the result so that the water check doesn't destroy it.

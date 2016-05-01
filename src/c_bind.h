@@ -49,7 +49,7 @@ class FKeyBindings
 public:
 	void PerformBind(FCommandLine &argv, const char *msg);
 	bool DoKey(event_t *ev);
-	void ArchiveBindings(FConfigFile *F, const char *matchcmd = NULL);
+	void ArchiveBindings(FConfigFile *F, const char *matchcmd = nullptr);
 	int  GetKeysForCommand (const char *cmd, int *first, int *second);
 	void UnbindACommand (const char *str);
 	void UnbindAll ();
@@ -70,7 +70,7 @@ public:
 	const char *GetBind(unsigned int index) const
 	{
 		if (index < NUM_KEYS) return Binds[index].GetChars();
-		else return NULL;
+		else return nullptr;
 	}
 
 };

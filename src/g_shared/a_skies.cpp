@@ -111,7 +111,7 @@ void ASkyPicker::PostBeginPlay ()
 
 	if (args[0] == 0)
 	{
-		box = NULL;
+		box = nullptr;
 	}
 	else
 	{
@@ -119,7 +119,7 @@ void ASkyPicker::PostBeginPlay ()
 		box = iterator.Next ();
 	}
 
-	if (box == NULL && args[0] != 0)
+	if (box == nullptr && args[0] != 0)
 	{
 		Printf ("Can't find SkyViewpoint %d for sector %td\n", args[0], Sector - sectors);
 	}

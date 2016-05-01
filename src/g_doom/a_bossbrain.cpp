@@ -34,20 +34,20 @@ DEFINE_ACTION_FUNCTION(AActor, A_BrainPain)
 static void BrainishExplosion (const DVector3 &pos)
 {
 	AActor *boom = Spawn("Rocket", pos, NO_REPLACE);
-	if (boom != NULL)
+	if (boom != nullptr)
 	{
 		boom->DeathSound = "misc/brainexplode";
 		boom->Vel.Z = pr_brainscream() /128.;
 
 		PClassActor *cls = PClass::FindActor("BossBrain");
-		if (cls != NULL)
+		if (cls != nullptr)
 		{
 			FState *state = cls->FindState(NAME_Brainexplode);
-			if (state != NULL)
+			if (state != nullptr)
 				boom->SetState (state);
 		}
 		boom->effects = 0;
-		boom->Damage = NULL;	// disables collision detection which is not wanted here
+		boom->Damage = nullptr;	// disables collision detection which is not wanted here
 		boom->tics -= pr_brainscream() & 7;
 		if (boom->tics < 1)
 			boom->tics = 1;
@@ -112,7 +112,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BrainDie)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BrainSpit)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, AActor) { spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, AActor) { spawntype = nullptr; }
 
 	DSpotState *state = DSpotState::GetSpotState();
 	AActor *targ;
@@ -122,9 +122,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BrainSpit)
 	// shoot a cube at current target
 	targ = state->GetNextInList(PClass::FindClass("BossTarget"), G_SkillProperty(SKILLP_EasyBossBrain));
 
-	if (targ != NULL)
+	if (targ != nullptr)
 	{
-		if (spawntype == NULL) 
+		if (spawntype == nullptr) 
 		{
 			spawntype = PClass::FindActor("SpawnShot");
 			isdefault = true;
@@ -133,7 +133,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BrainSpit)
 		// spawn brain missile
 		spit = P_SpawnMissile (self, targ, spawntype);
 
-		if (spit != NULL)
+		if (spit != nullptr)
 		{
 			// Boss cubes should move freely to their destination so it's
 			// probably best to disable all collision detection for them.
@@ -193,10 +193,10 @@ static void SpawnFly(AActor *self, PClassActor *spawntype, FSoundID sound)
 			return;		// still flying
 	}
 	
-	if (spawntype != NULL)
+	if (spawntype != nullptr)
 	{
 		fog = Spawn (spawntype, targ->Pos(), ALLOW_REPLACE);
-		if (fog != NULL) S_Sound (fog, CHAN_BODY, sound, 1, ATTN_NORM);
+		if (fog != nullptr) S_Sound (fog, CHAN_BODY, sound, 1, ATTN_NORM);
 	}
 
 	FName SpawnName;
@@ -209,12 +209,12 @@ static void SpawnFly(AActor *self, PClassActor *spawntype, FSoundID sound)
 	drop = self->GetDropItems();
 
 	// If not, then default back to its master's list
-	if (drop == NULL && eye != NULL)
+	if (drop == nullptr && eye != nullptr)
 		drop = eye->GetDropItems();
 
-	if (drop != NULL)
+	if (drop != nullptr)
 	{
-		for (di = drop; di != NULL; di = di->Next)
+		for (di = drop; di != nullptr; di = di->Next)
 		{
 			if (di->Name != NAME_None)
 			{
@@ -233,7 +233,7 @@ static void SpawnFly(AActor *self, PClassActor *spawntype, FSoundID sound)
 			{
 				n -= di->Amount; // logically, none of the -1 values have survived by now.
 			}
-			if ((di->Next != NULL) && (n >= 0))
+			if ((di->Next != nullptr) && (n >= 0))
 			{
 				di = di->Next;
 			}
@@ -264,13 +264,13 @@ static void SpawnFly(AActor *self, PClassActor *spawntype, FSoundID sound)
 		else			  SpawnName = "BaronOfHell";
 	}
 	spawntype = PClass::FindActor(SpawnName);
-	if (spawntype != NULL)
+	if (spawntype != nullptr)
 	{
 		newmobj = Spawn (spawntype, targ->Pos(), ALLOW_REPLACE);
-		if (newmobj != NULL)
+		if (newmobj != nullptr)
 		{
 			// Make the new monster hate what the boss eye hates
-			if (eye != NULL)
+			if (eye != nullptr)
 			{
 				newmobj->CopyFriendliness (eye, false);
 			}
@@ -278,7 +278,7 @@ static void SpawnFly(AActor *self, PClassActor *spawntype, FSoundID sound)
 			// (if the player has made noise).
 			newmobj->LastHeard = newmobj->Sector->SoundTarget;
 
-			if (newmobj->SeeState != NULL && P_LookForPlayers (newmobj, true, NULL))
+			if (newmobj->SeeState != nullptr && P_LookForPlayers (newmobj, true, nullptr))
 			{
 				newmobj->SetState (newmobj->SeeState);
 			}
@@ -298,11 +298,11 @@ static void SpawnFly(AActor *self, PClassActor *spawntype, FSoundID sound)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnFly)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT	(spawntype, AActor)	{ spawntype = NULL; }
+	PARAM_CLASS_OPT	(spawntype, AActor)	{ spawntype = nullptr; }
 
 	FSoundID sound;
 
-	if (spawntype != NULL) 
+	if (spawntype != nullptr) 
 	{
 		sound = GetDefaultByType(spawntype)->SeeSound;
 	}

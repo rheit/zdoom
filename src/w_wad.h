@@ -129,7 +129,7 @@ public:
 	FMemLump (const FMemLump &copy);
 	FMemLump &operator= (const FMemLump &copy);
 	~FMemLump ();
-	void *GetMem () { return Block.Len() == 0 ? NULL : (void *)Block.GetChars(); }
+	void *GetMem () { return Block.Len() == 0 ? nullptr : (void *)Block.GetChars(); }
 	size_t GetSize () { return Block.Len(); }
 	FString GetString () { return Block; }
 
@@ -151,7 +151,7 @@ public:
 	enum { IWAD_FILENUM = 1 };
 
 	void InitMultipleFiles (TArray<FString> &filenames);
-	void AddFile (const char *filename, FileReader *wadinfo = NULL);
+	void AddFile (const char *filename, FileReader *wadinfo = nullptr);
 	int CheckIfWadLoaded (const char *name);
 
 	const char *GetWadName (int wadnum) const;
@@ -197,7 +197,7 @@ public:
 	FileReader * GetFileReader(int wadnum);	// Gets a FileReader object to the entire WAD
 
 	int FindLump (const char *name, int *lastlump, bool anyns=false);		// [RH] Find lumps with duplication
-	int FindLumpMulti (const char **names, int *lastlump, bool anyns = false, int *nameindex = NULL); // same with multiple possible names
+	int FindLumpMulti (const char **names, int *lastlump, bool anyns = false, int *nameindex = nullptr); // same with multiple possible names
 	bool CheckLumpName (int lump, const char *name);	// [RH] True if lump's name == name
 
 	static DWORD LumpNameHash (const char *name);		// [RH] Create hash key from an 8-char name

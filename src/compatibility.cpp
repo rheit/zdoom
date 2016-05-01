@@ -148,17 +148,17 @@ static FCompatOption Options[] =
 	{ "pointonline",			COMPATF2_POINTONLINE, SLOT_COMPAT2 },
 	{ "multiexit",				COMPATF2_MULTIEXIT, SLOT_COMPAT2 },
 
-	{ NULL, 0, 0 }
+	{ nullptr, 0, 0 }
 };
 
 static const char *const LineSides[] =
 {
-	"Front", "Back", NULL
+	"Front", "Back", nullptr
 };
 
 static const char *const WallTiers[] =
 {
-	"Top", "Mid", "Bot", NULL
+	"Top", "Mid", "Bot", nullptr
 };
 
 static TArray<int> CompatParams;
@@ -260,7 +260,7 @@ void ParseCompatibility()
 				CompatParams.Push(sc.Number);
 
 				sc.MustGetString();
-				CompatParams.Push(P_FindLineSpecial(sc.String, NULL, NULL));
+				CompatParams.Push(P_FindLineSpecial(sc.String, nullptr, nullptr));
 				for (int i = 0; i < 5; i++)
 				{
 					sc.MustGetNumber();
@@ -404,7 +404,7 @@ void CheckCompatibility(MapData *map)
 		{
 			Printf("%02X", md5.Bytes[j]);
 		}
-		if (flags != NULL)
+		if (flags != nullptr)
 		{
 			Printf(", cflags = %08x, cflags2 = %08x, bflags = %08x\n",
 				flags->CompatFlags[SLOT_COMPAT], flags->CompatFlags[SLOT_COMPAT2], flags->CompatFlags[SLOT_BCOMPAT]);
@@ -415,7 +415,7 @@ void CheckCompatibility(MapData *map)
 		}
 	}
 
-	if (flags != NULL)
+	if (flags != nullptr)
 	{
 		if (!onlyparams)
 		{
@@ -532,7 +532,7 @@ void SetCompatibilityParams()
 					if (CompatParams[i+1] < numlines)
 					{
 						side_t *side = lines[CompatParams[i+1]].sidedef[CompatParams[i+2]];
-						if (side != NULL)
+						if (side != nullptr)
 						{
 							side->SetTextureYScale(CompatParams[i+3], CompatParams[i+4] / 65536.);
 						}
@@ -592,7 +592,7 @@ CCMD (mapchecksum)
 	for (int i = 1; i < argv.argc(); ++i)
 	{
 		map = P_OpenMapData(argv[i], true);
-		if (map == NULL)
+		if (map == nullptr)
 		{
 			Printf("Cannot load %s as a map\n", argv[i]);
 		}

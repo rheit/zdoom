@@ -133,7 +133,7 @@ FTexture *PatchTexture_TryCreate(FileReader & file, int lumpnum)
 {
 	patch_t header;
 
-	if (!CheckIfPatch(file)) return NULL;
+	if (!CheckIfPatch(file)) return nullptr;
 	file.Seek(0, SEEK_SET);
 	file >> header.width >> header.height >> header.leftoffset >> header.topoffset;
 	return new FPatchTexture(lumpnum, &header);
@@ -146,7 +146,7 @@ FTexture *PatchTexture_TryCreate(FileReader & file, int lumpnum)
 //==========================================================================
 
 FPatchTexture::FPatchTexture (int lumpnum, patch_t * header)
-: FTexture(NULL, lumpnum), Pixels(0), Spans(0), hackflag(false)
+: FTexture(nullptr, lumpnum), Pixels(0), Spans(0), hackflag(false)
 {
 	Width = header->width;
 	Height = header->height;
@@ -164,10 +164,10 @@ FPatchTexture::FPatchTexture (int lumpnum, patch_t * header)
 FPatchTexture::~FPatchTexture ()
 {
 	Unload ();
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 }
 
@@ -179,10 +179,10 @@ FPatchTexture::~FPatchTexture ()
 
 void FPatchTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -194,7 +194,7 @@ void FPatchTexture::Unload ()
 
 const BYTE *FPatchTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -209,7 +209,7 @@ const BYTE *FPatchTexture::GetPixels ()
 
 const BYTE *FPatchTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -224,9 +224,9 @@ const BYTE *FPatchTexture::GetColumn (unsigned int column, const Span **spans_ou
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans(Pixels);
 		}
@@ -389,7 +389,7 @@ void FPatchTexture::HackHack (int newheight)
 		{ 
 			// If all the columns were checked, it needs fixing.
 			Unload ();
-			if (Spans != NULL)
+			if (Spans != nullptr)
 			{
 				FreeSpans (Spans);
 			}

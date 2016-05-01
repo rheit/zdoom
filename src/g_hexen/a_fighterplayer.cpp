@@ -64,7 +64,7 @@ static bool TryPunch(APlayerPawn *pmo, DAngle angle, int damage, int power)
 	DAngle slope;
 
 	slope = P_AimLineAttack (pmo, angle, 2*MELEERANGE, &t);
-	if (t.linetarget != NULL)
+	if (t.linetarget != nullptr)
 	{
 		if (++pmo->weaponspecial >= 3)
 		{
@@ -77,9 +77,9 @@ static bool TryPunch(APlayerPawn *pmo, DAngle angle, int damage, int power)
 			pufftype = PClass::FindActor("PunchPuff");
 		}
 		P_LineAttack (pmo, angle, 2*MELEERANGE, slope, damage, NAME_Melee, pufftype, true, &t);
-		if (t.linetarget != NULL)
+		if (t.linetarget != nullptr)
 		{
-			if (t.linetarget->player != NULL || 
+			if (t.linetarget->player != nullptr || 
 				(t.linetarget->Mass != INT_MAX && (t.linetarget->flags3 & MF3_ISMONSTER)))
 			{
 				t.linetarget->Thrust(t.angleFromSource, power);
@@ -105,7 +105,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FPunchAttack)
 	int i;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}

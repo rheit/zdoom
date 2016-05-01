@@ -270,7 +270,7 @@ void PacketGet (void)
 		if (err == WSAECONNRESET)
 		{ // The remote node aborted unexpectedly, so pretend it sent an exit packet
 
-			if (StartScreen != NULL)
+			if (StartScreen != nullptr)
 			{
 				StartScreen->NetMessage ("The connection from %s was dropped.\n",
 					players[sendplayer[node]].userinfo.GetName());
@@ -346,7 +346,7 @@ sockaddr_in *PreGet (void *buffer, int bufferlen, bool noabort)
 	{
 		int err = WSAGetLastError();
 		if (err == WSAEWOULDBLOCK || (noabort && err == WSAECONNRESET))
-			return NULL;	// no packet
+			return nullptr;	// no packet
 		I_Error ("PreGet: %s", neterror ());
 	}
 	return &fromaddress;
@@ -863,7 +863,7 @@ void JoinGame (int i)
 	// Let host know we are here
 	StartScreen->NetInit ("Contacting host", 0);
 
-	if (!StartScreen->NetLoop (Guest_ContactHost, NULL))
+	if (!StartScreen->NetLoop (Guest_ContactHost, nullptr))
 	{
 		exit (0);
 	}

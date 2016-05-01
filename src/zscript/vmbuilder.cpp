@@ -157,7 +157,7 @@ void VMFunctionBuilder::FillStringConstants(FString *konst)
 int VMFunctionBuilder::GetConstantInt(int val)
 {
 	int *locp = IntConstants.CheckKey(val);
-	if (locp != NULL)
+	if (locp != nullptr)
 	{
 		return *locp;
 	}
@@ -181,7 +181,7 @@ int VMFunctionBuilder::GetConstantInt(int val)
 int VMFunctionBuilder::GetConstantFloat(double val)
 {
 	int *locp = FloatConstants.CheckKey(val);
-	if (locp != NULL)
+	if (locp != nullptr)
 	{
 		return *locp;
 	}
@@ -205,7 +205,7 @@ int VMFunctionBuilder::GetConstantFloat(double val)
 int VMFunctionBuilder::GetConstantString(FString val)
 {
 	int *locp = StringConstants.CheckKey(val);
-	if (locp != NULL)
+	if (locp != nullptr)
 	{
 		return *locp;
 	}
@@ -228,12 +228,12 @@ int VMFunctionBuilder::GetConstantString(FString val)
 
 int VMFunctionBuilder::GetConstantAddress(void *ptr, VM_ATAG tag)
 {
-	if (ptr == NULL)
-	{ // Make all NULL pointers generic. (Or should we allow typed NULLs?)
+	if (ptr == nullptr)
+	{ // Make all nullptr pointers generic. (Or should we allow typed NULLs?)
 		tag = ATAG_GENERIC;
 	}
 	AddrKonst *locp = AddressConstants.CheckKey(ptr);
-	if (locp != NULL)
+	if (locp != nullptr)
 	{
 		// There should only be one tag associated with a memory location.
 		assert(locp->Tag == tag);

@@ -22,7 +22,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CrusaderChoose)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	if (CrusaderCheckRange (self))
@@ -55,7 +55,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CrusaderSweepLeft)
 
 	self->Angles.Yaw += 90./16;
 	AActor *misl = P_SpawnMissileZAimed (self, self->Z() + 48, self->target, PClass::FindActor("FastFlameMissile"));
-	if (misl != NULL)
+	if (misl != nullptr)
 	{
 		misl->Vel.Z += 1;
 	}
@@ -68,7 +68,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CrusaderSweepRight)
 
 	self->Angles.Yaw -= 90./16;
 	AActor *misl = P_SpawnMissileZAimed (self, self->Z() + 48, self->target, PClass::FindActor("FastFlameMissile"));
-	if (misl != NULL)
+	if (misl != nullptr)
 	{
 		misl->Vel.Z += 1;
 	}
@@ -79,7 +79,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CrusaderRefire)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL ||
+	if (self->target == nullptr ||
 		self->target->health <= 0 ||
 		!P_CheckSight (self, self->target))
 	{
@@ -94,7 +94,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CrusaderDeath)
 
 	if (CheckBossDeath (self))
 	{
-		EV_DoFloor (DFloor::floorLowerToLowest, NULL, 667, 1., 0., -1, 0, false);
+		EV_DoFloor (DFloor::floorLowerToLowest, nullptr, 667, 1., 0., -1, 0, false);
 	}
 	return 0;
 }

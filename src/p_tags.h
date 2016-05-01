@@ -90,7 +90,7 @@ public:
 		if (tag == 0)
 		{
 			searchtag = INT_MIN;
-			start = (line == NULL || line->backsector == NULL)? -1 : (int)(line->backsector - sectors);
+			start = (line == nullptr || line->backsector == nullptr)? -1 : (int)(line->backsector - sectors);
 		}
 		else
 		{

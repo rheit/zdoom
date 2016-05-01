@@ -297,7 +297,7 @@ class DIntermissionController : public DObject
 public:
 	static DIntermissionController *CurrentIntermission;
 
-	DIntermissionController(FIntermissionDescriptor *mDesc = NULL, bool mDeleteDesc = false, BYTE state = FSTATE_ChangingLevel);
+	DIntermissionController(FIntermissionDescriptor *mDesc = nullptr, bool mDeleteDesc = false, BYTE state = FSTATE_ChangingLevel);
 	bool Responder (event_t *ev);
 	void Ticker ();
 	void Drawer ();

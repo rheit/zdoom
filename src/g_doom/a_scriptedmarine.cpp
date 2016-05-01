@@ -77,7 +77,7 @@ bool AScriptedMarine::GetWeaponStates(int weap, FState *&melee, FState *&missile
 	melee = FindState(NAME_Melee, WeaponNames[weap], true);
 	missile = FindState(NAME_Missile, WeaponNames[weap], true);
 
-	return melee != NULL || missile != NULL;
+	return melee != nullptr || missile != nullptr;
 }
 
 void AScriptedMarine::BeginPlay ()
@@ -158,11 +158,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Refire)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_BOOL_OPT(ignoremissile)	{ ignoremissile = false; }
 
-	if (self->target == NULL || self->target->health <= 0)
+	if (self->target == nullptr || self->target->health <= 0)
 	{
 		if (self->MissileState && pr_m_refire() < 160)
 		{ // Look for a new target most of the time
-			if (P_LookForPlayers (self, true, NULL) && P_CheckMissileRange (self))
+			if (P_LookForPlayers (self, true, nullptr) && P_CheckMissileRange (self))
 			{ // Found somebody new and in range, so don't stop shooting
 				return 0;
 			}
@@ -170,7 +170,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Refire)
 		self->SetState (self->state + 1);
 		return 0;
 	}
-	if (((ignoremissile || self->MissileState == NULL) && !self->CheckMeleeRange ()) ||
+	if (((ignoremissile || self->MissileState == nullptr) && !self->CheckMeleeRange ()) ||
 		!P_CheckSight (self, self->target) ||
 		pr_m_refire() < 4)	// Small chance of stopping even when target not dead
 	{
@@ -189,7 +189,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_SawRefire)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL || self->target->health <= 0)
+	if (self->target == nullptr || self->target->health <= 0)
 	{
 		self->SetState (self->state + 1);
 		return 0;
@@ -258,12 +258,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_Saw)
 	PARAM_SOUND_OPT	(fullsound)			{ fullsound = "weapons/sawfull"; }
 	PARAM_SOUND_OPT	(hitsound)			{ hitsound = "weapons/sawhit"; }
 	PARAM_INT_OPT	(damage)			{ damage = 2; }
-	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = NULL; }
+	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = nullptr; }
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
-	if (pufftype == NULL)
+	if (pufftype == nullptr)
 	{
 		pufftype = PClass::FindActor(NAME_BulletPuff);
 	}
@@ -332,7 +332,7 @@ static void MarinePunch(AActor *self, int damagemul)
 	DAngle 		pitch;
 	FTranslatedLineTarget t;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return;
 
 	damage = ((pr_m_punch()%10+1) << 1) * damagemul;
@@ -392,7 +392,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_FirePistol)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_BOOL(accurate);
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON, "weapons/pistol", 1, ATTN_NORM);
@@ -414,7 +414,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireShotgun)
 
 	DAngle pitch;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON,  "weapons/shotgf", 1, ATTN_NORM);
@@ -438,7 +438,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_CheckAttack)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->special1 != 0 || self->target == NULL)
+	if (self->special1 != 0 || self->target == nullptr)
 	{
 		self->SetState (self->FindState("SkipAttack"));
 	}
@@ -461,7 +461,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireShotgun2)
 
 	DAngle pitch;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON, "weapons/sshotf", 1, ATTN_NORM);
@@ -491,7 +491,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_M_FireCGun)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_BOOL(accurate);
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON, "weapons/chngun", 1, ATTN_NORM);
@@ -515,7 +515,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireMissile)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	if (self->CheckMeleeRange ())
@@ -540,7 +540,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireRailgun)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	CALL_ACTION(A_MonsterRail, self);
@@ -558,7 +558,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FirePlasma)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	A_FaceTarget (self);
@@ -577,7 +577,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_BFGsound)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	if (self->special1 != 0)
@@ -604,7 +604,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_M_FireBFG)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	A_FaceTarget (self);
@@ -636,16 +636,16 @@ void AScriptedMarine::SetWeapon (EMarineWeapon type)
 		};
 
 		const PClass *cls = PClass::FindClass(classes[type]);
-		if (cls != NULL)
+		if (cls != nullptr)
 			DecalGenerator = GetDefaultByType(cls)->DecalGenerator;
 		else 
-			DecalGenerator = NULL;
+			DecalGenerator = nullptr;
 	}
 }
 
 void AScriptedMarine::SetSprite (PClassActor *source)
 {
-	if (source == NULL)
+	if (source == nullptr)
 	{ // A valid actor class wasn't passed, so use the standard sprite
 		SpriteOverride = sprite = GetClass()->OwnedStates[0].sprite;
 		// Copy the standard scaling

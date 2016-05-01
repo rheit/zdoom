@@ -67,12 +67,12 @@ void I_ShutdownGraphics ()
 	if (screen)
 	{
 		DFrameBuffer *s = screen;
-		screen = NULL;
+		screen = nullptr;
 		s->ObjectFlags |= OF_YesReallyDelete;
 		delete s;
 	}
 	if (Video)
-		delete Video, Video = NULL;
+		delete Video, Video = nullptr;
 }
 
 void I_InitGraphics ()
@@ -81,7 +81,7 @@ void I_InitGraphics ()
 
 	// If the focus window is destroyed, it doesn't go back to the active window.
 	// (e.g. because the net pane was up, and a button on it had focus)
-	if (GetFocus() == NULL && GetActiveWindow() == Window)
+	if (GetFocus() == nullptr && GetActiveWindow() == Window)
 	{
 		// Make sure it's in the foreground and focused. (It probably is
 		// already foregrounded but may not be focused.)
@@ -98,7 +98,7 @@ void I_InitGraphics ()
 	val.Bool = !!Args->CheckParm ("-devparm");
 	ticker.SetGenericRepDefault (val, CVAR_Bool);
 	Video = new Win32Video (0);
-	if (Video == NULL)
+	if (Video == nullptr)
 		I_FatalError ("Failed to initialize display");
 
 	atterm (I_ShutdownGraphics);
@@ -108,12 +108,12 @@ void I_InitGraphics ()
 
 static void I_DeleteRenderer()
 {
-	if (Renderer != NULL) delete Renderer;
+	if (Renderer != nullptr) delete Renderer;
 }
 
 void I_CreateRenderer()
 {
-	if (Renderer == NULL)
+	if (Renderer == nullptr)
 	{
 		Renderer = new FSoftwareRenderer;
 		atterm(I_DeleteRenderer);
@@ -148,8 +148,8 @@ DFrameBuffer *I_SetMode (int &width, int &height, DFrameBuffer *old)
 	}
 	DFrameBuffer *res = Video->CreateFrameBuffer (width, height, fs, old);
 
-	/* Right now, CreateFrameBuffer cannot return NULL
-	if (res == NULL)
+	/* Right now, CreateFrameBuffer cannot return nullptr
+	if (res == nullptr)
 	{
 		I_FatalError ("Mode %dx%d is unavailable\n", width, height);
 	}
@@ -162,7 +162,7 @@ bool I_CheckResolution (int width, int height, int bits)
 	int twidth, theight;
 
 	Video->StartModeIterator (bits, screen ? screen->IsFullscreen() : fullscreen);
-	while (Video->NextMode (&twidth, &theight, NULL))
+	while (Video->NextMode (&twidth, &theight, nullptr))
 	{
 		if (width == twidth && height == theight)
 			return true;
@@ -180,7 +180,7 @@ void I_ClosestResolution (int *width, int *height, int bits)
 	for (iteration = 0; iteration < 2; iteration++)
 	{
 		Video->StartModeIterator (bits, screen ? screen->IsFullscreen() : fullscreen);
-		while (Video->NextMode (&twidth, &theight, NULL))
+		while (Video->NextMode (&twidth, &theight, nullptr))
 		{
 			if (twidth == *width && theight == *height)
 				return;
@@ -215,7 +215,7 @@ static void GetCenteredPos (int &winx, int &winy, int &winw, int &winh, int &scr
 
 	memset (&displaysettings, 0, sizeof(displaysettings));
 	displaysettings.dmSize = sizeof(displaysettings);
-	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &displaysettings);
+	EnumDisplaySettings (nullptr, ENUM_CURRENT_SETTINGS, &displaysettings);
 	scrwidth = (int)displaysettings.dmPelsWidth;
 	scrheight = (int)displaysettings.dmPelsHeight;
 	GetWindowRect (Window, &rect);
@@ -342,7 +342,7 @@ CCMD (vid_listmodes)
 	int width, height, bits;
 	bool letterbox;
 
-	if (Video == NULL)
+	if (Video == nullptr)
 	{
 		return;
 	}

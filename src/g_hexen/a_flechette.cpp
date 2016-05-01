@@ -141,10 +141,10 @@ IMPLEMENT_CLASS (AArtiPoisonBagGiver)
 bool AArtiPoisonBagGiver::Use (bool pickup)
 {
 	PClassActor *missiletype = PClass::FindActor(this->GetClass()->MissileName);
-	if (missiletype != NULL)
+	if (missiletype != nullptr)
 	{
 		AActor *mo = Spawn (missiletype, Owner->Pos(), ALLOW_REPLACE);
-		if (mo != NULL)
+		if (mo != nullptr)
 		{
 			if (mo->IsKindOf(RUNTIME_CLASS(AInventory)))
 			{
@@ -172,10 +172,10 @@ IMPLEMENT_CLASS (AArtiPoisonBagShooter)
 bool AArtiPoisonBagShooter::Use (bool pickup)
 {
 	PClassActor *missiletype = PClass::FindActor(this->GetClass()->MissileName);
-	if (missiletype != NULL)
+	if (missiletype != nullptr)
 	{
 		AActor *mo = P_SpawnPlayerMissile(Owner, missiletype);
-		if (mo != NULL)
+		if (mo != nullptr)
 		{
 			// automatic handling of seeker missiles
 			if (mo->flags2 & MF2_SEEKERMISSILE)
@@ -196,12 +196,12 @@ bool AArtiPoisonBagShooter::Use (bool pickup)
 
 PClassActor *GetFlechetteType(AActor *other)
 {
-	PClassActor *spawntype = NULL;
+	PClassActor *spawntype = nullptr;
 	if (other->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
 	{
 		spawntype = static_cast<APlayerPawn*>(other)->FlechetteType;
 	}
-	if (spawntype == NULL)
+	if (spawntype == nullptr)
 	{
 		// default fallback if nothing valid defined.
 		spawntype = RUNTIME_CLASS(AArtiPoisonBag3);
@@ -236,7 +236,7 @@ bool AArtiPoisonBag::HandlePickup (AInventory *item)
 		}
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -309,7 +309,7 @@ int APoisonCloud::DoSpecialDamage (AActor *victim, int damage, FName damagetype)
 {
 	if (victim->player)
 	{
-		bool mate = (target != NULL && victim->player != target->player && victim->IsTeammate (target));
+		bool mate = (target != nullptr && victim->player != target->player && victim->IsTeammate (target));
 		bool dopoison;
 
 		if (!mate)
@@ -329,7 +329,7 @@ int APoisonCloud::DoSpecialDamage (AActor *victim, int damage, FName damagetype)
 				damage = (int)(damage * level.teamdamage);
 			}
 			// Handle passive damage modifiers (e.g. PowerProtection)
-			if (victim->Inventory != NULL)
+			if (victim->Inventory != nullptr)
 			{
 				victim->Inventory->ModifyDamage(damage, damagetype, damage, true);
 			}

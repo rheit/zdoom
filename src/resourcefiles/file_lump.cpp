@@ -79,7 +79,7 @@ bool FLumpFile::Open(bool quiet)
 	Lumps->LumpSize = Reader->GetLength();
 	Lumps->Namespace = ns_global;
 	Lumps->Flags = 0;
-	Lumps->FullName = NULL;
+	Lumps->FullName = nullptr;
 	NumLumps = 1;
 	if (!quiet)
 	{
@@ -100,6 +100,6 @@ FResourceFile *CheckLump(const char *filename, FileReader *file, bool quiet)
 	FResourceFile *rf = new FLumpFile(filename, file);
 	if (rf->Open(quiet)) return rf;
 	delete rf;
-	return NULL;
+	return nullptr;
 }
 

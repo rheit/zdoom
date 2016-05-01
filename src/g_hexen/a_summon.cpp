@@ -67,7 +67,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Summon)
 		mo->StartTime = level.maptime;
 		if (self->tracer->flags & MF_CORPSE)
 		{	// Master dead
-			mo->tracer = NULL;		// No master
+			mo->tracer = nullptr;		// No master
 		}
 		else
 		{

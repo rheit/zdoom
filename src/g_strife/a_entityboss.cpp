@@ -25,10 +25,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_SubEntityDeath)
 
 void A_SpectralMissile (AActor *self, const char *missilename)
 {
-	if (self->target != NULL)
+	if (self->target != nullptr)
 	{
 		AActor *missile = P_SpawnMissileXYZ (self->PosPlusZ(32.), self, self->target, PClass::FindActor(missilename), false);
-		if (missile != NULL)
+		if (missile != nullptr)
 		{
 			missile->tracer = self->target;
 			P_CheckMissileSpawn(missile, self->radius);
@@ -78,7 +78,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpawnEntity)
 	PARAM_ACTION_PROLOGUE;
 
 	AActor *entity = Spawn("EntityBoss", self->PosPlusZ(70.), ALLOW_REPLACE);
-	if (entity != NULL)
+	if (entity != nullptr)
 	{
 		entity->Angles.Yaw = self->Angles.Yaw;
 		entity->CopyFriendliness(self, true);
@@ -99,7 +99,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_EntityDeath)
 	const double velmul[3] = { 4.8828125f, secondRadius*4, secondRadius*4 };
 
 	AActor *spot = self->tracer;
-	if (spot == NULL) spot = self;
+	if (spot == nullptr) spot = self;
 
 	for (int i = 0; i < 3; i++)
 	{

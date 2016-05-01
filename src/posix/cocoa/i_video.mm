@@ -290,7 +290,7 @@ EXTERN_CVAR(Float, Gamma)
 
 CUSTOM_CVAR(Float, rgamma, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
-	if (NULL != screen)
+	if (nullptr != screen)
 	{
 		screen->SetGamma(Gamma);
 	}
@@ -298,7 +298,7 @@ CUSTOM_CVAR(Float, rgamma, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 CUSTOM_CVAR(Float, ggamma, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
-	if (NULL != screen)
+	if (nullptr != screen)
 	{
 		screen->SetGamma(Gamma);
 	}
@@ -306,7 +306,7 @@ CUSTOM_CVAR(Float, ggamma, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 CUSTOM_CVAR(Float, bgamma, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
-	if (NULL != screen)
+	if (nullptr != screen)
 	{
 		screen->SetGamma(Gamma);
 	}
@@ -484,8 +484,8 @@ void CocoaVideo::StartModeIterator(const int bits, const bool fullscreen)
 
 bool CocoaVideo::NextMode(int* const width, int* const height, bool* const letterbox)
 {
-	assert(NULL != width);
-	assert(NULL != height);
+	assert(nullptr != width);
+	assert(nullptr != height);
 
 	const int bits = m_modeIterator.bits;
 
@@ -501,7 +501,7 @@ bool CocoaVideo::NextMode(int* const width, int* const height, bool* const lette
 		*width  = VideoModes[index].width;
 		*height = VideoModes[index].height;
 
-		if (m_modeIterator.fullscreen && NULL != letterbox)
+		if (m_modeIterator.fullscreen && nullptr != letterbox)
 		{
 			const NSSize screenSize  = [[m_window screen] frame].size;
 			const float  screenRatio = screenSize.width / screenSize.height;
@@ -523,7 +523,7 @@ DFrameBuffer* CocoaVideo::CreateFrameBuffer(const int width, const int height, c
 	PalEntry flashColor  = 0;
 	int      flashAmount = 0;
 
-	if (NULL != old)
+	if (nullptr != old)
 	{
 		if (width == m_width && height == m_height)
 		{
@@ -536,7 +536,7 @@ DFrameBuffer* CocoaVideo::CreateFrameBuffer(const int width, const int height, c
 
 		if (old == screen)
 		{
-			screen = NULL;
+			screen = nullptr;
 		}
 
 		delete old;
@@ -558,7 +558,7 @@ void CocoaVideo::SetWindowedScale(float scale)
 bool CocoaVideo::IsFullscreen()
 {
 	CocoaVideo* const video = GetInstance();
-	return NULL == video
+	return nullptr == video
 		? false
 		: video->m_fullscreen;
 }
@@ -830,7 +830,7 @@ void CocoaFrameBuffer::Unlock()
 	}
 	else if (--LockCount <= 0)
 	{
-		Buffer = NULL;
+		Buffer = nullptr;
 		LockCount = 0;
 	}
 }
@@ -849,7 +849,7 @@ void CocoaFrameBuffer::Update()
 
 	DrawRateStuff();
 
-	Buffer = NULL;
+	Buffer = nullptr;
 	LockCount = 0;
 	m_isUpdatePending = false;
 
@@ -970,7 +970,7 @@ void CocoaFrameBuffer::SetVSync(bool vsync)
 
 void CocoaFrameBuffer::Flip()
 {
-	assert(NULL != screen);
+	assert(nullptr != screen);
 
 	if (rbOpts.dirty)
 	{
@@ -1024,15 +1024,15 @@ IVideo* Video;
 
 void I_ShutdownGraphics()
 {
-	if (NULL != screen)
+	if (nullptr != screen)
 	{
 		screen->ObjectFlags |= OF_YesReallyDelete;
 		delete screen;
-		screen = NULL;
+		screen = nullptr;
 	}
 
 	delete Video;
-	Video = NULL;
+	Video = nullptr;
 }
 
 void I_InitGraphics()
@@ -1050,12 +1050,12 @@ void I_InitGraphics()
 static void I_DeleteRenderer()
 {
 	delete Renderer;
-	Renderer = NULL;
+	Renderer = nullptr;
 }
 
 void I_CreateRenderer()
 {
-	if (NULL == Renderer)
+	if (nullptr == Renderer)
 	{
 		Renderer = new FSoftwareRenderer;
 		atterm(I_DeleteRenderer);
@@ -1074,7 +1074,7 @@ bool I_CheckResolution(const int width, const int height, const int bits)
 
 	Video->StartModeIterator(bits, fullscreen);
 
-	while (Video->NextMode(&twidth, &theight, NULL))
+	while (Video->NextMode(&twidth, &theight, nullptr))
 	{
 		if (width == twidth && height == theight)
 		{
@@ -1096,7 +1096,7 @@ void I_ClosestResolution(int *width, int *height, int bits)
 	{
 		Video->StartModeIterator(bits, fullscreen);
 
-		while (Video->NextMode(&twidth, &theight, NULL))
+		while (Video->NextMode(&twidth, &theight, nullptr))
 		{
 			if (twidth == *width && theight == *height)
 			{
@@ -1169,7 +1169,7 @@ CUSTOM_CVAR(Bool, vid_hidpi, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 CCMD(vid_listmodes)
 {
-	if (Video == NULL)
+	if (Video == nullptr)
 	{
 		return;
 	}
@@ -1206,7 +1206,7 @@ bool I_SetCursor(FTexture* cursorpic)
 	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 	NSCursor* cursor = nil;
 
-	if (NULL != cursorpic && FTexture::TEX_Null != cursorpic->UseType)
+	if (nullptr != cursorpic && FTexture::TEX_Null != cursorpic->UseType)
 	{
 		// Create bitmap image representation
 
@@ -1215,7 +1215,7 @@ bool I_SetCursor(FTexture* cursorpic)
 		const NSInteger imagePitch  = imageWidth * 4;
 
 		NSBitmapImageRep* bitmapImageRep = [NSBitmapImageRep alloc];
-		[bitmapImageRep initWithBitmapDataPlanes:NULL
+		[bitmapImageRep initWithBitmapDataPlanes:nullptr
 									  pixelsWide:imageWidth
 									  pixelsHigh:imageHeight
 								   bitsPerSample:8

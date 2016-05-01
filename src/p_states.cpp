@@ -47,7 +47,7 @@
 // actor. States are archived by recording the actor they belong
 // to and the index into that actor's list of states.
 
-// For NULL states, which aren't owned by any actor, the owner
+// For nullptr states, which aren't owned by any actor, the owner
 // is recorded as AActor with the following state. AActor should
 // never actually have this many states of its own, so this
 // is (relatively) safe.
@@ -65,7 +65,7 @@ FArchive &operator<< (FArchive &arc, FState *&state)
 
 	if (arc.IsStoring ())
 	{
-		if (state == NULL)
+		if (state == nullptr)
 		{
 			arc.UserWriteClass (RUNTIME_CLASS(AActor));
 			arc.WriteCount (NULL_STATE_INDEX);
@@ -74,7 +74,7 @@ FArchive &operator<< (FArchive &arc, FState *&state)
 
 		info = FState::StaticFindStateOwner (state);
 
-		if (info != NULL)
+		if (info != nullptr)
 		{
 			arc.UserWriteClass (info);
 			arc.WriteCount ((DWORD)(state - info->OwnedStates));
@@ -102,7 +102,7 @@ FArchive &operator<< (FArchive &arc, FState *&state)
 		ofs = arc.ReadCount ();
 		if (ofs == NULL_STATE_INDEX && info == RUNTIME_CLASS(AActor))
 		{
-			state = NULL;
+			state = nullptr;
 		}
 		else
 		{
@@ -130,7 +130,7 @@ PClassActor *FState::StaticFindStateOwner (const FState *state)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -142,7 +142,7 @@ PClassActor *FState::StaticFindStateOwner (const FState *state)
 
 PClassActor *FState::StaticFindStateOwner (const FState *state, PClassActor *info)
 {
-	while (info != NULL)
+	while (info != nullptr)
 	{
 		if (state >= info->OwnedStates &&
 			state <  info->OwnedStates + info->NumOwnedStates)
@@ -151,7 +151,7 @@ PClassActor *FState::StaticFindStateOwner (const FState *state, PClassActor *inf
 		}
 		info = dyn_cast<PClassActor>(info->ParentClass);
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -169,11 +169,11 @@ void FStateLabels::Destroy ()
 {
 	for(int i = 0; i < NumLabels; i++)
 	{
-		if (Labels[i].Children != NULL)
+		if (Labels[i].Children != nullptr)
 		{
 			Labels[i].Children->Destroy();
 			free(Labels[i].Children);	// These are malloc'd, not new'd!
-			Labels[i].Children = NULL;
+			Labels[i].Children = nullptr;
 		}
 	}
 }
@@ -191,14 +191,14 @@ bool AActor::HasSpecialDeathStates () const
 {
 	const PClassActor *info = static_cast<PClassActor *>(GetClass());
 
-	if (info->StateList != NULL)
+	if (info->StateList != nullptr)
 	{
 		FStateLabel *slabel = info->StateList->FindLabel (NAME_Death);
-		if (slabel != NULL && slabel->Children != NULL)
+		if (slabel != nullptr && slabel->Children != nullptr)
 		{
 			for(int i = 0; i < slabel->Children->NumLabels; i++)
 			{
-				if (slabel->Children->Labels[i].State != NULL)
+				if (slabel->Children->Labels[i].State != nullptr)
 				{
 					return true;
 				}
@@ -250,7 +250,7 @@ TArray<FName> &MakeStateNameList(const char * fname)
 		namelist.Push(secondpart);
 	}
 
-	while ((c = strtok(NULL, ".")) != NULL)
+	while ((c = strtok(nullptr, ".")) != nullptr)
 	{
 		FName cc = c;
 		namelist.Push(cc);
@@ -277,21 +277,21 @@ TArray<FName> &MakeStateNameList(const char * fname)
 FState *PClassActor::FindState(int numnames, FName *names, bool exact) const
 {
 	FStateLabels *labels = StateList;
-	FState *best = NULL;
+	FState *best = nullptr;
 
-	if (labels != NULL)
+	if (labels != nullptr)
 	{
 		int count = 0;
-		FStateLabel *slabel = NULL;
+		FStateLabel *slabel = nullptr;
 		FName label;
 
 		// Find the best-matching label for this class.
-		while (labels != NULL && count < numnames)
+		while (labels != nullptr && count < numnames)
 		{
 			label = *names++;
 			slabel = labels->FindLabel(label);
 
-			if (slabel != NULL)
+			if (slabel != nullptr)
 			{
 				count++;
 				labels = slabel->Children;
@@ -304,7 +304,7 @@ FState *PClassActor::FindState(int numnames, FName *names, bool exact) const
 		}
 		if (count < numnames && exact)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	return best;
@@ -344,11 +344,11 @@ FStateDefine *FStateDefinitions::FindStateLabelInList(TArray<FStateDefine> & lis
 	{
 		FStateDefine def;
 		def.Label = name;
-		def.State = NULL;
+		def.State = nullptr;
 		def.DefineFlags = SDF_NEXT;
 		return &list[list.Push(def)];
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -360,7 +360,7 @@ FStateDefine *FStateDefinitions::FindStateLabelInList(TArray<FStateDefine> & lis
 
 FStateDefine *FStateDefinitions::FindStateAddress(const char *name)
 {
-	FStateDefine *statedef = NULL;
+	FStateDefine *statedef = nullptr;
 	TArray<FName> &namelist = MakeStateNameList(name);
 	TArray<FStateDefine> *statelist = &StateLabels;
 
@@ -397,7 +397,7 @@ void FStateDefinitions::AddStateLabel(const char *statename)
 	FStateDefine *std = FindStateAddress(statename);
 	std->State = (FState *)(index+1);
 	std->DefineFlags = SDF_INDEX;
-	laststate = NULL;
+	laststate = nullptr;
 	lastlabel = index;
 }
 
@@ -411,7 +411,7 @@ void FStateDefinitions::AddStateLabel(const char *statename)
 int FStateDefinitions::GetStateLabelIndex (FName statename)
 {
 	FStateDefine *std = FindStateLabelInList(StateLabels, statename, false);
-	if (std == NULL)
+	if (std == nullptr)
 	{
 		return -1;
 	}
@@ -422,13 +422,13 @@ int FStateDefinitions::GetStateLabelIndex (FName statename)
 //==========================================================================
 //
 // Finds the state associated with the given name
-// returns NULL if none found
+// returns nullptr if none found
 //
 //==========================================================================
 
 FState *FStateDefinitions::FindState(const char * name)
 {
-	FStateDefine *statedef = NULL;
+	FStateDefine *statedef = nullptr;
 
 	TArray<FName> &namelist = MakeStateNameList(name);
 
@@ -436,13 +436,13 @@ FState *FStateDefinitions::FindState(const char * name)
 	for(unsigned i = 0; i < namelist.Size(); i++)
 	{
 		statedef = FindStateLabelInList(*statelist, namelist[i], false);
-		if (statedef == NULL)
+		if (statedef == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 		statelist = &statedef->Children;
 	}
-	return statedef ? statedef->State : NULL;
+	return statedef ? statedef->State : nullptr;
 }
 
 //==========================================================================
@@ -463,7 +463,7 @@ FStateLabels *FStateDefinitions::CreateStateLabelList(TArray<FStateDefine> & sta
 	// First delete all empty labels from the list
 	for (int i = statelist.Size() - 1; i >= 0; i--)
 	{
-		if (statelist[i].Label == NAME_None || (statelist[i].State == NULL && statelist[i].Children.Size() == 0))
+		if (statelist[i].Label == NAME_None || (statelist[i].State == nullptr && statelist[i].Children.Size() == 0))
 		{
 			statelist.Delete(i);
 		}
@@ -473,7 +473,7 @@ FStateLabels *FStateDefinitions::CreateStateLabelList(TArray<FStateDefine> & sta
 
 	if (count == 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 	FStateLabels *list = (FStateLabels*)M_Malloc(sizeof(FStateLabels)+(count-1)*sizeof(FStateLabel));
 	list->NumLabels = count;
@@ -501,13 +501,13 @@ void FStateDefinitions::InstallStates(PClassActor *info, AActor *defaults)
 	// First ensure we have a valid spawn state.
 	FState *state = FindState("Spawn");
 
-	if (state == NULL)
+	if (state == nullptr)
 	{
-		// A NULL spawn state will crash the engine so set it to something valid.
+		// A nullptr spawn state will crash the engine so set it to something valid.
 		SetStateLabel("Spawn", GetDefault<AActor>()->SpawnState);
 	}
 
-	if (info->StateList != NULL) 
+	if (info->StateList != nullptr) 
 	{
 		info->StateList->Destroy();
 		M_Free(info->StateList);
@@ -535,7 +535,7 @@ void FStateDefinitions::InstallStates(PClassActor *info, AActor *defaults)
 void FStateDefinitions::MakeStateList(const FStateLabels *list, TArray<FStateDefine> &dest)
 {
 	dest.Clear();
-	if (list != NULL) for (int i = 0; i < list->NumLabels; i++)
+	if (list != nullptr) for (int i = 0; i < list->NumLabels; i++)
 	{
 		FStateDefine def;
 
@@ -543,7 +543,7 @@ void FStateDefinitions::MakeStateList(const FStateLabels *list, TArray<FStateDef
 		def.State = list->Labels[i].State;
 		def.DefineFlags = SDF_STATE;
 		dest.Push(def);
-		if (list->Labels[i].Children != NULL)
+		if (list->Labels[i].Children != nullptr)
 		{
 			MakeStateList(list->Labels[i].Children, dest[dest.Size()-1].Children);
 		}
@@ -553,11 +553,11 @@ void FStateDefinitions::MakeStateList(const FStateLabels *list, TArray<FStateDef
 void FStateDefinitions::MakeStateDefines(const PClassActor *cls)
 {
 	StateArray.Clear();
-	laststate = NULL;
-	laststatebeforelabel = NULL;
+	laststate = nullptr;
+	laststatebeforelabel = nullptr;
 	lastlabel = -1;
 
-	if (cls != NULL && cls->StateList != NULL)
+	if (cls != nullptr && cls->StateList != nullptr)
 	{
 		MakeStateList(cls->StateList, StateLabels);
 	}
@@ -577,9 +577,9 @@ void FStateDefinitions::MakeStateDefines(const PClassActor *cls)
 
 void FStateDefinitions::AddStateDefines(const FStateLabels *list)
 {
-	if (list != NULL) for(int i = 0; i < list->NumLabels; i++)
+	if (list != nullptr) for(int i = 0; i < list->NumLabels; i++)
 	{
-		if (list->Labels[i].Children == NULL)
+		if (list->Labels[i].Children == nullptr)
 		{
 			if (!FindStateLabelInList(StateLabels, list->Labels[i].Label, false))
 			{
@@ -613,9 +613,9 @@ void FStateDefinitions::RetargetStatePointers (intptr_t count, const char *targe
 	{
 		if (statelist[i].State == (FState*)count && statelist[i].DefineFlags == SDF_INDEX)
 		{
-			if (target == NULL)
+			if (target == nullptr)
 			{
-				statelist[i].State = NULL;
+				statelist[i].State = nullptr;
 				statelist[i].DefineFlags = SDF_STOP;
 			}
 			else
@@ -654,7 +654,7 @@ FState *FStateDefinitions::ResolveGotoLabel (AActor *actor, PClassActor *mytype,
 	int v;
 
 	// Check for classname
-	if ((pt = strstr (name, "::")) != NULL)
+	if ((pt = strstr (name, "::")) != nullptr)
 	{
 		const char *classname = name;
 		*pt = '\0';
@@ -671,7 +671,7 @@ FState *FStateDefinitions::ResolveGotoLabel (AActor *actor, PClassActor *mytype,
 		{
 			// first check whether a state of the desired name exists
 			PClass *stype = PClass::FindClass (classname);
-			if (stype == NULL)
+			if (stype == nullptr)
 			{
 				I_Error ("%s is an unknown class.", classname);
 			}
@@ -693,13 +693,13 @@ FState *FStateDefinitions::ResolveGotoLabel (AActor *actor, PClassActor *mytype,
 	}
 	label = name;
 	// Check for offset
-	offset = NULL;
-	if ((pt = strchr (name, '+')) != NULL)
+	offset = nullptr;
+	if ((pt = strchr (name, '+')) != nullptr)
 	{
 		*pt = '\0';
 		offset = pt + 1;
 	}
-	v = offset ? strtol (offset, NULL, 0) : 0;
+	v = offset ? strtol (offset, nullptr, 0) : 0;
 
 	// Get the state's address.
 	if (type == mytype)
@@ -711,7 +711,7 @@ FState *FStateDefinitions::ResolveGotoLabel (AActor *actor, PClassActor *mytype,
 		state = type->FindStateByString(label, true);
 	}
 
-	if (state != NULL)
+	if (state != nullptr)
 	{
 		state += v;
 	}
@@ -764,7 +764,7 @@ void FStateDefinitions::ResolveGotoLabels (PClassActor *actor, AActor *defaults,
 {
 	for (unsigned i = 0; i < list.Size(); i++)
 	{
-		if (list[i].State != NULL && list[i].DefineFlags == SDF_LABEL)
+		if (list[i].State != nullptr && list[i].DefineFlags == SDF_LABEL)
 		{ // It's not a valid state, so it must be a label string. Resolve it.
 			list[i].State = ResolveGotoLabel (defaults, actor, (char *)list[i].State);
 			list[i].DefineFlags = SDF_STATE;
@@ -785,21 +785,21 @@ void FStateDefinitions::ResolveGotoLabels (PClassActor *actor, AActor *defaults,
 bool FStateDefinitions::SetGotoLabel(const char *string)
 {
 	// copy the text - this must be resolved later!
-	if (laststate != NULL)
+	if (laststate != nullptr)
 	{ // Following a state definition: Modify it.
 		laststate->NextState = (FState*)copystring(string);	
 		laststate->DefineFlags = SDF_LABEL;
-		laststatebeforelabel = NULL;
+		laststatebeforelabel = nullptr;
 		return true;
 	}
 	else if (lastlabel >= 0)
 	{ // Following a label: Retarget it.
 		RetargetStates (lastlabel+1, string);
-		if (laststatebeforelabel != NULL)
+		if (laststatebeforelabel != nullptr)
 		{
 			laststatebeforelabel->NextState = (FState*)copystring(string);	
 			laststatebeforelabel->DefineFlags = SDF_LABEL;
-			laststatebeforelabel = NULL;
+			laststatebeforelabel = nullptr;
 		}
 		return true;
 	}
@@ -816,19 +816,19 @@ bool FStateDefinitions::SetGotoLabel(const char *string)
 
 bool FStateDefinitions::SetStop()
 {
-	if (laststate != NULL)
+	if (laststate != nullptr)
 	{
 		laststate->DefineFlags = SDF_STOP;
-		laststatebeforelabel = NULL;
+		laststatebeforelabel = nullptr;
 		return true;
 	}
 	else if (lastlabel >=0)
 	{
-		RetargetStates (lastlabel+1, NULL);
-		if (laststatebeforelabel != NULL)
+		RetargetStates (lastlabel+1, nullptr);
+		if (laststatebeforelabel != nullptr)
 		{
 			laststatebeforelabel->DefineFlags = SDF_STOP;
-			laststatebeforelabel = NULL;
+			laststatebeforelabel = nullptr;
 		}
 		return true;
 	}
@@ -845,10 +845,10 @@ bool FStateDefinitions::SetStop()
 
 bool FStateDefinitions::SetWait()
 {
-	if (laststate != NULL)
+	if (laststate != nullptr)
 	{
 		laststate->DefineFlags = SDF_WAIT;
-		laststatebeforelabel = NULL;
+		laststatebeforelabel = nullptr;
 		return true;
 	}
 	return false;
@@ -864,11 +864,11 @@ bool FStateDefinitions::SetWait()
 
 bool FStateDefinitions::SetLoop()
 {
-	if (laststate != NULL)
+	if (laststate != nullptr)
 	{
 		laststate->DefineFlags = SDF_INDEX;
 		laststate->NextState = (FState*)(lastlabel+1);
-		laststatebeforelabel = NULL;
+		laststatebeforelabel = nullptr;
 		return true;
 	}
 	return false;
@@ -952,7 +952,7 @@ int FStateDefinitions::FinishStates(PClassActor *actor, AActor *defaults)
 			switch (realstates[i].DefineFlags)
 			{
 			case SDF_STOP:		// stop
-				realstates[i].NextState = NULL;
+				realstates[i].NextState = nullptr;
 				break;
 
 			case SDF_WAIT:		// wait
@@ -992,10 +992,10 @@ void DumpStateHelper(FStateLabels *StateList, const FString &prefix)
 {
 	for (int i = 0; i < StateList->NumLabels; i++)
 	{
-		if (StateList->Labels[i].State != NULL)
+		if (StateList->Labels[i].State != nullptr)
 		{
 			const PClassActor *owner = FState::StaticFindStateOwner(StateList->Labels[i].State);
-			if (owner == NULL)
+			if (owner == nullptr)
 			{
 				Printf(PRINT_LOG, "%s%s: invalid\n", prefix.GetChars(), StateList->Labels[i].Label.GetChars());
 			}
@@ -1005,7 +1005,7 @@ void DumpStateHelper(FStateLabels *StateList, const FString &prefix)
 					owner->TypeName.GetChars(), int(StateList->Labels[i].State - owner->OwnedStates));
 			}
 		}
-		if (StateList->Labels[i].Children != NULL)
+		if (StateList->Labels[i].Children != nullptr)
 		{
 			DumpStateHelper(StateList->Labels[i].Children, prefix + '.' + StateList->Labels[i].Label.GetChars());
 		}

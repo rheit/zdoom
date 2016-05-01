@@ -95,21 +95,21 @@ CVAR (Bool, vid_noblitter, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CVAR (Int, vid_displaybits, 8, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CUSTOM_CVAR (Float, rgamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (Gamma);
 	}
 }
 CUSTOM_CVAR (Float, ggamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (Gamma);
 	}
 }
 CUSTOM_CVAR (Float, bgamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (Gamma);
 	}
@@ -126,13 +126,13 @@ DDrawFB::DDrawFB (int width, int height, bool fullscreen)
 
 	LastHR = 0;
 
-	Palette = NULL;
-	PrimarySurf = NULL;
-	BackSurf = NULL;
-	BackSurf2 = NULL;
-	BlitSurf = NULL;
-	Clipper = NULL;
-	GDIPalette = NULL;
+	Palette = nullptr;
+	PrimarySurf = nullptr;
+	BackSurf = nullptr;
+	BackSurf2 = nullptr;
+	BlitSurf = nullptr;
+	Clipper = nullptr;
+	GDIPalette = nullptr;
 	ClipSize = 0;
 	BufferCount = 1;
 	Gamma = 1.0;
@@ -153,7 +153,7 @@ DDrawFB::DDrawFB (int width, int height, bool fullscreen)
 
 	FlashAmount = 0;
 
-	if (MemBuffer == NULL)
+	if (MemBuffer == nullptr)
 	{
 		return;
 	}
@@ -178,7 +178,7 @@ DDrawFB::DDrawFB (int width, int height, bool fullscreen)
 	else
 	{
 		DDCAPS hwcaps = { sizeof(DDCAPS) };
-		HRESULT hr = DDraw->GetCaps (&hwcaps, NULL);
+		HRESULT hr = DDraw->GetCaps (&hwcaps, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			LOG2 ("dwCaps = %08lx, dwSVBCaps = %08lx\n", hwcaps.dwCaps, hwcaps.dwSVBCaps);
@@ -236,7 +236,7 @@ bool DDrawFB::CreateResources ()
 		SetWindowLong (Window, GWL_STYLE, WS_POPUP|WS_VISIBLE|WS_SYSMENU);
 
 		TrueHeight = Height;
-		for (Win32Video::ModeInfo *mode = static_cast<Win32Video *>(Video)->m_Modes; mode != NULL; mode = mode->next)
+		for (Win32Video::ModeInfo *mode = static_cast<Win32Video *>(Video)->m_Modes; mode != nullptr; mode = mode->next)
 		{
 			if (mode->width == Width && mode->height == Height)
 			{
@@ -296,7 +296,7 @@ bool DDrawFB::CreateResources ()
 //		PixelDoubling = 1;
 		do
 		{
-			hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, NULL);
+			hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, nullptr);
 			LOG1 ("Create primary: %08lx\n", hr);
 		} while (0);
 		if (FAILED(hr))
@@ -316,7 +316,7 @@ bool DDrawFB::CreateResources ()
 		VidResizing = true;
 		// Make sure the window has a border in windowed mode
 		SetWindowLong (Window, GWL_STYLE, WS_VISIBLE|WS_OVERLAPPEDWINDOW);
-		if (!SetWindowPos (Window, NULL, 0, 0, sizew, sizeh,
+		if (!SetWindowPos (Window, nullptr, 0, 0, sizew, sizeh,
 			SWP_DRAWFRAME | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOZORDER))
 		{
 			LOG1 ("SetWindowPos failed because %08lx\n", GetLastError());
@@ -325,7 +325,7 @@ bool DDrawFB::CreateResources ()
 		VidResizing = false;
 
 		// Create the clipper
-		hr = DDraw->CreateClipper (0, &Clipper, NULL);
+		hr = DDraw->CreateClipper (0, &Clipper, nullptr);
 		LOG1 ("Create clipper: %08lx\n", hr);
 		if (FAILED(hr))
 		{
@@ -343,7 +343,7 @@ bool DDrawFB::CreateResources ()
 		ddsd.dwHeight       = Height << PixelDoubling;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | (UseBlitter ? DDSCAPS_SYSTEMMEMORY : 0);
 
-		hr = DDraw->CreateSurface (&ddsd, &BackSurf, NULL);
+		hr = DDraw->CreateSurface (&ddsd, &BackSurf, nullptr);
 		LOG1 ("Create backbuffer: %08lx\n", hr);
 		if (FAILED(hr))
 		{
@@ -368,7 +368,7 @@ bool DDrawFB::CreateSurfacesAttached ()
 
 	ddsd.dwFlags = DDSD_CAPS;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_VIDEOMEMORY;
-	hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, NULL);
+	hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, nullptr);
 	if (FAILED(hr))
 	{
 		LastHR = hr;
@@ -392,28 +392,28 @@ bool DDrawFB::CreateSurfacesAttached ()
 	{
 //		MustBuffer = true;
 	}
-	if (BackSurf != NULL)
+	if (BackSurf != nullptr)
 	{
 		DDSCAPS caps = { DDSCAPS_BACKBUFFER, };
 		hr = PrimarySurf->GetAttachedSurface (&caps, &LockingSurf);
 		if (FAILED (hr))
 		{
 			LOG1 ("Could not get attached surface: %08lx\n", hr);
-			if (BackSurf2 != NULL)
+			if (BackSurf2 != nullptr)
 			{
 				PrimarySurf->DeleteAttachedSurface (0, BackSurf2);
 				BackSurf2->Release ();
-				BackSurf2 = NULL;
+				BackSurf2 = nullptr;
 			}
 			PrimarySurf->DeleteAttachedSurface (0, BackSurf);
 			BackSurf->Release ();
-			BackSurf = NULL;
+			BackSurf = nullptr;
 //			MustBuffer = true;
 			LockingSurf = PrimarySurf;
 		}
 		else
 		{
-			BufferCount = (BackSurf2 != NULL) ? 3 : 2;
+			BufferCount = (BackSurf2 != nullptr) ? 3 : 2;
 			LOG ("Got attached surface\n");
 		}
 	}
@@ -434,7 +434,7 @@ bool DDrawFB::AddBackBuf (LPDIRECTDRAWSURFACE *surface, int num)
 	ddsd.dwWidth = Width;
 	ddsd.dwHeight = Height;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
-	hr = DDraw->CreateSurface (&ddsd, surface, NULL);
+	hr = DDraw->CreateSurface (&ddsd, surface, nullptr);
 	if (FAILED(hr))
 	{
 		LOG2 ("could not create back buf %d: %08lx\n", num, hr);
@@ -448,7 +448,7 @@ bool DDrawFB::AddBackBuf (LPDIRECTDRAWSURFACE *surface, int num)
 		{
 			LOG2 ("could not add back buf %d: %08lx\n", num, hr);
 			(*surface)->Release ();
-			*surface = NULL;
+			*surface = nullptr;
 			return false;
 		}
 		else
@@ -482,7 +482,7 @@ bool DDrawFB::CreateSurfacesComplex ()
 	{
 		LOG1 ("Try #%d\n", tries);
 		ddsd.dwBackBufferCount = UseBlitter ? 1 : 2;
-		hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, NULL);
+		hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, nullptr);
 		if (FAILED(hr))
 		{
 			if (hr == DDERR_NOEXCLUSIVEMODE)
@@ -500,13 +500,13 @@ bool DDrawFB::CreateSurfacesComplex ()
 
 			LOG1 ("Could not create with 2 backbuffers: %lx\n", hr);
 			ddsd.dwBackBufferCount = 1;
-			hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, NULL);
+			hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, nullptr);
 			if (FAILED(hr))
 			{
 				LOG1 ("Could not create with 1 backbuffer: %lx\n", hr);
 				ddsd.ddsCaps.dwCaps &= ~DDSCAPS_FLIP | DDSCAPS_COMPLEX;
 				ddsd.dwBackBufferCount = 0;
-				hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, NULL);
+				hr = DDraw->CreateSurface (&ddsd, &PrimarySurf, nullptr);
 				if (FAILED (hr))
 				{
 					LOG1 ("Could not create with 0 backbuffers: %lx\n", hr);
@@ -528,9 +528,9 @@ bool DDrawFB::CreateSurfacesComplex ()
 	}
 
 	LOG1 ("Complex surface chain @ %p\n", PrimarySurf);
-	if (PrimarySurf == NULL)
+	if (PrimarySurf == nullptr)
 	{
-		LOG ("It's NULL but it didn't fail?!?\n");
+		LOG ("It's nullptr but it didn't fail?!?\n");
 		LastHR = E_FAIL;
 		return false;
 	}
@@ -574,13 +574,13 @@ bool DDrawFB::CreateBlitterSource ()
 	ddsd.dwBackBufferCount = 2;
 	ddsd.dwWidth = (Width==1024?1024+16:Width);
 	ddsd.dwHeight = Height;
-	hr = DDraw->CreateSurface (&ddsd, &BlitSurf, NULL);
+	hr = DDraw->CreateSurface (&ddsd, &BlitSurf, nullptr);
 	if (FAILED(hr))
 	{
 		LOG1 ("Trying to create blitter source with only one surface (%08lx)\n", hr);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-		hr = DDraw->CreateSurface (&ddsd, &BlitSurf, NULL);
+		hr = DDraw->CreateSurface (&ddsd, &BlitSurf, nullptr);
 		if (FAILED(hr))
 		{
 			LOG1 ("Could not create blitter source: %08lx\n", hr);
@@ -629,7 +629,7 @@ void DDrawFB::MaybeCreatePalette ()
 			}
 			GDIPalette = ::CreatePalette (&pal.head);
 			LOG ("Created GDI palette\n");
-			if (GDIPalette != NULL)
+			if (GDIPalette != nullptr)
 			{
 				HDC dc = GetDC (Window);
 				SelectPalette (dc, GDIPalette, FALSE);
@@ -640,11 +640,11 @@ void DDrawFB::MaybeCreatePalette ()
 		}
 		else
 		{
-			hr = DDraw->CreatePalette (DDPCAPS_8BIT|DDPCAPS_ALLOW256, PalEntries, &Palette, NULL);
+			hr = DDraw->CreatePalette (DDPCAPS_8BIT|DDPCAPS_ALLOW256, PalEntries, &Palette, nullptr);
 			if (FAILED(hr))
 			{
 				LOG ("Could not create palette\n");
-				Palette = NULL;		// NULL it just to be safe
+				Palette = nullptr;		// nullptr it just to be safe
 			}
 			else
 			{
@@ -653,7 +653,7 @@ void DDrawFB::MaybeCreatePalette ()
 				{
 					LOG ("Could not attach palette to surface\n");
 					Palette->Release ();
-					Palette = NULL;
+					Palette = nullptr;
 				}
 				else
 				{
@@ -697,15 +697,15 @@ void DDrawFB::ReleaseResources ()
 	SAFE_RELEASE( BackSurf2 );
 	SAFE_RELEASE( BlitSurf );
 	SAFE_RELEASE( Palette );
-	if (GDIPalette != NULL)
+	if (GDIPalette != nullptr)
 	{
 		HDC dc = GetDC (Window);
 		SelectPalette (dc, (HPALETTE)GetStockObject (DEFAULT_PALETTE), TRUE);
 		DeleteObject (GDIPalette);
 		ReleaseDC (Window, dc);
-		GDIPalette = NULL;
+		GDIPalette = nullptr;
 	}
-	LockingSurf = NULL;
+	LockingSurf = nullptr;
 }
 
 int DDrawFB::GetPageCount ()
@@ -719,7 +719,7 @@ void DDrawFB::PaletteChanged ()
 	// they are obviously jerks, and we need to restore our own palette.
 	if (!Windowed)
 	{
-		if (!PaletteChangeExpected && Palette != NULL)
+		if (!PaletteChangeExpected && Palette != nullptr)
 		{
 			// It is not enough to set NeedPalUpdate to true. Some palette
 			// entries might now be reserved for system usage, and nothing
@@ -742,7 +742,7 @@ void DDrawFB::PaletteChanged ()
 int DDrawFB::QueryNewPalette ()
 {
 	LOG ("QueryNewPalette\n");
-	if (GDIPalette == NULL && Windowed)
+	if (GDIPalette == nullptr && Windowed)
 	{
 		if (Write8bit)
 		{
@@ -808,7 +808,7 @@ bool DDrawFB::Is8BitMode()
 
 bool DDrawFB::IsValid ()
 {
-	return PrimarySurf != NULL;
+	return PrimarySurf != nullptr;
 }
 
 HRESULT DDrawFB::GetHR ()
@@ -851,10 +851,10 @@ bool DDrawFB::Lock (bool useSimpleCanvas)
 	}
 	else
 	{
-		HRESULT hr GCCNOWARN = BlitSurf->Flip (NULL, DDFLIP_WAIT);
+		HRESULT hr GCCNOWARN = BlitSurf->Flip (nullptr, DDFLIP_WAIT);
 		hr;
 		LOG1 ("Blit flip = %08lx\n", hr);
-		LockSurfRes res = LockSurf (NULL, BlitSurf);
+		LockSurfRes res = LockSurf (nullptr, BlitSurf);
 		
 		if (res == NoGood)
 		{ // We must have a surface locked before returning,
@@ -893,16 +893,16 @@ void DDrawFB::Unlock ()
 	{
 		if (!BufferingNow)
 		{
-			if (BlitSurf == NULL)
+			if (BlitSurf == nullptr)
 			{
-				LockingSurf->Unlock (NULL);
+				LockingSurf->Unlock (nullptr);
 			}
 			else
 			{
-				BlitSurf->Unlock (NULL);
+				BlitSurf->Unlock (nullptr);
 			}
 		}
-		Buffer = NULL;
+		Buffer = nullptr;
 	}
 }
 
@@ -913,10 +913,10 @@ DDrawFB::LockSurfRes DDrawFB::LockSurf (LPRECT lockrect, LPDIRECTDRAWSURFACE toL
 	bool wasLost = false;
 	bool lockingLocker = false;
 
-	if (toLock == NULL)
+	if (toLock == nullptr)
 	{
 		lockingLocker = true;
-		if (LockingSurf == NULL)
+		if (LockingSurf == nullptr)
 		{
 			LOG("LockingSurf lost\n");
 			if (!CreateResources ())
@@ -935,7 +935,7 @@ DDrawFB::LockSurfRes DDrawFB::LockSurf (LPRECT lockrect, LPDIRECTDRAWSURFACE toL
 		toLock = LockingSurf;
 	}
 
-	hr = toLock->Lock (lockrect, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT | DDLOCK_WRITEONLY, NULL);
+	hr = toLock->Lock (lockrect, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
 	LOG3 ("LockSurf %p (%d): %08lx\n", toLock, lockingLocker, hr);
 
 	if (hr == DDERR_SURFACELOST)
@@ -955,10 +955,10 @@ DDrawFB::LockSurfRes DDrawFB::LockSurf (LPRECT lockrect, LPDIRECTDRAWSURFACE toL
 				BlitSurf->Release ();
 				if (BlitSurf == toLock)
 				{
-					BlitSurf = NULL;
+					BlitSurf = nullptr;
 					return NoGood;
 				}
-				BlitSurf = NULL;
+				BlitSurf = nullptr;
 			}
 		}
 		if (lockingLocker)
@@ -966,7 +966,7 @@ DDrawFB::LockSurfRes DDrawFB::LockSurf (LPRECT lockrect, LPDIRECTDRAWSURFACE toL
 			toLock = LockingSurf;
 		}
 		LOG ("Trying to lock again\n");
-		hr = toLock->Lock (lockrect, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT | DDLOCK_WRITEONLY, NULL);
+		hr = toLock->Lock (lockrect, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
 		if (hr == DDERR_SURFACELOST && Windowed)
 		{ // If this is NT, the user probably opened the Windows NT Security dialog.
 		  // If this is not NT, trying to recreate everything from scratch won't hurt.
@@ -987,7 +987,7 @@ DDrawFB::LockSurfRes DDrawFB::LockSurf (LPRECT lockrect, LPDIRECTDRAWSURFACE toL
 			{
 				toLock = LockingSurf;
 			}
-			hr = toLock->Lock (lockrect, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT | DDLOCK_WRITEONLY, NULL);
+			hr = toLock->Lock (lockrect, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
 		}
 	}
 	if (FAILED (hr))
@@ -1074,7 +1074,7 @@ void DDrawFB::Update ()
 	if (NeedPalUpdate || vid_palettehack)
 	{
 		NeedPalUpdate = false;
-		if (Palette != NULL || GDIPalette != NULL)
+		if (Palette != nullptr || GDIPalette != nullptr)
 		{
 			for (i = 0; i < 256; i++)
 			{
@@ -1088,7 +1088,7 @@ void DDrawFB::Update ()
 					256, GammaTable[2][Flash.b], GammaTable[1][Flash.g], GammaTable[0][Flash.r],
 					FlashAmount);
 			}
-			if (Palette != NULL)
+			if (Palette != nullptr)
 			{
 				pchanged = true;
 			}
@@ -1130,7 +1130,7 @@ void DDrawFB::Update ()
 		LockCount = 0;
 		if ((Windowed || AppActive) && !SessionState && !PaintToWindow())
 		{
-			if (LockSurf (NULL, NULL) != NoGood)
+			if (LockSurf (nullptr, nullptr) != NoGood)
 			{
 				BYTE *writept = Buffer + (TrueHeight - Height)/2*Pitch;
 				LOG3 ("Copy %dx%d (%d)\n", Width, Height, BufferPitch);
@@ -1152,16 +1152,16 @@ void DDrawFB::Update ()
 					memset (Buffer, 0, Pitch*topborder);
 					memset (writept + Height*Pitch, 0, Pitch*botborder);
 				}
-				LockingSurf->Unlock (NULL);
+				LockingSurf->Unlock (nullptr);
 			}
 		}
 	}
 	else
 	{
-		if (BlitSurf != NULL)
+		if (BlitSurf != nullptr)
 		{
 			HRESULT hr;
-			BlitSurf->Unlock (NULL);
+			BlitSurf->Unlock (nullptr);
 			RECT srcRect = { 0, 0, Width, Height };
 			hr = LockingSurf->BltFast (0, 0, BlitSurf, &srcRect, DDBLTFAST_NOCOLORKEY|DDBLTFAST_WAIT);
 			if (FAILED (hr))
@@ -1186,24 +1186,24 @@ void DDrawFB::Update ()
 		}
 		else
 		{
-			LockingSurf->Unlock (NULL);
+			LockingSurf->Unlock (nullptr);
 		}
 	}
 
 	BlitCycles.Unclock();
 	LOG1 ("cycles = %.1f ms\n", BlitCycles.TimeMS());
 
-	Buffer = NULL;
+	Buffer = nullptr;
 	LockCount = 0;
 	UpdatePending = false;
 
-	if (FPSLimitEvent != NULL)
+	if (FPSLimitEvent != nullptr)
 	{
 		WaitForSingleObject(FPSLimitEvent, 1000);
 	}
 	if (!Windowed && AppActive && !SessionState /*&& !UseBlitter && !MustBuffer*/)
 	{
-		HRESULT hr = PrimarySurf->Flip (NULL, FlipFlags);
+		HRESULT hr = PrimarySurf->Flip (nullptr, FlipFlags);
 		LOG1 ("Flip = %08lx\n", hr);
 		if (hr == DDERR_INVALIDPARAMS)
 		{
@@ -1211,7 +1211,7 @@ void DDrawFB::Update ()
 			{
 				FlipFlags &= ~DDFLIP_NOVSYNC;
 				Printf ("Can't disable vsync\n");
-				PrimarySurf->Flip (NULL, FlipFlags);
+				PrimarySurf->Flip (nullptr, FlipFlags);
 			}
 		}
 	}
@@ -1236,22 +1236,22 @@ bool DDrawFB::PaintToWindow ()
 			ClientToScreen (Window, (POINT*)&rect.left);
 			ClientToScreen (Window, (POINT*)&rect.right);
 			LOG ("Paint to window\n");
-			if (LockSurf (NULL, NULL) != NoGood)
+			if (LockSurf (nullptr, nullptr) != NoGood)
 			{
 				GPfx.Convert (MemBuffer, BufferPitch,
 					Buffer, Pitch, Width << PixelDoubling, Height << PixelDoubling,
 					FRACUNIT >> PixelDoubling, FRACUNIT >> PixelDoubling, 0, 0);
-				LockingSurf->Unlock (NULL);
-				if (FAILED (hr = PrimarySurf->Blt (&rect, BackSurf, NULL, DDBLT_WAIT|DDBLT_ASYNC, NULL)))
+				LockingSurf->Unlock (nullptr);
+				if (FAILED (hr = PrimarySurf->Blt (&rect, BackSurf, nullptr, DDBLT_WAIT|DDBLT_ASYNC, nullptr)))
 				{
 					if (hr == DDERR_SURFACELOST)
 					{
 						PrimarySurf->Restore ();
 					}
-					PrimarySurf->Blt (&rect, BackSurf, NULL, DDBLT_WAIT, NULL);
+					PrimarySurf->Blt (&rect, BackSurf, nullptr, DDBLT_WAIT, nullptr);
 				}
 			}
-			Buffer = NULL;
+			Buffer = nullptr;
 			LOG ("Did paint to window\n");
 		}
 		return true;
@@ -1324,7 +1324,7 @@ void DDrawFB::Blank ()
 
 		blitFX.dwFillColor = 0;
 		DDraw->FlipToGDISurface ();
-		PrimarySurf->Blt (NULL, NULL, NULL, DDBLT_COLORFILL, &blitFX);
+		PrimarySurf->Blt (nullptr, nullptr, nullptr, DDBLT_COLORFILL, &blitFX);
 	}
 }
 

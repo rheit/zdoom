@@ -153,7 +153,7 @@ void FIWadManager::ParseIWadInfo(const char *fn, const char *data, int datasize)
 					else if (sc.Compare("Hexen")) iwad->gametype = GAME_Hexen;
 					else if (sc.Compare("Strife")) iwad->gametype = GAME_Strife;
 					else if (sc.Compare("Chex")) iwad->gametype = GAME_Chex;
-					else sc.ScriptError(NULL);
+					else sc.ScriptError(nullptr);
 				}
 				else if (sc.Compare("Mapinfo"))
 				{
@@ -175,7 +175,7 @@ void FIWadManager::ParseIWadInfo(const char *fn, const char *data, int datasize)
 						else if(sc.Compare("Extended")) iwad->flags |= GI_MENUHACK_EXTENDED;
 						else if(sc.Compare("Shorttex")) iwad->flags |= GI_COMPATSHORTTEX;
 						else if(sc.Compare("Stairs")) iwad->flags |= GI_COMPATSTAIRS;
-						else sc.ScriptError(NULL);
+						else sc.ScriptError(nullptr);
 					}
 					while (sc.CheckString(","));
 				}
@@ -193,10 +193,10 @@ void FIWadManager::ParseIWadInfo(const char *fn, const char *data, int datasize)
 				{
 					sc.MustGetStringName("=");
 					sc.MustGetString();
-					iwad->FgColor = V_GetColor(NULL, sc.String);
+					iwad->FgColor = V_GetColor(nullptr, sc.String);
 					sc.MustGetStringName(",");
 					sc.MustGetString();
-					iwad->BkColor = V_GetColor(NULL, sc.String);
+					iwad->BkColor = V_GetColor(nullptr, sc.String);
 				}
 				else if (sc.Compare("Load"))
 				{
@@ -258,8 +258,8 @@ void FIWadManager::ParseIWadInfo(const char *fn, const char *data, int datasize)
 
 void FIWadManager::ParseIWadInfos(const char *fn)
 {
-	FResourceFile *resfile = FResourceFile::OpenResourceFile(fn, NULL, true);
-	if (resfile != NULL)
+	FResourceFile *resfile = FResourceFile::OpenResourceFile(fn, nullptr, true);
+	if (resfile != nullptr)
 	{
 		DWORD cnt = resfile->LumpCount();
 		for(int i=cnt-1; i>=0; i--)
@@ -291,9 +291,9 @@ void FIWadManager::ParseIWadInfos(const char *fn)
 
 int FIWadManager::ScanIWAD (const char *iwad)
 {
-	FResourceFile *iwadfile = FResourceFile::OpenResourceFile(iwad, NULL, true);
+	FResourceFile *iwadfile = FResourceFile::OpenResourceFile(iwad, nullptr, true);
 
-	if (iwadfile != NULL)
+	if (iwadfile != nullptr)
 	{
 		ClearChecks();
 		for(DWORD ii = 0; ii < iwadfile->LumpCount(); ii++)
@@ -398,7 +398,7 @@ int FIWadManager::IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, 
 	foundwads.Resize(mIWads.Size());
 	memset(&foundwads[0], 0, foundwads.Size() * sizeof(foundwads[0]));
 
-	if (iwadparm == NULL && iwad != NULL && *iwad != 0)
+	if (iwadparm == nullptr && iwad != nullptr && *iwad != 0)
 	{
 		iwadparm = iwad;
 	}
@@ -409,7 +409,7 @@ int FIWadManager::IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, 
 		FixPathSeperator (custwad);
 		if (CheckIWAD (custwad, &wads[0]))
 		{ // -iwad parameter was a directory
-			iwadparm = NULL;
+			iwadparm = nullptr;
 		}
 		else
 		{
@@ -420,7 +420,7 @@ int FIWadManager::IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, 
 		}
 	}
 
-	if (iwadparm == NULL || wads[0].Path.IsEmpty() || mIWads[wads[0].Type].Required.IsNotEmpty())
+	if (iwadparm == nullptr || wads[0].Path.IsEmpty() || mIWads[wads[0].Type].Required.IsNotEmpty())
 	{
 		if (GameConfig->SetSection ("IWADSearch.Directories"))
 		{
@@ -449,7 +449,7 @@ int FIWadManager::IdentifyVersion (TArray<FString> &wadfiles, const char *iwad, 
 		}
 	}
 
-	if (iwadparm != NULL && !wads[0].Path.IsEmpty())
+	if (iwadparm != nullptr && !wads[0].Path.IsEmpty())
 	{
 		iwadparmfound = true;
 	}

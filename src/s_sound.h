@@ -133,7 +133,7 @@ public:
 	}
 	operator const char *() const
 	{
-		return ID ? S_sfx[ID].name.GetChars() : NULL;
+		return ID ? S_sfx[ID].name.GetChars() : nullptr;
 	}
 	void MarkUsed() const
 	{
@@ -357,7 +357,7 @@ int S_LookupPlayerSound (const char *playerclass, int gender, FSoundID refid);
 int S_FindSkinnedSound (AActor *actor, FSoundID refid);
 int S_FindSkinnedSoundEx (AActor *actor, const char *logicalname, const char *extendedname);
 int S_FindSoundByLump (int lump);
-int S_AddSound (const char *logicalname, const char *lumpname, FScanner *sc=NULL);	// Add sound by lumpname
+int S_AddSound (const char *logicalname, const char *lumpname, FScanner *sc=nullptr);	// Add sound by lumpname
 int S_AddSoundLump (const char *logicalname, int lump);	// Add sound by lump index
 int S_AddPlayerSound (const char *playerclass, const int gender, int refid, const char *lumpname);
 int S_AddPlayerSound (const char *playerclass, const int gender, int refid, int lumpnum, bool fromskin=false);

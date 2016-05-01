@@ -109,7 +109,7 @@ MIDISong2::MIDISong2 (FileReader &reader, EMidiDevice type, const char *args)
 	int i;
 
 #ifdef _WIN32
-	if (ExitEvent == NULL)
+	if (ExitEvent == nullptr)
 	{
 		return;
 	}
@@ -191,11 +191,11 @@ MIDISong2::MIDISong2 (FileReader &reader, EMidiDevice type, const char *args)
 
 MIDISong2::~MIDISong2 ()
 {
-	if (Tracks != NULL)
+	if (Tracks != nullptr)
 	{
 		delete[] Tracks;
 	}
-	if (MusHeader != NULL)
+	if (MusHeader != nullptr)
 	{
 		delete[] MusHeader;
 	}
@@ -286,7 +286,7 @@ void MIDISong2 :: DoRestart()
 
 bool MIDISong2::CheckDone()
 {
-	return TrackDue == NULL;
+	return TrackDue == nullptr;
 }
 
 //==========================================================================
@@ -763,7 +763,7 @@ DWORD MIDISong2::TrackInfo::ReadVarLen ()
 //
 // MIDISong2 :: FindNextDue
 //
-// Scans every track for the next event to play. Returns NULL if all events
+// Scans every track for the next event to play. Returns nullptr if all events
 // have been consumed.
 //
 //==========================================================================
@@ -783,10 +783,10 @@ MIDISong2::TrackInfo *MIDISong2::FindNextDue ()
 	switch (Format)
 	{
 	case 0:
-		return Tracks[0].Finished ? NULL : Tracks;
+		return Tracks[0].Finished ? nullptr : Tracks;
 		
 	case 1:
-		track = NULL;
+		track = nullptr;
 		best = 0xFFFFFFFF;
 		for (i = 0; i < NumTracks; ++i)
 		{
@@ -807,9 +807,9 @@ MIDISong2::TrackInfo *MIDISong2::FindNextDue ()
 		{
 			track++;
 		}
-		return track < &Tracks[NumTracks] ? track : NULL;
+		return track < &Tracks[NumTracks] ? track : nullptr;
 	}
-	return NULL;
+	return nullptr;
 }
 
 

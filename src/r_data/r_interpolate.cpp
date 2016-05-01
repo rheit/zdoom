@@ -201,7 +201,7 @@ int FInterpolator::CountInterpolations ()
 
 void FInterpolator::UpdateInterpolations()
 {
-	for (DInterpolation *probe = Head; probe != NULL; probe = probe->Next)
+	for (DInterpolation *probe = Head; probe != nullptr; probe = probe->Next)
 	{
 		probe->UpdateInterpolation ();
 	}
@@ -216,8 +216,8 @@ void FInterpolator::UpdateInterpolations()
 void FInterpolator::AddInterpolation(DInterpolation *interp)
 {
 	interp->Next = Head;
-	if (Head != NULL) Head->Prev = interp;
-	interp->Prev = NULL;
+	if (Head != nullptr) Head->Prev = interp;
+	interp->Prev = nullptr;
 	Head = interp;
 	count++;
 }
@@ -233,15 +233,15 @@ void FInterpolator::RemoveInterpolation(DInterpolation *interp)
 	if (Head == interp)
 	{
 		Head = interp->Next;
-		if (Head != NULL) Head->Prev = NULL;
+		if (Head != nullptr) Head->Prev = nullptr;
 	}
 	else
 	{
-		if (interp->Prev != NULL) interp->Prev->Next = interp->Next;
-		if (interp->Next != NULL) interp->Next->Prev = interp->Prev;
+		if (interp->Prev != nullptr) interp->Prev->Next = interp->Next;
+		if (interp->Next != nullptr) interp->Next->Prev = interp->Prev;
 	}
-	interp->Next = NULL;
-	interp->Prev = NULL;
+	interp->Next = nullptr;
+	interp->Prev = nullptr;
 	count--;
 }
 
@@ -262,7 +262,7 @@ void FInterpolator::DoInterpolations(double smoothratio)
 	didInterp = true;
 
 	DInterpolation *probe = Head;
-	while (probe != NULL)
+	while (probe != nullptr)
 	{
 		DInterpolation *next = probe->Next;
 		probe->Interpolate(smoothratio);
@@ -281,7 +281,7 @@ void FInterpolator::RestoreInterpolations()
 	if (didInterp)
 	{
 		didInterp = false;
-		for (DInterpolation *probe = Head; probe != NULL; probe = probe->Next)
+		for (DInterpolation *probe = Head; probe != nullptr; probe = probe->Next)
 		{
 			probe->Restore();
 		}
@@ -297,11 +297,11 @@ void FInterpolator::RestoreInterpolations()
 void FInterpolator::ClearInterpolations()
 {
 	DInterpolation *probe = Head;
-	Head = NULL;
-	while (probe != NULL)
+	Head = nullptr;
+	while (probe != nullptr)
 	{
 		DInterpolation *next = probe->Next;
-		probe->Next = probe->Prev = NULL;
+		probe->Next = probe->Prev = nullptr;
 		probe->Destroy();
 		probe = next;
 	}
@@ -322,8 +322,8 @@ void FInterpolator::ClearInterpolations()
 
 DInterpolation::DInterpolation()
 {
-	Next = NULL;
-	Prev = NULL;
+	Next = nullptr;
+	Prev = nullptr;
 	refcount = 0;
 }
 
@@ -416,11 +416,11 @@ void DSectorPlaneInterpolation::Destroy()
 {
 	if (ceiling) 
 	{
-		sector->interpolations[sector_t::CeilingMove] = NULL;
+		sector->interpolations[sector_t::CeilingMove] = nullptr;
 	}
 	else 
 	{
-		sector->interpolations[sector_t::FloorMove] = NULL;
+		sector->interpolations[sector_t::FloorMove] = nullptr;
 	}
 
 	for(unsigned i=0; i<attached.Size(); i++)
@@ -587,11 +587,11 @@ void DSectorScrollInterpolation::Destroy()
 {
 	if (ceiling) 
 	{
-		sector->interpolations[sector_t::CeilingScroll] = NULL;
+		sector->interpolations[sector_t::CeilingScroll] = nullptr;
 	}
 	else 
 	{
-		sector->interpolations[sector_t::FloorScroll] = NULL;
+		sector->interpolations[sector_t::FloorScroll] = nullptr;
 	}
 	Super::Destroy();
 }
@@ -683,7 +683,7 @@ DWallScrollInterpolation::DWallScrollInterpolation(side_t *_side, int _part)
 
 void DWallScrollInterpolation::Destroy()
 {
-	side->textures[part].interpolation = NULL;
+	side->textures[part].interpolation = nullptr;
 	Super::Destroy();
 }
 
@@ -774,7 +774,7 @@ DPolyobjInterpolation::DPolyobjInterpolation(FPolyObj *po)
 
 void DPolyobjInterpolation::Destroy()
 {
-	poly->interpolation = NULL;
+	poly->interpolation = nullptr;
 	Super::Destroy();
 }
 
@@ -875,7 +875,7 @@ void DPolyobjInterpolation::Serialize(FArchive &arc)
 
 DInterpolation *side_t::SetInterpolation(int position)
 {
-	if (textures[position].interpolation == NULL)
+	if (textures[position].interpolation == nullptr)
 	{
 		textures[position].interpolation = new DWallScrollInterpolation(this, position);
 	}
@@ -892,7 +892,7 @@ DInterpolation *side_t::SetInterpolation(int position)
 
 void side_t::StopInterpolation(int position)
 {
-	if (textures[position].interpolation != NULL)
+	if (textures[position].interpolation != nullptr)
 	{
 		textures[position].interpolation->DelRef();
 	}
@@ -906,7 +906,7 @@ void side_t::StopInterpolation(int position)
 
 DInterpolation *sector_t::SetInterpolation(int position, bool attach)
 {
-	if (interpolations[position] == NULL)
+	if (interpolations[position] == nullptr)
 	{
 		DInterpolation *interp;
 		switch (position)
@@ -928,7 +928,7 @@ DInterpolation *sector_t::SetInterpolation(int position, bool attach)
 			break;
 
 		default:
-			return NULL;
+			return nullptr;
 		}
 		interpolations[position] = interp;
 	}
@@ -945,7 +945,7 @@ DInterpolation *sector_t::SetInterpolation(int position, bool attach)
 
 DInterpolation *FPolyObj::SetInterpolation()
 {
-	if (interpolation != NULL)
+	if (interpolation != nullptr)
 	{
 		interpolation->AddRef();
 	}
@@ -966,7 +966,7 @@ DInterpolation *FPolyObj::SetInterpolation()
 
 void FPolyObj::StopInterpolation()
 {
-	if (interpolation != NULL)
+	if (interpolation != nullptr)
 	{
 		interpolation->DelRef();
 	}

@@ -97,7 +97,7 @@ MUSSong2::MUSSong2 (FileReader &reader, EMidiDevice type, const char *args)
 : MIDIStreamer(type, args), MusHeader(0), MusBuffer(0)
 {
 #ifdef _WIN32
-	if (ExitEvent == NULL)
+	if (ExitEvent == nullptr)
 	{
 		return;
 	}
@@ -154,7 +154,7 @@ MUSSong2::MUSSong2 (FileReader &reader, EMidiDevice type, const char *args)
 
 MUSSong2::~MUSSong2 ()
 {
-	if (MusHeader != NULL)
+	if (MusHeader != nullptr)
 	{
 		delete[] (BYTE *)MusHeader;
 	}

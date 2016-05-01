@@ -94,7 +94,7 @@ int FName::NameManager::FindName (const char *text, bool noCreate)
 		InitBuckets ();
 	}
 
-	if (text == NULL)
+	if (text == nullptr)
 	{
 		return 0;
 	}
@@ -136,7 +136,7 @@ int FName::NameManager::FindName (const char *text, size_t textLen, bool noCreat
 		InitBuckets ();
 	}
 
-	if (text == NULL)
+	if (text == nullptr)
 	{
 		return 0;
 	}
@@ -203,7 +203,7 @@ int FName::NameManager::AddName (const char *text, unsigned int hash, unsigned i
 
 	// Get a block large enough for the name. Only the first block in the
 	// list is ever considered for name storage.
-	if (block == NULL || block->NextAlloc + len >= BLOCK_SIZE)
+	if (block == nullptr || block->NextAlloc + len >= BLOCK_SIZE)
 	{
 		block = AddBlock (len);
 	}
@@ -268,17 +268,17 @@ FName::NameManager::~NameManager()
 {
 	NameBlock *block, *next;
 
-	for (block = Blocks; block != NULL; block = next)
+	for (block = Blocks; block != nullptr; block = next)
 	{
 		next = block->NextBlock;
 		M_Free (block);
 	}
-	Blocks = NULL;
+	Blocks = nullptr;
 
-	if (NameArray != NULL)
+	if (NameArray != nullptr)
 	{
 		M_Free (NameArray);
-		NameArray = NULL;
+		NameArray = nullptr;
 	}
 	NumNames = MaxNames = 0;
 	memset (Buckets, -1, sizeof(Buckets));

@@ -78,7 +78,7 @@ static const char *BotConfigStrings[] =
 	"reaction",
 	"isp",
 	"team",
-	NULL
+	nullptr
 };
 
 enum
@@ -141,19 +141,19 @@ void FCajunMaster::Main ()
 void FCajunMaster::Init ()
 {
 	botnum = 0;
-	firstthing = NULL;
+	firstthing = nullptr;
 	spawn_tries = 0;
 	freeze = false;
 	observer = false;
-	body1 = NULL;
-	body2 = NULL;
+	body1 = nullptr;
+	body2 = nullptr;
 
 	if (ctf && teamplay == false)
 		teamplay = true; //Need teamplay for ctf. (which is not done yet)
 
 	t_join = (wanted_botnum + 1) * SPAWN_DELAY; //The + is to let player get away before the bots come in.
 
-	if (botinfo == NULL)
+	if (botinfo == nullptr)
 	{
 		LoadBots ();
 	}
@@ -161,7 +161,7 @@ void FCajunMaster::Init ()
 	{
 		botinfo_t *thebot = botinfo;
 
-		while (thebot != NULL)
+		while (thebot != nullptr)
 		{
 			thebot->inuse = BOTINUSE_No;
 			thebot = thebot->next;
@@ -180,7 +180,7 @@ void FCajunMaster::End ()
 	{
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
-			if (players[i].Bot != NULL)
+			if (players[i].Bot != nullptr)
 			{
 				getspawned.Push(players[i].userinfo.GetName());
 			}
@@ -192,7 +192,7 @@ void FCajunMaster::End ()
 
 
 
-//Name can be optional, if = NULL
+//Name can be optional, if = nullptr
 //then a random bot is spawned.
 //If no bot with name = name found
 //the function will CONS print an
@@ -233,7 +233,7 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 			thebot = thebot->next;
 		}
 
-		if (thebot == NULL)
+		if (thebot == nullptr)
 		{
    		 	Printf ("couldn't find %s in %s\n", name, BOTFILENAME);
 			return false;
@@ -317,7 +317,7 @@ void FCajunMaster::TryAddBot (BYTE **stream, int player)
 	skill.reaction = ReadByte (stream);
 	skill.isp = ReadByte (stream);
 
-	botinfo_t *thebot = NULL;
+	botinfo_t *thebot = nullptr;
 
 	if (consoleplayer == player)
 	{
@@ -335,14 +335,14 @@ void FCajunMaster::TryAddBot (BYTE **stream, int player)
 		//Increment this.
 		botnum++;
 
-		if (thebot != NULL)
+		if (thebot != nullptr)
 		{
 			thebot->inuse = BOTINUSE_Yes;
 		}
 	}
 	else
 	{
-		if (thebot != NULL)
+		if (thebot != nullptr)
 		{
 			thebot->inuse = BOTINUSE_No;
 		}
@@ -376,7 +376,7 @@ bool FCajunMaster::DoAddBot (BYTE *info, botskill_t skill)
 	players[bnum].Bot->player = &players[bnum];
 	players[bnum].Bot->skill = skill;
 	playeringame[bnum] = true;
-	players[bnum].mo = NULL;
+	players[bnum].mo = nullptr;
 	players[bnum].playerstate = PST_ENTER;
 
 	if (teamplay)
@@ -385,7 +385,7 @@ bool FCajunMaster::DoAddBot (BYTE *info, botskill_t skill)
 		Printf ("%s joined the game\n", players[bnum].userinfo.GetName());
 
 	G_DoReborn (bnum, true);
-	if (StatusBar != NULL)
+	if (StatusBar != nullptr)
 	{
 		StatusBar->MultiplayerChanged ();
 	}
@@ -399,13 +399,13 @@ void FCajunMaster::RemoveAllBots (bool fromlist)
 
 	for (i = 0; i < MAXPLAYERS; ++i)
 	{
-		if (players[i].Bot != NULL)
+		if (players[i].Bot != nullptr)
 		{
 			// If a player is looking through this bot's eyes, make him
 			// look through his own eyes instead.
 			for (j = 0; j < MAXPLAYERS; ++j)
 			{
-				if (i != j && playeringame[j] && players[j].Bot == NULL)
+				if (i != j && playeringame[j] && players[j].Bot == nullptr)
 				{
 					if (players[j].camera == players[i].mo)
 					{
@@ -480,7 +480,7 @@ void FCajunMaster::ForgetBots ()
 		thebot = next;
 	}
 
-	botinfo = NULL;
+	botinfo = nullptr;
 }
 
 bool FCajunMaster::LoadBots ()

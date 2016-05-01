@@ -19,7 +19,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_TemplarAttack)
 	DAngle angle;
 	DAngle pitch;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON, "templar/shoot", 1, ATTN_NORM);

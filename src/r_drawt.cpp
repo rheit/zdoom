@@ -1006,7 +1006,7 @@ void rt_initcols (BYTE *buff)
 {
 	int y;
 
-	dc_temp = buff == NULL ? dc_tempbuff : buff;
+	dc_temp = buff == nullptr ? dc_tempbuff : buff;
 	for (y = 3; y >= 0; y--)
 		horizspan[y] = dc_ctspan[y] = &dc_tspans[y][0];
 }

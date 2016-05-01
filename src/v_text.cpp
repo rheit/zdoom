@@ -54,7 +54,7 @@
 //
 void DCanvas::DrawChar (FFont *font, int normalcolor, int x, int y, BYTE character, int tag_first, ...)
 {
-	if (font == NULL)
+	if (font == nullptr)
 		return;
 
 	if (normalcolor >= NumTextColors)
@@ -63,7 +63,7 @@ void DCanvas::DrawChar (FFont *font, int normalcolor, int x, int y, BYTE charact
 	FTexture *pic;
 	int dummy;
 
-	if (NULL != (pic = font->GetChar (character, &dummy)))
+	if (nullptr != (pic = font->GetChar (character, &dummy)))
 	{
 		DrawParms parms;
 		va_list tags;
@@ -99,7 +99,7 @@ void DCanvas::DrawText(FFont *font, int normalcolor, int x, int y, const char *s
 
 	va_list tags;
 
-	if (font == NULL || string == NULL)
+	if (font == nullptr || string == nullptr)
 		return;
 
 	va_start(tags, tag_first);
@@ -150,7 +150,7 @@ void DCanvas::DrawText(FFont *font, int normalcolor, int x, int y, const char *s
 			continue;
 		}
 
-		if (NULL != (pic = font->GetChar (c, &w)))
+		if (nullptr != (pic = font->GetChar (c, &w)))
 		{
 			parms.remap = range;
 			SetTextureParms(&parms, pic, cx, cy);
@@ -227,7 +227,7 @@ FBrokenLines *V_BreakLines (FFont *font, int maxwidth, const BYTE *string, bool 
 {
 	FBrokenLines lines[128];	// Support up to 128 lines (should be plenty)
 
-	const BYTE *space = NULL, *start = string;
+	const BYTE *space = nullptr, *start = string;
 	size_t i, ii;
 	int c, w, nw;
 	FString lastcolor, linecolor;
@@ -294,7 +294,7 @@ FBrokenLines *V_BreakLines (FFont *font, int maxwidth, const BYTE *string, bool 
 			w = 0;
 			lastWasSpace = false;
 			start = space;
-			space = NULL;
+			space = nullptr;
 
 			while (*start && isspace (*start) && *start != '\n')
 				start++;

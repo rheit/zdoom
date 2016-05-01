@@ -127,13 +127,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_MStaffAttack)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AMWeapBloodscourge *weapon = static_cast<AMWeapBloodscourge *> (self->player->ReadyWeapon);
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -142,7 +142,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MStaffAttack)
 	
 	// [RH] Let's try and actually track what the player aimed at
 	P_AimLineAttack (self, angle, PLAYERMISSILERANGE, &t, 32.);
-	if (t.linetarget == NULL)
+	if (t.linetarget == nullptr)
 	{
 		BlockCheckLine.x = self->X();
 		BlockCheckLine.y = self->Y();
@@ -168,10 +168,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_MStaffPalette)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		AMWeapBloodscourge *weapon = static_cast<AMWeapBloodscourge *> (self->player->ReadyWeapon);
-		if (weapon != NULL && weapon->MStaffCount != 0)
+		if (weapon != nullptr && weapon->MStaffCount != 0)
 		{
 			weapon->MStaffCount--;
 		}
@@ -209,7 +209,7 @@ static AActor *FrontBlockCheck (AActor *mo, int index, void *)
 {
 	FBlockNode *link;
 
-	for (link = blocklinks[index]; link != NULL; link = link->NextActor)
+	for (link = blocklinks[index]; link != nullptr; link = link->NextActor)
 	{
 		if (link->Me != mo)
 		{
@@ -220,7 +220,7 @@ static AActor *FrontBlockCheck (AActor *mo, int index, void *)
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //============================================================================
@@ -251,7 +251,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MageAttack)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 	{
 		return 0;
 	}

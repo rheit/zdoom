@@ -144,7 +144,7 @@ CUSTOM_CVAR (String, cd_drive, "", CVAR_ARCHIVE|CVAR_NOINITCALL|CVAR_GLOBALCONFI
 FCDThread::FCDThread ()
 {
 	memset (&CD_WindowClass, 0, sizeof(CD_WindowClass));
-	CD_Window = NULL;
+	CD_Window = nullptr;
 	CD_WindowAtom = 0;
 	Inited = NOT_INITED;
 	Looping = false;
@@ -187,12 +187,12 @@ bool FCDThread::Init ()
 		GAMENAME " CD Player",
 		0,
 		0, 0, 10, 10,
-		NULL,
-		NULL,
+		nullptr,
+		nullptr,
 		g_hInst,
-		NULL);
+		nullptr);
 
-	if (CD_Window == NULL)
+	if (CD_Window == nullptr)
 	{
 		UnregisterClass ((LPCTSTR)(INT_PTR)(int)CD_WindowAtom, g_hInst);
 		CD_WindowAtom = 0;
@@ -219,7 +219,7 @@ void FCDThread::Deinit ()
 	if (CD_Window)
 	{
 		DestroyWindow (CD_Window);
-		CD_Window = NULL;
+		CD_Window = nullptr;
 	}
 	if (CD_WindowAtom)
 	{
@@ -242,7 +242,7 @@ void FCDThread::DefaultDispatch ()
 {
 	MSG wndMsg;
 
-	while (PeekMessage (&wndMsg, NULL, 0, 0, PM_REMOVE))
+	while (PeekMessage (&wndMsg, nullptr, 0, 0, PM_REMOVE))
 	{
 		DispatchMessage (&wndMsg);
 	}
@@ -426,7 +426,7 @@ DWORD FCDThread::Dispatch (DWORD method, DWORD parm1, DWORD parm2, DWORD parm3)
 		}
 		else
 		{
-			return strtoul (ident, NULL, 0);
+			return strtoul (ident, nullptr, 0);
 		}
 
 	default:
@@ -442,7 +442,7 @@ DWORD FCDThread::Dispatch (DWORD method, DWORD parm1, DWORD parm2, DWORD parm3)
 
 static void KillThread ()
 {
-	if (CDThread != NULL)
+	if (CDThread != nullptr)
 	{
 		CDThread->DestroyThread ();
 		Inited = NOT_INITED;
@@ -477,7 +477,7 @@ bool CD_Init (int device)
 	if (!cd_enabled || Args->CheckParm ("-nocdaudio"))
 		return false;
 
-	if (CDThread == NULL)
+	if (CDThread == nullptr)
 	{
 		CDThread = new FCDThread;
 		atterm (KillThread);

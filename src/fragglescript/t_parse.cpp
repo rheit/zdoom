@@ -193,13 +193,13 @@ static void add_char(char *tokn, char c)
 
 char *FParser::GetTokens(char *s)
 {
-	char *tokn = NULL;
+	char *tokn = nullptr;
 
 	Rover = s;
 	NumTokens = 1;
 	Tokens[0][0] = 0; TokenType[NumTokens-1] = name_;
 	
-	Section = NULL;   // default to no section found
+	Section = nullptr;   // default to no section found
 	
 	NextToken();
 	LineStart = Rover;      // save the start
@@ -351,7 +351,7 @@ void FParser::Run(char *rover, char *data, char *end)
 	Rover = rover;
 	try
 	{
-		PrevSection = NULL;  // clear it
+		PrevSection = nullptr;  // clear it
 		
 		while(*Rover)   // go through the script executing each statement
 		{

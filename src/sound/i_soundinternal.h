@@ -89,8 +89,8 @@ struct SoundHandle
 {
 	void *data;
 
-	bool isValid() const { return data != NULL; }
-	void Clear() { data = NULL; }
+	bool isValid() const { return data != nullptr; }
+	void Clear() { data = nullptr; }
 };
 
 struct FISoundChannel

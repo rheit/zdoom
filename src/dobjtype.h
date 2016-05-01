@@ -103,7 +103,7 @@ struct PSymbolTable
 	// specific symbol table the symbol was found in.
 	PSymbol *FindSymbolInTable(FName symname, PSymbolTable *&symtable);
 
-	// Places the symbol in the table and returns a pointer to it or NULL if
+	// Places the symbol in the table and returns a pointer to it or nullptr if
 	// a symbol with the same name is already in the table. This symbol is
 	// not copied and will be freed when the symbol table is destroyed.
 	PSymbol *AddSymbol (PSymbol *sym);
@@ -210,7 +210,7 @@ public:
 	// and destruction (e.g. strings) can add their offsets to it for special
 	// initialization when the object is created and destruction when the
 	// object is destroyed.
-	virtual void SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special=NULL) const;
+	virtual void SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special=nullptr) const;
 
 	// Initialize the value, if needed (e.g. strings)
 	virtual void InitializeValue(void *addr, const void *def) const;
@@ -338,7 +338,7 @@ public:
 	DObject			*Outer;			// object this type is contained within
 	FName			TypeName;		// this type's name
 
-	PNamedType() : Outer(NULL) {}
+	PNamedType() : Outer(nullptr) {}
 	PNamedType(FName name, DObject *outer) : Outer(outer), TypeName(name) {}
 
 	virtual bool IsMatch(intptr_t id1, intptr_t id2) const;
@@ -422,7 +422,7 @@ public:
 
 	void WriteValue(FArchive &ar, const void *addr) const override;
 	bool ReadValue(FArchive &ar, void *addr) const override;
-	void SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special=NULL) const override;
+	void SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special=nullptr) const override;
 	void InitializeValue(void *addr, const void *def) const override;
 	void DestroyValue(void *addr) const override;
 };
@@ -850,8 +850,8 @@ class PSymbolConst : public PSymbol
 public:
 	PType *ValueType;
 
-	PSymbolConst(FName name, PType *type=NULL) : PSymbol(name), ValueType(type) {}
-	PSymbolConst() : PSymbol(NAME_None), ValueType(NULL) {}
+	PSymbolConst(FName name, PType *type=nullptr) : PSymbol(name), ValueType(type) {}
+	PSymbolConst() : PSymbol(NAME_None), ValueType(nullptr) {}
 };
 
 // A constant numeric value -------------------------------------------------
@@ -867,7 +867,7 @@ public:
 		void *Pad;
 	};
 
-	PSymbolConstNumeric(FName name, PType *type=NULL) : PSymbolConst(name, type) {}
+	PSymbolConstNumeric(FName name, PType *type=nullptr) : PSymbolConst(name, type) {}
 	PSymbolConstNumeric(FName name, PType *type, int val) : PSymbolConst(name, type), Value(val) {}
 	PSymbolConstNumeric(FName name, PType *type, unsigned int val) : PSymbolConst(name, type), Value((int)val) {}
 	PSymbolConstNumeric(FName name, PType *type, double val) : PSymbolConst(name, type), Float(val) {}

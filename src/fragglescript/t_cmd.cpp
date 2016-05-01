@@ -169,7 +169,7 @@ void FS_EmulateCmd(char * string)
 			for(int i=0;i<MAXPLAYERS;i++)
 			{
 				// No, this is not correct. But this is the way Legacy WADs expect it to be handled!
-				if (players[i].mo != NULL) players[i].mo->ViewHeight = playerviewheight;
+				if (players[i].mo != nullptr) players[i].mo->ViewHeight = playerviewheight;
 				players[i].viewheight = playerviewheight;
 				players[i].Uncrouch();
 			}
@@ -191,7 +191,7 @@ void FS_EmulateCmd(char * string)
 		else if (sc.Compare("gr_fogcolor"))
 		{
 			sc.MustGetString();
-			level.fadeto = strtol(sc.String, NULL, 16);
+			level.fadeto = strtol(sc.String, nullptr, 16);
 		}
 
 		else

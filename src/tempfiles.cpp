@@ -43,15 +43,15 @@ FTempFileName::FTempFileName (const char *prefix)
 // under VC++, and even if there was, I still need to know the
 // file name so that it can be used as input to Timidity.
 
-	Name = tempnam (NULL, prefix);
+	Name = tempnam (nullptr, prefix);
 }
 
 FTempFileName::~FTempFileName ()
 {
-	if (Name != NULL)
+	if (Name != nullptr)
 	{
 		remove (Name);
 		free (Name);
-		Name = NULL;
+		Name = nullptr;
 	}
 }

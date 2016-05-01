@@ -49,7 +49,7 @@ void PClassInventory::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 {
 	Super::ReplaceClassRef(oldclass, newclass);
 	AInventory *def = (AInventory*)Defaults;
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		if (def->PickupFlash == oldclass) def->PickupFlash = static_cast<PClassActor *>(newclass);
 		for (unsigned i = 0; i < ForbiddenToPlayerClass.Size(); i++)
@@ -116,7 +116,7 @@ PClassActor *AAmmo::GetParentAmmo () const
 {
 	PClass *type = GetClass();
 
-	while (type->ParentClass != RUNTIME_CLASS(AAmmo) && type->ParentClass != NULL)
+	while (type->ParentClass != RUNTIME_CLASS(AAmmo) && type->ParentClass != nullptr)
 	{
 		type = type->ParentClass;
 	}
@@ -163,16 +163,16 @@ bool AAmmo::HandlePickup (AInventory *item)
 			// to a weapon that uses it, but only if the player doesn't already
 			// have a weapon pending.
 
-			assert (Owner != NULL);
+			assert (Owner != nullptr);
 
-			if (oldamount == 0 && Owner != NULL && Owner->player != NULL)
+			if (oldamount == 0 && Owner != nullptr && Owner->player != nullptr)
 			{
 				barrier_cast<APlayerPawn *>(Owner)->CheckWeaponSwitch(GetClass());
 			}
 		}
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -229,7 +229,7 @@ AInventory *AAmmo::CreateCopy (AActor *other)
 AInventory *AAmmo::CreateTossable()
 {
 	AInventory *copy = Super::CreateTossable();
-	if (copy != NULL)
+	if (copy != nullptr)
 	{ // Do not increase ammo by dropping it and picking it back up at
 	  // certain skill levels.
 		copy->ItemFlags |= IF_IGNORESKILL;
@@ -247,7 +247,7 @@ AInventory *AAmmo::CreateTossable()
 
 bool P_GiveBody (AActor *actor, int num, int max)
 {
-	if (actor->health <= 0 || (actor->player != NULL && actor->player->playerstate == PST_DEAD))
+	if (actor->health <= 0 || (actor->player != nullptr && actor->player->playerstate == PST_DEAD))
 	{ // Do not heal dead things.
 		return false;
 	}
@@ -255,7 +255,7 @@ bool P_GiveBody (AActor *actor, int num, int max)
 	player_t *player = actor->player;
 
 	num = clamp(num, -65536, 65536);	// prevent overflows for bad values
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		// Max is 0 by default, preserving default behavior for P_GiveBody()
 		// calls while supporting AHealth.
@@ -474,7 +474,7 @@ END_POINTERS
 
 void AInventory::Tick ()
 {
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
 		// AActor::Tick is only handling interaction with the world
 		// and we don't want that for owned inventory items.
@@ -489,8 +489,8 @@ void AInventory::Tick ()
 		// of 0 tics work as expected.
 		if (tics <= 0)
 		{
-			assert (state != NULL);
-			if (state == NULL)
+			assert (state != nullptr);
+			if (state == nullptr)
 			{
 				Destroy();
 				return;
@@ -673,7 +673,7 @@ bool AInventory::HandlePickup (AInventory *item)
 		}
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -732,7 +732,7 @@ void AInventory::GoAwayAndDie ()
 // AInventory :: CreateCopy
 //
 // Returns an actor suitable for placing in an inventory, either itself or
-// a copy based on whether it needs to respawn or not. Returning NULL
+// a copy based on whether it needs to respawn or not. Returning nullptr
 // indicates the item should not be picked up.
 //
 //===========================================================================
@@ -772,13 +772,13 @@ AInventory *AInventory::CreateTossable ()
 	// If this actor lacks a SpawnState, don't drop it. (e.g. A base weapon
 	// like the fist can't be dropped because you'll never see it.)
 	if (SpawnState == ::GetDefault<AActor>()->SpawnState ||
-		SpawnState == NULL)
+		SpawnState == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
-	if ((ItemFlags & (IF_UNDROPPABLE|IF_UNTOSSABLE)) || Owner == NULL || Amount <= 0)
+	if ((ItemFlags & (IF_UNDROPPABLE|IF_UNTOSSABLE)) || Owner == nullptr || Amount <= 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (Amount == 1 && !(ItemFlags & IF_KEEPDEPLETED))
 	{
@@ -788,7 +788,7 @@ AInventory *AInventory::CreateTossable ()
 		return this;
 	}
 	copy = static_cast<AInventory *>(Spawn (GetClass(), Owner->Pos(), NO_REPLACE));
-	if (copy != NULL)
+	if (copy != nullptr)
 	{
 		copy->MaxAmount = MaxAmount;
 		copy->Amount = 1;
@@ -815,7 +815,7 @@ void AInventory::BecomeItem ()
 		if (sector_list)
 		{
 			P_DelSeclist (sector_list);
-			sector_list = NULL;
+			sector_list = nullptr;
 		}
 		flags |= MF_NOBLOCKMAP|MF_NOSECTOR;
 		LinkToWorld ();
@@ -835,7 +835,7 @@ void AInventory::BecomeItem ()
 
 void AInventory::BecomePickup ()
 {
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		Owner->RemoveInventory (this);
 	}
@@ -864,7 +864,7 @@ void AInventory::BecomePickup ()
 
 void AInventory::AbsorbDamage (int damage, FName damageType, int &newdamage)
 {
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		Inventory->AbsorbDamage (damage, damageType, newdamage);
 	}
@@ -887,7 +887,7 @@ void AInventory::AbsorbDamage (int damage, FName damageType, int &newdamage)
 
 void AInventory::ModifyDamage (int damage, FName damageType, int &newdamage, bool passive)
 {
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		Inventory->ModifyDamage (damage, damageType, newdamage, passive);
 	}
@@ -901,7 +901,7 @@ void AInventory::ModifyDamage (int damage, FName damageType, int &newdamage, boo
 
 double AInventory::GetSpeedFactor ()
 {
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->GetSpeedFactor();
 	}
@@ -920,7 +920,7 @@ double AInventory::GetSpeedFactor ()
 bool AInventory::GetNoTeleportFreeze ()
 {
 	// do not check the flag here because it's only active when used on PowerUps, not on PowerupGivers.
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->GetNoTeleportFreeze();
 	}
@@ -941,7 +941,7 @@ bool AInventory::GetNoTeleportFreeze ()
 
 int AInventory::AlterWeaponSprite (visstyle_t *vis)
 {
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->AlterWeaponSprite (vis);
 	}
@@ -969,7 +969,7 @@ bool AInventory::Use (bool pickup)
 
 void AInventory::Hide ()
 {
-	FState *HideSpecialState = NULL, *HideDoomishState = NULL;
+	FState *HideSpecialState = nullptr, *HideDoomishState = nullptr;
 
  	flags = (flags & ~MF_SPECIAL) | MF_NOGRAVITY;
 	renderflags |= RF_INVISIBLE;
@@ -977,7 +977,7 @@ void AInventory::Hide ()
 	if (gameinfo.gametype & GAME_Raven)
 	{
 		HideSpecialState = FindState("HideSpecial");
-		if (HideSpecialState == NULL)
+		if (HideSpecialState == nullptr)
 		{
 			HideDoomishState = FindState("HideDoomish");
 		}
@@ -985,21 +985,21 @@ void AInventory::Hide ()
 	else
 	{
 		HideDoomishState = FindState("HideDoomish");
-		if (HideDoomishState == NULL)
+		if (HideDoomishState == nullptr)
 		{
 			HideSpecialState = FindState("HideSpecial");
 		}
 	}
 
-	assert(HideDoomishState != NULL || HideSpecialState != NULL);
+	assert(HideDoomishState != nullptr || HideSpecialState != nullptr);
 
-	if (HideSpecialState != NULL)
+	if (HideSpecialState != nullptr)
 	{
 		SetState (HideSpecialState);
 		tics = 1400;
-		if (PickupFlash != NULL) tics += 30;
+		if (PickupFlash != nullptr) tics += 30;
 	}
-	else if (HideDoomishState != NULL)
+	else if (HideDoomishState != nullptr)
 	{
 		SetState (HideDoomishState);
 		tics = 1050;
@@ -1018,7 +1018,7 @@ void AInventory::Hide ()
 
 static void PrintPickupMessage (const char *str)
 {
-	if (str != NULL)
+	if (str != nullptr)
 	{
 		if (str[0]=='$') 
 		{
@@ -1042,7 +1042,7 @@ void AInventory::Touch (AActor *toucher)
 	player_t *player = toucher->player;
 
 	// If a voodoo doll touches something, pretend the real player touched it instead.
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		toucher = player->mo;
 	}
@@ -1052,7 +1052,7 @@ void AInventory::Touch (AActor *toucher)
 	if (!CallTryPickup (toucher, &toucher)) return;
 
 	// This is the only situation when a pickup flash should ever play.
-	if (PickupFlash != NULL && !ShouldStay())
+	if (PickupFlash != nullptr && !ShouldStay())
 	{
 		Spawn(PickupFlash, Pos(), ALLOW_REPLACE);
 	}
@@ -1061,7 +1061,7 @@ void AInventory::Touch (AActor *toucher)
 	{
 		const char * message = PickupMessage ();
 
-		if (message != NULL && *message != 0 && localview
+		if (message != nullptr && *message != 0 && localview
 			&& (StaticLastMessageTic != gametic || StaticLastMessage != message))
 		{
 			StaticLastMessageTic = gametic;
@@ -1072,7 +1072,7 @@ void AInventory::Touch (AActor *toucher)
 
 		// Special check so voodoo dolls picking up items cause the
 		// real player to make noise.
-		if (player != NULL)
+		if (player != nullptr)
 		{
 			PlayPickupSound (player->mo);
 			if (!(ItemFlags & IF_NOSCREENFLASH))
@@ -1091,7 +1091,7 @@ void AInventory::Touch (AActor *toucher)
 
 	if (flags & MF_COUNTITEM)
 	{
-		if (player != NULL)
+		if (player != nullptr)
 		{
 			player->itemcount++;
 		}
@@ -1100,14 +1100,14 @@ void AInventory::Touch (AActor *toucher)
 
 	if (flags5 & MF5_COUNTSECRET)
 	{
-		P_GiveSecret(player != NULL? (AActor*)player->mo : toucher, true, true, -1);
+		P_GiveSecret(player != nullptr? (AActor*)player->mo : toucher, true, true, -1);
 	}
 
 	//Added by MC: Check if item taken was the roam destination of any bot
 	for (int i = 0; i < MAXPLAYERS; i++)
 	{
-		if (players[i].Bot != NULL && this == players[i].Bot->dest)
-			players[i].Bot->dest = NULL;
+		if (players[i].Bot != nullptr && this == players[i].Bot->dest)
+			players[i].Bot->dest = nullptr;
 	}
 }
 
@@ -1123,7 +1123,7 @@ void AInventory::DoPickupSpecial (AActor *toucher)
 {
 	if (special)
 	{
-		P_ExecuteSpecial(special, NULL, toucher, false,
+		P_ExecuteSpecial(special, nullptr, toucher, false,
 			args[0], args[1], args[2], args[3], args[4]);
 		special = 0;
 	}
@@ -1159,7 +1159,7 @@ void AInventory::PlayPickupSound (AActor *toucher)
 	}
 #if 0
 	else if ((ItemFlags & IF_FANCYPICKUPSOUND) &&
-		(toucher == NULL || toucher->CheckLocalView(consoeplayer)))
+		(toucher == nullptr || toucher->CheckLocalView(consoeplayer)))
 	{
 		atten = ATTN_NONE;
 	}
@@ -1169,7 +1169,7 @@ void AInventory::PlayPickupSound (AActor *toucher)
 		atten = ATTN_NORM;
 	}
 
-	if (toucher != NULL && toucher->CheckLocalView(consoleplayer))
+	if (toucher != nullptr && toucher->CheckLocalView(consoleplayer))
 	{
 		chan = CHAN_PICKUP|CHAN_NOPAUSE;
 	}
@@ -1201,16 +1201,16 @@ bool AInventory::ShouldStay ()
 
 void AInventory::Destroy ()
 {
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		Owner->RemoveInventory (this);
 	}
-	Inventory = NULL;
+	Inventory = nullptr;
 	Super::Destroy ();
 
 	// Although contrived it can theoretically happen that these variables still got a pointer to this item
-	if (SendItemUse == this) SendItemUse = NULL;
-	if (SendItemDrop == this) SendItemDrop = NULL;
+	if (SendItemUse == this) SendItemUse = nullptr;
+	if (SendItemDrop == this) SendItemDrop = nullptr;
 }
 
 //===========================================================================
@@ -1265,7 +1265,7 @@ AInventory *AInventory::PrevItem ()
 {
 	AInventory *item = Owner->Inventory;
 
-	while (item != NULL && item->Inventory != this)
+	while (item != nullptr && item->Inventory != this)
 	{
 		item = item->Inventory;
 	}
@@ -1282,10 +1282,10 @@ AInventory *AInventory::PrevItem ()
 
 AInventory *AInventory::PrevInv ()
 {
-	AInventory *lastgood = NULL;
+	AInventory *lastgood = nullptr;
 	AInventory *item = Owner->Inventory;
 
-	while (item != NULL && item != this)
+	while (item != nullptr && item != this)
 	{
 		if (item->ItemFlags & IF_INVBAR)
 		{
@@ -1307,7 +1307,7 @@ AInventory *AInventory::NextInv ()
 {
 	AInventory *item = Inventory;
 
-	while (item != NULL && !(item->ItemFlags & IF_INVBAR))
+	while (item != nullptr && !(item->ItemFlags & IF_INVBAR))
 	{
 		item = item->Inventory;
 	}
@@ -1342,13 +1342,13 @@ IMPLEMENT_CLASS (APowerupGiver)
 
 bool AInventory::DoRespawn ()
 {
-	if (SpawnPointClass != NULL)
+	if (SpawnPointClass != nullptr)
 	{
-		AActor *spot = NULL;
+		AActor *spot = nullptr;
 		DSpotState *state = DSpotState::GetSpotState();
 
-		if (state != NULL) spot = state->GetRandomSpot(SpawnPointClass);
-		if (spot != NULL) 
+		if (state != nullptr) spot = state->GetRandomSpot(SpawnPointClass);
+		if (spot != nullptr) 
 		{
 			SetOrigin (spot->Pos(), false);
 			SetZ(floorz);
@@ -1388,7 +1388,7 @@ bool AInventory::TryPickup (AActor *&toucher)
 	// picked up, then it leaves the flag cleared.
 
 	ItemFlags &= ~IF_PICKUPGOOD;
-	if (toucher->Inventory != NULL && toucher->Inventory->HandlePickup (this))
+	if (toucher->Inventory != nullptr && toucher->Inventory->HandlePickup (this))
 	{
 		// Let something else the player is holding intercept the pickup.
 		if (!(ItemFlags & IF_PICKUPGOOD))
@@ -1425,7 +1425,7 @@ bool AInventory::TryPickup (AActor *&toucher)
 		// Add the item to the inventory. It is not already there, or HandlePickup
 		// would have already taken care of it.
 		AInventory *copy = CreateCopy (toucher);
-		if (copy == NULL)
+		if (copy == nullptr)
 		{
 			return false;
 		}
@@ -1441,7 +1441,7 @@ bool AInventory::TryPickup (AActor *&toucher)
 		if (copy->ItemFlags & IF_CREATECOPYMOVED)
 		{
 			newtoucher = copy->Owner;
-			copy->Owner = NULL;
+			copy->Owner = nullptr;
 			copy->ItemFlags &= ~IF_CREATECOPYMOVED;
 		}
 		// Continue onwards with the rest
@@ -1494,7 +1494,7 @@ bool AInventory::CallTryPickup (AActor *toucher, AActor **toucher_return)
 		return false;
 
 	// Morph items can change the toucher so we need an option to return this info.
-	if (toucher_return != NULL) *toucher_return = toucher;
+	if (toucher_return != nullptr) *toucher_return = toucher;
 
 	if (!res && (ItemFlags & IF_ALWAYSPICKUP) && !ShouldStay())
 	{
@@ -1585,11 +1585,11 @@ CCMD (printinv)
 		}
 	}
 #endif
-	if (players[pnum].mo == NULL)
+	if (players[pnum].mo == nullptr)
 	{
 		return;
 	}
-	for (item = players[pnum].mo->Inventory; item != NULL; item = item->Inventory)
+	for (item = players[pnum].mo->Inventory; item != nullptr; item = item->Inventory)
 	{
 		Printf ("%s #%u (%d/%d)\n", item->GetClass()->TypeName.GetChars(),
 			item->InventoryID,
@@ -1656,7 +1656,7 @@ bool ACustomInventory::TryPickup (AActor *&toucher)
 {
 	FState *pickupstate = FindState(NAME_Pickup);
 	bool useok = CallStateChain (toucher, pickupstate);
-	if ((useok || pickupstate == NULL) && FindState(NAME_Use) != NULL)
+	if ((useok || pickupstate == nullptr) && FindState(NAME_Use) != nullptr)
 	{
 		useok = Super::TryPickup (toucher);
 	}
@@ -1727,7 +1727,7 @@ const char *AHealth::PickupMessage ()
 
 bool AHealth::TryPickup (AActor *&other)
 {
-	PrevHealth = other->player != NULL ? other->player->health : other->health;
+	PrevHealth = other->player != nullptr ? other->player->health : other->health;
 
 	// P_GiveBody adds one new feature, applied only if it is possible to pick up negative health:
 	// Negative values are treated as positive percentages, ie Amount -100 means 100% health, ignoring max amount.
@@ -1763,7 +1763,7 @@ AInventory *AHealthPickup::CreateCopy (AActor *other)
 AInventory *AHealthPickup::CreateTossable ()
 {
 	AInventory *copy = Super::CreateTossable ();
-	if (copy != NULL)
+	if (copy != nullptr)
 	{
 		copy->health = health;
 	}
@@ -1784,7 +1784,7 @@ bool AHealthPickup::HandlePickup (AInventory *item)
 	{
 		return Super::HandlePickup (item);
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -1856,7 +1856,7 @@ AInventory *ABackpackItem::CreateCopy (AActor *other)
 				amount = int(amount * G_SkillProperty(SKILLP_AmmoFactor));
 			}
 			if (amount < 0) amount = 0;
-			if (ammo == NULL)
+			if (ammo == nullptr)
 			{ // The player did not have the ammo. Add it.
 				ammo = static_cast<AAmmo *>(Spawn(atype));
 				ammo->Amount = bDepleted ? 0 : amount;
@@ -1906,7 +1906,7 @@ bool ABackpackItem::HandlePickup (AInventory *item)
 	// have to alter the MaxAmount either.
 	if (item->IsKindOf (RUNTIME_CLASS(ABackpackItem)))
 	{
-		for (AInventory *probe = Owner->Inventory; probe != NULL; probe = probe->Inventory)
+		for (AInventory *probe = Owner->Inventory; probe != nullptr; probe = probe->Inventory)
 		{
 			if (probe->GetClass()->ParentClass == RUNTIME_CLASS(AAmmo))
 			{
@@ -1930,7 +1930,7 @@ bool ABackpackItem::HandlePickup (AInventory *item)
 		item->ItemFlags |= IF_PICKUPGOOD;
 		return true;
 	}
-	else if (Inventory != NULL)
+	else if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -1952,7 +1952,7 @@ bool ABackpackItem::HandlePickup (AInventory *item)
 AInventory *ABackpackItem::CreateTossable ()
 {
 	ABackpackItem *pack = static_cast<ABackpackItem *>(Super::CreateTossable());
-	if (pack != NULL)
+	if (pack != nullptr)
 	{
 		pack->bDepleted = true;
 	}
@@ -1970,7 +1970,7 @@ void ABackpackItem::DetachFromOwner ()
 	// When removing a backpack, drop the player's ammo maximums to normal
 	AInventory *item;
 
-	for (item = Owner->Inventory; item != NULL; item = item->Inventory)
+	for (item = Owner->Inventory; item != nullptr; item = item->Inventory)
 	{
 		if (item->GetClass()->ParentClass == RUNTIME_CLASS(AAmmo) &&
 			item->MaxAmount == static_cast<AAmmo*>(item)->BackpackMaxAmount)

@@ -70,12 +70,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_CFlameAttack)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;

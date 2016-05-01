@@ -449,8 +449,8 @@ public:
 	int			poisoncount;			// screen flash for poison damage
 	FName		poisontype;				// type of poison damage to apply
 	FName		poisonpaintype;			// type of Pain state to enter for poison damage
-	TObjPtr<AActor>		poisoner;		// NULL for non-player actors
-	TObjPtr<AActor>		attacker;		// who did damage (NULL for floors)
+	TObjPtr<AActor>		poisoner;		// nullptr for non-player actors
+	TObjPtr<AActor>		attacker;		// who did damage (nullptr for floors)
 	int			extralight;				// so gun flashes light up areas
 	short		fixedcolormap;			// can be set to REDCOLORMAP, etc.
 	short		fixedlightlevel;
@@ -537,7 +537,7 @@ void P_CheckPlayerSprite(AActor *mo, int &spritenum, DVector2 &scale);
 
 inline void AActor::SetFriendPlayer(player_t *player)
 {
-	if (player == NULL)
+	if (player == nullptr)
 	{
 		FriendPlayer = 0;
 	}
@@ -549,7 +549,7 @@ inline void AActor::SetFriendPlayer(player_t *player)
 
 inline bool AActor::IsNoClip2() const
 {
-	if (player != NULL && player->mo == this)
+	if (player != nullptr && player->mo == this)
 	{
 		return (player->cheats & CF_NOCLIP2) != 0;
 	}

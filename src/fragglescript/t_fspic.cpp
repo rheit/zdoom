@@ -126,7 +126,7 @@ void DHUDPicManager::DoDraw (int linenum, int x, int y, int hudheight, float tra
 static TArray<FHudPic> & GetPicList()
 {
 	//TThinkerIterator<DHUDPicManager> it;
-	DHUDPicManager * pm=NULL;//it.Next();
+	DHUDPicManager * pm=nullptr;//it.Next();
 
 	if (!pm) pm=new DHUDPicManager;
 	return pm->piclist;

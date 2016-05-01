@@ -275,8 +275,8 @@ void FXInputController::ProcessThumbstick(int value1, AxisInfo *axis1,
 	
 	axisval1 = (value1 - SHRT_MIN) * 2.0 / 65536 - 1.0;
 	axisval2 = (value2 - SHRT_MIN) * 2.0 / 65536 - 1.0;
-	axisval1 = Joy_RemoveDeadZone(axisval1, axis1->DeadZone, NULL);
-	axisval2 = Joy_RemoveDeadZone(axisval2, axis2->DeadZone, NULL);
+	axisval1 = Joy_RemoveDeadZone(axisval1, axis1->DeadZone, nullptr);
+	axisval2 = Joy_RemoveDeadZone(axisval2, axis2->DeadZone, nullptr);
 	axis1->Value = float(axisval1);
 	axis2->Value = float(axisval2);
 
@@ -353,7 +353,7 @@ void FXInputController::Detached()
 	}
 	Joy_GenerateButtonEvents(LastButtons, 0, 16, KEY_PAD_DPAD_UP);
 	LastButtons = 0;
-	UpdateJoystickMenu(NULL);
+	UpdateJoystickMenu(nullptr);
 }
 
 //==========================================================================
@@ -616,22 +616,22 @@ bool FXInputController::IsAxisMapDefault(int axis)
 FXInputManager::FXInputManager()
 {
 	XInputDLL = LoadLibrary(XINPUT_DLL);
-	if (XInputDLL != NULL)
+	if (XInputDLL != nullptr)
 	{
 		InputGetState = (XInputGetStateType)GetProcAddress(XInputDLL, "XInputGetState");
 		InputSetState = (XInputSetStateType)GetProcAddress(XInputDLL, "XInputSetState");
 		InputGetCapabilities = (XInputGetCapabilitiesType)GetProcAddress(XInputDLL, "XInputGetCapabilities");
 		InputEnable = (XInputEnableType)GetProcAddress(XInputDLL, "XInputEnable");
-		if (InputGetState == NULL || InputSetState == NULL || InputGetCapabilities == NULL ||
-			InputEnable == NULL)
+		if (InputGetState == nullptr || InputSetState == nullptr || InputGetCapabilities == nullptr ||
+			InputEnable == nullptr)
 		{
 			FreeLibrary(XInputDLL);
-			XInputDLL = NULL;
+			XInputDLL = nullptr;
 		}
 	}
 	for (int i = 0; i < XUSER_MAX_COUNT; ++i)
 	{
-		Devices[i] = (XInputDLL != NULL) ? new FXInputController(i) : NULL;
+		Devices[i] = (XInputDLL != nullptr) ? new FXInputController(i) : nullptr;
 	}
 }
 
@@ -645,12 +645,12 @@ FXInputManager::~FXInputManager()
 {
 	for (int i = 0; i < XUSER_MAX_COUNT; ++i)
 	{
-		if (Devices[i] != NULL)
+		if (Devices[i] != nullptr)
 		{
 			delete Devices[i];
 		}
 	}
-	if (XInputDLL != NULL)
+	if (XInputDLL != nullptr)
 	{
 		FreeLibrary(XInputDLL);
 	}
@@ -664,7 +664,7 @@ FXInputManager::~FXInputManager()
 
 bool FXInputManager::GetDevice()
 {
-	return (XInputDLL != NULL);
+	return (XInputDLL != nullptr);
 }
 
 //==========================================================================
@@ -754,7 +754,7 @@ bool FXInputManager::WndProcHook(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 IJoystickConfig *FXInputManager::Rescan()
 {
-	return NULL;
+	return nullptr;
 }
 
 //===========================================================================
@@ -767,16 +767,16 @@ void I_StartupXInput()
 {
 	if (!joy_xinput || !use_joystick || Args->CheckParm("-nojoy"))
 	{
-		if (JoyDevices[INPUT_XInput] != NULL)
+		if (JoyDevices[INPUT_XInput] != nullptr)
 		{
 			delete JoyDevices[INPUT_XInput];
-			JoyDevices[INPUT_XInput] = NULL;
-			UpdateJoystickMenu(NULL);
+			JoyDevices[INPUT_XInput] = nullptr;
+			UpdateJoystickMenu(nullptr);
 		}
 	}
 	else
 	{
-		if (JoyDevices[INPUT_XInput] == NULL)
+		if (JoyDevices[INPUT_XInput] == nullptr)
 		{
 			FJoystickCollection *joys = new FXInputManager;
 			if (joys->GetDevice())
@@ -797,7 +797,7 @@ void I_StartupXInput()
 
 void I_StartupXInput()
 {
-	JoyDevices[INPUT_XInput] = NULL;
+	JoyDevices[INPUT_XInput] = nullptr;
 }
 
 #endif

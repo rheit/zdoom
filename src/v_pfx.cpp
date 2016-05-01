@@ -74,12 +74,12 @@ void PfxState::SetFormat (int bits, uint32 redMask, uint32 greenMask, uint32 blu
 	{
 	case -8:
 		Convert = Scale8;
-		SetPalette = NULL;
+		SetPalette = nullptr;
 		break;
 
 	case 8:
 		Convert = Convert8;
-		SetPalette = NULL;
+		SetPalette = nullptr;
 		break;
 
 	case 16:

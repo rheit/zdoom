@@ -74,8 +74,8 @@ private:
 
 FTexture *AutomapTexture_TryCreate(FileReader &data, int lumpnum)
 {
-	if (data.GetLength() < 320) return NULL;
-	if (!Wads.CheckLumpName(lumpnum, "AUTOPAGE")) return NULL;
+	if (data.GetLength() < 320) return nullptr;
+	if (!Wads.CheckLumpName(lumpnum, "AUTOPAGE")) return nullptr;
 	return new FAutomapTexture(lumpnum);
 }
 
@@ -86,7 +86,7 @@ FTexture *AutomapTexture_TryCreate(FileReader &data, int lumpnum)
 //==========================================================================
 
 FAutomapTexture::FAutomapTexture (int lumpnum)
-: FTexture(NULL, lumpnum), Pixels(NULL)
+: FTexture(nullptr, lumpnum), Pixels(nullptr)
 {
 	Width = 320;
 	Height = WORD(Wads.LumpLength(lumpnum) / 320);
@@ -117,10 +117,10 @@ FAutomapTexture::~FAutomapTexture ()
 
 void FAutomapTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -155,7 +155,7 @@ void FAutomapTexture::MakeTexture ()
 
 const BYTE *FAutomapTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -170,7 +170,7 @@ const BYTE *FAutomapTexture::GetPixels ()
 
 const BYTE *FAutomapTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -178,7 +178,7 @@ const BYTE *FAutomapTexture::GetColumn (unsigned int column, const Span **spans_
 	{
 		column %= Width;
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpan;
 	}

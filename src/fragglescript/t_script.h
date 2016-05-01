@@ -235,7 +235,7 @@ public:
 
 	DFsSection()
 	{
-		next = NULL;
+		next = nullptr;
 	}
 
 	void Serialize(FArchive &ar);
@@ -365,7 +365,7 @@ public:
 	void DryRunScript();
 	void Preprocess();
 	void ParseInclude(char *lumpname);
-	void ParseScript(char *rover = NULL);
+	void ParseScript(char *rover = nullptr);
 	void ParseData(char *rover, char *data, char *end);
 };
 
@@ -412,12 +412,12 @@ struct FParser
 
 	FParser(DFsScript *scr)
 	{
-		LineStart = NULL;
-		Rover = NULL;
+		LineStart = nullptr;
+		Rover = nullptr;
 		Tokens[0] = new char[scr->len+32];	// 32 for safety. FS seems to need a few bytes more than the script's actual length.
 		NumTokens = 0;
 		Script = scr;
-		Section = PrevSection = NULL;
+		Section = PrevSection = nullptr;
 		BraceType = 0;
 	}
 
@@ -650,7 +650,7 @@ class DRunningScript : public DObject
 	HAS_OBJECT_POINTERS
 
 public:
-	DRunningScript(AActor *trigger=NULL, DFsScript *owner = NULL, int index = 0) ;
+	DRunningScript(AActor *trigger=nullptr, DFsScript *owner = nullptr, int index = 0) ;
 	void Destroy();
 	void Serialize(FArchive &arc);
 

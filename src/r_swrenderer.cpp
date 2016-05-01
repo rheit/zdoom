@@ -80,7 +80,7 @@ bool FSoftwareRenderer::UsesColormap() const
 
 void FSoftwareRenderer::PrecacheTexture(FTexture *tex, int cache)
 {
-	if (tex != NULL)
+	if (tex != nullptr)
 	{
 		if (cache & FTextureManager::HIT_Columnmode)
 		{

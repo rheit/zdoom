@@ -180,12 +180,12 @@ void R_DeinitPlanes ()
 	// do not use R_ClearPlanes because at this point the screen pointer is no longer valid.
 	for (int i = 0; i <= MAXVISPLANES; i++)	// new code -- killough
 	{
-		for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )
+		for (*freehead = visplanes[i], visplanes[i] = nullptr; *freehead; )
 		{
 			freehead = &(*freehead)->next;
 		}
 	}
-	for (visplane_t *pl = freetail; pl != NULL; )
+	for (visplane_t *pl = freetail; pl != nullptr; )
 	{
 		visplane_t *next = pl->next;
 		free (pl);
@@ -506,7 +506,7 @@ void R_ClearPlanes (bool fullclear)
 	{
 		for (i = 0; i <= MAXVISPLANES-1; i++)	// new code -- killough
 		{
-			for (visplane_t **probe = &visplanes[i]; *probe != NULL; )
+			for (visplane_t **probe = &visplanes[i]; *probe != nullptr; )
 			{
 				if ((*probe)->sky < 0)
 				{ // fake: move past it
@@ -517,7 +517,7 @@ void R_ClearPlanes (bool fullclear)
 					visplane_t *vis = *probe;
 					*freehead = vis;
 					*probe = vis->next;
-					vis->next = NULL;
+					vis->next = nullptr;
 					freehead = &vis->next;
 				}
 			}
@@ -527,7 +527,7 @@ void R_ClearPlanes (bool fullclear)
 	{
 		for (i = 0; i <= MAXVISPLANES; i++)	// new code -- killough
 		{
-			for (*freehead = visplanes[i], visplanes[i] = NULL; *freehead; )
+			for (*freehead = visplanes[i], visplanes[i] = nullptr; *freehead; )
 			{
 				freehead = &(*freehead)->next;
 			}
@@ -557,13 +557,13 @@ static visplane_t *new_visplane (unsigned hash)
 {
 	visplane_t *check = freetail;
 
-	if (check == NULL)
+	if (check == nullptr)
 	{
 		check = (visplane_t *)M_Malloc (sizeof(*check) + 3 + sizeof(*check->top)*(MAXWIDTH*2));
 		memset(check, 0, sizeof(*check) + 3 + sizeof(*check->top)*(MAXWIDTH*2));
 		check->bottom = check->top + MAXWIDTH+2;
 	}
-	else if (NULL == (freetail = freetail->next))
+	else if (nullptr == (freetail = freetail->next))
 	{
 		freehead = &freetail;
 	}
@@ -607,9 +607,9 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 		// same column but separated by a wall. If they both try to reside in the
 		// same visplane, then only the floor sky will be drawn.
 		plane.set(0., 0., height.fC(), 0.);
-		isskybox = portal != NULL && !(portal->mFlags & PORTSF_INSKYBOX);
+		isskybox = portal != nullptr && !(portal->mFlags & PORTSF_INSKYBOX);
 	}
-	else if (portal != NULL && !(portal->mFlags & PORTSF_INSKYBOX))
+	else if (portal != nullptr && !(portal->mFlags & PORTSF_INSKYBOX))
 	{
 		plane = height;
 		isskybox = true;
@@ -623,7 +623,7 @@ visplane_t *R_FindPlane (const secplane_t &height, FTextureID picnum, int lightl
 		// and ->alpha is for stacked sectors
 		if (fake3D & (FAKE3D_FAKEFLOOR|FAKE3D_FAKECEILING)) sky = 0x80000000 | fakeAlpha;
 		else sky = 0;	// not skyflatnum so it can't be a sky
-		portal = NULL;
+		portal = nullptr;
 		alpha = OPAQUE;
 	}
 
@@ -764,7 +764,7 @@ visplane_t *R_CheckPlane (visplane_t *pl, int start, int stop)
 		// make a new visplane
 		unsigned hash;
 
-		if (pl->portal != NULL && !(pl->portal->mFlags & PORTSF_INSKYBOX) && viewactive)
+		if (pl->portal != nullptr && !(pl->portal->mFlags & PORTSF_INSKYBOX) && viewactive)
 		{
 			hash = MAXVISPLANES;
 		}
@@ -849,7 +849,7 @@ static int skycolplace;
 static const BYTE *R_GetOneSkyColumn (FTexture *fronttex, int x)
 {
 	angle_t column = (skyangle + xtoviewangle[x]) ^ skyflip;
-	return fronttex->GetColumn((UMulScale16(column, frontcyl) + frontpos) >> FRACBITS, NULL);
+	return fronttex->GetColumn((UMulScale16(column, frontcyl) + frontpos) >> FRACBITS, nullptr);
 }
 
 // Get a column of sky when there are two overlapping sky textures
@@ -879,8 +879,8 @@ static const BYTE *R_GetTwoSkyColumns (FTexture *fronttex, int x)
 	// The ordering of the following code has been tuned to allow VC++ to optimize
 	// it well. In particular, this arrangement lets it keep count in a register
 	// instead of on the stack.
-	const BYTE *front = fronttex->GetColumn (angle1, NULL);
-	const BYTE *back = backskytex->GetColumn (angle2, NULL);
+	const BYTE *front = fronttex->GetColumn (angle1, nullptr);
+	const BYTE *back = backskytex->GetColumn (angle2, nullptr);
 
 	int count = MIN<int> (512, MIN (backskytex->GetHeight(), fronttex->GetHeight()));
 	i = 0;
@@ -945,7 +945,7 @@ static void R_DrawSky (visplane_t *pl)
 			lastskycol[x] = 0xffffffff;
 		}
 		wallscan (pl->left, pl->right, (short *)pl->top, (short *)pl->bottom, swall, lwall,
-			frontyScale, backskytex == NULL ? R_GetOneSkyColumn : R_GetTwoSkyColumns);
+			frontyScale, backskytex == nullptr ? R_GetOneSkyColumn : R_GetTwoSkyColumns);
 	}
 	else
 	{ // The texture does not tile nicely
@@ -982,7 +982,7 @@ static void R_DrawSkyStriped (visplane_t *pl)
 			lastskycol[x] = 0xffffffff;
 		}
 		wallscan (pl->left, pl->right, top, bot, swall, lwall, rw_pic->Scale.Y,
-			backskytex == NULL ? R_GetOneSkyColumn : R_GetTwoSkyColumns);
+			backskytex == nullptr ? R_GetOneSkyColumn : R_GetTwoSkyColumns);
 		yl = yh;
 		yh += drawheight;
 		dc_texturemid = iscale * (centery-yl-1);
@@ -1148,7 +1148,7 @@ void R_DrawPortals ()
 
 	numskyboxes = 0;
 
-	if (visplanes[MAXVISPLANES] == NULL)
+	if (visplanes[MAXVISPLANES] == nullptr)
 		return;
 
 	R_3D_EnterSkybox();
@@ -1168,15 +1168,15 @@ void R_DrawPortals ()
 	int i;
 	visplane_t *pl;
 
-	for (pl = visplanes[MAXVISPLANES]; pl != NULL; pl = visplanes[MAXVISPLANES])
+	for (pl = visplanes[MAXVISPLANES]; pl != nullptr; pl = visplanes[MAXVISPLANES])
 	{
 		// Pop the visplane off the list now so that if this skybox adds more
 		// skyboxes to the list, they will be drawn instead of skipped (because
 		// new skyboxes go to the beginning of the list instead of the end).
 		visplanes[MAXVISPLANES] = pl->next;
-		pl->next = NULL;
+		pl->next = nullptr;
 
-		if (pl->right < pl->left || !r_skyboxes || numskyboxes == MAX_SKYBOX_PLANES || pl->portal == NULL)
+		if (pl->right < pl->left || !r_skyboxes || numskyboxes == MAX_SKYBOX_PLANES || pl->portal == nullptr)
 		{
 			R_DrawSinglePlane (pl, OPAQUE, false, false);
 			*freehead = pl;
@@ -1228,9 +1228,9 @@ void R_DrawPortals ()
 
 		port->mFlags |= PORTSF_INSKYBOX;
 		if (port->mPartner > 0) sectorPortals[port->mPartner].mFlags |= PORTSF_INSKYBOX;
-		camera = NULL;
+		camera = nullptr;
 		viewsector = port->mDestination;
-		assert(viewsector != NULL);
+		assert(viewsector != nullptr);
 		R_SetViewAngle ();
 		validcount++;	// Make sure we see all sprites
 
@@ -1267,7 +1267,7 @@ void R_DrawPortals ()
 		ds_p->sprtopclip = R_NewOpening (pl->right - pl->left);
 		ds_p->maskedtexturecol = ds_p->swall = -1;
 		ds_p->bFogBoundary = false;
-		ds_p->curline = NULL;
+		ds_p->curline = nullptr;
 		ds_p->fake = 0;
 		memcpy (openings + ds_p->sprbottomclip, floorclip + pl->left, (pl->right - pl->left)*sizeof(short));
 		memcpy (openings + ds_p->sprtopclip, ceilingclip + pl->left, (pl->right - pl->left)*sizeof(short));
@@ -1284,7 +1284,7 @@ void R_DrawPortals ()
 		viewposStack.Push(ViewPos);
 		visplaneStack.Push (pl);
 
-		InSubsector = NULL;
+		InSubsector = nullptr;
 		R_RenderBSPNode (nodes + numnodes - 1);
 		R_3D_ResetClip(); // reset clips (floor/ceiling)
 		R_DrawPlanes ();
@@ -1343,7 +1343,7 @@ void R_DrawPortals ()
 
 	if(fakeActive) return;
 
-	for (*freehead = visplanes[MAXVISPLANES], visplanes[MAXVISPLANES] = NULL; *freehead; )
+	for (*freehead = visplanes[MAXVISPLANES], visplanes[MAXVISPLANES] = nullptr; *freehead; )
 		freehead = &(*freehead)->next;
 }
 
@@ -1386,7 +1386,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 			if (level.flags & LEVEL_DOUBLESKY)
 				backskytex = TexMan(sky2tex, true);
 			else
-				backskytex = NULL;
+				backskytex = nullptr;
 			skyflip = 0;
 			frontdpos = sky1pos;
 			backdpos = sky2pos;
@@ -1396,7 +1396,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 		else if (pl->sky == PL_SKYFLAT)
 		{	// use sky2
 			frontskytex = TexMan(sky2tex, true);
-			backskytex = NULL;
+			backskytex = nullptr;
 			frontcyl = sky2cyl;
 			skyflip = 0;
 			frontdpos = sky2pos;
@@ -1422,11 +1422,11 @@ void R_DrawSkyPlane (visplane_t *pl)
 			}
 
 			frontskytex = TexMan(s->GetTexture(pos), true);
-			if (frontskytex == NULL || frontskytex->UseType == FTexture::TEX_Null)
+			if (frontskytex == nullptr || frontskytex->UseType == FTexture::TEX_Null)
 			{ // [RH] The blank texture: Use normal sky instead.
 				goto sky1;
 			}
-			backskytex = NULL;
+			backskytex = nullptr;
 
 			// Horizontal offset is turned into an angle offset,
 			// to allow sky rotation as well as careful positioning.
@@ -1453,7 +1453,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 		}
 	}
 	frontpos = int(fmod(frontdpos, sky1cyl * 65536.0));
-	if (backskytex != NULL)
+	if (backskytex != nullptr)
 	{
 		backpos = int(fmod(backdpos, sky2cyl * 65536.0));
 	}
@@ -1472,7 +1472,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 	R_DrawSky (pl);
 
 	if (fakefixed)
-		fixedcolormap = NULL;
+		fixedcolormap = nullptr;
 }
 
 //==========================================================================
@@ -1815,13 +1815,13 @@ bool R_PlaneInitData ()
 		M_Free (pl);
 		pl = next;
 	}
-	freetail = NULL;
+	freetail = nullptr;
 	freehead = &freetail;
 
 	for (i = 0; i < MAXVISPLANES; i++)
 	{
 		pl = visplanes[i];
-		visplanes[i] = NULL;
+		visplanes[i] = nullptr;
 		while (pl)
 		{
 			visplane_t *next = pl->next;

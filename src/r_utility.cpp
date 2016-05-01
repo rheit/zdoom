@@ -448,7 +448,7 @@ void R_InterpolateView (player_t *player, double Frac, InterpolationViewer *ivie
 		ViewPos = iview->New.Pos;
 		ViewPath[0] = ViewPath[1] = iview->New.Pos;
 	}
-	if (player != NULL &&
+	if (player != nullptr &&
 		!(player->cheats & CF_INTERPVIEW) &&
 		player - players == consoleplayer &&
 		camera == player->mo &&
@@ -603,7 +603,7 @@ void R_ClearPastViewer (AActor *actor)
 
 void R_RebuildViewInterpolation(player_t *player)
 {
-	if (player == NULL || player->camera == NULL)
+	if (player == nullptr || player->camera == nullptr)
 		return;
 
 	if (!NoInterpolateView)
@@ -678,9 +678,9 @@ static double QuakePower(double factor, double intensity, double offset, double 
 
 void R_SetupFrame (AActor *actor)
 {
-	if (actor == NULL)
+	if (actor == nullptr)
 	{
-		I_Error ("Tried to render from a NULL actor.");
+		I_Error ("Tried to render from a nullptr actor.");
 	}
 
 	player_t *player = actor->player;
@@ -688,10 +688,10 @@ void R_SetupFrame (AActor *actor)
 	InterpolationViewer *iview;
 	bool unlinked = false;
 
-	if (player != NULL && player->mo == actor)
+	if (player != nullptr && player->mo == actor)
 	{	// [RH] Use camera instead of viewplayer
 		camera = player->camera;
-		if (camera == NULL)
+		if (camera == nullptr)
 		{
 			camera = player->camera = player->mo;
 		}
@@ -701,7 +701,7 @@ void R_SetupFrame (AActor *actor)
 		camera = actor;
 	}
 
-	if (camera == NULL)
+	if (camera == nullptr)
 	{
 		I_Error ("You lost your body. Bad dehacked work is likely to blame.");
 	}
@@ -715,7 +715,7 @@ void R_SetupFrame (AActor *actor)
 		iview->Old = iview->New;
 	}
 
-	if (player != NULL && gamestate != GS_TITLELEVEL &&
+	if (player != nullptr && gamestate != GS_TITLELEVEL &&
 		((player->cheats & CF_CHASECAM) || (r_deathcamera && camera->health <= 0)))
 	{
 		sector_t *oldsector = R_PointInSubsector(iview->Old.Pos)->sector;
@@ -865,7 +865,7 @@ void R_SetupFrame (AActor *actor)
 	else
 	{
 		const sector_t *s = viewsector->GetHeightSec();
-		if (s != NULL)
+		if (s != nullptr)
 		{
 			newblend = s->floorplane.PointOnSide(ViewPos) < 0
 				? s->bottommap
@@ -959,7 +959,7 @@ void FCanvasTextureInfo::Add (AActor *viewpoint, FTextureID picnum, int fov)
 	}
 
 	// Is this texture already assigned to a camera?
-	for (probe = List; probe != NULL; probe = probe->Next)
+	for (probe = List; probe != nullptr; probe = probe->Next)
 	{
 		if (probe->Texture == texture)
 		{
@@ -996,9 +996,9 @@ void FCanvasTextureInfo::UpdateAll ()
 {
 	FCanvasTextureInfo *probe;
 
-	for (probe = List; probe != NULL; probe = probe->Next)
+	for (probe = List; probe != nullptr; probe = probe->Next)
 	{
-		if (probe->Viewpoint != NULL && probe->Texture->bNeedsUpdate)
+		if (probe->Viewpoint != nullptr && probe->Texture->bNeedsUpdate)
 		{
 			Renderer->RenderTextureView(probe->Texture, probe->Viewpoint, probe->FOV);
 		}
@@ -1017,13 +1017,13 @@ void FCanvasTextureInfo::EmptyList ()
 {
 	FCanvasTextureInfo *probe, *next;
 
-	for (probe = List; probe != NULL; probe = next)
+	for (probe = List; probe != nullptr; probe = next)
 	{
 		next = probe->Next;
 		probe->Texture->Unload();
 		delete probe;
 	}
-	List = NULL;
+	List = nullptr;
 }
 
 //==========================================================================
@@ -1040,14 +1040,14 @@ void FCanvasTextureInfo::Serialize (FArchive &arc)
 	{
 		FCanvasTextureInfo *probe;
 
-		for (probe = List; probe != NULL; probe = probe->Next)
+		for (probe = List; probe != nullptr; probe = probe->Next)
 		{
-			if (probe->Texture != NULL && probe->Viewpoint != NULL)
+			if (probe->Texture != nullptr && probe->Viewpoint != nullptr)
 			{
 				arc << probe->Viewpoint << probe->FOV << probe->PicNum;
 			}
 		}
-		AActor *nullactor = NULL;
+		AActor *nullactor = nullptr;
 		arc << nullactor;
 	}
 	else
@@ -1057,7 +1057,7 @@ void FCanvasTextureInfo::Serialize (FArchive &arc)
 		FTextureID picnum;
 		
 		EmptyList ();
-		while (arc << viewpoint, viewpoint != NULL)
+		while (arc << viewpoint, viewpoint != nullptr)
 		{
 			arc << fov << picnum;
 			Add (viewpoint, picnum, fov);
@@ -1075,7 +1075,7 @@ void FCanvasTextureInfo::Serialize (FArchive &arc)
 
 void FCanvasTextureInfo::Mark()
 {
-	for (FCanvasTextureInfo *probe = List; probe != NULL; probe = probe->Next)
+	for (FCanvasTextureInfo *probe = List; probe != nullptr; probe = probe->Next)
 	{
 		GC::Mark(probe->Viewpoint);
 	}

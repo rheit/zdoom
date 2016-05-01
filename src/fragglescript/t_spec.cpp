@@ -463,7 +463,7 @@ void FParser::spec_script()
 
 void FParser::EvaluateFunction(svalue_t &result, int start, int stop)
 {
-	DFsVariable *func = NULL;
+	DFsVariable *func = nullptr;
 	int startpoint, endpoint;
 	
 	// the arguments need to be built locally in case of
@@ -554,7 +554,7 @@ void FParser::EvaluateFunction(svalue_t &result, int start, int stop)
 
 void FParser::OPstructure(svalue_t &result, int start, int n, int stop)
 {
-	DFsVariable *func = NULL;
+	DFsVariable *func = nullptr;
 	
 	// the arguments need to be built locally in case of
 	// function returns as function arguments eg

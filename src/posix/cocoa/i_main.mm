@@ -472,13 +472,13 @@ void CreateMenu()
 
 void ReleaseApplicationController()
 {
-	if (NULL != appCtrl)
+	if (nullptr != appCtrl)
 	{
 		[NSApp setDelegate:nil];
 		[NSApp deactivate];
 
 		[appCtrl release];
-		appCtrl = NULL;
+		appCtrl = nullptr;
 	}
 }
 
@@ -491,7 +491,7 @@ int main(int argc, char** argv)
 	{
 		const char* const argument = argv[i];
 
-		if (NULL == argument || '\0' == argument[0])
+		if (nullptr == argument || '\0' == argument[0])
 		{
 			continue;
 		}

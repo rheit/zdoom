@@ -88,7 +88,7 @@ void DEarthquake::Tick ()
 {
 	int i;
 
-	if (m_Spot == NULL)
+	if (m_Spot == nullptr)
 	{
 		Destroy ();
 		return;
@@ -114,7 +114,7 @@ void DEarthquake::Tick ()
 				{
 					if (pr_quake() < 50)
 					{
-						P_DamageMobj (victim, NULL, NULL, pr_quake.HitDice (1), NAME_None);
+						P_DamageMobj (victim, nullptr, nullptr, pr_quake.HitDice (1), NAME_None);
 					}
 					// Thrust player around
 					DAngle an = victim->Angles.Yaw + pr_quake();
@@ -264,7 +264,7 @@ double DEarthquake::GetFalloff(double dist) const
 
 int DEarthquake::StaticGetQuakeIntensities(AActor *victim, FQuakeJiggers &jiggers)
 {
-	if (victim->player != NULL && (victim->player->cheats & CF_NOCLIP))
+	if (victim->player != nullptr && (victim->player->cheats & CF_NOCLIP))
 	{
 		return 0;
 	}
@@ -273,9 +273,9 @@ int DEarthquake::StaticGetQuakeIntensities(AActor *victim, FQuakeJiggers &jigger
 	DEarthquake *quake;
 	int count = 0;
 
-	while ( (quake = iterator.Next()) != NULL)
+	while ( (quake = iterator.Next()) != nullptr)
 	{
-		if (quake->m_Spot != NULL)
+		if (quake->m_Spot != nullptr)
 		{
 			double dist = quake->m_Spot->Distance2D (victim, true);
 			if (dist < quake->m_TremorRadius)
@@ -359,7 +359,7 @@ bool P_StartQuakeXYZ(AActor *activator, int tid, int intensityX, int intensityY,
 
 	if (tid == 0)
 	{
-		if (activator != NULL)
+		if (activator != nullptr)
 		{
 			new DEarthquake(activator, intensityX, intensityY, intensityZ, duration, damrad, tremrad,
 				quakesfx, flags, waveSpeedX, waveSpeedY, waveSpeedZ, falloff, highpoint, rollIntensity, rollWave);

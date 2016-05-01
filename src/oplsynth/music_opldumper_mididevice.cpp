@@ -93,13 +93,13 @@ class OPL_RDOSdump : public OPLDump
 public:
 	OPL_RDOSdump(FILE *file) : OPLDump(file)
 	{
-		assert(File != NULL);
+		assert(File != nullptr);
 		fwrite("RAWADATA\0", 1, 10, File);
 		NeedClockRate = true;
 	}
 	virtual ~OPL_RDOSdump()
 	{
-		if (File != NULL)
+		if (File != nullptr)
 		{
 			WORD endmark = 0xFFFF;
 			fwrite(&endmark, 2, 1, File);
@@ -109,7 +109,7 @@ public:
 
 	virtual void WriteReg(int reg, int v)
 	{
-		assert(File != NULL);
+		assert(File != nullptr);
 		BYTE chipnum = reg >> 8;
 		if (chipnum != CurChip)
 		{
@@ -185,7 +185,7 @@ class OPL_DOSBOXdump : public OPLDump
 public:
 	OPL_DOSBOXdump(FILE *file, bool dual) : OPLDump(file), Dual(dual)
 	{
-		assert(File != NULL);
+		assert(File != nullptr);
 		fwrite("DBRAWOPL"
 			   "\0\0"		// Minor version number
 			   "\1\0"		// Major version number
@@ -197,7 +197,7 @@ public:
 	}
 	virtual ~OPL_DOSBOXdump()
 	{
-		if (File != NULL)
+		if (File != nullptr)
 		{
 			long where_am_i = ftell(File);
 			DWORD len[2];
@@ -211,7 +211,7 @@ public:
 	}
 	virtual void WriteReg(int reg, int v)
 	{
-		assert(File != NULL);
+		assert(File != nullptr);
 		BYTE chipnum = reg >> 8;
 		if (chipnum != CurChip)
 		{
@@ -262,7 +262,7 @@ protected:
 //==========================================================================
 
 OPLDumperMIDIDevice::OPLDumperMIDIDevice(const char *filename)
-	: OPLMIDIDevice(NULL)
+	: OPLMIDIDevice(nullptr)
 {
 	// Replace the standard OPL device with a disk writer.
 	delete io;
@@ -339,7 +339,7 @@ DiskWriterIO::~DiskWriterIO()
 int DiskWriterIO::OPLinit(uint numchips, bool, bool initopl3)
 {
 	FILE *file = fopen(Filename, "wb");
-	if (file == NULL)
+	if (file == nullptr)
 	{
 		Printf("Could not open %s for writing.\n", Filename.GetChars());
 		return 0;

@@ -59,7 +59,7 @@ CCMD (dumpmap)
 	}
 
 	file = fopen (argv[1], "wb");
-	if (file == NULL)
+	if (file == nullptr)
 	{
 		Printf ("Cannot write %s\n", argv[1]);
 		return;
@@ -134,7 +134,7 @@ static const char *GetTextureName (FTextureID texnum)
 {
 	FTexture *tex = TexMan[texnum];
 
-	if (tex != NULL)
+	if (tex != nullptr)
 	{
 		return tex->Name;
 	}

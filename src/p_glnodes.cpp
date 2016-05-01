@@ -137,7 +137,7 @@ static int CheckForMissingSegs()
 	{
 		seg_t * seg = &segs[i];
 
-		if (seg->sidedef!=NULL)
+		if (seg->sidedef!=nullptr)
 		{
 			// check all the segs and calculate the length they occupy on their sidedef
 			DVector2 vec1(seg->v2->fX() - seg->v1->fX(), seg->v2->fY() - seg->v1->fY());
@@ -181,7 +181,7 @@ bool P_CheckForGLNodes()
 		{
 			for(DWORD j=0;j<sub->numlines;j++)
 			{
-				if (segs[j].linedef==NULL)	// miniseg
+				if (segs[j].linedef==nullptr)	// miniseg
 				{
 					// We already have GL nodes. Great!
 					return true;
@@ -300,13 +300,13 @@ static bool LoadGLSegs(FileReader * lump)
 {
 	char		*data;
 	int			i;
-	line_t		*ldef=NULL;
+	line_t		*ldef=nullptr;
 	
 	numsegs = lump->GetLength();
 	data= new char[numsegs];
 	lump->Seek(0, SEEK_SET);
 	lump->Read(data, numsegs);
-	segs=NULL;
+	segs=nullptr;
 
 #ifdef _MSC_VER
 	__try
@@ -334,32 +334,32 @@ static bool LoadGLSegs(FileReader * lump)
 					
 					ml->side=LittleShort(ml->side);
 					segs[i].sidedef = ldef->sidedef[ml->side];
-					if (ldef->sidedef[ml->side] != NULL)
+					if (ldef->sidedef[ml->side] != nullptr)
 					{
 						segs[i].frontsector = ldef->sidedef[ml->side]->sector;
 					}
 					else
 					{
-						segs[i].frontsector = NULL;
+						segs[i].frontsector = nullptr;
 					}
-					if (ldef->flags & ML_TWOSIDED && ldef->sidedef[ml->side^1] != NULL)
+					if (ldef->flags & ML_TWOSIDED && ldef->sidedef[ml->side^1] != nullptr)
 					{
 						segs[i].backsector = ldef->sidedef[ml->side^1]->sector;
 					}
 					else
 					{
 						ldef->flags &= ~ML_TWOSIDED;
-						segs[i].backsector = NULL;
+						segs[i].backsector = nullptr;
 					}
 	
 				}
 				else
 				{
-					segs[i].linedef = NULL;
-					segs[i].sidedef = NULL;
+					segs[i].linedef = nullptr;
+					segs[i].sidedef = nullptr;
 	
-					segs[i].frontsector = NULL;
-					segs[i].backsector  = NULL;
+					segs[i].frontsector = nullptr;
+					segs[i].backsector  = nullptr;
 				}
 				ml++;		
 			}
@@ -388,31 +388,31 @@ static bool LoadGLSegs(FileReader * lump)
 					
 					ml->side=LittleShort(ml->side);
 					segs[i].sidedef = ldef->sidedef[ml->side];
-					if (ldef->sidedef[ml->side] != NULL)
+					if (ldef->sidedef[ml->side] != nullptr)
 					{
 						segs[i].frontsector = ldef->sidedef[ml->side]->sector;
 					}
 					else
 					{
-						segs[i].frontsector = NULL;
+						segs[i].frontsector = nullptr;
 					}
-					if (ldef->flags & ML_TWOSIDED && ldef->sidedef[ml->side^1] != NULL)
+					if (ldef->flags & ML_TWOSIDED && ldef->sidedef[ml->side^1] != nullptr)
 					{
 						segs[i].backsector = ldef->sidedef[ml->side^1]->sector;
 					}
 					else
 					{
 						ldef->flags &= ~ML_TWOSIDED;
-						segs[i].backsector = NULL;
+						segs[i].backsector = nullptr;
 					}
 	
 				}
 				else
 				{
-					segs[i].linedef = NULL;
-					segs[i].sidedef = NULL;
-					segs[i].frontsector = NULL;
-					segs[i].backsector  = NULL;
+					segs[i].linedef = nullptr;
+					segs[i].sidedef = nullptr;
+					segs[i].frontsector = nullptr;
+					segs[i].backsector  = nullptr;
 				}
 				ml++;		
 			}
@@ -429,7 +429,7 @@ static bool LoadGLSegs(FileReader * lump)
 		Printf("Invalid GL segs. The BSP will have to be rebuilt.\n");
 		delete [] data;
 		delete [] segs;
-		segs = NULL;
+		segs = nullptr;
 		return false;
 	}
 #endif
@@ -502,7 +502,7 @@ static bool LoadGLSubsectors(FileReader * lump)
 		for(unsigned j=0;j<subsectors[i].numlines;j++)
 		{
 			seg_t * seg = subsectors[i].firstline + j;
-			if (seg->linedef==NULL) seg->frontsector = seg->backsector = subsectors[i].firstline->frontsector;
+			if (seg->linedef==nullptr) seg->frontsector = seg->backsector = subsectors[i].firstline->frontsector;
 		}
 		seg_t *firstseg = subsectors[i].firstline;
 		seg_t *lastseg = subsectors[i].firstline + subsectors[i].numlines - 1;
@@ -673,25 +673,25 @@ static bool DoLoadGLNodes(FileReader ** lumps)
 	if (!LoadGLSegs(lumps[1]))
 	{
 		delete [] segs;
-		segs = NULL;
+		segs = nullptr;
 		return false;
 	}
 	if (!LoadGLSubsectors(lumps[2]))
 	{
 		delete [] subsectors;
-		subsectors = NULL;
+		subsectors = nullptr;
 		delete [] segs;
-		segs = NULL;
+		segs = nullptr;
 		return false;
 	}
 	if (!LoadNodes(lumps[3]))
 	{
 		delete [] nodes;
-		nodes = NULL;
+		nodes = nullptr;
 		delete [] subsectors;
-		subsectors = NULL;
+		subsectors = nullptr;
 		delete [] segs;
-		segs = NULL;
+		segs = nullptr;
 		return false;
 	}
 
@@ -705,11 +705,11 @@ static bool DoLoadGLNodes(FileReader ** lumps)
 		{
 			Printf("GL nodes contain invalid data. The BSP has to be rebuilt.\n");
 			delete [] nodes;
-			nodes = NULL;
+			nodes = nullptr;
 			delete [] subsectors;
-			subsectors = NULL;
+			subsectors = nullptr;
 			delete [] segs;
-			segs = NULL;
+			segs = nullptr;
 			return false;
 		}
 	}
@@ -796,7 +796,7 @@ static int FindGLNodesInWAD(int labellump)
 //
 // Looks for GL nodes in the same WAD as the level itself
 // Function returns the lump number within the file. Returns -1 if the input
-// resource file is NULL.
+// resource file is nullptr.
 //
 //===========================================================================
 
@@ -863,28 +863,28 @@ bool P_LoadGLNodes(MapData * map)
 		{
 			try
 			{
-				subsectors = NULL;
-				segs = NULL;
-				nodes = NULL;
+				subsectors = nullptr;
+				segs = nullptr;
+				nodes = nullptr;
 				P_LoadZNodes (*map->file, id);
 				return true;
 			}
 			catch (CRecoverableError &)
 			{
-				if (subsectors != NULL)
+				if (subsectors != nullptr)
 				{
 					delete[] subsectors;
-					subsectors = NULL;
+					subsectors = nullptr;
 				}
-				if (segs != NULL)
+				if (segs != nullptr)
 				{
 					delete[] segs;
-					segs = NULL;
+					segs = nullptr;
 				}
-				if (nodes != NULL)
+				if (nodes != nullptr)
 				{
 					delete[] nodes;
-					nodes = NULL;
+					nodes = nullptr;
 				}
 			}
 		}
@@ -892,7 +892,7 @@ bool P_LoadGLNodes(MapData * map)
 
 	if (!CheckCachedNodes(map))
 	{
-		FileReader *gwalumps[4] = { NULL, NULL, NULL, NULL };
+		FileReader *gwalumps[4] = { nullptr, nullptr, nullptr, nullptr };
 		char path[256];
 		int li;
 		int lumpfile = Wads.GetLumpFile(map->lumpnum);
@@ -924,8 +924,8 @@ bool P_LoadGLNodes(MapData * map)
 					strcpy(ext, ".gwa");
 					// Todo: Compare file dates
 
-					f_gwa = FResourceFile::OpenResourceFile(path, NULL, true);
-					if (f_gwa==NULL) return false;
+					f_gwa = FResourceFile::OpenResourceFile(path, nullptr, true);
+					if (f_gwa==nullptr) return false;
 
 					strncpy(map->MapLumps[0].Name, Wads.GetLumpFullName(map->lumpnum), 8);
 				}
@@ -980,12 +980,12 @@ bool P_CheckNodes(MapData * map, bool rebuilt, int buildtime)
 			gamesubsectors[i].sector = gamesubsectors[i].firstline->sidedef->sector;
 		}
 
-		nodes = NULL;
+		nodes = nullptr;
 		numnodes = 0;
-		subsectors = NULL;
+		subsectors = nullptr;
 		numsubsectors = 0;
 		if (segs) delete [] segs;
-		segs = NULL;
+		segs = nullptr;
 		numsegs = 0;
 
 		// Try to load GL nodes (cached or GWA)
@@ -1110,7 +1110,7 @@ static void CreateCachedNodes(MapData *map)
 	for(int i=0;i<numsegs;i++)
 	{
 		WriteLong(ZNodes, DWORD(segs[i].v1 - vertexes));
-		if (glsegextras != NULL) WriteLong(ZNodes, DWORD(glsegextras[i].PartnerSeg));
+		if (glsegextras != nullptr) WriteLong(ZNodes, DWORD(glsegextras[i].PartnerSeg));
 		else WriteLong(ZNodes, 0);
 		if (segs[i].linedef)
 		{
@@ -1184,7 +1184,7 @@ static void CreateCachedNodes(MapData *map)
 	FString path = CreateCacheName(map, true);
 	FILE *f = fopen(path, "wb");
 
-	if (f != NULL)
+	if (f != nullptr)
 	{
 		if (fwrite(compressed, outlen+offset, 1, f) != 1)
 		{
@@ -1208,11 +1208,11 @@ static bool CheckCachedNodes(MapData *map)
 	BYTE md5[16];
 	BYTE md5map[16];
 	DWORD numlin;
-	DWORD *verts = NULL;
+	DWORD *verts = nullptr;
 
 	FString path = CreateCacheName(map, false);
 	FILE *f = fopen(path, "rb");
-	if (f == NULL) return false;
+	if (f == nullptr) return false;
 
 	if (fread(magic, 1, 4, f) != 4) goto errorout;
 	if (memcmp(magic, "CACH", 4))  goto errorout;
@@ -1243,20 +1243,20 @@ static bool CheckCachedNodes(MapData *map)
 	{
 		Printf ("Error loading nodes: %s\n", error.GetMessage());
 
-		if (subsectors != NULL)
+		if (subsectors != nullptr)
 		{
 			delete[] subsectors;
-			subsectors = NULL;
+			subsectors = nullptr;
 		}
-		if (segs != NULL)
+		if (segs != nullptr)
 		{
 			delete[] segs;
-			segs = NULL;
+			segs = nullptr;
 		}
-		if (nodes != NULL)
+		if (nodes != nullptr)
 		{
 			delete[] nodes;
-			nodes = NULL;
+			nodes = nullptr;
 		}
 		goto errorout;
 	}
@@ -1272,7 +1272,7 @@ static bool CheckCachedNodes(MapData *map)
 	return true;
 
 errorout:
-	if (verts != NULL)
+	if (verts != nullptr)
 	{
 		delete[] verts;
 	}
@@ -1424,7 +1424,7 @@ void P_SetRenderSector()
 		if (!(lines[i].flags & ML_DONTDRAW))
 		{
 			hidesec[lines[i].frontsector - sectors] = false;
-			if (lines[i].backsector != NULL)
+			if (lines[i].backsector != nullptr)
 			{
 				hidesec[lines[i].backsector - sectors] = false;
 			}
@@ -1438,7 +1438,7 @@ void P_SetRenderSector()
 #endif
 
 	// Check for incorrect partner seg info so that the following code does not crash.
-	if (glsegextras == NULL)
+	if (glsegextras == nullptr)
 	{
 		// This can be normal nodes, mistakenly identified as GL nodes so we must fill
 		// in the missing pieces differently.
@@ -1506,7 +1506,7 @@ void P_SetRenderSector()
 			}
 			seg++;
 		}
-		if(ss->render_sector == NULL) 
+		if(ss->render_sector == nullptr) 
 		{
 			undetermined.Push(ss);
 		}

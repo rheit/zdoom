@@ -53,7 +53,7 @@ timeval s_systemBootTicks;
 unsigned int GetMillisecondsSince(const timeval& time)
 {
 	timeval now;
-	gettimeofday(&now, NULL);
+	gettimeofday(&now, nullptr);
 
 	return static_cast<unsigned int>(
 		  (now.tv_sec  - time.tv_sec ) * 1000
@@ -74,7 +74,7 @@ timespec GetNextTickTime()
 	if (__builtin_expect((0 == ts.tv_sec), 0))
 	{
 		timeval tv;
-		gettimeofday(&tv, NULL);
+		gettimeofday(&tv, nullptr);
 
 		ts.tv_sec = tv.tv_sec;
 		ts.tv_nsec = (tv.tv_usec + MICROSECONDS_IN_SECOND / TICRATE) * MILLISECONDS_IN_SECOND;
@@ -140,7 +140,7 @@ void* TimerThreadFunc(void*)
 		pthread_mutex_unlock(&s_timerMutex);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int GetTimeThreaded(bool saveMS)
@@ -190,7 +190,7 @@ double I_GetTimeFrac(uint32* ms)
 {
 	const uint32_t now = I_MSTime();
 
-	if (NULL != ms)
+	if (nullptr != ms)
 	{
 		*ms = s_ticStart + 1000 / TICRATE;
 	}
@@ -206,17 +206,17 @@ void I_InitTimer()
 	assert(!s_timerInitialized);
 	s_timerInitialized = true;
 
-	gettimeofday(&s_gameStartTicks, NULL);
+	gettimeofday(&s_gameStartTicks, nullptr);
 
 	int mib[2] = { CTL_KERN, KERN_BOOTTIME };
 	size_t len = sizeof s_systemBootTicks;
 
-	sysctl(mib, 2, &s_systemBootTicks, &len, NULL, 0);
+	sysctl(mib, 2, &s_systemBootTicks, &len, nullptr, 0);
 
-	pthread_cond_init (&s_timerEvent,  NULL);
-	pthread_mutex_init(&s_timerMutex,  NULL);
+	pthread_cond_init (&s_timerEvent,  nullptr);
+	pthread_mutex_init(&s_timerMutex,  nullptr);
 
-	pthread_create(&s_timerThread, NULL, TimerThreadFunc, NULL);
+	pthread_create(&s_timerThread, nullptr, TimerThreadFunc, nullptr);
 
 	I_GetTime = GetTimeThreaded;
 	I_WaitForTic = WaitForTicThreaded;
@@ -234,7 +234,7 @@ void I_ShutdownTimer()
 
 	s_timerExitRequested = true;
 
-	pthread_join(s_timerThread, NULL);
+	pthread_join(s_timerThread, nullptr);
 
 	pthread_mutex_destroy(&s_timerMutex);
 	pthread_cond_destroy (&s_timerEvent);

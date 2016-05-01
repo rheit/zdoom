@@ -165,8 +165,8 @@ public:
 
 	class PPrototype *Proto;
 
-	VMFunction() : Native(false), Name(NAME_None), Proto(NULL) {}
-	VMFunction(FName name) : Native(false), Name(name), Proto(NULL) {}
+	VMFunction() : Native(false), Name(NAME_None), Proto(nullptr) {}
+	VMFunction(FName name) : Native(false), Name(name), Proto(nullptr) {}
 };
 
 enum EVMOpMode
@@ -353,7 +353,7 @@ struct VMValue
 
 	VMValue()
 	{
-		a = NULL;
+		a = nullptr;
 		Type = REGT_NIL;
 	}
 	~VMValue()
@@ -783,10 +783,10 @@ public:
 	VMFrame *PopFrame();
 	VMFrame *TopFrame()
 	{
-		assert(Blocks != NULL && Blocks->LastFrame != NULL);
+		assert(Blocks != nullptr && Blocks->LastFrame != nullptr);
 		return Blocks->LastFrame;
 	}
-	int Call(VMFunction *func, VMValue *params, int numparams, VMReturn *results, int numresults, VMException **trap=NULL);
+	int Call(VMFunction *func, VMValue *params, int numparams, VMReturn *results, int numresults, VMException **trap=nullptr);
 private:
 	enum { BLOCK_SIZE = 4096 };		// Default block size
 	struct BlockHeader
@@ -812,7 +812,7 @@ class VMNativeFunction : public VMFunction
 public:
 	typedef int (*NativeCallType)(VMFrameStack *stack, VMValue *param, int numparam, VMReturn *ret, int numret);
 
-	VMNativeFunction() : NativeCall(NULL) { Native = true; }
+	VMNativeFunction() : NativeCall(nullptr) { Native = true; }
 	VMNativeFunction(NativeCallType call) : NativeCall(call) { Native = true; }
 	VMNativeFunction(NativeCallType call, FName name) : VMFunction(name), NativeCall(call) { Native = true; }
 
@@ -896,10 +896,10 @@ void VMDisasm(FILE *out, const VMOP *code, int codesize, const VMScriptFunction 
 #define PARAM_FLOAT_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_FLOAT); double x = param[p].f;
 #define PARAM_ANGLE_AT(p,x)		assert((p) < numparam); assert(param[p].Type == REGT_FLOAT); DAngle x = param[p].f;
 #define PARAM_STRING_AT(p,x)		assert((p) < numparam); assert(param[p].Type == REGT_STRING); FString x = param[p].s();
-#define PARAM_STATE_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_STATE || param[p].a == NULL)); FState *x = (FState *)param[p].a;
+#define PARAM_STATE_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_STATE || param[p].a == nullptr)); FState *x = (FState *)param[p].a;
 #define PARAM_POINTER_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER); type *x = (type *)param[p].a;
-#define PARAM_OBJECT_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == NULL)); type *x = (type *)param[p].a; assert(x == NULL || x->IsKindOf(RUNTIME_CLASS(type)));
-#define PARAM_CLASS_AT(p,x,base)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == NULL)); base::MetaClass *x = (base::MetaClass *)param[p].a; assert(x == NULL || x->IsDescendantOf(RUNTIME_CLASS(base)));
+#define PARAM_OBJECT_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == nullptr)); type *x = (type *)param[p].a; assert(x == nullptr || x->IsKindOf(RUNTIME_CLASS(type)));
+#define PARAM_CLASS_AT(p,x,base)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == nullptr)); base::MetaClass *x = (base::MetaClass *)param[p].a; assert(x == nullptr || x->IsDescendantOf(RUNTIME_CLASS(base)));
 
 // For optional paramaters. These have dangling elses for you to fill in the default assignment. e.g.:
 //		PARAM_INT_OPT(0,myint) { myint = 55; }
@@ -913,10 +913,10 @@ void VMDisasm(FILE *out, const VMOP *code, int codesize, const VMScriptFunction 
 #define PARAM_FLOAT_OPT_AT(p,x)			double x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_FLOAT); x = param[p].f; } else
 #define PARAM_ANGLE_OPT_AT(p,x)		DAngle x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_FLOAT); x = param[p].f; } else
 #define PARAM_STRING_OPT_AT(p,x)		FString x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_STRING); x = param[p].s(); } else
-#define PARAM_STATE_OPT_AT(p,x)			FState *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_STATE || param[p].a == NULL)); x = (FState *)param[p].a; } else
+#define PARAM_STATE_OPT_AT(p,x)			FState *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_STATE || param[p].a == nullptr)); x = (FState *)param[p].a; } else
 #define PARAM_POINTER_OPT_AT(p,x,type)	type *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER); x = (type *)param[p].a; } else
-#define PARAM_OBJECT_OPT_AT(p,x,type)	type *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == NULL)); x = (type *)param[p].a; assert(x == NULL || x->IsKindOf(RUNTIME_CLASS(type))); } else
-#define PARAM_CLASS_OPT_AT(p,x,base)	base::MetaClass *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == NULL)); x = (base::MetaClass *)param[p].a; assert(x == NULL || x->IsDescendantOf(RUNTIME_CLASS(base))); } else
+#define PARAM_OBJECT_OPT_AT(p,x,type)	type *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == nullptr)); x = (type *)param[p].a; assert(x == nullptr || x->IsKindOf(RUNTIME_CLASS(type))); } else
+#define PARAM_CLASS_OPT_AT(p,x,base)	base::MetaClass *x; if ((p) < numparam && param[p].Type != REGT_NIL) { assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == nullptr)); x = (base::MetaClass *)param[p].a; assert(x == nullptr || x->IsDescendantOf(RUNTIME_CLASS(base))); } else
 
 // The above, but with an automatically increasing position index.
 #define PARAM_PROLOGUE				int paramnum = -1;

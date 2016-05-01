@@ -242,7 +242,7 @@ struct FOptionalMapinfoData
 {
 	FOptionalMapinfoData *Next;
 	FName identifier;
-	FOptionalMapinfoData() { Next = NULL; identifier = NAME_None; }
+	FOptionalMapinfoData() { Next = nullptr; identifier = NAME_None; }
 	virtual ~FOptionalMapinfoData() {}
 	virtual FOptionalMapinfoData *Clone() const = 0;
 };
@@ -251,8 +251,8 @@ struct FOptionalMapinfoDataPtr
 {
 	FOptionalMapinfoData *Ptr;
 
-	FOptionalMapinfoDataPtr() throw() : Ptr(NULL) {}
-	~FOptionalMapinfoDataPtr() { if (Ptr!=NULL) delete Ptr; }
+	FOptionalMapinfoDataPtr() throw() : Ptr(nullptr) {}
+	~FOptionalMapinfoDataPtr() { if (Ptr!=nullptr) delete Ptr; }
 	FOptionalMapinfoDataPtr(const FOptionalMapinfoDataPtr &p) throw() : Ptr(p.Ptr->Clone()) {}
 	FOptionalMapinfoDataPtr &operator= (FOptionalMapinfoDataPtr &p) throw() { Ptr = p.Ptr->Clone(); return *this; }
 };
@@ -360,7 +360,7 @@ struct level_info_t
 	{
 		FOptionalMapinfoDataPtr *pdat = optdata.CheckKey(id);
 		
-		if (pdat != NULL)
+		if (pdat != nullptr)
 		{
 			return static_cast<T*>(pdat->Ptr);
 		}
@@ -370,7 +370,7 @@ struct level_info_t
 			optdata[id].Ptr = newobj;
 			return newobj;
 		}
-		else return NULL;
+		else return nullptr;
 	}
 };
 
@@ -435,7 +435,7 @@ struct FLevelLocals
 	int			airsupply;
 	int			DefaultEnvironment;		// Default sound environment.
 
-	FSectorScrollValues	*Scrolls;		// NULL if no DScrollers in this level
+	FSectorScrollValues	*Scrolls;		// nullptr if no DScrollers in this level
 
 	SBYTE		WallVertLight;			// Light diffs for vert/horiz walls
 	SBYTE		WallHorizLight;

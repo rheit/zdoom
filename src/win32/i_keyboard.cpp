@@ -258,7 +258,7 @@ void FKeyboard::PostKeyEvent(int key, INTBOOL down, bool foreground)
 
 FDInputKeyboard::FDInputKeyboard()
 {
-	Device = NULL;
+	Device = nullptr;
 }
 
 //==========================================================================
@@ -269,10 +269,10 @@ FDInputKeyboard::FDInputKeyboard()
 
 FDInputKeyboard::~FDInputKeyboard()
 {
-	if (Device != NULL)
+	if (Device != nullptr)
 	{
 		Device->Release();
-		Device = NULL;
+		Device = nullptr;
 	}
 }
 
@@ -288,13 +288,13 @@ bool FDInputKeyboard::GetDevice()
 {
 	HRESULT hr;
 
-	if (g_pdi3 != NULL)
+	if (g_pdi3 != nullptr)
 	{ // DirectInput3 interface
-		hr = g_pdi3->CreateDevice(GUID_SysKeyboard, (LPDIRECTINPUTDEVICE*)&Device, NULL);
+		hr = g_pdi3->CreateDevice(GUID_SysKeyboard, (LPDIRECTINPUTDEVICE*)&Device, nullptr);
 	}
-	else if (g_pdi != NULL)
+	else if (g_pdi != nullptr)
 	{ // DirectInput8 interface
-		hr = g_pdi->CreateDevice(GUID_SysKeyboard, &Device, NULL);
+		hr = g_pdi->CreateDevice(GUID_SysKeyboard, &Device, nullptr);
 	}
 	else
 	{
@@ -311,7 +311,7 @@ bool FDInputKeyboard::GetDevice()
 	{
 ufailit:
 		Device->Release();
-		Device = NULL;
+		Device = nullptr;
 		return false;
 	}
 	// Set cooperative level.
@@ -393,13 +393,13 @@ FRawKeyboard::FRawKeyboard()
 
 FRawKeyboard::~FRawKeyboard()
 {
-	if (MyRegisterRawInputDevices != NULL)
+	if (MyRegisterRawInputDevices != nullptr)
 	{
 		RAWINPUTDEVICE rid;
 		rid.usUsagePage = HID_GENERIC_DESKTOP_PAGE;
 		rid.usUsage = HID_GDP_KEYBOARD;
 		rid.dwFlags = RIDEV_REMOVE;
-		rid.hwndTarget = NULL;
+		rid.hwndTarget = nullptr;
 		MyRegisterRawInputDevices(&rid, 1, sizeof(rid));
 	}
 }
@@ -416,7 +416,7 @@ bool FRawKeyboard::GetDevice()
 {
 	RAWINPUTDEVICE rid;
 
-	if (MyRegisterRawInputDevices == NULL)
+	if (MyRegisterRawInputDevices == nullptr)
 	{
 		return false;
 	}

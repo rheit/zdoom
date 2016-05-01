@@ -83,7 +83,7 @@ PStatePointer *TypeState;
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
-// A harmless non-NULL FlatPointer for classes without pointers.
+// A harmless non-nullptr FlatPointer for classes without pointers.
 static const size_t TheEnd = ~(size_t)0;
 
 // CODE --------------------------------------------------------------------
@@ -102,7 +102,7 @@ void DumpTypeTable()
 	{
 		int len = 0;
 		Printf("%4zu:", i);
-		for (PType *ty = TypeTable.TypeHash[i]; ty != NULL; ty = ty->HashNext)
+		for (PType *ty = TypeTable.TypeHash[i]; ty != nullptr; ty = ty->HashNext)
 		{
 			Printf(" -> %s", ty->IsKindOf(RUNTIME_CLASS(PNamedType)) ? static_cast<PNamedType*>(ty)->TypeName.GetChars(): ty->GetClass()->TypeName.GetChars());
 			len++;
@@ -145,7 +145,7 @@ IMPLEMENT_CLASS(PClassType)
 //==========================================================================
 
 PClassType::PClassType()
-: TypeTableType(NULL)
+: TypeTableType(nullptr)
 {
 }
 
@@ -193,7 +193,7 @@ END_POINTERS
 //==========================================================================
 
 PType::PType()
-: Size(0), Align(1), HashNext(NULL)
+: Size(0), Align(1), HashNext(nullptr)
 {
 }
 
@@ -204,7 +204,7 @@ PType::PType()
 //==========================================================================
 
 PType::PType(unsigned int size, unsigned int align)
-: Size(size), Align(align), HashNext(NULL)
+: Size(size), Align(align), HashNext(nullptr)
 {
 }
 
@@ -253,7 +253,7 @@ bool PType::AddConversion(PType *target, void (*convertconst)(ZCC_ExprConstant *
 // PType :: FindConversion
 //
 // Returns <0 if there is no path to target. Otherwise, returns the distance
-// to target and fills slots (if non-NULL) with the necessary conversions
+// to target and fills slots (if non-nullptr) with the necessary conversions
 // to get there. A result of 0 means this is the target.
 //
 //==========================================================================
@@ -269,7 +269,7 @@ int PType::FindConversion(PType *target, const PType::Conversion **slots, int nu
 	VisitedNodeSet visited;
 
 	// Use a breadth-first search to find the shortest path to the target.
-	MarkPred(NULL, -1, -1);
+	MarkPred(nullptr, -1, -1);
 	queue.Push(this);
 	visited.Insert(this);
 	while (!queue.IsEmpty())
@@ -277,7 +277,7 @@ int PType::FindConversion(PType *target, const PType::Conversion **slots, int nu
 		PType *t = queue.Pop();
 		if (t == target)
 		{ // found it
-			if (slots != NULL)
+			if (slots != nullptr)
 			{
 				if (t->Distance >= numslots)
 				{ // Distance is too far for the output
@@ -315,7 +315,7 @@ void PType::FillConversionPath(const PType::Conversion **slots)
 {
 	for (PType *node = this; node->Distance >= 0; node = node->PredType)
 	{
-		assert(node->PredType != NULL);
+		assert(node->PredType != nullptr);
 		slots[node->Distance] = &node->PredType->Conversions[node->PredConv];
 	}
 }
@@ -343,7 +343,7 @@ PType *PType::VisitQueue::Pop()
 {
 	if (IsEmpty())
 	{
-		return NULL;
+		return nullptr;
 	}
 	PType *node = Queue[Out];
 	Advance(Out);
@@ -373,7 +373,7 @@ void PType::VisitedNodeSet::Insert(PType *node)
 bool PType::VisitedNodeSet::Check(const PType *node)
 {
 	size_t buck = Hash(node) & (countof(Buckets) - 1);
-	for (const PType *probe = Buckets[buck]; probe != NULL; probe = probe->VisitNext)
+	for (const PType *probe = Buckets[buck]; probe != nullptr; probe = probe->VisitNext)
 	{
 		if (probe == node)
 		{
@@ -480,7 +480,7 @@ void PType::SkipValue(FArchive &ar, int tag)
 	case VAL_Struct:
 	{
 		const char *label;
-		for (label = ar.ReadName(); label != NULL; label = ar.ReadName())
+		for (label = ar.ReadName(); label != nullptr; label = ar.ReadName())
 		{
 			SkipValue(ar);
 		}
@@ -489,7 +489,7 @@ void PType::SkipValue(FArchive &ar, int tag)
 	case VAL_Class:
 	{
 		PClass *type;
-		for (ar.UserReadClass(type); type != NULL; ar.UserReadClass(type))
+		for (ar.UserReadClass(type); type != nullptr; ar.UserReadClass(type))
 		{
 			SkipValue(ar, VAL_Struct);
 		}
@@ -1126,7 +1126,7 @@ PBool::PBool()
 {
 	// Override the default max set by PInt's constructor
 	PSymbolConstNumeric *maxsym = static_cast<PSymbolConstNumeric *>(Symbols.FindSymbol(NAME_Max, false));
-	assert(maxsym != NULL && maxsym->IsKindOf(RUNTIME_CLASS(PSymbolConstNumeric)));
+	assert(maxsym != nullptr && maxsym->IsKindOf(RUNTIME_CLASS(PSymbolConstNumeric)));
 	maxsym->Value = 1;
 }
 
@@ -1522,7 +1522,7 @@ bool PString::ReadValue(FArchive &ar, void *addr) const
 void PString::SetDefaultValue(void *base, unsigned offset, TArray<FTypeAndOffset> *special) const
 {
 	new((BYTE *)base + offset) FString;
-	if (special != NULL)
+	if (special != nullptr)
 	{
 		special->Push(std::make_pair(this, offset));
 	}
@@ -1772,7 +1772,7 @@ END_POINTERS
 //==========================================================================
 
 PPointer::PPointer()
-: PBasicType(sizeof(void *), __alignof(void *)), PointedType(NULL)
+: PBasicType(sizeof(void *), __alignof(void *)), PointedType(nullptr)
 {
 }
 
@@ -1897,7 +1897,7 @@ PPointer *NewPointer(PType *type)
 {
 	size_t bucket;
 	PType *ptype = TypeTable.FindType(RUNTIME_CLASS(PPointer), (intptr_t)type, 0, &bucket);
-	if (ptype == NULL)
+	if (ptype == nullptr)
 	{
 		ptype = new PPointer(type);
 		TypeTable.AddType(ptype, RUNTIME_CLASS(PPointer), (intptr_t)type, 0, bucket);
@@ -1919,7 +1919,7 @@ END_POINTERS
 //==========================================================================
 
 PClassPointer::PClassPointer()
-: PPointer(RUNTIME_CLASS(PClass)), ClassRestriction(NULL)
+: PPointer(RUNTIME_CLASS(PClass)), ClassRestriction(nullptr)
 {
 }
 
@@ -1974,7 +1974,7 @@ PClassPointer *NewClassPointer(PClass *restrict)
 {
 	size_t bucket;
 	PType *ptype = TypeTable.FindType(RUNTIME_CLASS(PClassPointer), (intptr_t)RUNTIME_CLASS(PClass), (intptr_t)restrict, &bucket);
-	if (ptype == NULL)
+	if (ptype == nullptr)
 	{
 		ptype = new PClassPointer(restrict);
 		TypeTable.AddType(ptype, RUNTIME_CLASS(PClassPointer), (intptr_t)RUNTIME_CLASS(PClass), (intptr_t)restrict, bucket);
@@ -1995,7 +1995,7 @@ END_POINTERS
 //==========================================================================
 
 PEnum::PEnum()
-: ValueType(NULL)
+: ValueType(nullptr)
 {
 }
 
@@ -2006,7 +2006,7 @@ PEnum::PEnum()
 //==========================================================================
 
 PEnum::PEnum(FName name, DObject *outer)
-: PNamedType(name, outer), ValueType(NULL)
+: PNamedType(name, outer), ValueType(nullptr)
 {
 }
 
@@ -2023,7 +2023,7 @@ PEnum *NewEnum(FName name, DObject *outer)
 {
 	size_t bucket;
 	PType *etype = TypeTable.FindType(RUNTIME_CLASS(PEnum), (intptr_t)outer, (intptr_t)name, &bucket);
-	if (etype == NULL)
+	if (etype == nullptr)
 	{
 		etype = new PEnum(name, outer);
 		TypeTable.AddType(etype, RUNTIME_CLASS(PEnum), (intptr_t)outer, (intptr_t)name, bucket);
@@ -2044,7 +2044,7 @@ END_POINTERS
 //==========================================================================
 
 PArray::PArray()
-: ElementType(NULL), ElementCount(0)
+: ElementType(nullptr), ElementCount(0)
 {
 }
 
@@ -2172,7 +2172,7 @@ PArray *NewArray(PType *type, unsigned int count)
 {
 	size_t bucket;
 	PType *atype = TypeTable.FindType(RUNTIME_CLASS(PArray), (intptr_t)type, count, &bucket);
-	if (atype == NULL)
+	if (atype == nullptr)
 	{
 		atype = new PArray(type, count);
 		TypeTable.AddType(atype, RUNTIME_CLASS(PArray), (intptr_t)type, count, bucket);
@@ -2220,7 +2220,7 @@ PVector *NewVector(unsigned int size)
 {
 	size_t bucket;
 	PType *type = TypeTable.FindType(RUNTIME_CLASS(PVector), (intptr_t)TypeFloat32, size, &bucket);
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		type = new PVector(size);
 		TypeTable.AddType(type, RUNTIME_CLASS(PVector), (intptr_t)TypeFloat32, size, bucket);
@@ -2241,7 +2241,7 @@ END_POINTERS
 //==========================================================================
 
 PDynArray::PDynArray()
-: ElementType(NULL)
+: ElementType(nullptr)
 {
 	Size = sizeof(FArray);
 	Align = __alignof(FArray);
@@ -2299,7 +2299,7 @@ PDynArray *NewDynArray(PType *type)
 {
 	size_t bucket;
 	PType *atype = TypeTable.FindType(RUNTIME_CLASS(PDynArray), (intptr_t)type, 0, &bucket);
-	if (atype == NULL)
+	if (atype == nullptr)
 	{
 		atype = new PDynArray(type);
 		TypeTable.AddType(atype, RUNTIME_CLASS(PDynArray), (intptr_t)type, 0, bucket);
@@ -2321,7 +2321,7 @@ END_POINTERS
 //==========================================================================
 
 PMap::PMap()
-: KeyType(NULL), ValueType(NULL)
+: KeyType(nullptr), ValueType(nullptr)
 {
 	Size = sizeof(FMap);
 	Align = __alignof(FMap);
@@ -2379,7 +2379,7 @@ PMap *NewMap(PType *keytype, PType *valuetype)
 {
 	size_t bucket;
 	PType *maptype = TypeTable.FindType(RUNTIME_CLASS(PMap), (intptr_t)keytype, (intptr_t)valuetype, &bucket);
-	if (maptype == NULL)
+	if (maptype == nullptr)
 	{
 		maptype = new PMap(keytype, valuetype);
 		TypeTable.AddType(maptype, RUNTIME_CLASS(PMap), (intptr_t)keytype, (intptr_t)valuetype, bucket);
@@ -2477,7 +2477,7 @@ void PStruct::WriteFields(FArchive &ar, const void *addr, const TArray<PField *>
 			field->Type->WriteValue(ar, (const BYTE *)addr + field->Offset);
 		}
 	}
-	ar.WriteName(NULL);
+	ar.WriteName(nullptr);
 }
 
 //==========================================================================
@@ -2490,14 +2490,14 @@ bool PStruct::ReadFields(FArchive &ar, void *addr) const
 {
 	bool readsomething = false;
 	const char *label = ar.ReadName();
-	if (label == NULL)
+	if (label == nullptr)
 	{ // If there is nothing to restore, we count it as success.
 		return true;
 	}
-	for (; label != NULL; label = ar.ReadName())
+	for (; label != nullptr; label = ar.ReadName())
 	{
 		const PSymbol *sym = Symbols.FindSymbol(FName(label, true), true);
-		if (sym == NULL)
+		if (sym == nullptr)
 		{
 			DPrintf("Cannot find field %s in %s\n",
 				label, TypeName.GetChars());
@@ -2523,7 +2523,7 @@ bool PStruct::ReadFields(FArchive &ar, void *addr) const
 // PStruct :: AddField
 //
 // Appends a new field to the end of a struct. Returns either the new field
-// or NULL if a symbol by that name already exists.
+// or nullptr if a symbol by that name already exists.
 //
 //==========================================================================
 
@@ -2541,10 +2541,10 @@ PField *PStruct::AddField(FName name, PType *type, DWORD flags)
 	// its fields.
 	Align = MAX(Align, type->Align);
 
-	if (Symbols.AddSymbol(field) == NULL)
+	if (Symbols.AddSymbol(field) == nullptr)
 	{ // name is already in use
 		delete field;
-		return NULL;
+		return nullptr;
 	}
 	Fields.Push(field);
 
@@ -2575,7 +2575,7 @@ PStruct *NewStruct(FName name, DObject *outer)
 {
 	size_t bucket;
 	PType *stype = TypeTable.FindType(RUNTIME_CLASS(PStruct), (intptr_t)outer, (intptr_t)name, &bucket);
-	if (stype == NULL)
+	if (stype == nullptr)
 	{
 		stype = new PStruct(name, outer);
 		TypeTable.AddType(stype, RUNTIME_CLASS(PStruct), (intptr_t)outer, (intptr_t)name, bucket);
@@ -2594,7 +2594,7 @@ IMPLEMENT_CLASS(PField)
 //==========================================================================
 
 PField::PField()
-: PSymbol(NAME_None), Offset(0), Type(NULL), Flags(0)
+: PSymbol(NAME_None), Offset(0), Type(nullptr), Flags(0)
 {
 }
 
@@ -2676,7 +2676,7 @@ PPrototype *NewPrototype(const TArray<PType *> &rettypes, const TArray<PType *> 
 {
 	size_t bucket;
 	PType *proto = TypeTable.FindType(RUNTIME_CLASS(PPrototype), (intptr_t)&argtypes, (intptr_t)&rettypes, &bucket);
-	if (proto == NULL)
+	if (proto == nullptr)
 	{
 		proto = new PPrototype(rettypes, argtypes);
 		TypeTable.AddType(proto, RUNTIME_CLASS(PPrototype), (intptr_t)&argtypes, (intptr_t)&rettypes, bucket);
@@ -2741,7 +2741,7 @@ END_POINTERS
 
 static void RecurseWriteFields(const PClass *type, FArchive &ar, const void *addr)
 {
-	if (type != NULL)
+	if (type != nullptr)
 	{
 		RecurseWriteFields(type->ParentClass, ar, addr);
 		// Don't write this part if it has no non-native variables
@@ -2765,7 +2765,7 @@ void PClass::WriteValue(FArchive &ar, const void *addr) const
 {
 	ar.WriteByte(VAL_Class);
 	RecurseWriteFields(this, ar, addr);
-	ar.UserWriteClass(NULL);
+	ar.UserWriteClass(nullptr);
 }
 
 //==========================================================================
@@ -2787,18 +2787,18 @@ bool PClass::ReadValue(FArchive &ar, void *addr) const
 	{
 		bool readsomething = false;
 		PClass *type;
-		for (ar.UserReadClass(type); type != NULL; ar.UserReadClass(type))
+		for (ar.UserReadClass(type); type != nullptr; ar.UserReadClass(type))
 		{
 			// Only read it if the type is related to this one.
 			const PClass *parent;
-			for (parent = this; parent != NULL; parent = parent->ParentClass)
+			for (parent = this; parent != nullptr; parent = parent->ParentClass)
 			{
 				if (parent == type)
 				{
 					break;
 				}
 			}
-			if (parent != NULL)
+			if (parent != nullptr)
 			{
 				readsomething |= type->ReadFields(ar, addr);
 			}
@@ -2844,7 +2844,7 @@ void PClass::StaticInit ()
 
 	FAutoSegIterator probe(CRegHead, CRegTail);
 
-	while (*++probe != NULL)
+	while (*++probe != nullptr)
 	{
 		((ClassReg *)*probe)->RegisterClass ();
 	}
@@ -2872,7 +2872,7 @@ void PClass::StaticShutdown ()
 	for (i = 0; i < PClass::AllClasses.Size(); ++i)
 	{
 		PClass *type = PClass::AllClasses[i];
-		PClass::AllClasses[i] = NULL;
+		PClass::AllClasses[i] = nullptr;
 		if (type->FlatPointers != &TheEnd && type->FlatPointers != type->Pointers)
 		{
 			// FlatPointers are shared by many classes, so we must check for
@@ -2902,9 +2902,9 @@ void PClass::StaticShutdown ()
 
 	FAutoSegIterator probe(CRegHead, CRegTail);
 
-	while (*++probe != NULL)
+	while (*++probe != nullptr)
 	{
-		((ClassReg *)*probe)->MyClass = NULL;
+		((ClassReg *)*probe)->MyClass = nullptr;
 	}
 
 }
@@ -2927,7 +2927,7 @@ void PClass::StaticBootstrap()
 	PClassClass *cls = new PClassClass;
 	PClass::RegistrationInfo.SetupClass(cls);
 
-	// The PClassClass constructor initialized these to NULL, because the
+	// The PClassClass constructor initialized these to nullptr, because the
 	// PClass metadata had not been created yet. Now it has, so we know what
 	// they should be and can insert them into the type table successfully.
 	clscls->TypeTableType = cls;
@@ -2949,13 +2949,13 @@ void PClass::StaticBootstrap()
 PClass::PClass()
 {
 	Size = sizeof(DObject);
-	ParentClass = NULL;
-	Pointers = NULL;
-	FlatPointers = NULL;
-	HashNext = NULL;
-	Defaults = NULL;
+	ParentClass = nullptr;
+	Pointers = nullptr;
+	FlatPointers = nullptr;
+	HashNext = nullptr;
+	Defaults = nullptr;
 	bRuntimeClass = false;
-	ConstructNative = NULL;
+	ConstructNative = nullptr;
 
 	PClass::AllClasses.Push(this);
 }
@@ -2968,10 +2968,10 @@ PClass::PClass()
 
 PClass::~PClass()
 {
-	if (Defaults != NULL)
+	if (Defaults != nullptr)
 	{
 		M_Free(Defaults);
-		Defaults = NULL;
+		Defaults = nullptr;
 	}
 }
 
@@ -3003,7 +3003,7 @@ PClass *ClassReg::RegisterClass()
 	};
 
 	// Skip classes that have already been registered
-	if (MyClass != NULL)
+	if (MyClass != nullptr)
 	{
 		return MyClass;
 	}
@@ -3016,7 +3016,7 @@ PClass *ClassReg::RegisterClass()
 		assert(0 && "Class registry has an invalid meta class identifier");
 	}
 
-	if (metaclasses[MetaClassNum]->MyClass == NULL)
+	if (metaclasses[MetaClassNum]->MyClass == nullptr)
 	{ // Make sure the meta class is already registered before registering this one
 		metaclasses[MetaClassNum]->RegisterClass();
 	}
@@ -3024,7 +3024,7 @@ PClass *ClassReg::RegisterClass()
 
 	SetupClass(cls);
 	cls->InsertIntoHash();
-	if (ParentType != NULL)
+	if (ParentType != nullptr)
 	{
 		cls->ParentClass = ParentType->RegisterClass();
 	}
@@ -3042,7 +3042,7 @@ PClass *ClassReg::RegisterClass()
 
 void ClassReg::SetupClass(PClass *cls)
 {
-	assert(MyClass == NULL);
+	assert(MyClass == nullptr);
 	MyClass = cls;
 	cls->TypeName = FName(Name+1);
 	cls->Size = SizeOf;
@@ -3064,7 +3064,7 @@ void PClass::InsertIntoHash ()
 	PType *found;
 
 	found = TypeTable.FindType(RUNTIME_CLASS(PClass), (intptr_t)Outer, TypeName, &bucket);
-	if (found != NULL)
+	if (found != nullptr)
 	{ // This type has already been inserted
 	  // ... but there is no need whatsoever to make it a fatal error!
 		Printf (TEXTCOLOR_RED"Tried to register class '%s' more than once.\n", TypeName.GetChars());
@@ -3086,14 +3086,14 @@ void PClass::InsertIntoHash ()
 
 const PClass *PClass::FindParentClass(FName name) const
 {
-	for (const PClass *type = this; type != NULL; type = type->ParentClass)
+	for (const PClass *type = this; type != nullptr; type = type->ParentClass)
 	{
 		if (type->TypeName == name)
 		{
 			return type;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -3108,10 +3108,10 @@ PClass *PClass::FindClass (FName zaname)
 {
 	if (zaname == NAME_None)
 	{
-		return NULL;
+		return nullptr;
 	}
 	return static_cast<PClass *>(TypeTable.FindType(RUNTIME_CLASS(PClass),
-		/*FIXME:Outer*/0, zaname, NULL));
+		/*FIXME:Outer*/0, zaname, nullptr));
 }
 
 //==========================================================================
@@ -3125,17 +3125,17 @@ PClass *PClass::FindClass (FName zaname)
 DObject *PClass::CreateNew() const
 {
 	BYTE *mem = (BYTE *)M_Malloc (Size);
-	assert (mem != NULL);
+	assert (mem != nullptr);
 
 	// Set this object's defaults before constructing it.
-	if (Defaults != NULL)
+	if (Defaults != nullptr)
 		memcpy (mem, Defaults, Size);
 	else
 		memset (mem, 0, Size);
 
 	ConstructNative (mem);
 	((DObject *)mem)->SetClass (const_cast<PClass *>(this));
-	if (Defaults != NULL)
+	if (Defaults != nullptr)
 	{
 		InitializeSpecials(mem);
 	}
@@ -3158,7 +3158,7 @@ void PClass::InitializeSpecials(void *addr) const
 	{
 		return;
 	}
-	assert(ParentClass != NULL);
+	assert(ParentClass != nullptr);
 	ParentClass->InitializeSpecials(addr);
 	for (auto tao : SpecialInits)
 	{
@@ -3183,7 +3183,7 @@ void PClass::DestroySpecials(void *addr) const
 	{
 		return;
 	}
-	assert(ParentClass != NULL);
+	assert(ParentClass != nullptr);
 	ParentClass->DestroySpecials(addr);
 	for (auto tao : SpecialInits)
 	{
@@ -3233,7 +3233,7 @@ PClass *PClass::CreateDerivedClass(FName name, unsigned int size)
 	PClass *existclass = static_cast<PClass *>(TypeTable.FindType(RUNTIME_CLASS(PClass), /*FIXME:Outer*/0, name, &bucket));
 
 	// This is a placeholder so fill it in
-	if (existclass != NULL && (existclass->Size == TentativeClass))
+	if (existclass != nullptr && (existclass->Size == TentativeClass))
 	{
 		type = const_cast<PClass*>(existclass);
 		if (!IsDescendantOf(type->ParentClass))
@@ -3285,7 +3285,7 @@ PField *PClass::AddField(FName name, PType *type, DWORD flags)
 {
 	unsigned oldsize = Size;
 	PField *field = Super::AddField(name, type, flags);
-	if (field != NULL)
+	if (field != nullptr)
 	{
 	Defaults = (BYTE *)M_Realloc(Defaults, Size);
 	memset(Defaults + oldsize, 0, Size - oldsize);
@@ -3293,7 +3293,7 @@ PField *PClass::AddField(FName name, PType *type, DWORD flags)
 		// destroy any of its members. We do, however, initialize the
 		// default instance since it's not a normal instance of the class.
 		type->SetDefaultValue(Defaults, field->Offset,
-			bRuntimeClass ? &SpecialInits : NULL);
+			bRuntimeClass ? &SpecialInits : nullptr);
 	}
 	return field;
 }
@@ -3312,14 +3312,14 @@ PClass *PClass::FindClassTentative(FName name, bool fatal)
 {
 	if (name == NAME_None)
 	{
-		return NULL;
+		return nullptr;
 	}
 	size_t bucket;
 
 	PType *found = TypeTable.FindType(RUNTIME_CLASS(PClass),
 		/*FIXME:Outer*/0, name, &bucket);
 
-	if (found != NULL)
+	if (found != nullptr)
 	{
 		return static_cast<PClass *>(found);
 	}
@@ -3347,14 +3347,14 @@ PClass *PClass::FindClassTentative(FName name, bool fatal)
 
 void PClass::BuildFlatPointers ()
 {
-	if (FlatPointers != NULL)
+	if (FlatPointers != nullptr)
 	{ // Already built: Do nothing.
 		return;
 	}
-	else if (ParentClass == NULL)
+	else if (ParentClass == nullptr)
 	{ // No parent: FlatPointers is the same as Pointers.
-		if (Pointers == NULL)
-		{ // No pointers: Make FlatPointers a harmless non-NULL.
+		if (Pointers == nullptr)
+		{ // No pointers: Make FlatPointers a harmless non-nullptr.
 			FlatPointers = &TheEnd;
 		}
 		else
@@ -3365,7 +3365,7 @@ void PClass::BuildFlatPointers ()
 	else
 	{
 		ParentClass->BuildFlatPointers ();
-		if (Pointers == NULL)
+		if (Pointers == nullptr)
 		{ // No new pointers: Just use the same FlatPointers as the parent.
 			FlatPointers = ParentClass->FlatPointers;
 		}
@@ -3421,18 +3421,18 @@ const PClass *PClass::NativeClass() const
 PType *FTypeTable::FindType(PClass *metatype, intptr_t parm1, intptr_t parm2, size_t *bucketnum)
 {
 	size_t bucket = Hash(metatype, parm1, parm2) % HASH_SIZE;
-	if (bucketnum != NULL)
+	if (bucketnum != nullptr)
 	{
 		*bucketnum = bucket;
 	}
-	for (PType *type = TypeHash[bucket]; type != NULL; type = type->HashNext)
+	for (PType *type = TypeHash[bucket]; type != nullptr; type = type->HashNext)
 	{
 		if (type->GetClass()->TypeTableType == metatype && type->IsMatch(parm1, parm2))
 		{
 			return type;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -3447,13 +3447,13 @@ PType *FTypeTable::FindType(PClass *metatype, intptr_t parm1, intptr_t parm2, si
 
 void FTypeTable::ReplaceType(PType *newtype, PType *oldtype, size_t bucket)
 {
-	for (PType **type_p = &TypeHash[bucket]; *type_p != NULL; type_p = &(*type_p)->HashNext)
+	for (PType **type_p = &TypeHash[bucket]; *type_p != nullptr; type_p = &(*type_p)->HashNext)
 	{
 		PType *type = *type_p;
 		if (type == oldtype)
 		{
 			newtype->HashNext = type->HashNext;
-			type->HashNext = NULL;
+			type->HashNext = nullptr;
 			*type_p = newtype;
 			break;
 		}
@@ -3471,7 +3471,7 @@ void FTypeTable::AddType(PType *type, PClass *metatype, intptr_t parm1, intptr_t
 #ifdef _DEBUG
 	size_t bucketcheck;
 	assert(metatype == type->GetClass()->TypeTableType && "Metatype does not match passed object");
-	assert(FindType(metatype, parm1, parm2, &bucketcheck) == NULL && "Type must not be inserted more than once");
+	assert(FindType(metatype, parm1, parm2, &bucketcheck) == nullptr && "Type must not be inserted more than once");
 	assert(bucketcheck == bucket && "Passed bucket was wrong");
 #endif
 	type->HashNext = TypeHash[bucket];
@@ -3494,7 +3494,7 @@ void FTypeTable::AddType(PType *type)
 	metatype = type->GetClass()->TypeTableType;
 	type->GetTypeIDs(parm1, parm2);
 	bucket = Hash(metatype, parm1, parm2) % HASH_SIZE;
-	assert(FindType(metatype, parm1, parm2, NULL) == NULL && "Type must not be inserted more than once");
+	assert(FindType(metatype, parm1, parm2, nullptr) == nullptr && "Type must not be inserted more than once");
 
 	type->HashNext = TypeHash[bucket];
 	TypeHash[bucket] = type;
@@ -3549,7 +3549,7 @@ void FTypeTable::Mark()
 {
 	for (int i = HASH_SIZE - 1; i >= 0; --i)
 	{
-		if (TypeHash[i] != NULL)
+		if (TypeHash[i] != nullptr)
 		{
 			GC::Mark(TypeHash[i]);
 		}
@@ -3601,7 +3601,7 @@ PSymbol::~PSymbol()
 }
 
 PSymbolTable::PSymbolTable()
-: ParentSymbolTable(NULL)
+: ParentSymbolTable(nullptr)
 {
 }
 
@@ -3644,24 +3644,24 @@ void PSymbolTable::SetParentTable (PSymbolTable *parent)
 PSymbol *PSymbolTable::FindSymbol (FName symname, bool searchparents) const
 {
 	PSymbol * const *value = Symbols.CheckKey(symname);
-	if (value == NULL && searchparents && ParentSymbolTable != NULL)
+	if (value == nullptr && searchparents && ParentSymbolTable != nullptr)
 	{
 		return ParentSymbolTable->FindSymbol(symname, searchparents);
 	}
-	return value != NULL ? *value : NULL;
+	return value != nullptr ? *value : nullptr;
 }
 
 PSymbol *PSymbolTable::FindSymbolInTable(FName symname, PSymbolTable *&symtable)
 {
 	PSymbol * const *value = Symbols.CheckKey(symname);
-	if (value == NULL)
+	if (value == nullptr)
 	{
-		if (ParentSymbolTable != NULL)
+		if (ParentSymbolTable != nullptr)
 		{
 			return ParentSymbolTable->FindSymbolInTable(symname, symtable);
 		}
-		symtable = NULL;
-		return NULL;
+		symtable = nullptr;
+		return nullptr;
 	}
 	symtable = this;
 	return *value;
@@ -3670,9 +3670,9 @@ PSymbol *PSymbolTable::FindSymbolInTable(FName symname, PSymbolTable *&symtable)
 PSymbol *PSymbolTable::AddSymbol (PSymbol *sym)
 {
 	// Symbols that already exist are not inserted.
-	if (Symbols.CheckKey(sym->SymbolName) != NULL)
+	if (Symbols.CheckKey(sym->SymbolName) != nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	Symbols.Insert(sym->SymbolName, sym);
 	return sym;
@@ -3682,14 +3682,14 @@ PSymbol *PSymbolTable::ReplaceSymbol(PSymbol *newsym)
 {
 	// If a symbol with a matching name exists, take its place and return it.
 	PSymbol **symslot = Symbols.CheckKey(newsym->SymbolName);
-	if (symslot != NULL)
+	if (symslot != nullptr)
 	{
 		PSymbol *oldsym = *symslot;
 		*symslot = newsym;
 		return oldsym;
 	}
-	// Else, just insert normally and return NULL since there was no
+	// Else, just insert normally and return nullptr since there was no
 	// symbol to replace.
 	Symbols.Insert(newsym->SymbolName, newsym);
-	return NULL;
+	return nullptr;
 }

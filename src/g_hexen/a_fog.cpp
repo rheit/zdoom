@@ -36,7 +36,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FogSpawn)
 		"FogPatchLarge"
 	};
 
-	AActor *mo = NULL;
+	AActor *mo = nullptr;
 	int delta;
 
 	if (self->special1-- > 0)

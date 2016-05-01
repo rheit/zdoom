@@ -522,11 +522,11 @@ static long DUMBCALLBACK dumbfile_mem_get_size(void *f)
 }
 
 static DUMBFILE_SYSTEM mem_dfs = {
-	NULL, // open
+	nullptr, // open
 	&dumbfile_mem_skip,
 	&dumbfile_mem_getc,
 	&dumbfile_mem_getnc,
-	NULL, // close
+	nullptr, // close
 	&dumbfile_mem_seek,
 	&dumbfile_mem_get_size
 };
@@ -550,7 +550,7 @@ DUMBFILE *dumb_read_allfile(dumbfile_mem_status *filestate, BYTE *start, FileRea
         if (reader.Read(mem + lenhave, lenfull - lenhave) != (lenfull - lenhave))
         {
             delete[] mem;
-            return NULL;
+            return nullptr;
         }
         filestate->ptr = mem;
     }
@@ -762,13 +762,13 @@ MusInfo *MOD_OpenSong(FileReader &reader)
 		DWORD dstart[64/4];
 	};
 	dumbfile_mem_status filestate;
-	DUMBFILE *f = NULL;
+	DUMBFILE *f = nullptr;
 	long fpos = 0;
-	input_mod *state = NULL;
+	input_mod *state = nullptr;
 
 	if (!mod_dumb)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	bool is_it = false;
@@ -785,7 +785,7 @@ MusInfo *MOD_OpenSong(FileReader &reader)
 
     if (headsize != reader.Read(start, headsize))
     {
-        return NULL;
+        return nullptr;
     }
 
 	if (size >= 4 && dstart[0] == MAKE_ID('I','M','P','M'))
@@ -896,7 +896,7 @@ MusInfo *MOD_OpenSong(FileReader &reader)
 			if (!(f = dumb_read_allfile(&filestate, start, reader, headsize, size)))
 			{
                 reader.Seek(fpos, SEEK_SET);
-				return NULL;
+				return nullptr;
 			}
 		}
 		else
@@ -911,7 +911,7 @@ MusInfo *MOD_OpenSong(FileReader &reader)
 		duh = dumb_read_mod_quick(f, TRUE);
 	}
 
-	if (f != NULL)
+	if (f != nullptr)
 	{
 		dumbfile_close(f);
 	}
@@ -925,7 +925,7 @@ MusInfo *MOD_OpenSong(FileReader &reader)
 		if (!state->IsValid())
 		{
 			delete state;
-			state = NULL;
+			state = nullptr;
 		}
 		else
 		{
@@ -998,7 +998,7 @@ bool input_mod::read(SoundStream *stream, void *buffer, int sizebytes, void *use
 input_mod::input_mod(DUH *myduh)
 {
 	duh = myduh;
-	sr = NULL;
+	sr = nullptr;
 	eof = false;
 	interp = mod_interp;
 	volramp = mod_volramp;
@@ -1026,10 +1026,10 @@ input_mod::input_mod(DUH *myduh)
 input_mod::~input_mod()
 {
 	Stop();
-	if (m_Stream != NULL)
+	if (m_Stream != nullptr)
 	{
 		delete m_Stream;
-		m_Stream = NULL;
+		m_Stream = nullptr;
 	}
 	if (sr) duh_end_sigrenderer(sr);
 	if (duh) unload_duh(duh);
@@ -1067,7 +1067,7 @@ bool input_mod::SetSubsong(int order)
 	}
 	crit_sec.Enter();
 	DUH_SIGRENDERER *oldsr = sr;
-	sr = NULL;
+	sr = nullptr;
 	start_order = order;
 	if (!open2(0))
 	{
@@ -1107,10 +1107,10 @@ bool input_mod::open2(long pos)
 	dumb_it_set_ramp_style(itsr, volramp);
 	if (!m_Looping)
 	{
-		dumb_it_set_loop_callback(itsr, &dumb_it_callback_terminate, NULL);
+		dumb_it_set_loop_callback(itsr, &dumb_it_callback_terminate, nullptr);
 	}
-	dumb_it_set_xm_speed_zero_callback(itsr, &dumb_it_callback_terminate, NULL);
-	dumb_it_set_global_volume_zero_callback(itsr, &dumb_it_callback_terminate, NULL);
+	dumb_it_set_xm_speed_zero_callback(itsr, &dumb_it_callback_terminate, nullptr);
+	dumb_it_set_global_volume_zero_callback(itsr, &dumb_it_callback_terminate, nullptr);
 	return true;
 }
 
@@ -1133,7 +1133,7 @@ long input_mod::render(double volume, double delta, long samples, sample_t **buf
 		else
 		{
 			duh_end_sigrenderer(sr);
-			sr = NULL;
+			sr = nullptr;
 			if (!open2(0))
 			{
 				eof = true;
@@ -1198,7 +1198,7 @@ FString input_mod::GetStats()
 		if (itsr->playing[i]) channels++;
 	}
 
-	if (itsr == NULL || itsd == NULL)
+	if (itsr == nullptr || itsd == nullptr)
 	{
 		out = "Problem getting stats";
 	}

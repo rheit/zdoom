@@ -31,7 +31,7 @@ IMPLEMENT_CLASS(AGlassShard)
 
 void P_SpawnDirt (AActor *actor, double radius)
 {
-	PClassActor *dtype = NULL;
+	PClassActor *dtype = nullptr;
 	AActor *mo;
 
 	double zo = pr_dirt() / 128. + 1;

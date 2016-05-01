@@ -328,7 +328,7 @@ namespace StringFormat
 		int expsize = 0;				/* character count for expstr */
 		int ndig = 0;					/* actual number of digits returned by dtoa */
 		char expstr[MAXEXPDIG+2];		/* buffer for exponent string: e+ZZZ */
-		char *dtoaresult = NULL;		/* buffer allocated by dtoa */
+		char *dtoaresult = nullptr;		/* buffer allocated by dtoa */
 
 		// Using a bunch of if/else if statements is faster than a switch, because a switch generates
 		// a jump table. A jump table means a possible data cache miss and a hefty penalty while the
@@ -569,7 +569,7 @@ namespace StringFormat
 		else if (type == 's')
 		{
 			charparg = va_arg (arglist, const char *);
-			if (charparg == NULL)
+			if (charparg == nullptr)
 			{
 				obuff = "(null)";
 				bufflen = 6;
@@ -897,10 +897,10 @@ fp_begin:
 			outlen += writepad (output, outputData, pad, sizeof(spaces), width - fieldlen);
 		}
 		len += outlen;
-		if (dtoaresult != NULL)
+		if (dtoaresult != nullptr)
 		{
 			freedtoa(dtoaresult);
-			dtoaresult = NULL;
+			dtoaresult = nullptr;
 		}
 	}
 	}

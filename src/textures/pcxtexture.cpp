@@ -92,7 +92,7 @@ public:
 	void Unload ();
 	FTextureFormat GetFormat ();
 
-	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = NULL);
+	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = nullptr);
 	bool UseBasePalette();
 
 protected:
@@ -123,22 +123,22 @@ FTexture * PCXTexture_TryCreate(FileReader & file, int lumpnum)
 	file.Seek(0, SEEK_SET);
 	if (file.Read(&hdr, sizeof(hdr)) != sizeof(hdr))
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	hdr.xmin = LittleShort(hdr.xmin);
 	hdr.xmax = LittleShort(hdr.xmax);
 	hdr.bytesPerScanLine = LittleShort(hdr.bytesPerScanLine);
 
-	if (hdr.manufacturer != 10 || hdr.encoding != 1) return NULL;
-	if (hdr.version != 0 && hdr.version != 2 && hdr.version != 3 && hdr.version != 4 && hdr.version != 5) return NULL;
-	if (hdr.bitsPerPixel != 1 && hdr.bitsPerPixel != 8) return NULL; 
-	if (hdr.bitsPerPixel == 1 && hdr.numColorPlanes !=1 && hdr.numColorPlanes != 4) return NULL;
-	if (hdr.bitsPerPixel == 8 && hdr.bytesPerScanLine != ((hdr.xmax - hdr.xmin + 2)&~1)) return NULL;
+	if (hdr.manufacturer != 10 || hdr.encoding != 1) return nullptr;
+	if (hdr.version != 0 && hdr.version != 2 && hdr.version != 3 && hdr.version != 4 && hdr.version != 5) return nullptr;
+	if (hdr.bitsPerPixel != 1 && hdr.bitsPerPixel != 8) return nullptr; 
+	if (hdr.bitsPerPixel == 1 && hdr.numColorPlanes !=1 && hdr.numColorPlanes != 4) return nullptr;
+	if (hdr.bitsPerPixel == 8 && hdr.bytesPerScanLine != ((hdr.xmax - hdr.xmin + 2)&~1)) return nullptr;
 
 	for (int i = 0; i < 54; i++) 
 	{
-		if (hdr.padding[i] != 0) return NULL;
+		if (hdr.padding[i] != 0) return nullptr;
 	}
 
 	file.Seek(0, SEEK_SET);
@@ -154,7 +154,7 @@ FTexture * PCXTexture_TryCreate(FileReader & file, int lumpnum)
 //==========================================================================
 
 FPCXTexture::FPCXTexture(int lumpnum, PCXHeader & hdr)
-: FTexture(NULL, lumpnum), Pixels(0)
+: FTexture(nullptr, lumpnum), Pixels(0)
 {
 	bMasked = false;
 	Width = LittleShort(hdr.xmax) - LittleShort(hdr.xmin) + 1;
@@ -186,10 +186,10 @@ FPCXTexture::~FPCXTexture ()
 
 void FPCXTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -212,7 +212,7 @@ FTextureFormat FPCXTexture::GetFormat()
 
 const BYTE *FPCXTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -227,7 +227,7 @@ const BYTE *FPCXTexture::GetColumn (unsigned int column, const Span **spans_out)
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpans;
 	}
@@ -242,7 +242,7 @@ const BYTE *FPCXTexture::GetColumn (unsigned int column, const Span **spans_out)
 
 const BYTE *FPCXTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}

@@ -238,7 +238,7 @@ static const char *SSStrings[] = {
 	"platform",
 	"door",
 	"environment",
-	NULL
+	nullptr
 };
 
 struct SSAttenuation
@@ -253,7 +253,7 @@ static const SSAttenuation Attenuations[] = {
 	{ "idle", ATTN_IDLE },
 	{ "static", ATTN_STATIC },
 	{ "surround", ATTN_NONE },
-	{ NULL, 0}
+	{ nullptr, 0}
 };
 
 static const hexenseq_t HexenSequences[] = {
@@ -295,7 +295,7 @@ END_POINTERS
 DSeqNode::DSeqNode ()
 : m_SequenceChoices(0)
 {
-	m_Next = m_Prev = m_ChildSeqNode = m_ParentSeqNode = NULL;
+	m_Next = m_Prev = m_ChildSeqNode = m_ParentSeqNode = nullptr;
 }
 
 void DSeqNode::Serialize (FArchive &arc)
@@ -374,11 +374,11 @@ void DSeqNode::Destroy()
 {
 	// If this sequence was launched by a parent sequence, advance that
 	// sequence now.
-	if (m_ParentSeqNode != NULL && m_ParentSeqNode->m_ChildSeqNode == this)
+	if (m_ParentSeqNode != nullptr && m_ParentSeqNode->m_ChildSeqNode == this)
 	{
 		m_ParentSeqNode->m_SequencePtr++;
-		m_ParentSeqNode->m_ChildSeqNode = NULL;
-		m_ParentSeqNode = NULL;
+		m_ParentSeqNode->m_ChildSeqNode = nullptr;
+		m_ParentSeqNode = nullptr;
 	}
 	if (SequenceListHead == this)
 	{
@@ -401,7 +401,7 @@ void DSeqNode::Destroy()
 
 void DSeqNode::StopAndDestroy ()
 {
-	if (m_ChildSeqNode != NULL)
+	if (m_ChildSeqNode != nullptr)
 	{
 		m_ChildSeqNode->StopAndDestroy();
 	}
@@ -481,7 +481,7 @@ static void AssignHexenTranslations (void)
 	{
 		for (seq = 0; seq < Sequences.Size(); seq++)
 		{
-			if (Sequences[seq] != NULL && HexenSequences[i].Name == Sequences[seq]->SeqName)
+			if (Sequences[seq] != nullptr && HexenSequences[i].Name == Sequences[seq]->SeqName)
 				break;
 		}
 		if (seq == Sequences.Size())
@@ -572,16 +572,16 @@ void S_ParseSndSeq (int levellump)
 				seqtype = sc.String[0];
 				for (curseq = 0; curseq < (int)Sequences.Size(); curseq++)
 				{
-					if (Sequences[curseq] != NULL && Sequences[curseq]->SeqName == seqname)
+					if (Sequences[curseq] != nullptr && Sequences[curseq]->SeqName == seqname)
 					{
 						M_Free (Sequences[curseq]);
-						Sequences[curseq] = NULL;
+						Sequences[curseq] = nullptr;
 						break;
 					}
 				}
 				if (curseq == (int)Sequences.Size())
 				{
-					Sequences.Push (NULL);
+					Sequences.Push (nullptr);
 				}
 				ScriptTemp.Clear();
 				stopsound = 0;
@@ -774,17 +774,17 @@ DSeqNode::DSeqNode (int sequence, int modenum)
 	if (!SequenceListHead)
 	{
 		SequenceListHead = this;
-		m_Next = m_Prev = NULL;
+		m_Next = m_Prev = nullptr;
 	}
 	else
 	{
 		SequenceListHead->m_Prev = this;		GC::WriteBarrier(SequenceListHead->m_Prev, this);
 		m_Next = SequenceListHead;				GC::WriteBarrier(this, SequenceListHead);
 		SequenceListHead = this;
-		m_Prev = NULL;
+		m_Prev = nullptr;
 	}
 	GC::WriteBarrier(this);
-	m_ParentSeqNode = m_ChildSeqNode = NULL;
+	m_ParentSeqNode = m_ChildSeqNode = nullptr;
 }
 
 void DSeqNode::ActivateSequence (int sequence)
@@ -841,7 +841,7 @@ static bool TwiddleSeqNum (int &sequence, seqtype_t type)
 		}
 	}
 
-	return ((size_t)sequence < Sequences.Size() && Sequences[sequence] != NULL);
+	return ((size_t)sequence < Sequences.Size() && Sequences[sequence] != nullptr);
 }
 
 DSeqNode *SN_StartSequence (AActor *actor, int sequence, seqtype_t type, int modenum, bool nostop)
@@ -854,7 +854,7 @@ DSeqNode *SN_StartSequence (AActor *actor, int sequence, seqtype_t type, int mod
 	{
 		return new DSeqActorNode (actor, sequence, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 DSeqNode *SN_StartSequence (sector_t *sector, int chan, int sequence, seqtype_t type, int modenum, bool nostop)
@@ -867,7 +867,7 @@ DSeqNode *SN_StartSequence (sector_t *sector, int chan, int sequence, seqtype_t 
 	{
 		return new DSeqSectorNode (sector, chan, sequence, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 DSeqNode *SN_StartSequence (FPolyObj *poly, int sequence, seqtype_t type, int modenum, bool nostop)
@@ -880,7 +880,7 @@ DSeqNode *SN_StartSequence (FPolyObj *poly, int sequence, seqtype_t type, int mo
 	{
 		return new DSeqPolyNode (poly, sequence, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -896,7 +896,7 @@ DSeqNode *SN_StartSequence (AActor *actor, const char *seqname, int modenum)
 	{
 		return SN_StartSequence (actor, seqnum, SEQ_NOTRANS, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 DSeqNode *SN_StartSequence (AActor *actor, FName seqname, int modenum)
@@ -906,7 +906,7 @@ DSeqNode *SN_StartSequence (AActor *actor, FName seqname, int modenum)
 	{
 		return SN_StartSequence (actor, seqnum, SEQ_NOTRANS, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 DSeqNode *SN_StartSequence (sector_t *sec, int chan, const char *seqname, int modenum)
@@ -916,7 +916,7 @@ DSeqNode *SN_StartSequence (sector_t *sec, int chan, const char *seqname, int mo
 	{
 		return SN_StartSequence (sec, chan, seqnum, SEQ_NOTRANS, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 DSeqNode *SN_StartSequence (sector_t *sec, int chan, FName seqname, int modenum)
@@ -926,7 +926,7 @@ DSeqNode *SN_StartSequence (sector_t *sec, int chan, FName seqname, int modenum)
 	{
 		return SN_StartSequence (sec, chan, seqnum, SEQ_NOTRANS, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 DSeqNode *SN_StartSequence (FPolyObj *poly, const char *seqname, int modenum)
@@ -936,7 +936,7 @@ DSeqNode *SN_StartSequence (FPolyObj *poly, const char *seqname, int modenum)
 	{
 		return SN_StartSequence (poly, seqnum, SEQ_NOTRANS, modenum);
 	}
-	return NULL;
+	return nullptr;
 }
 
 static int FindSequence (const char *searchname)
@@ -954,7 +954,7 @@ static int FindSequence (FName seqname)
 {
 	for (int i = Sequences.Size(); i-- > 0; )
 	{
-		if (Sequences[i] != NULL && seqname == Sequences[i]->SeqName)
+		if (Sequences[i] != nullptr && seqname == Sequences[i]->SeqName)
 		{
 			return i;
 		}
@@ -986,7 +986,7 @@ DSeqNode *SN_CheckSequence(sector_t *sector, int chan)
 		}
 		node = next;
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -1003,7 +1003,7 @@ void SN_StopSequence (AActor *actor)
 void SN_StopSequence (sector_t *sector, int chan)
 {
 	DSeqNode *node = SN_CheckSequence(sector, chan);
-	if (node != NULL)
+	if (node != nullptr)
 	{
 		node->StopAndDestroy();
 	}
@@ -1142,12 +1142,12 @@ void DSeqNode::Tick ()
 			{
 				m_SequencePtr++;
 			}
-			else if (m_ChildSeqNode == NULL)
+			else if (m_ChildSeqNode == nullptr)
 			{
 				int choice = pr_sndseq() % m_SequenceChoices.Size();
 				m_ChildSeqNode = SpawnChild (m_SequenceChoices[choice]);
 				GC::WriteBarrier(this, m_ChildSeqNode);
-				if (m_ChildSeqNode == NULL)
+				if (m_ChildSeqNode == nullptr)
 				{ // Failed, so skip to next instruction.
 					m_SequencePtr++;
 				}

@@ -96,7 +96,7 @@ FTexture * FTexture::CreateTexture (int lumpnum, int usetype)
 		{ AutomapTexture_TryCreate,		TEX_MiscPatch },
 	};
 
-	if (lumpnum == -1) return NULL;
+	if (lumpnum == -1) return nullptr;
 
 	FWadLump data = Wads.OpenLumpNum (lumpnum);
 
@@ -105,7 +105,7 @@ FTexture * FTexture::CreateTexture (int lumpnum, int usetype)
 		if ((CreateInfo[i].usetype == usetype || CreateInfo[i].usetype == TEX_Any))
 		{
 			FTexture * tex = CreateInfo[i].TryCreate(data, lumpnum);
-			if (tex != NULL) 
+			if (tex != nullptr) 
 			{
 				tex->UseType = usetype;
 				if (usetype == FTexture::TEX_Flat) 
@@ -131,13 +131,13 @@ FTexture * FTexture::CreateTexture (int lumpnum, int usetype)
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 FTexture * FTexture::CreateTexture (const char *name, int lumpnum, int usetype)
 {
 	FTexture *tex = CreateTexture(lumpnum, usetype);
-	if (tex != NULL && name != NULL) {
+	if (tex != nullptr && name != nullptr) {
 		tex->Name = name;
 		tex->Name.ToUpper();
 	}
@@ -150,10 +150,10 @@ FTexture::FTexture (const char *name, int lumpnum)
   WidthBits(0), HeightBits(0), Scale(1,1), SourceLump(lumpnum),
   UseType(TEX_Any), bNoDecals(false), bNoRemap0(false), bWorldPanning(false),
   bMasked(true), bAlphaTexture(false), bHasCanvas(false), bWarped(0), bComplex(false), bMultiPatch(false), bKeepAround(false),
-  Rotations(0xFFFF), SkyOffset(0), Width(0), Height(0), WidthMask(0), Native(NULL)
+  Rotations(0xFFFF), SkyOffset(0), Width(0), Height(0), WidthMask(0), Native(nullptr)
 {
 	id.SetInvalid();
-	if (name != NULL)
+	if (name != nullptr)
 	{
 		Name = name;
 		Name.ToUpper();
@@ -171,7 +171,7 @@ FTexture::FTexture (const char *name, int lumpnum)
 FTexture::~FTexture ()
 {
 	FTexture *link = Wads.GetLinkedTexture(SourceLump);
-	if (link == this) Wads.SetLinkedTexture(SourceLump, NULL);
+	if (link == this) Wads.SetLinkedTexture(SourceLump, nullptr);
 	KillNative();
 }
 
@@ -330,7 +330,7 @@ void FTexture::CopyToBlock (BYTE *dest, int dwidth, int dheight, int xpos, int y
 	if (ClipCopyPixelRect(&cr, xpos, ypos, pixels, srcwidth, srcheight, step_x, step_y, rotate))
 	{
 		dest += ypos + dheight * xpos;
-		if (translation == NULL)
+		if (translation == nullptr)
 		{
 			for (int x = 0; x < srcwidth; x++)
 			{
@@ -442,7 +442,7 @@ void FTexture::FlipNonSquareBlockRemap (BYTE *dst, const BYTE *src, int x, int y
 
 FNativeTexture *FTexture::GetNative(bool wrapping)
 {
-	if (Native != NULL)
+	if (Native != nullptr)
 	{
 		if (!Native->CheckWrapping(wrapping))
 		{ // Texture's wrapping mode is not compatible.
@@ -464,10 +464,10 @@ FNativeTexture *FTexture::GetNative(bool wrapping)
 
 void FTexture::KillNative()
 {
-	if (Native != NULL)
+	if (Native != nullptr)
 	{
 		delete Native;
-		Native = NULL;
+		Native = nullptr;
 	}
 }
 
@@ -594,13 +594,13 @@ void FDummyTexture::SetSize (int width, int height)
 // This must never be called
 const BYTE *FDummyTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	return NULL;
+	return nullptr;
 }
 
 // And this also must never be called
 const BYTE *FDummyTexture::GetPixels ()
 {
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================

@@ -197,7 +197,7 @@ void DWaitingCommand::Serialize (FArchive &arc)
 
 DWaitingCommand::DWaitingCommand ()
 {
-	Command = NULL;
+	Command = nullptr;
 	TicsLeft = 1;
 }
 
@@ -209,7 +209,7 @@ DWaitingCommand::DWaitingCommand (const char *cmd, int tics)
 
 DWaitingCommand::~DWaitingCommand ()
 {
-	if (Command != NULL)
+	if (Command != nullptr)
 	{
 		delete[] Command;
 	}
@@ -228,7 +228,7 @@ IMPLEMENT_CLASS (DStoredCommand)
 
 DStoredCommand::DStoredCommand ()
 {
-	Text = NULL;
+	Text = nullptr;
 	Destroy ();
 }
 
@@ -240,7 +240,7 @@ DStoredCommand::DStoredCommand (FConsoleCommand *command, const char *args)
 
 DStoredCommand::~DStoredCommand ()
 {
-	if (Text != NULL)
+	if (Text != nullptr)
 	{
 		delete[] Text;
 	}
@@ -248,7 +248,7 @@ DStoredCommand::~DStoredCommand ()
 
 void DStoredCommand::Tick ()
 {
-	if (Text != NULL && Command != NULL)
+	if (Text != nullptr && Command != nullptr)
 	{
 		FCommandLine args (Text);
 		Command->Run (args, players[consoleplayer].mo, 0);
@@ -264,13 +264,13 @@ static int ListActionCommands (const char *pattern)
 
 	for (i = 0; i < NUM_ACTIONS; ++i)
 	{
-		if (pattern == NULL || CheckWildcards (pattern,
+		if (pattern == nullptr || CheckWildcards (pattern,
 			(mysnprintf (matcher, countof(matcher), "+%s", ActionMaps[i].Name), matcher)))
 		{
 			Printf ("+%s\n", ActionMaps[i].Name);
 			count++;
 		}
-		if (pattern == NULL || CheckWildcards (pattern,
+		if (pattern == nullptr || CheckWildcards (pattern,
 			(mysnprintf (matcher, countof(matcher), "-%s", ActionMaps[i].Name), matcher)))
 		{
 			Printf ("-%s\n", ActionMaps[i].Name);
@@ -304,7 +304,7 @@ DWORD SuperFastHash (const char *data, size_t len)
 	DWORD hash = 0, tmp;
 	size_t rem;
 
-	if (len == 0 || data == NULL) return 0;
+	if (len == 0 || data == nullptr) return 0;
 
 	rem = len & 3;
 	len >>= 2;
@@ -358,7 +358,7 @@ DWORD SuperFastHashI (const char *data, size_t len)
 	DWORD hash = 0, tmp;
 	size_t rem;
 
-	if (len <= 0 || data == NULL) return 0;
+	if (len <= 0 || data == nullptr) return 0;
 
 	rem = len & 3;
 	len >>= 2;
@@ -405,7 +405,7 @@ DWORD SuperFastHashI (const char *data, size_t len)
 
 unsigned int MakeKey (const char *s)
 {
-	if (s == NULL)
+	if (s == nullptr)
 	{
 		return 0;
 	}
@@ -428,7 +428,7 @@ FButtonStatus *FindButton (unsigned int key)
 
 	bit = BinarySearch<FActionMap, unsigned int>
 			(ActionMaps, NUM_ACTIONS, &FActionMap::Key, key);
-	return bit ? bit->Button : NULL;
+	return bit ? bit->Button : nullptr;
 }
 
 bool FButtonStatus::PressKey (int keynum)
@@ -587,7 +587,7 @@ void C_DoCommand (const char *cmd, int keynum)
 		FButtonStatus *button;
 
 		button = FindButton (MakeKey (beg + 1, end - beg - 1));
-		if (button != NULL)
+		if (button != nullptr)
 		{
 			if (*beg == '+')
 			{
@@ -641,7 +641,7 @@ void C_DoCommand (const char *cmd, int keynum)
 	{ // Check for any console vars that match the command
 		FBaseCVar *var = FindCVarSub (beg, int(len));
 
-		if (var != NULL)
+		if (var != nullptr)
 		{
 			FCommandLine args (beg);
 
@@ -704,7 +704,7 @@ void AddCommandString (char *cmd, int keynum)
 
 					if (cmd[4] == ' ')
 					{
-						tics = strtol (cmd + 5, NULL, 0);
+						tics = strtol (cmd + 5, nullptr, 0);
 					}
 					else
 					{
@@ -738,8 +738,8 @@ void AddCommandString (char *cmd, int keynum)
 
 // ParseCommandLine
 //
-// Parse a command line (passed in args). If argc is non-NULL, it will
-// be set to the number of arguments. If argv is non-NULL, it will be
+// Parse a command line (passed in args). If argc is non-nullptr, it will
+// be set to the number of arguments. If argv is non-nullptr, it will be
 // filled with pointers to each argument; argv[0] should be initialized
 // to point to a buffer large enough to hold all the arguments. The
 // return value is the necessary size of this buffer.
@@ -756,8 +756,8 @@ static long ParseCommandLine (const char *args, int *argc, char **argv, bool no_
 	char *buffplace;
 
 	count = 0;
-	buffplace = NULL;
-	if (argv != NULL)
+	buffplace = nullptr;
+	if (argv != nullptr)
 	{
 		buffplace = argv[0];
 	}
@@ -775,7 +775,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv, bool no_
 		else if (*args == '\"')
 		{ // read quoted string
 			char stuff;
-			if (argv != NULL)
+			if (argv != nullptr)
 			{
 				argv[count] = buffplace;
 			}
@@ -804,7 +804,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv, bool no_
 				{
 					args--;
 				}
-				if (argv != NULL)
+				if (argv != nullptr)
 				{
 					*buffplace = stuff;
 				}
@@ -829,7 +829,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv, bool no_
 			{
 				end = args;
 			}
-			if (argv != NULL)
+			if (argv != nullptr)
 			{
 				argv[count] = buffplace;
 				while (start < end)
@@ -843,7 +843,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv, bool no_
 			count++;
 		}
 	}
-	if (argc != NULL)
+	if (argc != nullptr)
 	{
 		*argc = count;
 	}
@@ -854,13 +854,13 @@ FCommandLine::FCommandLine (const char *commandline, bool no_escapes)
 {
 	cmd = commandline;
 	_argc = -1;
-	_argv = NULL;
+	_argv = nullptr;
 	noescapes = no_escapes;
 }
 
 FCommandLine::~FCommandLine ()
 {
-	if (_argv != NULL)
+	if (_argv != nullptr)
 	{
 		delete[] _argv;
 	}
@@ -879,19 +879,19 @@ int FCommandLine::argc ()
 {
 	if (_argc == -1)
 	{
-		argsize = ParseCommandLine (cmd, &_argc, NULL, noescapes);
+		argsize = ParseCommandLine (cmd, &_argc, nullptr, noescapes);
 	}
 	return _argc;
 }
 
 char *FCommandLine::operator[] (int i)
 {
-	if (_argv == NULL)
+	if (_argv == nullptr)
 	{
 		int count = argc();
 		_argv = new char *[count + (argsize+sizeof(char*)-1)/sizeof(char*)];
 		_argv[0] = (char *)_argv + count*sizeof(char *);
-		ParseCommandLine (cmd, NULL, _argv, noescapes);
+		ParseCommandLine (cmd, nullptr, _argv, noescapes);
 	}
 	return _argv[i];
 }
@@ -900,19 +900,19 @@ static FConsoleCommand *ScanChainForName (FConsoleCommand *start, const char *na
 {
 	int comp;
 
-	*prev = NULL;
+	*prev = nullptr;
 	while (start)
 	{
 		comp = strnicmp (start->m_Name, name, namelen);
 		if (comp > 0)
-			return NULL;
+			return nullptr;
 		else if (comp == 0 && start->m_Name[namelen] == 0)
 			return start;
 
 		*prev = start;
 		start = start->m_Next;
 	}
-	return NULL;
+	return nullptr;
 }
 
 static FConsoleCommand *FindNameInHashTable (FConsoleCommand **table, const char *name, size_t namelen)
@@ -1010,14 +1010,14 @@ void FConsoleCommand::Run (FCommandLine &argv, APlayerPawn *who, int key)
 }
 
 FConsoleAlias::FConsoleAlias (const char *name, const char *command, bool noSave)
-	: FConsoleCommand (name, NULL),
+	: FConsoleCommand (name, nullptr),
 	  bRunning(false), bKill(false)
 {
 	m_Command[noSave] = command;
 	m_Command[!noSave] = FString();
 	// If the command contains % characters, assume they are parameter markers
 	// for substitution when the command is executed.
-	bDoSubstitution = (strchr (command, '%') != NULL);
+	bDoSubstitution = (strchr (command, '%') != nullptr);
 }
 
 FConsoleAlias::~FConsoleAlias ()
@@ -1168,7 +1168,7 @@ FString SubstituteAliasParams (FString &command, FCommandLine &args)
 	return buf;
 }
 
-static int DumpHash (FConsoleCommand **table, bool aliases, const char *pattern=NULL)
+static int DumpHash (FConsoleCommand **table, bool aliases, const char *pattern=nullptr)
 {
 	int bucket, count;
 	FConsoleCommand *cmd;
@@ -1214,7 +1214,7 @@ void FConsoleAlias::PrintAlias ()
 
 void FConsoleAlias::Archive (FConfigFile *f)
 {
-	if (f != NULL && !m_Command[0].IsEmpty())
+	if (f != nullptr && !m_Command[0].IsEmpty())
 	{
 		f->SetValueForKey ("Name", m_Name, true);
 		f->SetValueForKey ("Command", m_Command[0], true);
@@ -1269,7 +1269,7 @@ void C_SetAlias (const char *name, const char *cmd)
 
 	chain = &Commands[MakeKey (name) % FConsoleCommand::HASH_SIZE];
 	alias = ScanChainForName (*chain, name, strlen (name), &prev);
-	if (alias != NULL)
+	if (alias != nullptr)
 	{
 		if (!alias->IsAlias ())
 		{
@@ -1313,7 +1313,7 @@ CCMD (alias)
 		{ // Add/change the alias
 
 			alias = ScanChainForName (*chain, argv[1], strlen (argv[1]), &prev);
-			if (alias != NULL)
+			if (alias != nullptr)
 			{
 				if (alias->IsAlias ())
 				{
@@ -1322,7 +1322,7 @@ CCMD (alias)
 				else
 				{
 					Printf ("%s is a normal command\n", alias->m_Name);
-					alias = NULL;
+					alias = nullptr;
 				}
 			}
 			else
@@ -1336,7 +1336,7 @@ CCMD (alias)
 CCMD (cmdlist)
 {
 	int count;
-	const char *filter = (argv.argc() == 1 ? NULL : argv[1]);
+	const char *filter = (argv.argc() == 1 ? nullptr : argv[1]);
 
 	count = ListActionCommands (filter);
 	count += DumpHash (Commands, false, filter);
@@ -1380,7 +1380,7 @@ FExecList *C_ParseCmdLineParams(FExecList *exec)
 			cmdString = BuildString (cmdlen, Args->GetArgList (argstart));
 			if (!cmdString.IsEmpty())
 			{
-				if (exec == NULL)
+				if (exec == nullptr)
 				{
 					exec = new FExecList;
 				}
@@ -1449,7 +1449,7 @@ void FConsoleAlias::Realias (const char *command, bool noSave)
 
 	// If the command contains % characters, assume they are parameter markers
 	// for substitution when the command is executed.
-	bDoSubstitution = (strchr (command, '%') != NULL);
+	bDoSubstitution = (strchr (command, '%') != nullptr);
 	bKill = false;
 }
 
@@ -1470,7 +1470,7 @@ void FExecList::AddCommand(const char *cmd, const char *file)
 	// Pullins are special and need to be separated from general commands.
 	// They also turned out to be a really bad idea, since they make things
 	// more complicated. :(
-	if (file != NULL && strnicmp(cmd, "pullin", 6) == 0 && isspace(cmd[6]))
+	if (file != nullptr && strnicmp(cmd, "pullin", 6) == 0 && isspace(cmd[6]))
 	{
 		FCommandLine line(cmd);
 		C_SearchForPullins(this, file, line);
@@ -1545,7 +1545,7 @@ FExecList *C_ParseExecFile(const char *file, FExecList *exec)
 			{ // Comment in middle of line
 				*comment = 0;
 			}
-			if (exec == NULL)
+			if (exec == nullptr)
 			{
 				exec = new FExecList;
 			}
@@ -1566,8 +1566,8 @@ FExecList *C_ParseExecFile(const char *file, FExecList *exec)
 
 bool C_ExecFile (const char *file)
 {
-	FExecList *exec = C_ParseExecFile(file, NULL);
-	if (exec != NULL)
+	FExecList *exec = C_ParseExecFile(file, nullptr);
+	if (exec != nullptr)
 	{
 		exec->ExecCommands();
 		if (exec->Pullins.Size() > 0)
@@ -1576,15 +1576,15 @@ bool C_ExecFile (const char *file)
 		}
 		delete exec;
 	}
-	return exec != NULL;
+	return exec != nullptr;
 }
 
 void C_SearchForPullins(FExecList *exec, const char *file, FCommandLine &argv)
 {
 	const char *lastSlash;
 
-	assert(exec != NULL);
-	assert(file != NULL);
+	assert(exec != nullptr);
+	assert(file != nullptr);
 #ifdef __unix__
 	lastSlash = strrchr(file, '/');
 #else
@@ -1599,7 +1599,7 @@ void C_SearchForPullins(FExecList *exec, const char *file, FCommandLine &argv)
 	{
 		// Try looking for the wad in the same directory as the .cfg
 		// before looking for it in the current directory.
-		if (lastSlash != NULL)
+		if (lastSlash != nullptr)
 		{
 			FString path(file, (lastSlash - file) + 1);
 			path += argv[i];

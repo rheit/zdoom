@@ -250,41 +250,41 @@ D3DFB::D3DFB (UINT adapter, int width, int height, bool fullscreen)
 	LastHR = 0;
 
 	Adapter = adapter;
-	D3DDevice = NULL;
-	VertexBuffer = NULL;
-	IndexBuffer = NULL;
-	FBTexture = NULL;
-	TempRenderTexture = NULL;
-	RenderTexture[0] = NULL;
-	RenderTexture[1] = NULL;
-	InitialWipeScreen = NULL;
-	ScreenshotTexture = NULL;
-	ScreenshotSurface = NULL;
-	FinalWipeScreen = NULL;
-	PaletteTexture = NULL;
-	GammaTexture = NULL;
-	FrontCopySurface = NULL;
+	D3DDevice = nullptr;
+	VertexBuffer = nullptr;
+	IndexBuffer = nullptr;
+	FBTexture = nullptr;
+	TempRenderTexture = nullptr;
+	RenderTexture[0] = nullptr;
+	RenderTexture[1] = nullptr;
+	InitialWipeScreen = nullptr;
+	ScreenshotTexture = nullptr;
+	ScreenshotSurface = nullptr;
+	FinalWipeScreen = nullptr;
+	PaletteTexture = nullptr;
+	GammaTexture = nullptr;
+	FrontCopySurface = nullptr;
 	for (int i = 0; i < NUM_SHADERS; ++i)
 	{
-		Shaders[i] = NULL;
+		Shaders[i] = nullptr;
 	}
-	GammaShader = NULL;
-	BlockSurface[0] = NULL;
-	BlockSurface[1] = NULL;
+	GammaShader = nullptr;
+	BlockSurface[0] = nullptr;
+	BlockSurface[1] = nullptr;
 	VSync = vid_vsync;
 	BlendingRect.left = 0;
 	BlendingRect.top = 0;
 	BlendingRect.right = FBWidth;
 	BlendingRect.bottom = FBHeight;
 	In2D = 0;
-	Palettes = NULL;
-	Textures = NULL;
+	Palettes = nullptr;
+	Textures = nullptr;
 	Accel2D = true;
 	GatheringWipeScreen = false;
-	ScreenWipe = NULL;
+	ScreenWipe = nullptr;
 	InScene = false;
 	QuadExtra = new BufferedTris[MAX_QUAD_BATCH];
-	Atlases = NULL;
+	Atlases = nullptr;
 	PixelDoubling = 0;
 	SkipAt = -1;
 	CurrRenderTexture = 0;
@@ -299,7 +299,7 @@ D3DFB::D3DFB (UINT adapter, int width, int height, bool fullscreen)
 	NeedGammaUpdate = false;
 	NeedPalUpdate = false;
 
-	if (MemBuffer == NULL)
+	if (MemBuffer == nullptr)
 	{
 		return;
 	}
@@ -311,7 +311,7 @@ D3DFB::D3DFB (UINT adapter, int width, int height, bool fullscreen)
 	TrueHeight = height;
 	if (fullscreen)
 	{
-		for (Win32Video::ModeInfo *mode = static_cast<Win32Video *>(Video)->m_Modes; mode != NULL; mode = mode->next)
+		for (Win32Video::ModeInfo *mode = static_cast<Win32Video *>(Video)->m_Modes; mode != nullptr; mode = mode->next)
 		{
 			if (mode->width == Width && mode->height == Height)
 			{
@@ -332,12 +332,12 @@ D3DFB::D3DFB (UINT adapter, int width, int height, bool fullscreen)
 	LOG("CreateDevice attempt 1 hwvp\n");
 	if (FAILED(hr = D3D->CreateDevice(Adapter, D3DDEVTYPE_HAL, Window,
 		D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE, &d3dpp, &D3DDevice)) &&
-		(hr != D3DERR_DEVICELOST || D3DDevice == NULL))
+		(hr != D3DERR_DEVICELOST || D3DDevice == nullptr))
 	{
 		LOG2("CreateDevice returned hr %08x dev %p; attempt 2 swvp\n", hr, D3DDevice);
 		if (FAILED(D3D->CreateDevice(Adapter, D3DDEVTYPE_HAL, Window,
 			D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE, &d3dpp, &D3DDevice)) &&
-			(hr != D3DERR_DEVICELOST || D3DDevice == NULL))
+			(hr != D3DERR_DEVICELOST || D3DDevice == nullptr))
 		{
 			if (d3dpp.FullScreen_RefreshRateInHz != 0)
 			{
@@ -345,14 +345,14 @@ D3DFB::D3DFB (UINT adapter, int width, int height, bool fullscreen)
 				LOG2("CreateDevice returned hr %08x dev %p; attempt 3 (hwvp, default Hz)\n", hr, D3DDevice);
 				if (FAILED(hr = D3D->CreateDevice(Adapter, D3DDEVTYPE_HAL, Window,
 					D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE, &d3dpp, &D3DDevice)) &&
-					(hr != D3DERR_DEVICELOST || D3DDevice == NULL))
+					(hr != D3DERR_DEVICELOST || D3DDevice == nullptr))
 				{
 					LOG2("CreateDevice returned hr %08x dev %p; attempt 4 (swvp, default Hz)\n", hr, D3DDevice);
 					if (FAILED(D3D->CreateDevice(Adapter, D3DDEVTYPE_HAL, Window,
 						D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE, &d3dpp, &D3DDevice)) &&
 						hr != D3DERR_DEVICELOST)
 					{
-						D3DDevice = NULL;
+						D3DDevice = nullptr;
 					}
 				}
 			}
@@ -360,7 +360,7 @@ D3DFB::D3DFB (UINT adapter, int width, int height, bool fullscreen)
 	}
 	LOG2("Final CreateDevice returned HR %08x and device %p\n", hr, D3DDevice);
 	LastHR = hr;
-	if (D3DDevice != NULL)
+	if (D3DDevice != nullptr)
 	{
 		D3DADAPTER_IDENTIFIER9 adapter_id;
 		D3DDEVICE_CREATION_PARAMETERS create_params;
@@ -414,12 +414,12 @@ void D3DFB::SetInitialState()
 	AlphaSrcBlend = D3DBLEND(0);
 	AlphaDestBlend = D3DBLEND(0);
 
-	CurPixelShader = NULL;
+	CurPixelShader = nullptr;
 	memset(Constant, 0, sizeof(Constant));
 
 	for (unsigned i = 0; i < countof(Texture); ++i)
 	{
-		Texture[i] = NULL;
+		Texture[i] = nullptr;
 		D3DDevice->SetSamplerState(i, D3DSAMP_ADDRESSU, (i == 1 && SM14) ? D3DTADDRESS_BORDER : D3DTADDRESS_CLAMP);
 		D3DDevice->SetSamplerState(i, D3DSAMP_ADDRESSV, (i == 1 && SM14) ? D3DTADDRESS_BORDER : D3DTADDRESS_CLAMP);
 		if (i > 1)
@@ -431,7 +431,7 @@ void D3DFB::SetInitialState()
 
 	NeedGammaUpdate = true;
 	NeedPalUpdate = true;
-	OldRenderTarget = NULL;
+	OldRenderTarget = nullptr;
 
 	if (!Windowed && SM14)
 	{
@@ -463,7 +463,7 @@ void D3DFB::SetInitialState()
 	CurBorderColor = 0;
 
 	// Clear to black, just in case it wasn't done already.
-	D3DDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 0, 0);
+	D3DDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 0, 0);
 }
 
 //==========================================================================
@@ -497,7 +497,7 @@ void D3DFB::FillPresentParameters (D3DPRESENT_PARAMETERS *pp, bool fullscreen, b
 
 bool D3DFB::CreateResources()
 {
-	Atlases = NULL;
+	Atlases = nullptr;
 	if (!Windowed)
 	{
 		// Remove the window border in fullscreen mode
@@ -525,7 +525,7 @@ bool D3DFB::CreateResources()
 		}
 		else
 		{
-			SetWindowPos(Window, NULL, 0, 0, sizew, sizeh,
+			SetWindowPos(Window, nullptr, 0, 0, sizew, sizeh,
 				SWP_DRAWFRAME | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOZORDER);
 		}
 		I_RestoreWindowedPos();
@@ -619,14 +619,14 @@ void D3DFB::ReleaseResources ()
 	{
 		SAFE_RELEASE( Shaders[i] );
 	}
-	GammaShader = NULL;
-	if (ScreenWipe != NULL)
+	GammaShader = nullptr;
+	if (ScreenWipe != nullptr)
 	{
 		delete ScreenWipe;
-		ScreenWipe = NULL;
+		ScreenWipe = nullptr;
 	}
 	Atlas *pack, *next;
-	for (pack = Atlases; pack != NULL; pack = next)
+	for (pack = Atlases; pack != nullptr; pack = next)
 	{
 		next = pack->Next;
 		delete pack;
@@ -712,7 +712,7 @@ void D3DFB::CreateBlockSurfaces()
 			D3DPOOL_DEFAULT, &BlockSurface[1], 0)))
 		{
 			BlockSurface[0]->Release();
-			BlockSurface[0] = NULL;
+			BlockSurface[0] = nullptr;
 		}
 	}
 }
@@ -727,7 +727,7 @@ void D3DFB::CreateBlockSurfaces()
 
 void D3DFB::KillNativePals()
 {
-	while (Palettes != NULL)
+	while (Palettes != nullptr)
 	{
 		delete Palettes;
 	}
@@ -743,7 +743,7 @@ void D3DFB::KillNativePals()
 
 void D3DFB::KillNativeTexs()
 {
-	while (Textures != NULL)
+	while (Textures != nullptr)
 	{
 		delete Textures;
 	}
@@ -765,14 +765,14 @@ void D3DFB::KillNativeTexs()
 
 bool D3DFB::CreateFBTexture ()
 {
-	if (FAILED(D3DDevice->CreateTexture(Width, Height, 1, D3DUSAGE_DYNAMIC, D3DFMT_L8, D3DPOOL_DEFAULT, &FBTexture, NULL)))
+	if (FAILED(D3DDevice->CreateTexture(Width, Height, 1, D3DUSAGE_DYNAMIC, D3DFMT_L8, D3DPOOL_DEFAULT, &FBTexture, nullptr)))
 	{
 		int pow2width, pow2height, i;
 
 		for (i = 1; i < Width; i <<= 1) {} pow2width = i;
 		for (i = 1; i < Height; i <<= 1) {} pow2height = i;
 
-		if (FAILED(D3DDevice->CreateTexture(pow2width, pow2height, 1, D3DUSAGE_DYNAMIC, D3DFMT_L8, D3DPOOL_DEFAULT, &FBTexture, NULL)))
+		if (FAILED(D3DDevice->CreateTexture(pow2width, pow2height, 1, D3DUSAGE_DYNAMIC, D3DFMT_L8, D3DPOOL_DEFAULT, &FBTexture, nullptr)))
 		{
 			return false;
 		}
@@ -788,9 +788,9 @@ bool D3DFB::CreateFBTexture ()
 		FBHeight = Height;
 	}
 	RenderTextureToggle = 0;
-	RenderTexture[0] = NULL;
-	RenderTexture[1] = NULL;
-	if (FAILED(D3DDevice->CreateTexture(FBWidth, FBHeight, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &RenderTexture[0], NULL)))
+	RenderTexture[0] = nullptr;
+	RenderTexture[1] = nullptr;
+	if (FAILED(D3DDevice->CreateTexture(FBWidth, FBHeight, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &RenderTexture[0], nullptr)))
 	{
 		return false;
 	}
@@ -798,7 +798,7 @@ bool D3DFB::CreateFBTexture ()
 	{
 		// Windowed or pixel doubling: Create another render texture so we can flip between them.
 		RenderTextureToggle = 1;
-		if (FAILED(D3DDevice->CreateTexture(FBWidth, FBHeight, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &RenderTexture[1], NULL)))
+		if (FAILED(D3DDevice->CreateTexture(FBWidth, FBHeight, 1, D3DUSAGE_RENDERTARGET, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &RenderTexture[1], nullptr)))
 		{
 			return false;
 		}
@@ -806,7 +806,7 @@ bool D3DFB::CreateFBTexture ()
 	else
 	{
 		// Fullscreen and not pixel doubling: Create a render target to have the back buffer copied to.
-		if (FAILED(D3DDevice->CreateRenderTarget(Width, Height, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &FrontCopySurface, NULL)))
+		if (FAILED(D3DDevice->CreateRenderTarget(Width, Height, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &FrontCopySurface, nullptr)))
 		{
 			return false;
 		}
@@ -817,7 +817,7 @@ bool D3DFB::CreateFBTexture ()
 		IDirect3DSurface9 *surf;
 		if (SUCCEEDED(RenderTexture[i]->GetSurfaceLevel(0, &surf)))
 		{
-			D3DDevice->ColorFill(surf, NULL, D3DCOLOR_XRGB(0,0,0));
+			D3DDevice->ColorFill(surf, nullptr, D3DCOLOR_XRGB(0,0,0));
 			surf->Release();
 		}
 	}
@@ -834,7 +834,7 @@ bool D3DFB::CreateFBTexture ()
 
 bool D3DFB::CreatePaletteTexture ()
 {
-	if (FAILED(D3DDevice->CreateTexture (256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &PaletteTexture, NULL)))
+	if (FAILED(D3DDevice->CreateTexture (256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &PaletteTexture, nullptr)))
 	{
 		return false;
 	}
@@ -851,11 +851,11 @@ bool D3DFB::CreateGammaTexture ()
 {
 	// If this fails, you just won't get gamma correction in a window
 	// on SM14 cards.
-	assert(GammaTexture == NULL);
+	assert(GammaTexture == nullptr);
 	if (SM14)
 	{
 		return SUCCEEDED(D3DDevice->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8,
-			D3DPOOL_MANAGED, &GammaTexture, NULL));
+			D3DPOOL_MANAGED, &GammaTexture, nullptr));
 	}
 	return false;
 }
@@ -873,12 +873,12 @@ bool D3DFB::CreateVertexes ()
 	QuadBatchPos = -1;
 	BatchType = BATCH_None;
 	if (FAILED(D3DDevice->CreateVertexBuffer(sizeof(FBVERTEX)*NUM_VERTS, 
-		D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_FBVERTEX, D3DPOOL_DEFAULT, &VertexBuffer, NULL)))
+		D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_FBVERTEX, D3DPOOL_DEFAULT, &VertexBuffer, nullptr)))
 	{
 		return false;
 	}
 	if (FAILED(D3DDevice->CreateIndexBuffer(sizeof(WORD)*NUM_INDEXES,
-		D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &IndexBuffer, NULL)))
+		D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &IndexBuffer, nullptr)))
 	{
 		return false;
 	}
@@ -893,7 +893,7 @@ bool D3DFB::CreateVertexes ()
 
 void D3DFB::CalcFullscreenCoords (FBVERTEX verts[4], bool viewarea_only, bool can_double, D3DCOLOR color0, D3DCOLOR color1) const
 {
-	float offset = OldRenderTarget != NULL ? 0 : LBOffset;
+	float offset = OldRenderTarget != nullptr ? 0 : LBOffset;
 	float top = offset - 0.5f;
 	float texright = float(Width) / float(FBWidth);
 	float texbot = float(Height) / float(FBHeight);
@@ -1004,7 +1004,7 @@ int D3DFB::QueryNewPalette ()
 
 bool D3DFB::IsValid ()
 {
-	return D3DDevice != NULL;
+	return D3DDevice != nullptr;
 }
 
 //==========================================================================
@@ -1068,7 +1068,7 @@ void D3DFB::Unlock ()
 	}
 	else if (--LockCount == 0)
 	{
-		Buffer = NULL;
+		Buffer = nullptr;
 	}
 }
 
@@ -1141,7 +1141,7 @@ void D3DFB::Update ()
 			}
 			else
 			{
-				GammaShader = NULL;
+				GammaShader = nullptr;
 			}
 		}
 		psgamma[2] = psgamma[1] = psgamma[0] = igamma;
@@ -1173,7 +1173,7 @@ void D3DFB::Update ()
 	BlitCycles.Unclock();
 	//LOG1 ("cycles = %d\n", BlitCycles);
 
-	Buffer = NULL;
+	Buffer = nullptr;
 	UpdatePending = false;
 }
 
@@ -1194,24 +1194,24 @@ void D3DFB::Flip()
 	CopyNextFrontBuffer();
 
 	// Attempt to counter input lag.
-	if (d3d_antilag && BlockSurface[0] != NULL)
+	if (d3d_antilag && BlockSurface[0] != nullptr)
 	{
 		D3DLOCKED_RECT lr;
 		volatile int dummy;
-		D3DDevice->ColorFill(BlockSurface[BlockNum], NULL, D3DCOLOR_ARGB(0xFF,0,0x20,0x50));
+		D3DDevice->ColorFill(BlockSurface[BlockNum], nullptr, D3DCOLOR_ARGB(0xFF,0,0x20,0x50));
 		BlockNum ^= 1;
-		if (!FAILED((BlockSurface[BlockNum]->LockRect(&lr, NULL, D3DLOCK_READONLY))))
+		if (!FAILED((BlockSurface[BlockNum]->LockRect(&lr, nullptr, D3DLOCK_READONLY))))
 		{
 			dummy = *(int *)lr.pBits;
 			BlockSurface[BlockNum]->UnlockRect();
 		}
 	}
 	// Limiting the frame rate is as simple as waiting for the timer to signal this event.
-	if (FPSLimitEvent != NULL)
+	if (FPSLimitEvent != nullptr)
 	{
 		WaitForSingleObject(FPSLimitEvent, 1000);
 	}
-	D3DDevice->Present(NULL, NULL, NULL, NULL);
+	D3DDevice->Present(nullptr, nullptr, nullptr, nullptr);
 	InScene = false;
 
 	if (RenderTextureToggle)
@@ -1252,7 +1252,7 @@ void D3DFB::CopyNextFrontBuffer()
 		if (SUCCEEDED(D3DDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuff)))
 		{
 			RECT srcrect = { 0, LBOffsetI, Width, LBOffsetI + Height };
-			D3DDevice->StretchRect(backbuff, &srcrect, FrontCopySurface, NULL, D3DTEXF_NONE);
+			D3DDevice->StretchRect(backbuff, &srcrect, FrontCopySurface, nullptr, D3DTEXF_NONE);
 			backbuff->Release();
 		}
 	}
@@ -1301,7 +1301,7 @@ void D3DFB::Draw3DPart(bool copy3d)
 		D3DLOCKED_RECT lockrect;
 
 		if ((FBWidth == Width && FBHeight == Height &&
-			SUCCEEDED(FBTexture->LockRect (0, &lockrect, NULL, D3DLOCK_DISCARD))) ||
+			SUCCEEDED(FBTexture->LockRect (0, &lockrect, nullptr, D3DLOCK_DISCARD))) ||
 			SUCCEEDED(FBTexture->LockRect (0, &lockrect, &texrect, 0)))
 		{
 			if (lockrect.Pitch == Pitch && Pitch == Width)
@@ -1325,8 +1325,8 @@ void D3DFB::Draw3DPart(bool copy3d)
 	InScene = true;
 	D3DDevice->BeginScene();
 	D3DDevice->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, vid_hwaalines);
-	assert(OldRenderTarget == NULL);
-	if (TempRenderTexture != NULL &&
+	assert(OldRenderTarget == nullptr);
+	if (TempRenderTexture != nullptr &&
 		((Windowed && TempRenderTexture != FinalWipeScreen) || GatheringWipeScreen || PixelDoubling))
 	{
 		IDirect3DSurface9 *targetsurf;
@@ -1356,7 +1356,7 @@ void D3DFB::Draw3DPart(bool copy3d)
 		D3DCOLOR color0, color1;
 		if (Accel2D)
 		{
-			if (realfixedcolormap == NULL)
+			if (realfixedcolormap == nullptr)
 			{
 				color0 = 0;
 				color1 = 0xFFFFFFF;
@@ -1410,7 +1410,7 @@ void D3DFB::DrawLetterbox()
 
 void D3DFB::DoWindowedGamma()
 {
-	if (OldRenderTarget != NULL)
+	if (OldRenderTarget != nullptr)
 	{
 		FBVERTEX verts[4];
 
@@ -1429,7 +1429,7 @@ void D3DFB::DoWindowedGamma()
 		EnableAlphaTest(FALSE);
 		D3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, verts, sizeof(FBVERTEX));
 		OldRenderTarget->Release();
-		OldRenderTarget = NULL;
+		OldRenderTarget = nullptr;
 		if (SM14 && Windowed && GammaShader)
 		{
 //			SetTexture(0, GammaTexture);
@@ -1453,7 +1453,7 @@ void D3DFB::UpdateGammaTexture(float igamma)
 {
 	D3DLOCKED_RECT lockrect;
 
-	if (GammaTexture != NULL && SUCCEEDED(GammaTexture->LockRect(0, &lockrect, NULL, 0)))
+	if (GammaTexture != nullptr && SUCCEEDED(GammaTexture->LockRect(0, &lockrect, nullptr, 0)))
 	{
 		BYTE *pix = (BYTE *)lockrect.pBits;
 		for (int i = 0; i <= 128; ++i)
@@ -1500,7 +1500,7 @@ void D3DFB::DoOffByOneCheck ()
 	}
 
 	// Create an easily recognizable R3G3B2 palette.
-	if (SUCCEEDED(PaletteTexture->LockRect(0, &lockrect, NULL, 0)))
+	if (SUCCEEDED(PaletteTexture->LockRect(0, &lockrect, nullptr, 0)))
 	{
 		BYTE *pal = (BYTE *)(lockrect.pBits);
 		for (i = 0; i < 256; ++i)
@@ -1534,11 +1534,11 @@ void D3DFB::DoOffByOneCheck ()
 	{
 		return;
 	}
-	if (FAILED(D3DDevice->CreateRenderTarget(256, 1, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &testsurf, NULL)))
+	if (FAILED(D3DDevice->CreateRenderTarget(256, 1, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &testsurf, nullptr)))
 	{
 		return;
 	}
-	if (FAILED(D3DDevice->CreateOffscreenPlainSurface(256, 1, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &readsurf, NULL)))
+	if (FAILED(D3DDevice->CreateOffscreenPlainSurface(256, 1, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &readsurf, nullptr)))
 	{
 		testsurf->Release();
 		return;
@@ -1597,7 +1597,7 @@ void D3DFB::UploadPalette ()
 			SkipAt = 256;
 		}
 	}
-	if (SUCCEEDED(PaletteTexture->LockRect(0, &lockrect, NULL, 0)))
+	if (SUCCEEDED(PaletteTexture->LockRect(0, &lockrect, nullptr, 0)))
 	{
 		BYTE *pix = (BYTE *)lockrect.pBits;
 		int i;
@@ -1716,20 +1716,20 @@ void D3DFB::GetScreenshotBuffer(const BYTE *&buffer, int &pitch, ESSType &color_
 		Super::GetScreenshotBuffer(buffer, pitch, color_type);
 		return;
 	}
-	buffer = NULL;
-	if ((ScreenshotTexture = GetCurrentScreen()) != NULL)
+	buffer = nullptr;
+	if ((ScreenshotTexture = GetCurrentScreen()) != nullptr)
 	{
 		if (FAILED(ScreenshotTexture->GetSurfaceLevel(0, &ScreenshotSurface)))
 		{
 			ScreenshotTexture->Release();
-			ScreenshotTexture = NULL;
+			ScreenshotTexture = nullptr;
 		}
-		else if (FAILED(ScreenshotSurface->LockRect(&lrect, NULL, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK)))
+		else if (FAILED(ScreenshotSurface->LockRect(&lrect, nullptr, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK)))
 		{
 			ScreenshotSurface->Release();
-			ScreenshotSurface = NULL;
+			ScreenshotSurface = nullptr;
 			ScreenshotTexture->Release();
-			ScreenshotTexture = NULL;
+			ScreenshotTexture = nullptr;
 		}
 		else
 		{
@@ -1752,11 +1752,11 @@ void D3DFB::ReleaseScreenshotBuffer()
 	{
 		Super::ReleaseScreenshotBuffer();
 	}
-	if (ScreenshotSurface != NULL)
+	if (ScreenshotSurface != nullptr)
 	{
 		ScreenshotSurface->UnlockRect();
 		ScreenshotSurface->Release();
-		ScreenshotSurface = NULL;
+		ScreenshotSurface = nullptr;
 	}
 	SAFE_RELEASE( ScreenshotTexture );
 }
@@ -1778,26 +1778,26 @@ IDirect3DTexture9 *D3DFB::GetCurrentScreen(D3DPOOL pool)
 
 	assert(pool == D3DPOOL_SYSTEMMEM || pool == D3DPOOL_DEFAULT);
 
-	if (FrontCopySurface == NULL || FAILED(FrontCopySurface->GetDesc(&desc)))
+	if (FrontCopySurface == nullptr || FAILED(FrontCopySurface->GetDesc(&desc)))
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (pool == D3DPOOL_SYSTEMMEM)
 	{
-		hr = D3DDevice->CreateTexture(desc.Width, desc.Height, 1, 0, desc.Format, D3DPOOL_SYSTEMMEM, &tex, NULL);
+		hr = D3DDevice->CreateTexture(desc.Width, desc.Height, 1, 0, desc.Format, D3DPOOL_SYSTEMMEM, &tex, nullptr);
 	}
 	else
 	{
-		hr = D3DDevice->CreateTexture(FBWidth, FBHeight, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &tex, NULL);
+		hr = D3DDevice->CreateTexture(FBWidth, FBHeight, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &tex, nullptr);
 	}
 	if (FAILED(hr))
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (FAILED(tex->GetSurfaceLevel(0, &surf)))
 	{
 		tex->Release();
-		return NULL;
+		return nullptr;
 	}
 	if (pool == D3DPOOL_SYSTEMMEM)
 	{
@@ -1808,13 +1808,13 @@ IDirect3DTexture9 *D3DFB::GetCurrentScreen(D3DPOOL pool)
 	{
 		// Video -> Video memory : use StretchRect
 		RECT destrect = { 0, 0, Width, Height };
-		hr = D3DDevice->StretchRect(FrontCopySurface, NULL, surf, &destrect, D3DTEXF_POINT);
+		hr = D3DDevice->StretchRect(FrontCopySurface, nullptr, surf, &destrect, D3DTEXF_POINT);
 	}
 	surf->Release();
 	if (FAILED(hr))
 	{
 		tex->Release();
-		return NULL;
+		return nullptr;
 	}
 	return tex;
 }
@@ -1849,13 +1849,13 @@ void D3DFB::DrawPackedTextures(int packnum)
 	}
 	pack = Atlases;
 	// Find the first texture atlas that is an actual atlas.
-	while (pack != NULL && pack->OneUse)
+	while (pack != nullptr && pack->OneUse)
 	{ // Skip textures that aren't used as atlases
 		pack = pack->Next;
 	}
 	// Skip however many atlases we would have otherwise drawn
 	// until we've skipped <packnum> of them.
-	while (pack != NULL && packnum != 1)
+	while (pack != nullptr && packnum != 1)
 	{
 		if (!pack->OneUse)
 		{ // Skip textures that aren't used as atlases
@@ -1864,7 +1864,7 @@ void D3DFB::DrawPackedTextures(int packnum)
 		pack = pack->Next;
 	}
 	// Draw atlases until we run out of room on the screen.
-	while (pack != NULL)
+	while (pack != nullptr)
 	{
 		if (pack->OneUse)
 		{ // Skip textures that aren't used as atlases
@@ -1874,7 +1874,7 @@ void D3DFB::DrawPackedTextures(int packnum)
 
 		AddColorOnlyRect(x-1, y-1-LBOffsetI, 258, 258, D3DCOLOR_XRGB(255,255,0));
 		int back = 0;
-		for (PackedTexture *box = pack->UsedList; box != NULL; box = box->Next)
+		for (PackedTexture *box = pack->UsedList; box != nullptr; box = box->Next)
 		{
 			AddColorOnlyQuad(
 				x + box->Area.left * 256 / pack->Width,
@@ -1901,7 +1901,7 @@ void D3DFB::DrawPackedTextures(int packnum)
 			quad->Flags = BQF_WrapUV/* | BQF_DisableAlphaTest*/;
 			quad->ShaderNum = BQS_Plain;
 		}
-		quad->Palette = NULL;
+		quad->Palette = nullptr;
 		quad->Texture = pack->Tex;
 		quad->NumVerts = 4;
 		quad->NumTris = 2;
@@ -1999,7 +1999,7 @@ D3DFB::PackedTexture *D3DFB::AllocPackedTexture(int w, int h, bool wrapping, D3D
 	{ // Try to find space in an existing texture atlas.
 		w += 2; // Add padding
 		h += 2;
-		for (pack = Atlases; pack != NULL; pack = pack->Next)
+		for (pack = Atlases; pack != nullptr; pack = pack->Next)
 		{
 			// Use the first atlas it fits in.
 			if (pack->Format == format)
@@ -2011,7 +2011,7 @@ D3DFB::PackedTexture *D3DFB::AllocPackedTexture(int w, int h, bool wrapping, D3D
 				}
 			}
 		}
-		if (pack == NULL)
+		if (pack == nullptr)
 		{ // Create a new texture atlas.
 			pack = new Atlas(this, DEF_ATLAS_WIDTH, DEF_ATLAS_HEIGHT, format);
 			box = pack->Packer.Insert(w, h);
@@ -2031,31 +2031,31 @@ D3DFB::PackedTexture *D3DFB::AllocPackedTexture(int w, int h, bool wrapping, D3D
 D3DFB::Atlas::Atlas(D3DFB *fb, int w, int h, D3DFORMAT format)
 	: Packer(w, h, true)
 {
-	Tex = NULL;
+	Tex = nullptr;
 	Format = format;
-	UsedList = NULL;
+	UsedList = nullptr;
 	OneUse = false;
 	Width = 0;
 	Height = 0;
-	Next = NULL;
+	Next = nullptr;
 
 	// Attach to the end of the atlas list
 	Atlas **prev = &fb->Atlases;
-	while (*prev != NULL)
+	while (*prev != nullptr)
 	{
 		prev = &((*prev)->Next);
 	}
 	*prev = this;
 
 #if 1
-	if (FAILED(fb->D3DDevice->CreateTexture(w, h, 1, 0, format, D3DPOOL_MANAGED, &Tex, NULL)))
+	if (FAILED(fb->D3DDevice->CreateTexture(w, h, 1, 0, format, D3DPOOL_MANAGED, &Tex, nullptr)))
 #endif
 	{ // Try again, using power-of-2 sizes
 		int i;
 
 		for (i = 1; i < w; i <<= 1) {} w = i;
 		for (i = 1; i < h; i <<= 1) {} h = i;
-		if (FAILED(fb->D3DDevice->CreateTexture(w, h, 1, 0, format, D3DPOOL_MANAGED, &Tex, NULL)))
+		if (FAILED(fb->D3DDevice->CreateTexture(w, h, 1, 0, format, D3DPOOL_MANAGED, &Tex, nullptr)))
 		{
 			return;
 		}
@@ -2075,7 +2075,7 @@ D3DFB::Atlas::~Atlas()
 	PackedTexture *box, *next;
 
 	SAFE_RELEASE( Tex );
-	for (box = UsedList; box != NULL; box = next)
+	for (box = UsedList; box != nullptr; box = next)
 	{
 		next = box->Next;
 		delete box;
@@ -2113,7 +2113,7 @@ D3DFB::PackedTexture *D3DFB::Atlas::AllocateImage(const Rect &rect, bool padded)
 
 	// Add it to the used list.
 	box->Next = UsedList;
-	if (box->Next != NULL)
+	if (box->Next != nullptr)
 	{
 		box->Next->Prev = &box->Next;
 	}
@@ -2136,7 +2136,7 @@ D3DFB::PackedTexture *D3DFB::Atlas::AllocateImage(const Rect &rect, bool padded)
 void D3DFB::Atlas::FreeBox(D3DFB::PackedTexture *box)
 {
 	*(box->Prev) = box->Next;
-	if (box->Next != NULL)
+	if (box->Next != nullptr)
 	{
 		box->Next->Prev = box->Prev;
 	}
@@ -2147,7 +2147,7 @@ void D3DFB::Atlas::FreeBox(D3DFB::PackedTexture *box)
 	waste.height = box->Area.bottom - box->Area.top;
 	box->Owner->Packer.AddWaste(waste);
 	delete box;
-	if (UsedList == NULL)
+	if (UsedList == nullptr)
 	{
 		Packer.Init(Width, Height, true);
 	}
@@ -2163,7 +2163,7 @@ D3DTex::D3DTex(FTexture *tex, D3DFB *fb, bool wrapping)
 {
 	// Attach to the texture list for the D3DFB
 	Next = fb->Textures;
-	if (Next != NULL)
+	if (Next != nullptr)
 	{
 		Next->Prev = &Next;
 	}
@@ -2171,7 +2171,7 @@ D3DTex::D3DTex(FTexture *tex, D3DFB *fb, bool wrapping)
 	fb->Textures = this;
 
 	GameTex = tex;
-	Box = NULL;
+	Box = nullptr;
 	IsGray = false;
 
 	Create(fb, wrapping);
@@ -2185,21 +2185,21 @@ D3DTex::D3DTex(FTexture *tex, D3DFB *fb, bool wrapping)
 
 D3DTex::~D3DTex()
 {
-	if (Box != NULL)
+	if (Box != nullptr)
 	{
 		Box->Owner->FreeBox(Box);
-		Box = NULL;
+		Box = nullptr;
 	}
 	// Detach from the texture list
 	*Prev = Next;
-	if (Next != NULL)
+	if (Next != nullptr)
 	{
 		Next->Prev = Prev;
 	}
 	// Remove link from the game texture
-	if (GameTex != NULL)
+	if (GameTex != nullptr)
 	{
-		GameTex->Native = NULL;
+		GameTex->Native = nullptr;
 	}
 }
 
@@ -2234,22 +2234,22 @@ bool D3DTex::CheckWrapping(bool wrapping)
 
 bool D3DTex::Create(D3DFB *fb, bool wrapping)
 {
-	assert(Box == NULL);
-	if (Box != NULL)
+	assert(Box == nullptr);
+	if (Box != nullptr)
 	{
 		Box->Owner->FreeBox(Box);
 	}
 
 	Box = fb->AllocPackedTexture(GameTex->GetWidth(), GameTex->GetHeight(), wrapping, GetTexFormat());
 
-	if (Box == NULL)
+	if (Box == nullptr)
 	{
 		return false;
 	}
 	if (!Update())
 	{
 		Box->Owner->FreeBox(Box);
-		Box = NULL;
+		Box = nullptr;
 		return false;
 	}
 	return true;
@@ -2270,10 +2270,10 @@ bool D3DTex::Update()
 	RECT rect;
 	BYTE *dest;
 
-	assert(Box != NULL);
-	assert(Box->Owner != NULL);
-	assert(Box->Owner->Tex != NULL);
-	assert(GameTex != NULL);
+	assert(Box != nullptr);
+	assert(Box->Owner != nullptr);
+	assert(Box->Owner->Tex != nullptr);
+	assert(GameTex != nullptr);
 
 	if (FAILED(Box->Owner->Tex->GetLevelDesc(0, &desc)))
 	{
@@ -2389,13 +2389,13 @@ FTextureFormat D3DTex::ToTexFmt(D3DFORMAT fmt)
 //==========================================================================
 
 D3DPal::D3DPal(FRemapTable *remap, D3DFB *fb)
-	: Tex(NULL), Remap(remap)
+	: Tex(nullptr), Remap(remap)
 {
 	int count;
 
 	// Attach to the palette list for the D3DFB
 	Next = fb->Palettes;
-	if (Next != NULL)
+	if (Next != nullptr)
 	{
 		Next->Prev = &Next;
 	}
@@ -2423,12 +2423,12 @@ D3DPal::D3DPal(FRemapTable *remap, D3DFB *fb)
 	BorderColor = 0;
 	RoundedPaletteSize = count;
 	if (SUCCEEDED(fb->D3DDevice->CreateTexture(count, 1, 1, 0, 
-		D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &Tex, NULL)))
+		D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &Tex, nullptr)))
 	{
 		if (!Update())
 		{
 			Tex->Release();
-			Tex = NULL;
+			Tex = nullptr;
 		}
 	}
 }
@@ -2444,14 +2444,14 @@ D3DPal::~D3DPal()
 	SAFE_RELEASE( Tex );
 	// Detach from the palette list
 	*Prev = Next;
-	if (Next != NULL)
+	if (Next != nullptr)
 	{
 		Next->Prev = Prev;
 	}
 	// Remove link from the remap table
-	if (Remap != NULL)
+	if (Remap != nullptr)
 	{
-		Remap->Native = NULL;
+		Remap->Native = nullptr;
 	}
 }
 
@@ -2470,9 +2470,9 @@ bool D3DPal::Update()
 	const PalEntry *pal;
 	int skipat, i;
 
-	assert(Tex != NULL);
+	assert(Tex != nullptr);
 
-	if (FAILED(Tex->LockRect(0, &lrect, NULL, 0)))
+	if (FAILED(Tex->LockRect(0, &lrect, nullptr, 0)))
 	{
 		return false;
 	}
@@ -2550,10 +2550,10 @@ void D3DFB::DrawBlendingRect()
 FNativeTexture *D3DFB::CreateTexture(FTexture *gametex, bool wrapping)
 {
 	D3DTex *tex = new D3DTex(gametex, this, wrapping);
-	if (tex->Box == NULL)
+	if (tex->Box == nullptr)
 	{
 		delete tex;
-		return NULL;
+		return nullptr;
 	}
 	return tex;
 }
@@ -2569,10 +2569,10 @@ FNativeTexture *D3DFB::CreateTexture(FTexture *gametex, bool wrapping)
 FNativePalette *D3DFB::CreatePalette(FRemapTable *remap)
 {
 	D3DPal *tex = new D3DPal(remap, this);
-	if (tex->Tex == NULL)
+	if (tex->Tex == nullptr)
 	{
 		delete tex;
-		return NULL;
+		return nullptr;
 	}
 	return tex;
 }
@@ -2776,9 +2776,9 @@ void D3DFB::DrawTextureParms (FTexture *img, DrawParms &parms)
 
 	D3DTex *tex = static_cast<D3DTex *>(img->GetNative(false));
 
-	if (tex == NULL)
+	if (tex == nullptr)
 	{
-		assert(tex != NULL);
+		assert(tex != nullptr);
 		return;
 	}
 
@@ -2968,7 +2968,7 @@ void D3DFB::FlatFill(int left, int top, int right, int bottom, FTexture *src, bo
 		return;
 	}
 	D3DTex *tex = static_cast<D3DTex *>(src->GetNative(true));
-	if (tex == NULL)
+	if (tex == nullptr)
 	{
 		return;
 	}
@@ -3006,7 +3006,7 @@ void D3DFB::FlatFill(int left, int top, int right, int bottom, FTexture *src, bo
 		quad->Flags = BQF_WrapUV; // | BQF_DisableAlphaTest;
 		quad->ShaderNum = BQS_Plain;
 	}
-	quad->Palette = NULL;
+	quad->Palette = nullptr;
 	quad->Texture = tex->Box->Owner->Tex;
 	quad->NumVerts = 4;
 	quad->NumTris = 2;
@@ -3098,7 +3098,7 @@ void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 		return;
 	}
 	tex = static_cast<D3DTex *>(texture->GetNative(true));
-	if (tex == NULL)
+	if (tex == nullptr)
 	{
 		return;
 	}
@@ -3118,7 +3118,7 @@ void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 	{
 		quad->Flags = BQF_WrapUV | BQF_GamePalette | BQF_DisableAlphaTest;
 		quad->ShaderNum = BQS_PalTex;
-		if (colormap != NULL)
+		if (colormap != nullptr)
 		{
 			if (colormap->Desaturate != 0)
 			{
@@ -3138,7 +3138,7 @@ void D3DFB::FillSimplePoly(FTexture *texture, FVector2 *points, int npoints,
 		quad->Flags = BQF_WrapUV | BQF_DisableAlphaTest;
 		quad->ShaderNum = BQS_Plain;
 	}
-	quad->Palette = NULL;
+	quad->Palette = nullptr;
 	quad->Texture = tex->Box->Owner->Tex;
 	quad->NumVerts = npoints;
 	quad->NumTris = npoints - 2;
@@ -3208,8 +3208,8 @@ void D3DFB::AddColorOnlyQuad(int left, int top, int width, int height, D3DCOLOR 
 		quad->SrcBlend = D3DBLEND_SRCALPHA;
 		quad->DestBlend = D3DBLEND_INVSRCALPHA;
 	}
-	quad->Palette = NULL;
-	quad->Texture = NULL;
+	quad->Palette = nullptr;
+	quad->Texture = nullptr;
 	quad->NumVerts = 4;
 	quad->NumTris = 2;
 
@@ -3394,7 +3394,7 @@ void D3DFB::EndQuadBatch()
 		}
 		else if ((quad->Flags & BQF_Paletted) == BQF_CustomPalette)
 		{
-			assert(quad->Palette != NULL);
+			assert(quad->Palette != nullptr);
 			SetPaletteTexture(quad->Palette->Tex, quad->Palette->RoundedPaletteSize, quad->Palette->BorderColor);
 		}
 #if 0
@@ -3463,7 +3463,7 @@ void D3DFB::EndQuadBatch()
 		}
 
 		// Set the texture
-		if (quad->Texture != NULL)
+		if (quad->Texture != nullptr)
 		{
 			SetTexture(0, quad->Texture);
 		}
@@ -3558,7 +3558,7 @@ bool D3DFB::SetStyle(D3DTex *tex, DrawParms &parms, D3DCOLOR &color0, D3DCOLOR &
 	}
 
 	stencilling = false;
-	quad.Palette = NULL;
+	quad.Palette = nullptr;
 	quad.Flags = 0;
 	quad.Desat = 0;
 
@@ -3621,7 +3621,7 @@ bool D3DFB::SetStyle(D3DTex *tex, DrawParms &parms, D3DCOLOR &color0, D3DCOLOR &
 		}
 		else if (fmt == D3DFMT_L8)
 		{
-			if (parms.remap != NULL)
+			if (parms.remap != nullptr)
 			{
 				quad.Flags = BQF_CustomPalette;
 				quad.Palette = reinterpret_cast<D3DPal *>(parms.remap->GetNative());
@@ -3648,7 +3648,7 @@ bool D3DFB::SetStyle(D3DTex *tex, DrawParms &parms, D3DCOLOR &color0, D3DCOLOR &
 			quad.Flags |= BQF_InvertSource;
 		}
 
-		if (parms.specialcolormap != NULL)
+		if (parms.specialcolormap != nullptr)
 		{ // Emulate an invulnerability or similar colormap.
 			float *start, *end;
 			start = parms.specialcolormap->ColorizeStart;
@@ -3662,7 +3662,7 @@ bool D3DFB::SetStyle(D3DTex *tex, DrawParms &parms, D3DCOLOR &color0, D3DCOLOR &
 			color0 = D3DCOLOR_RGBA(DWORD(start[0]/2*255), DWORD(start[1]/2*255), DWORD(start[2]/2*255), color0 >> 24);
 			color1 = D3DCOLOR_RGBA(DWORD(end[0]/2*255), DWORD(end[1]/2*255), DWORD(end[2]/2*255), color1 >> 24);
 		}
-		else if (parms.colormapstyle != NULL)
+		else if (parms.colormapstyle != nullptr)
 		{ // Emulate the fading from an in-game colormap (colorized, faded, and desaturated)
 			if (parms.colormapstyle->Desaturate != 0)
 			{

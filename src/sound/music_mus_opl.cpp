@@ -14,7 +14,7 @@ CUSTOM_CVAR (Int, opl_numchips, 2, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 	{
 		self = MAXOPL2CHIPS;
 	}
-	else if (OPL_Active && currSong != NULL)
+	else if (OPL_Active && currSong != nullptr)
 	{
 		static_cast<OPLMUSSong *>(currSong)->ResetChips ();
 	}
@@ -27,7 +27,7 @@ int current_opl_core;
 void OPL_SetCore(const char *args)
 {
 	current_opl_core = opl_core;
-	if (args != NULL && *args >= '0' && *args < '4') current_opl_core = *args - '0';
+	if (args != nullptr && *args >= '0' && *args < '4') current_opl_core = *args - '0';
 }
 
 OPLMUSSong::OPLMUSSong (FileReader &reader, const char *args)
@@ -39,7 +39,7 @@ OPLMUSSong::OPLMUSSong (FileReader &reader, const char *args)
 
 	m_Stream = GSnd->CreateStream (FillStream, samples*4,
 		(current_opl_core == 0 ? SoundStream::Mono : 0) | SoundStream::Float, int(OPL_SAMPLE_RATE), this);
-	if (m_Stream == NULL)
+	if (m_Stream == nullptr)
 	{
 		Printf (PRINT_BOLD, "Could not create music stream.\n");
 		delete Music;
@@ -52,7 +52,7 @@ OPLMUSSong::~OPLMUSSong ()
 {
 	OPL_Active = false;
 	Stop ();
-	if (Music != NULL)
+	if (Music != nullptr)
 	{
 		delete Music;
 	}
@@ -60,7 +60,7 @@ OPLMUSSong::~OPLMUSSong ()
 
 bool OPLMUSSong::IsValid () const
 {
-	return m_Stream != NULL;
+	return m_Stream != nullptr;
 }
 
 void OPLMUSSong::ResetChips ()
@@ -81,7 +81,7 @@ void OPLMUSSong::Play (bool looping, int subsong)
 	Music->SetLooping (looping);
 	Music->Restart ();
 
-	if (m_Stream == NULL || m_Stream->Play (true, snd_musicvolume))
+	if (m_Stream == nullptr || m_Stream->Play (true, snd_musicvolume))
 	{
 		m_Status = STATE_Playing;
 	}
@@ -101,7 +101,7 @@ MusInfo *OPLMUSSong::GetOPLDumper(const char *filename)
 OPLMUSSong::OPLMUSSong(const OPLMUSSong *original, const char *filename)
 {
 	Music = new OPLmusicFile(original->Music, filename);
-	m_Stream = NULL;
+	m_Stream = nullptr;
 }
 
 OPLMUSDumper::OPLMUSDumper(const OPLMUSSong *original, const char *filename)

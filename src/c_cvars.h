@@ -208,7 +208,7 @@ void C_DeinitConsole();
 class FBoolCVar : public FBaseCVar
 {
 public:
-	FBoolCVar (const char *name, bool def, uint32 flags, void (*callback)(FBoolCVar &)=NULL);
+	FBoolCVar (const char *name, bool def, uint32 flags, void (*callback)(FBoolCVar &)=nullptr);
 
 	virtual ECVarType GetRealType () const;
 
@@ -233,7 +233,7 @@ protected:
 class FIntCVar : public FBaseCVar
 {
 public:
-	FIntCVar (const char *name, int def, uint32 flags, void (*callback)(FIntCVar &)=NULL);
+	FIntCVar (const char *name, int def, uint32 flags, void (*callback)(FIntCVar &)=nullptr);
 
 	virtual ECVarType GetRealType () const;
 
@@ -260,7 +260,7 @@ protected:
 class FFloatCVar : public FBaseCVar
 {
 public:
-	FFloatCVar (const char *name, float def, uint32 flags, void (*callback)(FFloatCVar &)=NULL);
+	FFloatCVar (const char *name, float def, uint32 flags, void (*callback)(FFloatCVar &)=nullptr);
 
 	virtual ECVarType GetRealType () const;
 
@@ -286,7 +286,7 @@ protected:
 class FStringCVar : public FBaseCVar
 {
 public:
-	FStringCVar (const char *name, const char *def, uint32 flags, void (*callback)(FStringCVar &)=NULL);
+	FStringCVar (const char *name, const char *def, uint32 flags, void (*callback)(FStringCVar &)=nullptr);
 	~FStringCVar ();
 
 	virtual ECVarType GetRealType () const;
@@ -312,7 +312,7 @@ protected:
 class FColorCVar : public FIntCVar
 {
 public:
-	FColorCVar (const char *name, int def, uint32 flags, void (*callback)(FColorCVar &)=NULL);
+	FColorCVar (const char *name, int def, uint32 flags, void (*callback)(FColorCVar &)=nullptr);
 
 	virtual ECVarType GetRealType () const;
 
@@ -388,7 +388,7 @@ protected:
 class FGUIDCVar : public FBaseCVar
 {
 public:
-	FGUIDCVar (const char *name, const GUID *defguid, uint32 flags, void (*callback)(FGUIDCVar &)=NULL);
+	FGUIDCVar (const char *name, const GUID *defguid, uint32 flags, void (*callback)(FGUIDCVar &)=nullptr);
 
 	virtual ECVarType GetRealType () const;
 

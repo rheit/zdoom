@@ -88,7 +88,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SerpentHumpDecide)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->MissileState != NULL)
+	if (self->MissileState != nullptr)
 	{
 		if (pr_serpenthump() > 30)
 		{
@@ -106,7 +106,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SerpentHumpDecide)
 	}
 	if (!self->CheckMeleeRange ())
 	{ // The hump shouldn't occur when within melee range
-		if (self->MissileState != NULL && pr_serpenthump() < 128)
+		if (self->MissileState != nullptr && pr_serpenthump() < 128)
 		{
 			self->SetState (self->MeleeState);
 		}
@@ -133,7 +133,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SerpentCheckForAttack)
 	{
 		return 0;
 	}
-	if (self->MissileState != NULL)
+	if (self->MissileState != nullptr)
 	{
 		if (!self->CheckMeleeRange ())
 		{
@@ -173,7 +173,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SerpentChooseAttack)
 	{
 		return 0;
 	}
-	if (self->MissileState != NULL)
+	if (self->MissileState != nullptr)
 	{
 		self->SetState (self->MissileState);
 	}
@@ -299,7 +299,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SerpentHeadCheck)
 		if (Terrains[P_GetThingFloorType(self)].IsLiquid)
 		{
 			P_HitFloor (self);
-			self->SetState (NULL);
+			self->SetState (nullptr);
 		}
 		else
 		{

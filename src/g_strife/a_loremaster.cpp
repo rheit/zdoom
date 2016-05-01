@@ -22,7 +22,7 @@ IMPLEMENT_CLASS (ALoreShot)
 int ALoreShot::DoSpecialDamage (AActor *victim, int damage, FName damagetype)
 {
 	
-	if (victim != NULL && target != NULL && !(victim->flags7 & MF7_DONTTHRUST))
+	if (victim != nullptr && target != nullptr && !(victim->flags7 & MF7_DONTTHRUST))
 	{
 		DVector3 thrust = victim->Vec3To(target);
 		thrust.MakeResize(255. * 50 / MAX<int>(victim->Mass, 1));

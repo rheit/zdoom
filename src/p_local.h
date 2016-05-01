@@ -109,7 +109,7 @@ enum EPuffFlags
 	PF_NORANDOMZ = 16
 };
 
-AActor *P_SpawnPuff(AActor *source, PClassActor *pufftype, const DVector3 &pos, DAngle hitdir, DAngle particledir, int updown, int flags = 0, AActor *vict = NULL);
+AActor *P_SpawnPuff(AActor *source, PClassActor *pufftype, const DVector3 &pos, DAngle hitdir, DAngle particledir, int updown, int flags = 0, AActor *vict = nullptr);
 void	P_SpawnBlood (const DVector3 &pos, DAngle angle, int damage, AActor *originator);
 void	P_BloodSplatter (const DVector3 &pos, AActor *originator, DAngle hitangle);
 void	P_BloodSplatter2 (const DVector3 &pos, AActor *originator, DAngle hitangle);
@@ -118,12 +118,12 @@ int		P_GetThingFloorType (AActor *thing);
 void	P_ExplodeMissile (AActor *missile, line_t *explodeline, AActor *target);
 
 AActor *P_OldSpawnMissile(AActor *source, AActor *owner, AActor *dest, PClassActor *type);
-AActor *P_SpawnMissile (AActor* source, AActor* dest, PClassActor *type, AActor* owner = NULL);
+AActor *P_SpawnMissile (AActor* source, AActor* dest, PClassActor *type, AActor* owner = nullptr);
 AActor *P_SpawnMissileZ(AActor* source, double z, AActor* dest, PClassActor *type);
-AActor *P_SpawnMissileXYZ(DVector3 pos, AActor *source, AActor *dest, PClassActor *type, bool checkspawn = true, AActor *owner = NULL);
+AActor *P_SpawnMissileXYZ(DVector3 pos, AActor *source, AActor *dest, PClassActor *type, bool checkspawn = true, AActor *owner = nullptr);
 AActor *P_SpawnMissileAngle(AActor *source, PClassActor *type, DAngle angle, double vz);
 AActor *P_SpawnMissileAngleZ(AActor *source, double z, PClassActor *type, DAngle angle, double vz);
-AActor *P_SpawnMissileAngleZSpeed(AActor *source, double z, PClassActor *type, DAngle angle, double vz, double speed, AActor *owner = NULL, bool checkspawn = true);
+AActor *P_SpawnMissileAngleZSpeed(AActor *source, double z, PClassActor *type, DAngle angle, double vz, double speed, AActor *owner = nullptr, bool checkspawn = true);
 AActor *P_SpawnMissileZAimed(AActor *source, double z, AActor *dest, PClassActor *type);
 
 
@@ -131,7 +131,7 @@ AActor *P_SpawnPlayerMissile (AActor* source, PClassActor *type);
 AActor *P_SpawnPlayerMissile (AActor *source, PClassActor *type, DAngle angle);
 
 AActor *P_SpawnPlayerMissile (AActor *source, double x, double y, double z, PClassActor *type, DAngle angle, 
-							  FTranslatedLineTarget *pLineTarget = NULL, AActor **MissileActor = NULL, bool nofreeaim = false, bool noautoaim = false, int aimflags = 0);
+							  FTranslatedLineTarget *pLineTarget = nullptr, AActor **MissileActor = nullptr, bool nofreeaim = false, bool noautoaim = false, int aimflags = 0);
 
 
 void P_CheckFakeFloorTriggers(AActor *mo, double oldz, bool oldz_has_viewheight = false);
@@ -193,7 +193,7 @@ enum PCM
 };
 
 
-AActor *P_BlockmapSearch (AActor *mo, int distance, AActor *(*check)(AActor*, int, void *), void *params = NULL);
+AActor *P_BlockmapSearch (AActor *mo, int distance, AActor *(*check)(AActor*, int, void *), void *params = nullptr);
 AActor *P_RoughMonsterSearch (AActor *mo, int distance, bool onlyseekable=false);
 
 //
@@ -217,13 +217,13 @@ extern TArray<spechit_t> portalhit;
 
 
 bool	P_TestMobjLocation (AActor *mobj);
-bool	P_TestMobjZ (AActor *mobj, bool quick=true, AActor **pOnmobj = NULL);
+bool	P_TestMobjZ (AActor *mobj, bool quick=true, AActor **pOnmobj = nullptr);
 bool P_CheckPosition(AActor *thing, const DVector2 &pos, bool actorsonly = false);
 bool P_CheckPosition(AActor *thing, const DVector2 &pos, FCheckPosition &tm, bool actorsonly = false);
 AActor	*P_CheckOnmobj (AActor *thing);
 void	P_FakeZMovement (AActor *mo);
 bool	P_TryMove(AActor* thing, const DVector2 &pos, int dropoff, const secplane_t * onfloor, FCheckPosition &tm, bool missileCheck = false);
-bool	P_TryMove(AActor* thing, const DVector2 &pos, int dropoff, const secplane_t * onfloor = NULL);
+bool	P_TryMove(AActor* thing, const DVector2 &pos, int dropoff, const secplane_t * onfloor = nullptr);
 
 bool	P_CheckMove(AActor *thing, const DVector2 &pos, int flags = 0);
 void	P_ApplyTorque(AActor *mo);
@@ -265,7 +265,7 @@ void	P_FindFloorCeiling (AActor *actor, int flags=0);
 
 bool	P_ChangeSector (sector_t* sector, int crunch, double amt, int floorOrCeil, bool isreset);
 
-DAngle P_AimLineAttack(AActor *t1, DAngle angle, double distance, FTranslatedLineTarget *pLineTarget = NULL, DAngle vrange = 0., int flags = 0, AActor *target = NULL, AActor *friender = NULL);
+DAngle P_AimLineAttack(AActor *t1, DAngle angle, double distance, FTranslatedLineTarget *pLineTarget = nullptr, DAngle vrange = 0., int flags = 0, AActor *target = nullptr, AActor *friender = nullptr);
 
 enum	// P_AimLineAttack flags
 {
@@ -284,8 +284,8 @@ enum	// P_LineAttack flags
 	LAF_NOIMPACTDECAL = 4
 };
 
-AActor *P_LineAttack(AActor *t1, DAngle angle, double distance, DAngle pitch, int damage, FName damageType, PClassActor *pufftype, int flags = 0, FTranslatedLineTarget *victim = NULL, int *actualdamage = NULL);
-AActor *P_LineAttack(AActor *t1, DAngle angle, double distance, DAngle pitch, int damage, FName damageType, FName pufftype, int flags = 0, FTranslatedLineTarget *victim = NULL, int *actualdamage = NULL);
+AActor *P_LineAttack(AActor *t1, DAngle angle, double distance, DAngle pitch, int damage, FName damageType, PClassActor *pufftype, int flags = 0, FTranslatedLineTarget *victim = nullptr, int *actualdamage = nullptr);
+AActor *P_LineAttack(AActor *t1, DAngle angle, double distance, DAngle pitch, int damage, FName damageType, FName pufftype, int flags = 0, FTranslatedLineTarget *victim = nullptr, int *actualdamage = nullptr);
 
 void	P_TraceBleed(int damage, const DVector3 &pos, AActor *target, DAngle angle, DAngle pitch);
 void	P_TraceBleed(int damage, AActor *target, DAngle angle, DAngle pitch);

@@ -123,7 +123,7 @@ struct FListMenuDescriptor : public FMenuDescriptor
 		mYpos = 0;
 		mLinespacing = 0;
 		mNetgameMessage = "";
-		mFont = NULL;
+		mFont = nullptr;
 		mFontColor = CR_UNTRANSLATED;
 		mFontColor2 = CR_UNTRANSLATED;
 	}
@@ -228,7 +228,7 @@ public:
 
 	TObjPtr<DMenu> mParentMenu;
 
-	DMenu(DMenu *parent = NULL);
+	DMenu(DMenu *parent = nullptr);
 	virtual bool Responder (event_t *ev);
 	virtual bool MenuEvent (int mkey, bool fromcontroller);
 	virtual void Ticker ();
@@ -507,8 +507,8 @@ protected:
 	FListMenuItem *mFocusControl;
 
 public:
-	DListMenu(DMenu *parent = NULL, FListMenuDescriptor *desc = NULL);
-	virtual void Init(DMenu *parent = NULL, FListMenuDescriptor *desc = NULL);
+	DListMenu(DMenu *parent = nullptr, FListMenuDescriptor *desc = nullptr);
+	virtual void Init(DMenu *parent = nullptr, FListMenuDescriptor *desc = nullptr);
 	FListMenuItem *GetItem(FName name);
 	bool Responder (event_t *ev);
 	bool MenuEvent (int mkey, bool fromcontroller);
@@ -525,7 +525,7 @@ public:
 	}
 	void ReleaseFocus()
 	{
-		mFocusControl = NULL;
+		mFocusControl = nullptr;
 	}
 };
 
@@ -601,8 +601,8 @@ protected:
 
 public:
 	FOptionMenuItem *GetItem(FName name);
-	DOptionMenu(DMenu *parent = NULL, FOptionMenuDescriptor *desc = NULL);
-	virtual void Init(DMenu *parent = NULL, FOptionMenuDescriptor *desc = NULL);
+	DOptionMenu(DMenu *parent = nullptr, FOptionMenuDescriptor *desc = nullptr);
+	virtual void Init(DMenu *parent = nullptr, FOptionMenuDescriptor *desc = nullptr);
 	int FirstSelectable();
 	bool Responder (event_t *ev);
 	bool MenuEvent (int mkey, bool fromcontroller);
@@ -620,7 +620,7 @@ public:
 	}
 	void ReleaseFocus()
 	{
-		mFocusControl = NULL;
+		mFocusControl = nullptr;
 	}
 };
 

@@ -241,7 +241,7 @@ static void DoParse(const char *filename)
 
 		default:
 			TokenMapEntry *zcctoken = TokenMap.CheckKey(sc.TokenType);
-			if (zcctoken != NULL)
+			if (zcctoken != nullptr)
 			{
 				tokentype = zcctoken->TokenType;
 				value.Int = zcctoken->TokenName;
@@ -267,10 +267,10 @@ parse_end:
 	ZCCParseFree(parser, free);
 
 	PSymbolTable symbols(&GlobalSymbols);
-	ZCCCompiler cc(state, NULL, symbols);
+	ZCCCompiler cc(state, nullptr, symbols);
 	cc.Compile();
 #ifdef _DEBUG
-	if (f != NULL)
+	if (f != nullptr)
 	{
 		fclose(f);
 	}
@@ -278,7 +278,7 @@ parse_end:
 	FString astfile = ExtractFileBase(filename, false);
 	astfile << ".ast";
 	f = fopen(astfile, "w");
-	if (f != NULL)
+	if (f != nullptr)
 	{
 		fputs(ast.GetChars(), f);
 		fclose(f);
@@ -322,7 +322,7 @@ ZCC_TreeNode *ZCC_AST::InitNode(size_t size, EZCCTreeNodeType type, ZCC_TreeNode
 	node->SiblingNext = node;
 	node->SiblingPrev = node;
 	node->NodeType = type;
-	if (basis != NULL)
+	if (basis != nullptr)
 	{
 		node->SourceName = basis->SourceName;
 		node->SourceLoc = basis->SourceLoc;
@@ -332,7 +332,7 @@ ZCC_TreeNode *ZCC_AST::InitNode(size_t size, EZCCTreeNodeType type, ZCC_TreeNode
 
 ZCC_TreeNode *ZCCParseState::InitNode(size_t size, EZCCTreeNodeType type)
 {
-	ZCC_TreeNode *node = ZCC_AST::InitNode(size, type, NULL);
+	ZCC_TreeNode *node = ZCC_AST::InitNode(size, type, nullptr);
 	node->SourceName = Strings.Alloc(sc.ScriptName);
 	return node;
 }

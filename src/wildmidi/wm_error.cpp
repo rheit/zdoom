@@ -65,7 +65,7 @@ void _WM_ERROR(const char * func, unsigned int lne, int wmerno,
 	if (wmerno < 0 || wmerno > WM_ERR_MAX)
 		wmerno = WM_ERR_MAX;
 
-	if (wmfor != NULL) {
+	if (wmfor != nullptr) {
 		if (error != 0) {
 			Printf(TEXTCOLOR_RED "libWildMidi(%s:%u): ERROR %s %s (%s)\n", func,
 					lne, errors[wmerno], wmfor, strerror(error));

@@ -109,21 +109,21 @@ CVAR (Bool, vid_forcesurface, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 
 CUSTOM_CVAR (Float, rgamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (Gamma);
 	}
 }
 CUSTOM_CVAR (Float, ggamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (Gamma);
 	}
 }
 CUSTOM_CVAR (Float, bgamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (Gamma);
 	}
@@ -265,9 +265,9 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer (int width, int height, bool fullscree
 	PalEntry flashColor;
 	int flashAmount;
 
-	SDL_Window *oldwin = NULL;
+	SDL_Window *oldwin = nullptr;
 
-	if (old != NULL)
+	if (old != nullptr)
 	{ // Reuse the old framebuffer if its attributes are the same
 		SDLFB *fb = static_cast<SDLFB *> (old);
 		if (fb->Width == width &&
@@ -283,11 +283,11 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer (int width, int height, bool fullscree
 		}
 
 		oldwin = fb->Screen;
-		fb->Screen = NULL;
+		fb->Screen = nullptr;
 
 		old->GetFlash (flashColor, flashAmount);
 		old->ObjectFlags |= OF_YesReallyDelete;
-		if (screen == old) screen = NULL;
+		if (screen == old) screen = nullptr;
 		delete old;
 	}
 	else
@@ -305,9 +305,9 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer (int width, int height, bool fullscree
 	// 3. Try in the opposite screen mode with the closest size
 	// This is a somewhat confusing mass of recursion here.
 
-	while (fb == NULL || !fb->IsValid ())
+	while (fb == nullptr || !fb->IsValid ())
 	{
-		if (fb != NULL)
+		if (fb != nullptr)
 		{
 			delete fb;
 		}
@@ -335,7 +335,7 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer (int width, int height, bool fullscree
 		}
 
 		++retry;
-		fb = static_cast<SDLFB *>(CreateFrameBuffer (width, height, fullscreen, NULL));
+		fb = static_cast<SDLFB *>(CreateFrameBuffer (width, height, fullscreen, nullptr));
 	}
 	retry = 0;
 
@@ -379,12 +379,12 @@ SDLFB::SDLFB (int width, int height, bool fullscreen, SDL_Window *oldwin)
 			SDL_WINDOWPOS_UNDEFINED_DISPLAY(vid_adapter), SDL_WINDOWPOS_UNDEFINED_DISPLAY(vid_adapter),
 			width, height, (fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0)|SDL_WINDOW_RESIZABLE);
 
-		if (Screen == NULL)
+		if (Screen == nullptr)
 			return;
 	}
 
-	Renderer = NULL;
-	Texture = NULL;
+	Renderer = nullptr;
+	Texture = nullptr;
 	ResetSDLRenderer ();
 
 	for (i = 0; i < 256; i++)
@@ -418,7 +418,7 @@ SDLFB::~SDLFB ()
 
 bool SDLFB::IsValid ()
 {
-	return DFrameBuffer::IsValid() && Screen != NULL;
+	return DFrameBuffer::IsValid() && Screen != nullptr;
 }
 
 int SDLFB::GetPageCount ()
@@ -444,7 +444,7 @@ void SDLFB::Unlock ()
 	}
 	else if (--LockCount <= 0)
 	{
-		Buffer = NULL;
+		Buffer = nullptr;
 		LockCount = 0;
 	}
 }
@@ -470,7 +470,7 @@ void SDLFB::Update ()
 	}
 #endif
 
-	Buffer = NULL;
+	Buffer = nullptr;
 	LockCount = 0;
 	UpdatePending = false;
 
@@ -482,7 +482,7 @@ void SDLFB::Update ()
 	int pitch;
 	if (UsingRenderer)
 	{
-		if (SDL_LockTexture (Texture, NULL, &pixels, &pitch))
+		if (SDL_LockTexture (Texture, nullptr, &pixels, &pitch))
 			return;
 	}
 	else
@@ -521,7 +521,7 @@ void SDLFB::Update ()
 
 		SDLFlipCycles.Clock();
 		SDL_RenderClear(Renderer);
-		SDL_RenderCopy(Renderer, Texture, NULL, NULL);
+		SDL_RenderCopy(Renderer, Texture, nullptr, nullptr);
 		SDL_RenderPresent(Renderer);
 		SDLFlipCycles.Unclock();
 	}
@@ -688,7 +688,7 @@ void SDLFB::ResetSDLRenderer ()
 			NotPaletted = true;
 
 			Uint32 format;
-			SDL_QueryTexture(Texture, &format, NULL, NULL, NULL);
+			SDL_QueryTexture(Texture, &format, nullptr, nullptr, nullptr);
 
 			Uint32 Rmask, Gmask, Bmask, Amask;
 			int bpp;
@@ -700,7 +700,7 @@ void SDLFB::ResetSDLRenderer ()
 	{
 		Surface = SDL_GetWindowSurface (Screen);
 
-		if (Surface->format->palette == NULL)
+		if (Surface->format->palette == nullptr)
 		{
 			NotPaletted = true;
 			GPfx.SetFormat (Surface->format->BitsPerPixel, Surface->format->Rmask, Surface->format->Gmask, Surface->format->Bmask);

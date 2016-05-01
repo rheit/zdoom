@@ -14,7 +14,7 @@ bool I_SetCursor(FTexture *cursorpic)
 	static SDL_Cursor *cursor;
 	static SDL_Surface *cursorSurface;
 
-	if (cursorpic != NULL && cursorpic->UseType != FTexture::TEX_Null)
+	if (cursorpic != nullptr && cursorpic->UseType != FTexture::TEX_Null)
 	{
 		// Must be no larger than 32x32.
 		if (cursorpic->GetWidth() > 32 || cursorpic->GetHeight() > 32)
@@ -22,7 +22,7 @@ bool I_SetCursor(FTexture *cursorpic)
 			return false;
 		}
 
-		if (cursorSurface == NULL)
+		if (cursorSurface == nullptr)
 			cursorSurface = SDL_CreateRGBSurface (0, 32, 32, 32, MAKEARGB(0,255,0,0), MAKEARGB(0,0,255,0), MAKEARGB(0,0,0,255), MAKEARGB(255,0,0,0));
 
 		SDL_LockSurface(cursorSurface);
@@ -42,14 +42,14 @@ bool I_SetCursor(FTexture *cursorpic)
 	{
 		if (cursor)
 		{
-			SDL_SetCursor (NULL);
+			SDL_SetCursor (nullptr);
 			SDL_FreeCursor (cursor);
-			cursor = NULL;
+			cursor = nullptr;
 		}
-		if (cursorSurface != NULL)
+		if (cursorSurface != nullptr)
 		{
 			SDL_FreeSurface(cursorSurface);
-			cursorSurface = NULL;
+			cursorSurface = nullptr;
 		}
 	}
 	return true;

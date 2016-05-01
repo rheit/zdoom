@@ -80,7 +80,7 @@ EXTERN_CVAR (Bool, vid_tft)		// Defined below
 
 int testingmode;		// Holds time to revert to old mode
 int OldWidth, OldHeight, OldBits;
-static FIntCVar DummyDepthCvar (NULL, 0, 0);
+static FIntCVar DummyDepthCvar (nullptr, 0, 0);
 static BYTE BitTranslate[32];
 
 CUSTOM_CVAR (Int, menu_screenratios, -1, CVAR_ARCHIVE)
@@ -102,10 +102,10 @@ CUSTOM_CVAR (Int, menu_screenratios, -1, CVAR_ARCHIVE)
 CUSTOM_CVAR (Bool, vid_tft, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
 	FOptionMenuDescriptor *opt = GetVideoModeMenu();
-	if (opt != NULL)
+	if (opt != nullptr)
 	{
 		FOptionMenuItem *it = opt->GetItem("menu_screenratios");
-		if (it != NULL)
+		if (it != nullptr)
 		{
 			if (self)
 			{
@@ -118,7 +118,7 @@ CUSTOM_CVAR (Bool, vid_tft, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		}
 	}
 	setsizeneeded = true;
-	if (StatusBar != NULL)
+	if (StatusBar != nullptr)
 	{
 		StatusBar->ScreenSizeChanged();
 	}	
@@ -195,11 +195,11 @@ IMPLEMENT_CLASS(DVideoModeMenu)
 FOptionMenuDescriptor *GetVideoModeMenu()
 {
 	FMenuDescriptor **desc = MenuDescriptors.CheckKey(NAME_VideoModeMenu);
-	if (desc != NULL && (*desc)->mType == MDESC_OptionsMenu)
+	if (desc != nullptr && (*desc)->mType == MDESC_OptionsMenu)
 	{
 		return (FOptionMenuDescriptor *)*desc;
 	}
-	return NULL;
+	return nullptr;
 }
 
 //=============================================================================
@@ -226,25 +226,25 @@ static void BuildModesList (int hiwidth, int hiheight, int hi_bits)
 	}
 	showbits = BitTranslate[DummyDepthCvar];
 
-	if (Video != NULL)
+	if (Video != nullptr)
 	{
 		Video->StartModeIterator (showbits, screen->IsFullscreen());
 	}
 
 	FOptionMenuDescriptor *opt = GetVideoModeMenu();
-	if (opt != NULL)
+	if (opt != nullptr)
 	{
 		for (i = NAME_res_0; i<= NAME_res_9; i++)
 		{
 			FOptionMenuItem *it = opt->GetItem((ENamedName)i);
-			if (it != NULL)
+			if (it != nullptr)
 			{
 				it->SetValue(FOptionMenuScreenResolutionLine::SRL_HIGHLIGHT, -1);
 				for (c = 0; c < 3; c++)
 				{
 					bool haveMode = false;
 
-					if (Video != NULL)
+					if (Video != nullptr)
 					{
 						while ((haveMode = Video->NextMode (&width, &height, &letterbox)) &&
 							ratiomatch >= 0)
@@ -328,7 +328,7 @@ void M_InitVideoModesMenu ()
 	for (unsigned int i = 1; i <= 32 && currval < countof(BitTranslate); i++)
 	{
 		Video->StartModeIterator (i, screen->IsFullscreen());
-		if (Video->NextMode (&dummy1, &dummy2, NULL))
+		if (Video->NextMode (&dummy1, &dummy2, nullptr))
 		{
 			BitTranslate[currval++] = i;
 		}
@@ -355,7 +355,7 @@ void M_InitVideoModesMenu ()
 static bool GetSelectedSize (int *width, int *height)
 {
 	FOptionMenuDescriptor *opt = GetVideoModeMenu();
-	if (opt != NULL && (unsigned)opt->mSelectedItem < opt->mItems.Size())
+	if (opt != nullptr && (unsigned)opt->mSelectedItem < opt->mItems.Size())
 	{
 		int line = opt->mSelectedItem;
 		int hsel;
@@ -367,7 +367,7 @@ static bool GetSelectedSize (int *width, int *height)
 			if (it->GetString(FOptionMenuScreenResolutionLine::SRL_INDEX+hsel, buffer, sizeof(buffer)))
 			{
 				*width = strtol (buffer, &breakpt, 10);
-				*height = strtol (breakpt+1, NULL, 10);
+				*height = strtol (breakpt+1, nullptr, 10);
 				return true;
 			}
 		}
@@ -421,23 +421,23 @@ static void SetModesMenu (int w, int h, int bits)
 	DummyDepthCvar = FindBits (bits);
 
 	FOptionMenuDescriptor *opt = GetVideoModeMenu();
-	if (opt != NULL)
+	if (opt != nullptr)
 	{
 		FOptionMenuItem *it;
 		if (testingmode <= 1)
 		{
 			it = opt->GetItem(NAME_VMEnterText);
-			if (it != NULL) it->SetValue(0, 0);
+			if (it != nullptr) it->SetValue(0, 0);
 			it = opt->GetItem(NAME_VMTestText);
-			if (it != NULL) it->SetValue(0, 0);
+			if (it != nullptr) it->SetValue(0, 0);
 		}
 		else
 		{
 
 			it = opt->GetItem(NAME_VMTestText);
-			if (it != NULL) it->SetValue(0, 1);
+			if (it != nullptr) it->SetValue(0, 1);
 			it = opt->GetItem(NAME_VMEnterText);
-			if (it != NULL) 
+			if (it != nullptr) 
 			{
 				char strtemp[64];
 				mysnprintf (strtemp, countof(strtemp), "TESTING %dx%dx%d", w, h, bits);

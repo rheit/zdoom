@@ -114,15 +114,15 @@ MusInfo *GME_OpenSong(FileReader &reader, const char *fmt)
 	int sample_rate;
 	
 	type = gme_identify_extension(fmt);
-	if (type == NULL)
+	if (type == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	sample_rate = (int)GSnd->GetOutputRate();
 	emu = gme_new_emu(type, sample_rate);
-	if (emu == NULL)
+	if (emu == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
     int fpos = reader.Tell();
@@ -133,18 +133,18 @@ MusInfo *GME_OpenSong(FileReader &reader, const char *fmt)
         delete[] song;
         gme_delete(emu);
         reader.Seek(fpos, SEEK_SET);
-        return NULL;
+        return nullptr;
     }
 
 	err = gme_load_data(emu, song, len);
     delete[] song;
 
-	if (err != NULL)
+	if (err != nullptr)
 	{
 		Printf("Failed loading song: %s\n", err);
 		gme_delete(emu);
         reader.Seek(fpos, SEEK_SET);
-		return NULL;
+		return nullptr;
 	}
 	return new GMESong(emu, sample_rate);
 }
@@ -160,7 +160,7 @@ GMESong::GMESong(Music_Emu *emu, int sample_rate)
 	Emu = emu;
 	SampleRate = sample_rate;
 	CurrTrack = 0;
-	TrackInfo = NULL;
+	TrackInfo = nullptr;
 	m_Stream = GSnd->CreateStream(Read, 32*1024, 0, sample_rate, this);
 }
 
@@ -173,16 +173,16 @@ GMESong::GMESong(Music_Emu *emu, int sample_rate)
 GMESong::~GMESong()
 {
 	Stop();
-	if (m_Stream != NULL)
+	if (m_Stream != nullptr)
 	{
 		delete m_Stream;
-		m_Stream = NULL;
+		m_Stream = nullptr;
 	}
-	if (TrackInfo != NULL)
+	if (TrackInfo != nullptr)
 	{
 		gme_free_info(TrackInfo);
 	}
-	if (Emu != NULL)
+	if (Emu != nullptr)
 	{
 		gme_delete(Emu);
 	}
@@ -239,7 +239,7 @@ bool GMESong::StartTrack(int track, bool getcritsec)
 	{
 		CritSec.Leave();
 	}
-	if (err != NULL)
+	if (err != nullptr)
 	{
 		Printf("Could not start track %d: %s\n", track, err);
 		return false;
@@ -263,7 +263,7 @@ FString GMESong::GetStats()
 {
 	FString out;
 
-	if (TrackInfo != NULL)
+	if (TrackInfo != nullptr)
 	{
 		int time = gme_tell(Emu);
 		out.Format(
@@ -289,13 +289,13 @@ bool GMESong::GetTrackInfo()
 {
 	gme_err_t err;
 
-	if (TrackInfo != NULL)
+	if (TrackInfo != nullptr)
 	{
 		gme_free_info(TrackInfo);
-		TrackInfo = NULL;
+		TrackInfo = nullptr;
 	}
 	err = gme_track_info(Emu, &TrackInfo, CurrTrack);
-	if (err != NULL)
+	if (err != nullptr)
 	{
 		Printf("Could not get track %d info: %s\n", CurrTrack, err);
 		return false;
@@ -311,7 +311,7 @@ bool GMESong::GetTrackInfo()
 
 int GMESong::CalcSongLength()
 {
-	if (TrackInfo == NULL)
+	if (TrackInfo == nullptr)
 	{
 		return 150000;
 	}
@@ -353,5 +353,5 @@ bool GMESong::Read(SoundStream *stream, void *buff, int len, void *userdata)
 	}
 	err = gme_play(song->Emu, len >> 1, (short *)buff);
 	song->CritSec.Leave();
-	return (err == NULL);
+	return (err == nullptr);
 }

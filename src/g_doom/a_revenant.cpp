@@ -32,7 +32,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SkelMissile)
 	missile = P_SpawnMissile(self, self->target, PClass::FindActor("RevenantTracer"));
 	self->AddZ(-16.);
 
-	if (missile != NULL)
+	if (missile != nullptr)
 	{
 		missile->SetOrigin(missile->Vec3Offset(missile->Vel.X, missile->Vel.Y, 0.), false);
 		missile->tracer = self->target;

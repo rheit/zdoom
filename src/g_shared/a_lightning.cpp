@@ -19,7 +19,7 @@ DLightningThinker::DLightningThinker ()
 	: DThinker (STAT_LIGHTNING)
 {
 	Stopped = false;
-	LightningLightLevels = NULL;
+	LightningLightLevels = nullptr;
 	LightningFlashCount = 0;
 	NextLightningFlash = ((pr_lightning()&15)+5)*35; // don't flash at level start
 
@@ -29,7 +29,7 @@ DLightningThinker::DLightningThinker ()
 
 DLightningThinker::~DLightningThinker ()
 {
-	if (LightningLightLevels != NULL)
+	if (LightningLightLevels != nullptr)
 	{
 		delete[] LightningLightLevels;
 	}
@@ -46,7 +46,7 @@ void DLightningThinker::Serialize (FArchive &arc)
 
 	if (arc.IsLoading ())
 	{
-		if (LightningLightLevels != NULL)
+		if (LightningLightLevels != nullptr)
 		{
 			delete[] LightningLightLevels;
 		}
@@ -148,7 +148,7 @@ void DLightningThinker::LightningFlash ()
 
 	level.flags |= LEVEL_SWAPSKIES;	// set alternate sky
 	S_Sound (CHAN_AUTO, "world/thunder", 1.0, ATTN_NONE);
-	FBehavior::StaticStartTypedScripts (SCRIPT_Lightning, NULL, false);	// [RH] Run lightning scripts
+	FBehavior::StaticStartTypedScripts (SCRIPT_Lightning, nullptr, false);	// [RH] Run lightning scripts
 
 	// Calculate the next lighting flash
 	if (!NextLightningFlash)
@@ -197,7 +197,7 @@ static DLightningThinker *LocateLightning ()
 void P_StartLightning ()
 {
 	DLightningThinker *lightning = LocateLightning ();
-	if (lightning == NULL)
+	if (lightning == nullptr)
 	{
 		new DLightningThinker ();
 	}
@@ -206,11 +206,11 @@ void P_StartLightning ()
 void P_ForceLightning (int mode)
 {
 	DLightningThinker *lightning = LocateLightning ();
-	if (lightning == NULL)
+	if (lightning == nullptr)
 	{
 		lightning = new DLightningThinker ();
 	}
-	if (lightning != NULL)
+	if (lightning != nullptr)
 	{
 		lightning->ForceLightning (mode);
 	}

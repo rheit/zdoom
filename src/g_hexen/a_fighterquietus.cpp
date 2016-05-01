@@ -37,7 +37,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DropWeaponPieces)
 		if (cls)
 		{
 			AActor *piece = Spawn (cls, self->Pos(), ALLOW_REPLACE);
-			if (piece != NULL)
+			if (piece != nullptr)
 			{
 				piece->Vel = self->Vel + DAngle(i*120.).ToVector(1);
 				piece->flags |= MF_DROPPED;
@@ -82,12 +82,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_FSwordAttack)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;

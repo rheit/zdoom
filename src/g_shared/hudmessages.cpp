@@ -136,8 +136,8 @@ DHUDMessage::DHUDMessage (FFont *font, const char *text, float x, float y, int h
 	WrapWidth = 0;
 	HandleAspect = true;
 	Top = y;
-	Next = NULL;
-	Lines = NULL;
+	Next = nullptr;
+	Lines = nullptr;
 	HoldTics = (int)(holdTime * TICRATE);
 	Tics = 0;
 	TextColor = textColor;
@@ -161,13 +161,13 @@ DHUDMessage::~DHUDMessage ()
 	if (Lines)
 	{
 		V_FreeBrokenLines (Lines);
-		Lines = NULL;
-		if (screen != NULL)
+		Lines = nullptr;
+		if (screen != nullptr)
 		{
 			V_SetBorderNeedRefresh();
 		}
 	}
-	if (SourceText != NULL)
+	if (SourceText != nullptr)
 	{
 		delete[] SourceText;
 	}
@@ -194,7 +194,7 @@ void DHUDMessage::Serialize(FArchive &arc)
 		<< Style << Alpha;
 	if (arc.IsLoading())
 	{
-		Lines = NULL;
+		Lines = nullptr;
 		ResetText(SourceText);
 	}
 }
@@ -263,7 +263,7 @@ void DHUDMessage::ResetText (const char *text)
 		width = con_scaletext >= 2 ? SCREENWIDTH/2 : (con_scaletext ? SCREENWIDTH / CleanXfac : SCREENWIDTH); 
 	}
 
-	if (Lines != NULL)
+	if (Lines != nullptr)
 	{
 		V_FreeBrokenLines (Lines);
 	}

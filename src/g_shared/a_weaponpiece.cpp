@@ -10,7 +10,7 @@ void PClassWeaponPiece::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 {
 	Super::ReplaceClassRef(oldclass, newclass);
 	AWeaponPiece *def = (AWeaponPiece*)Defaults;
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		if (def->WeaponClass == oldclass) def->WeaponClass = static_cast<PClassWeapon *>(newclass);
 	}
@@ -71,12 +71,12 @@ bool AWeaponPiece::TryPickupRestricted (AActor *&toucher)
 bool AWeaponPiece::TryPickup (AActor *&toucher)
 {
 	AInventory * inv;
-	AWeaponHolder * hold=NULL;
+	AWeaponHolder * hold=nullptr;
 	bool shouldStay = PrivateShouldStay ();
 	int gaveAmmo;
 	AWeapon * Defaults=(AWeapon*)GetDefaultByType(WeaponClass);
 
-	FullWeapon=NULL;
+	FullWeapon=nullptr;
 	for(inv=toucher->Inventory;inv;inv=inv->Inventory)
 	{
 		if (inv->IsKindOf(RUNTIME_CLASS(AWeaponHolder)))
@@ -84,7 +84,7 @@ bool AWeaponPiece::TryPickup (AActor *&toucher)
 			hold=static_cast<AWeaponHolder*>(inv);
 
 			if (hold->PieceWeapon==WeaponClass) break;
-			hold=NULL;
+			hold=nullptr;
 		}
 	}
 	if (!hold)

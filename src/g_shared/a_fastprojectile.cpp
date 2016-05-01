@@ -66,7 +66,7 @@ void AFastProjectile::Tick ()
 					tm.LastRipped.Clear();	// [RH] Do rip damage each step, like Hexen
 				}
 				
-				if (!P_TryMove (this, Pos() + frac, true, NULL, tm))
+				if (!P_TryMove (this, Pos() + frac, true, nullptr, tm))
 				{ // Blocked move
 					if (!(flags3 & MF3_SKYEXPLODE))
 					{
@@ -81,7 +81,7 @@ void AFastProjectile::Tick ()
 							return;
 						}
 						// [RH] Don't explode on horizon lines.
-						if (BlockingLine != NULL && BlockingLine->special == Line_Horizon)
+						if (BlockingLine != nullptr && BlockingLine->special == Line_Horizon)
 						{
 							Destroy ();
 							return;
@@ -108,7 +108,7 @@ void AFastProjectile::Tick ()
 
 				SetZ(floorz);
 				P_HitFloor (this);
-				P_ExplodeMissile (this, NULL, NULL);
+				P_ExplodeMissile (this, nullptr, nullptr);
 				return;
 			}
 			if (Top() > ceilingz)
@@ -121,7 +121,7 @@ void AFastProjectile::Tick ()
 				}
 
 				SetZ(ceilingz - Height);
-				P_ExplodeMissile (this, NULL, NULL);
+				P_ExplodeMissile (this, nullptr, nullptr);
 				return;
 			}
 			if (changexy && ripcount <= 0) 
@@ -163,10 +163,10 @@ void AFastProjectile::Effect()
 		hitz += GetClass()->MissileHeight;
 		
 		PClassActor *trail = PClass::FindActor(name);
-		if (trail != NULL)
+		if (trail != nullptr)
 		{
 			AActor *act = Spawn (trail, PosAtZ(hitz), ALLOW_REPLACE);
-			if (act != NULL)
+			if (act != nullptr)
 			{
 				act->Angles.Yaw = Angles.Yaw;
 			}

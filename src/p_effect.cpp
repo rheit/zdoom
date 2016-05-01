@@ -106,12 +106,12 @@ static const struct ColorList {
 	{&dred,		80,  0,   0  },
 	{&maroon1,	154, 49,  49 },
 	{&maroon2,	125, 24,  24 },
-	{NULL, 0, 0, 0 }
+	{nullptr, 0, 0, 0 }
 };
 
 inline particle_t *NewParticle (void)
 {
-	particle_t *result = NULL;
+	particle_t *result = nullptr;
 	if (InactiveParticles != NO_PARTICLE)
 	{
 		result = Particles + InactiveParticles;
@@ -168,10 +168,10 @@ void P_InitParticles ()
 
 void P_DeinitParticles()
 {
-	if (Particles != NULL)
+	if (Particles != nullptr)
 	{
 		delete[] Particles;
-		Particles = NULL;
+		Particles = nullptr;
 	}
 }
 
@@ -207,7 +207,7 @@ void P_FindParticleSubsectors ()
 	for (WORD i = ActiveParticles; i != NO_PARTICLE; i = Particles[i].tnext)
 	{
 		 // Try to reuse the subsector from the last portal check, if still valid.
-		if (Particles[i].subsector == NULL) Particles[i].subsector = R_PointInSubsector(Particles[i].Pos);
+		if (Particles[i].subsector == nullptr) Particles[i].subsector = R_PointInSubsector(Particles[i].Pos);
 		int ssnum = int(Particles[i].subsector - subsectors);
 		Particles[i].snext = ParticlesInSubsec[ssnum];
 		ParticlesInSubsec[ssnum] = i;
@@ -222,7 +222,7 @@ static uint32 ParticleColor(int rgb)
 	int stuff;
 
 	val = ColorSaver.CheckKey(rgb);
-	if (val != NULL)
+	if (val != nullptr)
 	{
 		return *val;
 	}
@@ -259,7 +259,7 @@ void P_ThinkParticles ()
 	particle_t *particle, *prev;
 
 	i = ActiveParticles;
-	prev = NULL;
+	prev = nullptr;
 	while (i != NO_PARTICLE)
 	{
 		BYTE oldtrans;
@@ -294,7 +294,7 @@ void P_ThinkParticles ()
 			if (particle->Pos.Z > s->GetPortalPlaneZ(sector_t::ceiling))
 			{
 				particle->Pos += s->GetPortalDisplacement(sector_t::ceiling);
-				particle->subsector = NULL;
+				particle->subsector = nullptr;
 			}
 		}
 		else if (!s->PortalBlocksMovement(sector_t::floor))
@@ -302,7 +302,7 @@ void P_ThinkParticles ()
 			if (particle->Pos.Z < s->GetPortalPlaneZ(sector_t::floor))
 			{
 				particle->Pos += s->GetPortalDisplacement(sector_t::floor);
-				particle->subsector = NULL;
+				particle->subsector = nullptr;
 			}
 		}
 		prev = particle;
@@ -336,7 +336,7 @@ void P_SpawnParticle(const DVector3 &pos, const DVector3 &vel, const DVector3 &a
 //
 void P_RunEffects ()
 {
-	if (players[consoleplayer].camera == NULL) return;
+	if (players[consoleplayer].camera == nullptr) return;
 
 	int	pnum = int(players[consoleplayer].camera->Sector - sectors) * numsectors;
 
@@ -349,7 +349,7 @@ void P_RunEffects ()
 		{
 			// Only run the effect if the actor is potentially visible
 			int rnum = pnum + int(actor->Sector - sectors);
-			if (rejectmatrix == NULL || !(rejectmatrix[rnum>>3] & (1 << (rnum & 7))))
+			if (rejectmatrix == nullptr || !(rejectmatrix[rnum>>3] & (1 << (rnum & 7))))
 				P_RunEffect (actor, actor->effects);
 		}
 	}
@@ -507,7 +507,7 @@ void P_RunEffect (AActor *actor, int effects)
 		for (i = 3; i > 0; i--)
 		{
 			particle = JitterParticle (16);
-			if (particle != NULL)
+			if (particle != nullptr)
 			{
 				DAngle ang = M_Random() * (360 / 256.);
 				DVector3 pos = actor->Vec3Angle(actor->radius, ang, 0);
@@ -704,10 +704,10 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 			}
 			else
 			{
-				TrailSegment *shortest = NULL;
+				TrailSegment *shortest = nullptr;
 				for (auto &seg : trail)
 				{
-					if (shortest == NULL || shortest->sounddist > seg.sounddist) shortest = &seg;
+					if (shortest == nullptr || shortest->sounddist > seg.sounddist) shortest = &seg;
 				}
 				S_Sound (DVector3(shortest->soundpos, ViewPos.Z), CHAN_WEAPON, sound, 1, ATTN_NORM);
 			}
@@ -720,7 +720,7 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 	}
 
 	// Create the outer spiral.
-	if (color1 != -1 && (!r_rail_smartspiral || color2 == -1) && r_rail_spiralsparsity > 0 && (spawnclass == NULL))
+	if (color1 != -1 && (!r_rail_smartspiral || color2 == -1) && r_rail_spiralsparsity > 0 && (spawnclass == nullptr))
 	{
 		double stepsize = 3 * r_rail_spiralsparsity * sparsity;
 		int spiral_steps = (int)(steps * r_rail_spiralsparsity / sparsity);
@@ -788,7 +788,7 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 	}
 
 	// Create the inner trail.
-	if (color2 != -1 && r_rail_trailsparsity > 0 && spawnclass == NULL)
+	if (color2 != -1 && r_rail_trailsparsity > 0 && spawnclass == nullptr)
 	{
 		double stepsize = 3 * r_rail_spiralsparsity * sparsity;
 		int trail_steps = xs_FloorToInt(steps * r_rail_trailsparsity / sparsity);
@@ -862,7 +862,7 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 		}
 	}
 	// create actors
-	if (spawnclass != NULL)
+	if (spawnclass != nullptr)
 	{
 		if (sparsity < 1)
 			sparsity = 32;
@@ -918,7 +918,7 @@ void P_DisconnectEffect (AActor *actor)
 {
 	int i;
 
-	if (actor == NULL)
+	if (actor == nullptr)
 		return;
 
 	for (i = 64; i; i--)

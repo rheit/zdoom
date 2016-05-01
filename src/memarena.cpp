@@ -76,8 +76,8 @@ static inline void *RoundPointer(void *ptr)
 
 FMemArena::FMemArena()
 {
-	TopBlock = NULL;
-	FreeBlocks = NULL;
+	TopBlock = nullptr;
+	FreeBlocks = nullptr;
 }
 
 //==========================================================================
@@ -101,10 +101,10 @@ void *FMemArena::Alloc(size_t size)
 {
 	Block *block;
 
-	for (block = TopBlock; block != NULL; block = block->NextBlock)
+	for (block = TopBlock; block != nullptr; block = block->NextBlock)
 	{
 		void *res = block->Alloc(size);
-		if (res != NULL)
+		if (res != nullptr)
 		{
 			return res;
 		}
@@ -123,14 +123,14 @@ void *FMemArena::Alloc(size_t size)
 
 void FMemArena::FreeAll()
 {
-	for (Block *next, *block = TopBlock; block != NULL; block = next)
+	for (Block *next, *block = TopBlock; block != nullptr; block = next)
 	{
 		next = block->NextBlock;
 		block->Reset();
 		block->NextBlock = FreeBlocks;
 		FreeBlocks = block;
 	}
-	TopBlock = NULL;
+	TopBlock = nullptr;
 }
 
 //==========================================================================
@@ -157,12 +157,12 @@ void FMemArena::FreeAllBlocks()
 
 void FMemArena::FreeBlockChain(Block *&top)
 {
-	for (Block *next, *block = top; block != NULL; block = next)
+	for (Block *next, *block = top; block != nullptr; block = next)
 	{
 		next = block->NextBlock;
 		M_Free(block);
 	}
-	top = NULL;
+	top = nullptr;
 }
 
 //==========================================================================
@@ -180,7 +180,7 @@ FMemArena::Block *FMemArena::AddBlock(size_t size)
 	size += sizeof(Block);		// Account for header size
 
 	// Search for a free block to use
-	for (last = &FreeBlocks, mem = FreeBlocks; mem != NULL; last = &mem->NextBlock, mem = mem->NextBlock)
+	for (last = &FreeBlocks, mem = FreeBlocks; mem != nullptr; last = &mem->NextBlock, mem = mem->NextBlock)
 	{
 		if ((BYTE *)mem->Limit - (BYTE *)mem >= (ptrdiff_t)size)
 		{
@@ -188,7 +188,7 @@ FMemArena::Block *FMemArena::AddBlock(size_t size)
 			break;
 		}
 	}
-	if (mem == NULL)
+	if (mem == nullptr)
 	{
 		// Allocate a new block
 		if (size < BLOCK_SIZE)
@@ -226,7 +226,7 @@ void FMemArena::Block::Reset()
 //
 // FMemArena :: Block :: Alloc
 //
-// Allocates memory from the block if it has space. Returns NULL if not.
+// Allocates memory from the block if it has space. Returns nullptr if not.
 //
 //==========================================================================
 
@@ -234,7 +234,7 @@ void *FMemArena::Block::Alloc(size_t size)
 {
 	if ((char *)Avail + size > Limit)
 	{
-		return NULL;
+		return nullptr;
 	}
 	void *res = Avail;
 	Avail = RoundPointer((char *)Avail + size);
@@ -280,7 +280,7 @@ FString *FSharedStringArena::Alloc(const FString &source)
 	Node *strnode;
 
 	strnode = FindString(source, source.Len(), hash);
-	if (strnode == NULL)
+	if (strnode == nullptr)
 	{
 		strnode = (Node *)FMemArena::Alloc(sizeof(Node));
 		::new(&strnode->String) FString(source);
@@ -315,7 +315,7 @@ FString *FSharedStringArena::Alloc(const char *source, size_t strlen)
 	Node *strnode;
 
 	strnode = FindString(source, strlen, hash);
-	if (strnode == NULL)
+	if (strnode == nullptr)
 	{
 		strnode = (Node *)FMemArena::Alloc(sizeof(Node));
 		::new(&strnode->String) FString(source, strlen);
@@ -331,7 +331,7 @@ FString *FSharedStringArena::Alloc(const char *source, size_t strlen)
 //
 // FSharedStringArena :: FindString
 //
-// Finds the string if it's already in the arena. Returns NULL if not.
+// Finds the string if it's already in the arena. Returns nullptr if not.
 //
 //==========================================================================
 
@@ -339,14 +339,14 @@ FSharedStringArena::Node *FSharedStringArena::FindString(const char *str, size_t
 {
 	hash = SuperFastHash(str, strlen);
 
-	for (Node *node = Buckets[hash % countof(Buckets)]; node != NULL; node = node->Next)
+	for (Node *node = Buckets[hash % countof(Buckets)]; node != nullptr; node = node->Next)
 	{
 		if (node->Hash == hash && node->String.Len() == strlen && memcmp(&node->String[0], str, strlen) == 0)
 		{
 			return node;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -360,7 +360,7 @@ FSharedStringArena::Node *FSharedStringArena::FindString(const char *str, size_t
 
 void FSharedStringArena::FreeAll()
 {
-	for (Block *next, *block = TopBlock; block != NULL; block = next)
+	for (Block *next, *block = TopBlock; block != nullptr; block = next)
 	{
 		next = block->NextBlock;
 		void *limit = block->Avail;
@@ -373,5 +373,5 @@ void FSharedStringArena::FreeAll()
 		FreeBlocks = block;
 	}
 	memset(Buckets, 0, sizeof(Buckets));
-	TopBlock = NULL;
+	TopBlock = nullptr;
 }

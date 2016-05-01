@@ -161,7 +161,7 @@ static int DoomSpecificInfo (char *buffer, char *end)
 	}
 	p += snprintf (buffer+p, size-p, "\n");
 	
-	for (i = 0; (arg = Wads.GetWadName (i)) != NULL; ++i)
+	for (i = 0; (arg = Wads.GetWadName (i)) != nullptr; ++i)
 	{
 		p += snprintf (buffer+p, size-p, "\nWad %d: %s", i, arg);
 	}
@@ -299,10 +299,10 @@ int main (int argc, char **argv)
 
 		// Should we even be doing anything with progdir on Unix systems?
 		char program[PATH_MAX];
-		if (realpath (argv[0], program) == NULL)
+		if (realpath (argv[0], program) == nullptr)
 			strcpy (program, argv[0]);
 		char *slash = strrchr (program, '/');
-		if (slash != NULL)
+		if (slash != nullptr)
 		{
 			*(slash + 1) = '\0';
 			progdir = program;

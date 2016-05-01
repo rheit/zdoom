@@ -52,25 +52,25 @@ FWarpTexture::FWarpTexture (FTexture *source, int warptype)
 FWarpTexture::~FWarpTexture ()
 {
 	Unload ();
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 	delete SourcePic;
 }
 
 void FWarpTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 	SourcePic->Unload ();
 }
@@ -84,7 +84,7 @@ const BYTE *FWarpTexture::GetPixels ()
 {
 	DWORD time = r_FrameTime;
 
-	if (Pixels == NULL || time != GenTime)
+	if (Pixels == nullptr || time != GenTime)
 	{
 		MakeTexture (time);
 	}
@@ -95,7 +95,7 @@ const BYTE *FWarpTexture::GetColumn (unsigned int column, const Span **spans_out
 {
 	DWORD time = r_FrameTime;
 
-	if (Pixels == NULL || time != GenTime)
+	if (Pixels == nullptr || time != GenTime)
 	{
 		MakeTexture (time);
 	}
@@ -110,9 +110,9 @@ const BYTE *FWarpTexture::GetColumn (unsigned int column, const Span **spans_out
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -126,14 +126,14 @@ void FWarpTexture::MakeTexture(DWORD time)
 {
 	const BYTE *otherpix = SourcePic->GetPixels();
 
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		Pixels = new BYTE[Width * Height];
 	}
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans(Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 
 	GenTime = time;

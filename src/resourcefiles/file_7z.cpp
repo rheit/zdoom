@@ -130,13 +130,13 @@ struct C7zArchive
 		LookToRead_Init(&LookStream);
 		SzArEx_Init(&DB);
 		BlockIndex = 0xFFFFFFFF;
-		OutBuffer = NULL;
+		OutBuffer = nullptr;
 		OutBufferSize = 0;
 	}
 
 	~C7zArchive()
 	{
-		if (OutBuffer != NULL)
+		if (OutBuffer != nullptr)
 		{
 			IAlloc_Free(&g_Alloc, OutBuffer);
 		}
@@ -194,7 +194,7 @@ public:
 	F7ZFile(const char * filename, FileReader *filer);
 	bool Open(bool quiet);
 	virtual ~F7ZFile();
-	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : NULL; }
+	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : nullptr; }
 };
 
 
@@ -208,8 +208,8 @@ public:
 F7ZFile::F7ZFile(const char * filename, FileReader *filer)
 	: FResourceFile(filename, filer) 
 {
-	Lumps = NULL;
-	Archive = NULL;
+	Lumps = nullptr;
+	Archive = nullptr;
 }
 
 
@@ -229,7 +229,7 @@ bool F7ZFile::Open(bool quiet)
 	if (res != SZ_OK)
 	{
 		delete Archive;
-		Archive = NULL;
+		Archive = nullptr;
 		if (!quiet)
 		{
 			Printf("\n" TEXTCOLOR_RED "%s: ", Filename);
@@ -271,7 +271,7 @@ bool F7ZFile::Open(bool quiet)
 			continue;
 		}
 
-		const size_t nameLength = SzArEx_GetFileNameUtf16(archPtr, i, NULL);
+		const size_t nameLength = SzArEx_GetFileNameUtf16(archPtr, i, nullptr);
 
 		if (0 == nameLength)
 		{
@@ -330,11 +330,11 @@ bool F7ZFile::Open(bool quiet)
 
 F7ZFile::~F7ZFile()
 {
-	if (Lumps != NULL)
+	if (Lumps != nullptr)
 	{
 		delete[] Lumps;
 	}
-	if (Archive != NULL)
+	if (Archive != nullptr)
 	{
 		delete Archive;
 	}
@@ -374,11 +374,11 @@ FResourceFile *Check7Z(const char *filename, FileReader *file, bool quiet)
 			FResourceFile *rf = new F7ZFile(filename, file);
 			if (rf->Open(quiet)) return rf;
 
-			rf->Reader = NULL; // to avoid destruction of reader
+			rf->Reader = nullptr; // to avoid destruction of reader
 			delete rf;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 

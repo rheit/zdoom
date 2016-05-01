@@ -34,7 +34,7 @@ static void DragonSeek (AActor *actor, DAngle thresh, DAngle turnMax)
 	AActor *mo;
 
 	target = actor->tracer;
-	if(target == NULL)
+	if(target == nullptr)
 	{
 		return;
 	}
@@ -90,7 +90,7 @@ static void DragonSeek (AActor *actor, DAngle thresh, DAngle turnMax)
 	{ // Hit the target thing
 		if (actor->target && pr_dragonseek() < 200)
 		{
-			AActor *bestActor = NULL;
+			AActor *bestActor = nullptr;
 			bestAngle = 360.;
 			angleToTarget = actor->AngleTo(actor->target);
 			for (i = 0; i < 5; i++)
@@ -101,7 +101,7 @@ static void DragonSeek (AActor *actor, DAngle thresh, DAngle turnMax)
 				}
 				FActorIterator iterator (target->args[i]);
 				mo = iterator.Next ();
-				if (mo == NULL)
+				if (mo == nullptr)
 				{
 					continue;
 				}
@@ -113,7 +113,7 @@ static void DragonSeek (AActor *actor, DAngle thresh, DAngle turnMax)
 					bestActor = mo;
 				}
 			}
-			if (bestActor != NULL)
+			if (bestActor != nullptr)
 			{
 				actor->tracer = bestActor;
 			}
@@ -157,7 +157,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_DragonInitFlight)
 	do
 	{ // find the first tid identical to the dragon's tid
 		self->tracer = iterator.Next ();
-		if (self->tracer == NULL)
+		if (self->tracer == nullptr)
 		{
 			self->SetState (self->SpawnState);
 			return 0;
@@ -184,7 +184,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_DragonFlight)
 	{
 		if(!(self->target->flags&MF_SHOOTABLE))
 		{ // target died
-			self->target = NULL;
+			self->target = nullptr;
 			return 0;
 		}
 		angle = absangle(self->Angles.Yaw, self->AngleTo(self->target));
@@ -203,7 +203,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_DragonFlight)
 	}
 	else
 	{
-		P_LookForPlayers (self, true, NULL);
+		P_LookForPlayers (self, true, nullptr);
 	}
 	return 0;
 }

@@ -198,7 +198,7 @@ static struct TicSpecial
 		specialsize = 256;
 
 		for (i = 0; i < BACKUPTICS; i++)
-			streams[i] = NULL;
+			streams[i] = nullptr;
 
 		for (i = 0; i < BACKUPTICS; i++)
 		{
@@ -217,7 +217,7 @@ static struct TicSpecial
 			if (streams[i])
 			{
 				M_Free (streams[i]);
-				streams[i] = NULL;
+				streams[i] = nullptr;
 				used[i] = 0;
 			}
 		}
@@ -334,7 +334,7 @@ void Net_ClearBuffers ()
 	{
 		for (j = 0; j < BACKUPTICS; j++)
 		{
-			NetSpecs[i][j].SetData (NULL, 0);
+			NetSpecs[i][j].SetData (nullptr, 0);
 		}
 	}
 
@@ -708,7 +708,7 @@ void PlayerIsGone (int netnode, int netconsole)
 		// Pick a new network arbitrator
 		for (int i = 0; i < MAXPLAYERS; i++)
 		{
-			if (i != netconsole && playeringame[i] && players[i].Bot == NULL)
+			if (i != netconsole && playeringame[i] && players[i].Bot == nullptr)
 			{
 				Net_Arbitrator = i;
 				players[i].settings_controller = true;
@@ -1081,7 +1081,7 @@ void NetUpdate (void)
 		{
 			for (j = 0; j < MAXPLAYERS; j++)
 			{
-				if (playeringame[j] && players[j].Bot == NULL)
+				if (playeringame[j] && players[j].Bot == nullptr)
 				{
 					count++;
 				}
@@ -1220,7 +1220,7 @@ void NetUpdate (void)
 				{
 					for (l = 1, j = 0; j < MAXPLAYERS; j++)
 					{
-						if (playeringame[j] && players[j].Bot == NULL && j != playerfornode[i] && j != consoleplayer)
+						if (playeringame[j] && players[j].Bot == nullptr && j != playerfornode[i] && j != consoleplayer)
 						{
 							playerbytes[l++] = j;
 							netbuffer[k++] = j;
@@ -1255,7 +1255,7 @@ void NetUpdate (void)
 							cmddata += specials.used[start];
 						}
 						WriteUserCmdMessage (&localcmds[localstart].ucmd,
-							localprev >= 0 ? &localcmds[localprev].ucmd : NULL, &cmddata);
+							localprev >= 0 ? &localcmds[localprev].ucmd : nullptr, &cmddata);
 					}
 					else if (i != 0)
 					{
@@ -1264,14 +1264,14 @@ void NetUpdate (void)
 
 						WriteWord (netcmds[playerbytes[l]][start].consistancy, &cmddata);
 						spec = NetSpecs[playerbytes[l]][start].GetData (&len);
-						if (spec != NULL)
+						if (spec != nullptr)
 						{
 							memcpy (cmddata, spec, len);
 							cmddata += len;
 						}
 
 						WriteUserCmdMessage (&netcmds[playerbytes[l]][start].ucmd,
-							prev >= 0 ? &netcmds[playerbytes[l]][prev].ucmd : NULL, &cmddata);
+							prev >= 0 ? &netcmds[playerbytes[l]][prev].ucmd : nullptr, &cmddata);
 					}
 				}
 			}
@@ -1671,7 +1671,7 @@ void D_CheckNetGame (void)
 
 	// Packet server has proven to be rather slow over the internet. Print a warning about it.
 	v = Args->CheckValue("-netmode");
-	if (v != NULL && (atoi(v) != 0))
+	if (v != nullptr && (atoi(v) != 0))
 	{
 		Printf(TEXTCOLOR_YELLOW "Notice: Using PacketServer (netmode 1) over the internet is prone to running too slow on some internet configurations."
 			"\nIf the game is running well below expected speeds, use netmode 0 (P2P) instead.\n");
@@ -1694,14 +1694,14 @@ void D_CheckNetGame (void)
 	if (consoleplayer == Net_Arbitrator)
 	{
 		v = Args->CheckValue("-netmode");
-		if (v != NULL)
+		if (v != nullptr)
 		{
 			NetMode = atoi(v) != 0 ? NET_PacketServer : NET_PeerToPeer;
 		}
 		if (doomcom.numnodes > 1)
 		{
 			Printf("Selected " TEXTCOLOR_BLUE "%s" TEXTCOLOR_NORMAL " networking mode. (%s)\n", NetMode == NET_PeerToPeer ? "peer to peer" : "packet server",
-				v != NULL ? "forced" : "auto");
+				v != nullptr ? "forced" : "auto");
 		}
 
 		if (Args->CheckParm("-extratic"))
@@ -2032,7 +2032,7 @@ void Net_WriteBytes (const BYTE *block, int len)
 
 FDynamicBuffer::FDynamicBuffer ()
 {
-	m_Data = NULL;
+	m_Data = nullptr;
 	m_Len = m_BufferLen = 0;
 }
 
@@ -2041,7 +2041,7 @@ FDynamicBuffer::~FDynamicBuffer ()
 	if (m_Data)
 	{
 		free (m_Data);
-		m_Data = NULL;
+		m_Data = nullptr;
 	}
 	m_Len = m_BufferLen = 0;
 }
@@ -2053,7 +2053,7 @@ void FDynamicBuffer::SetData (const BYTE *data, int len)
 		m_BufferLen = (len + 255) & ~255;
 		m_Data = (BYTE *)M_Realloc (m_Data, m_BufferLen);
 	}
-	if (data != NULL)
+	if (data != nullptr)
 	{
 		m_Len = len;
 		memcpy (m_Data, data, len);
@@ -2068,7 +2068,7 @@ BYTE *FDynamicBuffer::GetData (int *len)
 {
 	if (len)
 		*len = m_Len;
-	return m_Len ? m_Data : NULL;
+	return m_Len ? m_Data : nullptr;
 }
 
 
@@ -2100,7 +2100,7 @@ static int RemoveClass(const PClass *cls)
 		if (actor->IsA(cls))
 		{
 			// [MC]Do not remove LIVE players.
-			if (actor->player != NULL)
+			if (actor->player != nullptr)
 			{
 				player = true;
 				continue;
@@ -2121,7 +2121,7 @@ static int RemoveClass(const PClass *cls)
 void Net_DoCommand (int type, BYTE **stream, int player)
 {
 	BYTE pos = 0;
-	char *s = NULL;
+	char *s = nullptr;
 	int i;
 
 	switch (type)
@@ -2245,7 +2245,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		{
 			AInventory *item = players[player].mo->Inventory;
 
-			while (item != NULL)
+			while (item != nullptr)
 			{
 				AInventory *next = item->Inventory;
 				if (item->ItemFlags & IF_INVBAR && !(item->IsKindOf(RUNTIME_CLASS(APuzzleItem))))
@@ -2266,11 +2266,11 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 				&& players[player].playerstate != PST_DEAD)
 			{
 				AInventory *item = players[player].mo->Inventory;
-				while (item != NULL && item->InventoryID != which)
+				while (item != nullptr && item->InventoryID != which)
 				{
 					item = item->Inventory;
 				}
-				if (item != NULL)
+				if (item != nullptr)
 				{
 					if (type == DEM_INVUSE)
 					{
@@ -2309,10 +2309,10 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			}
 
 			typeinfo = PClass::FindActor(s);
-			if (typeinfo != NULL)
+			if (typeinfo != nullptr)
 			{
 				AActor *source = players[player].mo;
-				if (source != NULL)
+				if (source != nullptr)
 				{
 					if (GetDefaultByType (typeinfo)->flags & MF_MISSILE)
 					{
@@ -2324,7 +2324,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 						DVector3 spawnpos = source->Vec3Angle(def->radius * 2 + source->radius, source->Angles.Yaw, 8.);
 
 						AActor *spawned = Spawn (typeinfo, spawnpos, ALLOW_REPLACE);
-						if (spawned != NULL)
+						if (spawned != nullptr)
 						{
 							if (type == DEM_SUMMONFRIEND || type == DEM_SUMMONFRIEND2 || type == DEM_SUMMONMBF)
 							{
@@ -2378,7 +2378,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			{
 				if (trace.HitType == TRACE_HitWall)
 				{
-					DImpactDecal::StaticCreate (s, trace.HitPos, trace.Line->sidedef[trace.Side], NULL);
+					DImpactDecal::StaticCreate (s, trace.HitPos, trace.Line->sidedef[trace.Side], nullptr);
 				}
 			}
 		}
@@ -2416,12 +2416,12 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 				// the save command. For other systems, the path needs to be changed.
 				const char *fileonly = savegamefile.GetChars();
 				const char *slash = strrchr (fileonly, '\\');
-				if (slash != NULL)
+				if (slash != nullptr)
 				{
 					fileonly = slash + 1;
 				}
 				slash = strrchr (fileonly, '/');
-				if (slash != NULL)
+				if (slash != nullptr)
 				{
 					fileonly = slash + 1;
 				}
@@ -2513,13 +2513,13 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			}
 			if (!CheckCheatmode(player == consoleplayer))
 			{
-				P_ExecuteSpecial(snum, NULL, players[player].mo, false, arg[0], arg[1], arg[2], arg[3], arg[4]);
+				P_ExecuteSpecial(snum, nullptr, players[player].mo, false, arg[0], arg[1], arg[2], arg[3], arg[4]);
 			}
 		}
 		break;
 
 	case DEM_CROUCH:
-		if (gamestate == GS_LEVEL && players[player].mo != NULL && 
+		if (gamestate == GS_LEVEL && players[player].mo != nullptr && 
 			players[player].health > 0 && !(players[player].oldbuttons & BT_JUMP) &&
 			!P_IsPlayerTotallyFrozen(&players[player]))
 		{
@@ -2564,7 +2564,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			int killcount = 0;
 			PClassActor *cls = PClass::FindActor(classname);
 
-			if (cls != NULL)
+			if (cls != nullptr)
 			{
 				killcount = KillAll(cls);
 				PClassActor *cls_rep = cls->GetReplacement();
@@ -2586,7 +2586,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		char *classname = ReadString(stream);
 		int removecount = 0;
 		PClassActor *cls = PClass::FindActor(classname);
-		if (cls != NULL && cls->IsKindOf(RUNTIME_CLASS(PClassActor)))
+		if (cls != nullptr && cls->IsKindOf(RUNTIME_CLASS(PClassActor)))
 		{
 			removecount = RemoveClass(cls);
 			const PClass *cls_rep = cls->GetReplacement();
@@ -2666,7 +2666,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 
 	case DEM_FINISHGAME:
 		// Simulate an end-of-game action
-		G_ChangeLevel(NULL, 0, 0);
+		G_ChangeLevel(nullptr, 0, 0);
 		break;
 
 	default:
@@ -2692,7 +2692,7 @@ static void RunScript(BYTE **stream, APlayerPawn *pawn, int snum, int argn, int 
 			arg[i] = argval;
 		}
 	}
-	P_StartScript(pawn, NULL, snum, level.MapName, arg, MIN<int>(countof(arg), argn), ACS_NET | always);
+	P_StartScript(pawn, nullptr, snum, level.MapName, arg, MIN<int>(countof(arg), argn), ACS_NET | always);
 }
 
 void Net_SkipCommand (int type, BYTE **stream)
@@ -2877,7 +2877,7 @@ static void Network_Controller (int playernum, bool add)
 		return;
 	}
 
-	if (players[playernum].Bot != NULL)
+	if (players[playernum].Bot != nullptr)
 	{
 		Printf ("Bots cannot be added to the controller list.\n");
 		return;

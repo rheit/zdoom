@@ -126,11 +126,11 @@ FProduction *ProdNeqStr  (FStringProd *prod1, FStringProd *prod2);
 static FProducer Producers[] =
 {
 	{ "+",   ProdAddDbl, ProdAddStr },
-	{ "-",   ProdSubDbl, NULL },
-	{ "*",   ProdMulDbl, NULL },
-	{ "/",   ProdDivDbl, NULL },
-	{ "%",   ProdModDbl, NULL },
-	{ "^",   ProdPowDbl, NULL },
+	{ "-",   ProdSubDbl, nullptr },
+	{ "*",   ProdMulDbl, nullptr },
+	{ "/",   ProdDivDbl, nullptr },
+	{ "%",   ProdModDbl, nullptr },
+	{ "^",   ProdPowDbl, nullptr },
 	{ "<",   ProdLTDbl,  ProdLTStr },
 	{ "<=",  ProdLTEDbl, ProdLTEStr },
 	{ ">",   ProdGTDbl,  ProdGTStr },
@@ -139,11 +139,11 @@ static FProducer Producers[] =
 	{ "==",  ProdEqDbl,  ProdEqStr },
 	{ "!=",  ProdNeqDbl, ProdNeqStr },
 	{ "<>",  ProdNeqDbl, ProdNeqStr },
-	{ "xor", ProdXorDbl, NULL },
-	{ "&",   ProdAndDbl, NULL },
-	{ "|",   ProdOrDbl,  NULL },
-	{ "&&",  ProdLAndDbl, NULL },
-	{ "||",  ProdLOrDbl, NULL }
+	{ "xor", ProdXorDbl, nullptr },
+	{ "&",   ProdAndDbl, nullptr },
+	{ "|",   ProdOrDbl,  nullptr },
+	{ "&&",  ProdLAndDbl, nullptr },
+	{ "||",  ProdLOrDbl, nullptr }
 };
 
 // CODE --------------------------------------------------------------------
@@ -160,10 +160,10 @@ static FProducer Producers[] =
 static FProduction *ParseExpression (FCommandLine &argv, int &parsept)
 {
 	if (parsept >= argv.argc())
-		return NULL;
+		return nullptr;
 
 	const char *token = argv[parsept++];
-	FProduction *prod1 = NULL, *prod2 = NULL, *prod3 = NULL;
+	FProduction *prod1 = nullptr, *prod2 = nullptr, *prod3 = nullptr;
 
 	if (IsFloat (token))
 	{
@@ -185,15 +185,15 @@ static FProduction *ParseExpression (FCommandLine &argv, int &parsept)
 			{
 				prod1 = ParseExpression (argv, parsept);
 				prod2 = ParseExpression (argv, parsept);
-				if (prod1 == NULL || prod2 == NULL)
+				if (prod1 == nullptr || prod2 == nullptr)
 				{
 					goto missing;
 				}
-				if (Producers[i].StringProducer == NULL)
+				if (Producers[i].StringProducer == nullptr)
 				{
 					DoubleCoerce (prod1, prod2);
 				}
-				else if (Producers[i].DoubleProducer == NULL)
+				else if (Producers[i].DoubleProducer == nullptr)
 				{
 					MustStringCoerce (prod1, prod2);
 				}
@@ -215,7 +215,7 @@ static FProduction *ParseExpression (FCommandLine &argv, int &parsept)
 		if (strcmp ("!", token) == 0)
 		{
 			prod1 = ParseExpression (argv, parsept);
-			if (prod1 == NULL)
+			if (prod1 == nullptr)
 			{
 				goto missing;
 			}
@@ -233,8 +233,8 @@ missing:
 	Printf ("Missing argument to %s\n", token);
 
 done:
-	if (prod2 != NULL) M_Free (prod2);
-	if (prod1 != NULL) M_Free (prod1);
+	if (prod2 != nullptr) M_Free (prod2);
+	if (prod1 != nullptr) M_Free (prod1);
 	return prod3;
 }
 
@@ -258,13 +258,13 @@ bool IsFloat (const char *str)
 	else
 	{
 		pt = IsNum (str);
-		if (pt == NULL)
+		if (pt == nullptr)
 			return false;
 	}
 	if (*pt == '.')
 	{
 		pt = IsNum (pt+1);
-		if (pt == NULL)
+		if (pt == nullptr)
 			return false;
 	}
 	if (*pt == 'e' || *pt == 'E')
@@ -274,7 +274,7 @@ bool IsFloat (const char *str)
 			pt++;
 		pt = IsNum (pt);
 	}
-	return pt != NULL && *pt == 0;
+	return pt != nullptr && *pt == 0;
 }
 
 //==========================================================================
@@ -295,7 +295,7 @@ static const char *IsNum (const char *str)
 			break;
 	}
 
-	return (str > start) ? str : NULL;
+	return (str > start) ? str : nullptr;
 }
 
 //==========================================================================
@@ -724,7 +724,7 @@ CCMD (test)
 	int parsept = 1;
 	FProduction *prod = ParseExpression (argv, parsept);
 
-	if (prod == NULL || parsept >= argv.argc())
+	if (prod == nullptr || parsept >= argv.argc())
 	{
 		Printf ("Usage: test <expr> <true cmd> [false cmd]\n");
 	}
@@ -744,7 +744,7 @@ CCMD (test)
 			AddCommandString (argv[parsept]);
 		}
 	}
-	if (prod != NULL)
+	if (prod != nullptr)
 	{
 		M_Free (prod);
 	}
@@ -766,12 +766,12 @@ CCMD (eval)
 		int parsept = 1;
 		FProduction *prod = ParseExpression (argv, parsept);
 
-		if (prod != NULL)
+		if (prod != nullptr)
 		{
 			if (parsept < argv.argc())
 			{
-				FBaseCVar *var = FindCVar (argv[parsept], NULL);
-				if (var == NULL)
+				FBaseCVar *var = FindCVar (argv[parsept], nullptr);
+				if (var == nullptr)
 				{
 					Printf ("Unknown variable %s\n", argv[parsept]);
 				}

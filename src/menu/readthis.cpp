@@ -47,7 +47,7 @@ class DReadThisMenu : public DMenu
 
 public:
 
-	DReadThisMenu(DMenu *parent = NULL);
+	DReadThisMenu(DMenu *parent = nullptr);
 	void Drawer();
 	bool MenuEvent(int mkey, bool fromcontroller);
 	bool DimAllowed () { return false; }
@@ -78,17 +78,17 @@ DReadThisMenu::DReadThisMenu(DMenu *parent)
 
 void DReadThisMenu::Drawer()
 {
-	FTexture *tex = NULL, *prevpic = NULL;
+	FTexture *tex = nullptr, *prevpic = nullptr;
 	double alpha;
 
 	// Did the mapper choose a custom help page via MAPINFO?
-	if ((level.info != NULL) && level.info->F1Pic.Len() != 0)
+	if ((level.info != nullptr) && level.info->F1Pic.Len() != 0)
 	{
 		tex = TexMan.FindTexture(level.info->F1Pic);
 		mScreen = 1;
 	}
 	
-	if (tex == NULL)
+	if (tex == nullptr)
 	{
 		tex = TexMan[gameinfo.infoPages[mScreen-1].GetChars()];
 	}
@@ -100,7 +100,7 @@ void DReadThisMenu::Drawer()
 
 	screen->Dim(0, 1.0, 0,0, SCREENWIDTH, SCREENHEIGHT);
 	alpha = MIN((gametic - mInfoTic) * (3. / TICRATE), 1.);
-	if (alpha < 1. && prevpic != NULL)
+	if (alpha < 1. && prevpic != nullptr)
 	{
 		screen->DrawTexture (prevpic, 0, 0, DTA_Fullscreen, true, TAG_DONE);
 	}
@@ -122,7 +122,7 @@ bool DReadThisMenu::MenuEvent(int mkey, bool fromcontroller)
 		S_Sound (CHAN_VOICE | CHAN_UI, "menu/choose", snd_menuvolume, ATTN_NONE);
 		mScreen++;
 		mInfoTic = gametic;
-		if ((level.info != NULL && level.info->F1Pic.Len() != 0) || mScreen > int(gameinfo.infoPages.Size()))
+		if ((level.info != nullptr && level.info->F1Pic.Len() != 0) || mScreen > int(gameinfo.infoPages.Size()))
 		{
 			Close();
 		}

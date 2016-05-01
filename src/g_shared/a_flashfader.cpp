@@ -37,7 +37,7 @@ void DFlashFader::Serialize (FArchive &arc)
 
 void DFlashFader::Tick ()
 {
-	if (ForWho == NULL || ForWho->player == NULL)
+	if (ForWho == nullptr || ForWho->player == nullptr)
 	{
 		Destroy ();
 		return;
@@ -53,7 +53,7 @@ void DFlashFader::Tick ()
 
 void DFlashFader::SetBlend (float time)
 {
-	if (ForWho == NULL || ForWho->player == NULL)
+	if (ForWho == nullptr || ForWho->player == nullptr)
 	{
 		return;
 	}

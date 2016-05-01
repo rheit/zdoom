@@ -72,7 +72,7 @@ void R_InitSkyMap ()
 	skytex1 = TexMan(sky1texture, true);
 	skytex2 = TexMan(sky2texture, true);
 
-	if (skytex1 == NULL)
+	if (skytex1 == nullptr)
 		return;
 
 	if ((level.flags & LEVEL_DOUBLESKY) && skytex1->GetHeight() != skytex2->GetHeight())

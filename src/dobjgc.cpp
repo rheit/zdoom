@@ -204,7 +204,7 @@ size_t PropagateMark()
 static size_t PropagateAll()
 {
 	size_t m = 0;
-	while (Gray != NULL)
+	while (Gray != nullptr)
 	{
 		m += PropagateMark();
 	}
@@ -226,7 +226,7 @@ static DObject **SweepList(DObject **p, size_t count, size_t *finalize_count)
 	int deadmask = OtherWhite();
 	size_t finalized = 0;
 
-	while ((curr = *p) != NULL && count-- > 0)
+	while ((curr = *p) != nullptr && count-- > 0)
 	{
 		if ((curr->ObjectFlags ^ OF_WhiteBits) & deadmask)	// not dead?
 		{
@@ -257,7 +257,7 @@ static DObject **SweepList(DObject **p, size_t count, size_t *finalize_count)
 			finalized++;
 		}
 	}
-	if (finalize_count != NULL)
+	if (finalize_count != nullptr)
 	{
 		*finalize_count = finalized;
 	}
@@ -275,11 +275,11 @@ static DObject **SweepList(DObject **p, size_t count, size_t *finalize_count)
 void Mark(DObject **obj)
 {
 	DObject *lobj = *obj;
-	if (lobj != NULL)
+	if (lobj != nullptr)
 	{
 		if (lobj->ObjectFlags & OF_EuthanizeMe)
 		{
-			*obj = (DObject *)NULL;
+			*obj = (DObject *)nullptr;
 		}
 		else if (lobj->IsWhite())
 		{
@@ -318,7 +318,7 @@ static void MarkRoot()
 {
 	int i;
 
-	Gray = NULL;
+	Gray = nullptr;
 	Mark(Args);
 	Mark(screen);
 	Mark(StatusBar);
@@ -345,13 +345,13 @@ static void MarkRoot()
 	// Mark sound sequences.
 	DSeqNode::StaticMarkHead();
 	// Mark sectors.
-	if (SectorMarker == NULL && sectors != NULL)
+	if (SectorMarker == nullptr && sectors != nullptr)
 	{
 		SectorMarker = new DSectorMarker;
 	}
-	else if (sectors == NULL)
+	else if (sectors == nullptr)
 	{
-		SectorMarker = NULL;
+		SectorMarker = nullptr;
 	}
 	else
 	{
@@ -364,7 +364,7 @@ static void MarkRoot()
 	{
 		FAutoSegIterator probe(ARegHead, ARegTail);
 
-		while (*++probe != NULL)
+		while (*++probe != nullptr)
 		{
 			AFuncDesc *afunc = (AFuncDesc *)*probe;
 			Mark(*(afunc->VMPointer));
@@ -385,10 +385,10 @@ static void MarkRoot()
 	// NextToThink must not be freed while thinkers are ticking.
 	Mark(NextToThink);
 	// Mark soft roots.
-	if (SoftRoots != NULL)
+	if (SoftRoots != nullptr)
 	{
 		DObject **probe = &SoftRoots->ObjNext;
-		while (*probe != NULL)
+		while (*probe != nullptr)
 		{
 			DObject *soft = *probe;
 			probe = &soft->ObjNext;
@@ -438,7 +438,7 @@ static size_t SingleStep()
 		return 0;
 
 	case GCS_Propagate:
-		if (Gray != NULL)
+		if (Gray != nullptr)
 		{
 			return PropagateMark();
 		}
@@ -452,7 +452,7 @@ static size_t SingleStep()
 		size_t old = AllocBytes;
 		size_t finalize_count;
 		SweepPos = SweepList(SweepPos, GCSWEEPMAX, &finalize_count);
-		if (*SweepPos == NULL)
+		if (*SweepPos == nullptr)
 		{ // Nothing more to sweep?
 			State = GCS_Finalize;
 		}
@@ -530,7 +530,7 @@ void FullGC()
 		// Reset sweep mark to sweep all elements (returning them to white)
 		SweepPos = &Root;
 		// Reset other collector lists
-		Gray = NULL;
+		Gray = nullptr;
 		State = GCS_Sweep;
 	}
 	// Finish any pending sweep phase
@@ -557,7 +557,7 @@ void FullGC()
 
 void Barrier(DObject *pointing, DObject *pointed)
 {
-	assert(pointing == NULL || (pointing->IsBlack() && !pointing->IsDead()));
+	assert(pointing == nullptr || (pointing->IsBlack() && !pointing->IsDead()));
 	assert(pointed->IsWhite() && !pointed->IsDead());
 	assert(State != GCS_Finalize && State != GCS_Pause);
 	// The invariant only needs to be maintained in the propagate state.
@@ -569,7 +569,7 @@ void Barrier(DObject *pointing, DObject *pointed)
 	}
 	// In other states, we can mark the pointing object white so this
 	// barrier won't be triggered again, saving a few cycles in the future.
-	else if (pointing != NULL)
+	else if (pointing != nullptr)
 	{
 		pointing->MakeWhite();
 	}
@@ -577,13 +577,13 @@ void Barrier(DObject *pointing, DObject *pointed)
 
 void DelSoftRootHead()
 {
-	if (SoftRoots != NULL)
+	if (SoftRoots != nullptr)
 	{
 		// Don't let the destructor print a warning message
 		SoftRoots->ObjectFlags |= OF_YesReallyDelete;
 		delete SoftRoots;
 	}
-	SoftRoots = NULL;
+	SoftRoots = nullptr;
 }
 
 //==========================================================================
@@ -600,7 +600,7 @@ void AddSoftRoot(DObject *obj)
 	DObject **probe;
 
 	// Are there any soft roots yet?
-	if (SoftRoots == NULL)
+	if (SoftRoots == nullptr)
 	{
 		// Create a new object to root the soft roots off of, and stick
 		// it at the end of the object list, so we know that anything
@@ -608,17 +608,17 @@ void AddSoftRoot(DObject *obj)
 		SoftRoots = new DObject;
 		SoftRoots->ObjectFlags |= OF_Fixed;
 		probe = &Root;
-		while (*probe != NULL)
+		while (*probe != nullptr)
 		{
 			probe = &(*probe)->ObjNext;
 		}
 		Root = SoftRoots->ObjNext;
-		SoftRoots->ObjNext = NULL;
+		SoftRoots->ObjNext = nullptr;
 		*probe = SoftRoots;
 	}
 	// Mark this object as rooted and move it after the SoftRoots marker.
 	probe = &Root;
-	while (*probe != NULL && *probe != obj)
+	while (*probe != nullptr && *probe != obj)
 	{
 		probe = &(*probe)->ObjNext;
 	}
@@ -648,7 +648,7 @@ void DelSoftRoot(DObject *obj)
 	obj->ObjectFlags &= ~OF_Rooted;
 	// Move object out of the soft roots part of the list.
 	probe = &SoftRoots;
-	while (*probe != NULL && *probe != obj)
+	while (*probe != nullptr && *probe != obj)
 	{
 		probe = &(*probe)->ObjNext;
 	}
@@ -677,7 +677,7 @@ size_t DSectorMarker::PropagateMark()
 	int marked = 0;
 	bool moretodo = false;
 
-	if (sectors != NULL)
+	if (sectors != nullptr)
 	{
 		for (i = 0; i < SECTORSTEPSIZE && SecNum + i < numsectors; ++i)
 		{
@@ -696,7 +696,7 @@ size_t DSectorMarker::PropagateMark()
 			moretodo = true;
 		}
 	}
-	if (!moretodo && polyobjs != NULL)
+	if (!moretodo && polyobjs != nullptr)
 	{
 		for (i = 0; i < POLYSTEPSIZE && PolyNum + i < po_NumPolyobjs; ++i)
 		{
@@ -709,7 +709,7 @@ size_t DSectorMarker::PropagateMark()
 			moretodo = true;
 		}
 	}
-	if (!moretodo && sides != NULL)
+	if (!moretodo && sides != nullptr)
 	{
 		for (i = 0; i < SIDEDEFSTEPSIZE && SideNum + i < numsides; ++i)
 		{

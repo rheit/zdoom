@@ -97,7 +97,7 @@ bool CheckIfExitIsGood (AActor *self, level_info_t *info)
 	cluster_info_t *cluster;
 
 	// The world can always exit itself.
-	if (self == NULL)
+	if (self == nullptr)
 		return true;
 
 	// We must kill all monsters to exit the level.
@@ -113,9 +113,9 @@ bool CheckIfExitIsGood (AActor *self, level_info_t *info)
 	// Is this a singleplayer game and the next map is part of the same hub and we're dead?
 	if (self->health <= 0 &&
 		!multiplayer &&
-		info != NULL &&
+		info != nullptr &&
 		info->cluster == level.cluster &&
-		(cluster = FindClusterInfo(level.cluster)) != NULL &&
+		(cluster = FindClusterInfo(level.cluster)) != nullptr &&
 		cluster->flags & CLUSTER_HUB)
 	{
 		return false;
@@ -215,7 +215,7 @@ bool P_TestActivateLine (line_t *line, AActor *mo, int side, int activationType,
 	else if (line->special == Teleport &&
 		(lineActivation & SPAC_Cross) &&
 		activationType == SPAC_PCross &&
-		mo != NULL &&
+		mo != nullptr &&
 		mo->flags & MF_MISSILE)
 	{ // Let missiles use regular player teleports
 		lineActivation |= SPAC_PCross;
@@ -372,7 +372,7 @@ bool P_PredictLine(line_t *line, AActor *mo, int side, int activationType)
 //
 void P_PlayerInSpecialSector (player_t *player, sector_t * sector)
 {
-	if (sector == NULL)
+	if (sector == nullptr)
 	{
 		// Falling, not all the way down yet?
 		sector = player->mo->Sector;
@@ -392,14 +392,14 @@ void P_PlayerInSpecialSector (player_t *player, sector_t * sector)
 		// Allow subclasses. Better would be to implement it as armor and let that reduce
 		// the damage as part of the normal damage procedure. Unfortunately, I don't have
 		// different damage types yet, so that's not happening for now.
-		for (ironfeet = player->mo->Inventory; ironfeet != NULL; ironfeet = ironfeet->Inventory)
+		for (ironfeet = player->mo->Inventory; ironfeet != nullptr; ironfeet = ironfeet->Inventory)
 		{
 			if (ironfeet->IsKindOf (RUNTIME_CLASS(APowerIronFeet)))
 				break;
 		}
 
 		if (sector->Flags & SECF_ENDGODMODE) player->cheats &= ~CF_GODMODE;
-		if ((ironfeet == NULL || pr_playerinspecialsector() < sector->leakydamage))
+		if ((ironfeet == nullptr || pr_playerinspecialsector() < sector->leakydamage))
 		{
 			if (sector->Flags & SECF_HAZARD)
 			{
@@ -409,7 +409,7 @@ void P_PlayerInSpecialSector (player_t *player, sector_t * sector)
 			}
 			else if (level.time % sector->damageinterval == 0)
 			{
-				if (!(player->cheats & (CF_GODMODE|CF_GODMODE2))) P_DamageMobj(player->mo, NULL, NULL, sector->damageamount, sector->damagetype);
+				if (!(player->cheats & (CF_GODMODE|CF_GODMODE2))) P_DamageMobj(player->mo, nullptr, nullptr, sector->damageamount, sector->damagetype);
 				if ((sector->Flags & SECF_ENDLEVEL) && player->health <= 10 && (!deathmatch || !(dmflags & DF_NO_EXIT)))
 				{
 					G_ExitLevel(0, false);
@@ -447,22 +447,22 @@ static void DoSectorDamage(AActor *actor, sector_t *sec, int amount, FName type,
 	if (!(actor->flags & MF_SHOOTABLE))
 		return;
 
-	if (!(flags & DAMAGE_NONPLAYERS) && actor->player == NULL)
+	if (!(flags & DAMAGE_NONPLAYERS) && actor->player == nullptr)
 		return;
 
-	if (!(flags & DAMAGE_PLAYERS) && actor->player != NULL)
+	if (!(flags & DAMAGE_PLAYERS) && actor->player != nullptr)
 		return;
 
 	if (!(flags & DAMAGE_IN_AIR) && !actor->isAtZ(sec->floorplane.ZatPoint(actor)) && !actor->waterlevel)
 		return;
 
-	if (protectClass != NULL)
+	if (protectClass != nullptr)
 	{
 		if (actor->FindInventory(protectClass, !!(flags & DAMAGE_SUBCLASSES_PROTECT)))
 			return;
 	}
 
-	P_DamageMobj (actor, NULL, NULL, amount, type);
+	P_DamageMobj (actor, nullptr, nullptr, amount, type);
 }
 
 void P_SectorDamage(int tag, int amount, FName type, PClassActor *protectClass, int flags)
@@ -475,7 +475,7 @@ void P_SectorDamage(int tag, int amount, FName type, PClassActor *protectClass, 
 		sector_t *sec = &sectors[secnum];
 
 		// Do for actors in this sector.
-		for (actor = sec->thinglist; actor != NULL; actor = next)
+		for (actor = sec->thinglist; actor != nullptr; actor = next)
 		{
 			next = actor->snext;
 			DoSectorDamage(actor, sec, amount, type, protectClass, flags);
@@ -486,7 +486,7 @@ void P_SectorDamage(int tag, int amount, FName type, PClassActor *protectClass, 
 		{
 			sector_t *sec2 = sec->e->XFloor.attached[i];
 
-			for (actor = sec2->thinglist; actor != NULL; actor = next)
+			for (actor = sec2->thinglist; actor != nullptr; actor = next)
 			{
 				next = actor->snext;
 				// Only affect actors touching the 3D floor
@@ -509,7 +509,7 @@ void P_SectorDamage(int tag, int amount, FName type, PClassActor *protectClass, 
 						// Here we pass the DAMAGE_IN_AIR flag to disable the floor check, since it
 						// only works with the real sector's floor. We did the appropriate height checks
 						// for 3D floors already.
-						DoSectorDamage(actor, NULL, amount, type, protectClass, flags | DAMAGE_IN_AIR);
+						DoSectorDamage(actor, nullptr, amount, type, protectClass, flags | DAMAGE_IN_AIR);
 					}
 				}
 			}
@@ -528,9 +528,9 @@ CVAR(Bool, cl_showsecretmessage, true, CVAR_ARCHIVE)
 
 void P_GiveSecret(AActor *actor, bool printmessage, bool playsound, int sectornum)
 {
-	if (actor != NULL)
+	if (actor != nullptr)
 	{
-		if (actor->player != NULL)
+		if (actor->player != nullptr)
 		{
 			actor->player->secretcount++;
 		}
@@ -563,11 +563,11 @@ void P_PlayerOnSpecialFlat (player_t *player, int floorType)
 	if (Terrains[floorType].DamageAmount &&
 		!(level.time & Terrains[floorType].DamageTimeMask))
 	{
-		AInventory *ironfeet = NULL;
+		AInventory *ironfeet = nullptr;
 
 		if (Terrains[floorType].AllowProtection)
 		{
-			for (ironfeet = player->mo->Inventory; ironfeet != NULL; ironfeet = ironfeet->Inventory)
+			for (ironfeet = player->mo->Inventory; ironfeet != nullptr; ironfeet = ironfeet->Inventory)
 			{
 				if (ironfeet->IsKindOf (RUNTIME_CLASS(APowerIronFeet)))
 					break;
@@ -575,9 +575,9 @@ void P_PlayerOnSpecialFlat (player_t *player, int floorType)
 		}
 
 		int damage = 0;
-		if (ironfeet == NULL)
+		if (ironfeet == nullptr)
 		{
-			damage = P_DamageMobj (player->mo, NULL, NULL, Terrains[floorType].DamageAmount,
+			damage = P_DamageMobj (player->mo, nullptr, nullptr, Terrains[floorType].DamageAmount,
 				Terrains[floorType].DamageMOD);
 		}
 		if (damage > 0 && Terrains[floorType].Splash != -1)
@@ -779,12 +779,12 @@ DWallLightTransfer::DWallLightTransfer (sector_t *srcSec, int target, BYTE flags
 	FLineIdIterator itr(target);
 	while ((linenum = itr.Next()) >= 0)
 	{
-		if (flags & WLF_SIDE1 && lines[linenum].sidedef[0] != NULL)
+		if (flags & WLF_SIDE1 && lines[linenum].sidedef[0] != nullptr)
 		{
 			lines[linenum].sidedef[0]->Flags |= wallflags;
 		}
 
-		if (flags & WLF_SIDE2 && lines[linenum].sidedef[1] != NULL)
+		if (flags & WLF_SIDE2 && lines[linenum].sidedef[1] != nullptr)
 		{
 			lines[linenum].sidedef[1]->Flags |= wallflags;
 		}
@@ -812,12 +812,12 @@ void DWallLightTransfer::DoTransfer (short lightlevel, int target, BYTE flags)
 	{
 		line_t *line = &lines[linenum];
 
-		if (flags & WLF_SIDE1 && line->sidedef[0] != NULL)
+		if (flags & WLF_SIDE1 && line->sidedef[0] != nullptr)
 		{
 			line->sidedef[0]->SetLight(lightlevel);
 		}
 
-		if (flags & WLF_SIDE2 && line->sidedef[1] != NULL)
+		if (flags & WLF_SIDE2 && line->sidedef[1] != nullptr)
 		{
 			line->sidedef[1]->SetLight(lightlevel);
 		}
@@ -838,7 +838,7 @@ static void SetupFloorPortal (AStackPoint *point)
 	NActorIterator it (NAME_LowerStackLookOnly, point->tid);
 	sector_t *Sector = point->Sector;
 	ASkyViewpoint *skyv = static_cast<ASkyViewpoint*>(it.Next());
-	if (skyv != NULL)
+	if (skyv != nullptr)
 	{
 		skyv->target = point;
 		if (Sector->GetAlpha(sector_t::floor) == 1.)
@@ -853,7 +853,7 @@ static void SetupCeilingPortal (AStackPoint *point)
 	NActorIterator it (NAME_UpperStackLookOnly, point->tid);
 	sector_t *Sector = point->Sector;
 	ASkyViewpoint *skyv = static_cast<ASkyViewpoint*>(it.Next());
-	if (skyv != NULL)
+	if (skyv != nullptr)
 	{
 		skyv->target = point;
 		if (Sector->GetAlpha(sector_t::ceiling) == 1.)
@@ -904,7 +904,7 @@ void P_SetupPortals()
 		if (s.mType == PORTS_STACKEDSECTORTHING && s.mSkybox)
 		{
 			s.mDisplacement = s.mSkybox->Pos() - s.mSkybox->target->Pos();
-			s.mSkybox = NULL;
+			s.mSkybox = nullptr;
 		}
 	}
 }
@@ -1001,14 +1001,14 @@ void P_SpawnPortal(line_t *line, int sectortag, int plane, int bytealpha, int li
 void P_SpawnSkybox(ASkyViewpoint *origin)
 {
 	sector_t *Sector = origin->Sector;
-	if (Sector == NULL)
+	if (Sector == nullptr)
 	{
 		Printf("Sector not initialized for SkyCamCompat\n");
 		origin->Sector = Sector = P_PointInSector(origin->Pos());
 	}
 	if (Sector)
 	{
-		line_t * refline = NULL;
+		line_t * refline = nullptr;
 		for (short i = 0; i < Sector->linecount; i++)
 		{
 			refline = Sector->lines[i];
@@ -1341,7 +1341,7 @@ void P_SpawnSpecials (void)
 			else if (lines[i].args[1] == 3 || lines[i].args[1] == 4)
 			{
 				line_t *line = &lines[i];
-				unsigned pnum = P_GetPortal(line->args[1] == 3 ? PORTS_PLANE : PORTS_HORIZON, line->args[2], line->frontsector, NULL, { 0,0 });
+				unsigned pnum = P_GetPortal(line->args[1] == 3 ? PORTS_PLANE : PORTS_HORIZON, line->args[2], line->frontsector, nullptr, { 0,0 });
 				CopyPortal(line->args[0], line->args[2], pnum, 0, true);
 			}
 			break;
@@ -1420,7 +1420,7 @@ void P_SpawnSpecials (void)
 		}
 	}
 	// [RH] Start running any open scripts on this map
-	FBehavior::StaticStartTypedScripts (SCRIPT_Open, NULL, false);
+	FBehavior::StaticStartTypedScripts (SCRIPT_Open, nullptr, false);
 }
 
 ////////////////////////////////////////////////////////////////////////////

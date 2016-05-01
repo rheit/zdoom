@@ -140,7 +140,7 @@ struct FSpotList
 			numcalls++;
 			return spot;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	//----------------------------------------------------------------------------
@@ -151,7 +151,7 @@ struct FSpotList
 
 	ASpecialSpot *GetSpotWithMinMaxDistance(double x, double y, double mindist, double maxdist)
 	{
-		if (Spots.Size() == 0) return NULL;
+		if (Spots.Size() == 0) return nullptr;
 		int i = pr_spot() % Spots.Size();
 		int initial = i;
 
@@ -164,7 +164,7 @@ struct FSpotList
 			if ((distance >= mindist) && ((maxdist == 0) || (distance <= maxdist))) break;
 
 			i = (i+1) % Spots.Size();
-			if (i == initial) return NULL;
+			if (i == initial) return nullptr;
 		}
 		numcalls++;
 		return Spots[i];
@@ -184,7 +184,7 @@ struct FSpotList
 			numcalls++;
 			return Spots[i];
 		}
-		else return NULL;
+		else return nullptr;
 	}
 };
 
@@ -222,7 +222,7 @@ void DSpotState::Destroy ()
 	SpotLists.Clear();
 	SpotLists.ShrinkToFit();
 
-	SpotState = NULL;
+	SpotState = nullptr;
 	Super::Destroy();
 }
 
@@ -244,7 +244,7 @@ void DSpotState::Tick ()
 
 DSpotState *DSpotState::GetSpotState(bool create)
 {
-	if (SpotState == NULL && create) SpotState = new DSpotState;
+	if (SpotState == nullptr && create) SpotState = new DSpotState;
 	return SpotState;
 }
 
@@ -272,7 +272,7 @@ FSpotList *DSpotState::FindSpotList(const PClass *type)
 bool DSpotState::AddSpot(ASpecialSpot *spot)
 {
 	FSpotList *list = FindSpotList(spot->GetClass());
-	if (list != NULL) return list->Add(spot);
+	if (list != nullptr) return list->Add(spot);
 	return false;
 }
 
@@ -285,7 +285,7 @@ bool DSpotState::AddSpot(ASpecialSpot *spot)
 bool DSpotState::RemoveSpot(ASpecialSpot *spot)
 {
 	FSpotList *list = FindSpotList(spot->GetClass());
-	if (list != NULL) return list->Remove(spot);
+	if (list != nullptr) return list->Remove(spot);
 	return false;
 }
 
@@ -327,8 +327,8 @@ void DSpotState::Serialize(FArchive &arc)
 ASpecialSpot *DSpotState::GetNextInList(const PClass *type, int skipcounter)
 {
 	FSpotList *list = FindSpotList(type);
-	if (list != NULL) return list->GetNextInList(skipcounter);
-	return NULL;
+	if (list != nullptr) return list->GetNextInList(skipcounter);
+	return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -340,8 +340,8 @@ ASpecialSpot *DSpotState::GetNextInList(const PClass *type, int skipcounter)
 ASpecialSpot *DSpotState::GetSpotWithMinMaxDistance(const PClass *type, double x, double y, double mindist, double maxdist)
 {
 	FSpotList *list = FindSpotList(type);
-	if (list != NULL) return list->GetSpotWithMinMaxDistance(x, y, mindist, maxdist);
-	return NULL;
+	if (list != nullptr) return list->GetSpotWithMinMaxDistance(x, y, mindist, maxdist);
+	return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -353,8 +353,8 @@ ASpecialSpot *DSpotState::GetSpotWithMinMaxDistance(const PClass *type, double x
 ASpecialSpot *DSpotState::GetRandomSpot(const PClass *type, bool onlyonce)
 {
 	FSpotList *list = FindSpotList(type);
-	if (list != NULL) return list->GetRandomSpot(onlyonce);
-	return NULL;
+	if (list != nullptr) return list->GetRandomSpot(onlyonce);
+	return nullptr;
 }
 
 
@@ -367,7 +367,7 @@ ASpecialSpot *DSpotState::GetRandomSpot(const PClass *type, bool onlyonce)
 void ASpecialSpot::BeginPlay()
 {
 	DSpotState *state = DSpotState::GetSpotState();
-	if (state != NULL) state->AddSpot(this);
+	if (state != nullptr) state->AddSpot(this);
 }
 
 //----------------------------------------------------------------------------
@@ -379,7 +379,7 @@ void ASpecialSpot::BeginPlay()
 void ASpecialSpot::Destroy()
 {
 	DSpotState *state = DSpotState::GetSpotState(false);
-	if (state != NULL) state->RemoveSpot(this);
+	if (state != nullptr) state->RemoveSpot(this);
 	Super::Destroy();
 }
 
@@ -398,11 +398,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnSingleItem)
 	PARAM_INT_OPT	(fail_co) { fail_co = 0; }
 	PARAM_INT_OPT	(fail_dm) { fail_dm = 0; }
 
-	AActor *spot = NULL;
+	AActor *spot = nullptr;
 	DSpotState *state = DSpotState::GetSpotState();
 
-	if (state != NULL) spot = state->GetRandomSpot(self->GetClass(), true);
-	if (spot == NULL) return 0;
+	if (state != nullptr) spot = state->GetRandomSpot(self->GetClass(), true);
+	if (spot == nullptr) return 0;
 
 	if (!multiplayer && pr_spawnmace() < fail_sp)
 	{ // Sometimes doesn't show up if not in deathmatch
@@ -419,7 +419,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SpawnSingleItem)
 		return 0;
 	}
 
-	if (cls == NULL)
+	if (cls == nullptr)
 	{
 		return 0;
 	}

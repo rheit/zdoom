@@ -270,7 +270,7 @@ static const char *DecalKeywords[] =
 	"colors",
 	"animator",
 	"lowerdecal",
-	NULL
+	nullptr
 };
 
 enum
@@ -295,7 +295,7 @@ enum
 
 const FDecalTemplate *FDecalBase::GetDecal () const
 {
-	return NULL;
+	return nullptr;
 }
 
 void FDecalTemplate::ReplaceDecalRef(FDecalBase *from, FDecalBase *to)
@@ -308,8 +308,8 @@ void FDecalTemplate::ReplaceDecalRef(FDecalBase *from, FDecalBase *to)
 
 FDecalLib::FDecalLib ()
 {
-	Root = NULL;
-	Translations = NULL;
+	Root = nullptr;
+	Translations = nullptr;
 }
 
 FDecalLib::~FDecalLib ()
@@ -322,10 +322,10 @@ void FDecalLib::Clear ()
 	FTranslation *trans;
 
 	DelTree (Root);
-	Root = NULL;
+	Root = nullptr;
 	
 	trans = Translations;
-	while (trans != NULL)
+	while (trans != nullptr)
 	{
 		FTranslation *next = trans->Next;
 		delete trans;
@@ -335,7 +335,7 @@ void FDecalLib::Clear ()
 
 void FDecalLib::DelTree (FDecalBase *root)
 {
-	if (root != NULL)
+	if (root != nullptr)
 	{
 		DelTree (root->Left);
 		DelTree (root->Right);
@@ -429,7 +429,7 @@ WORD FDecalLib::GetDecalID (FScanner &sc)
 	}
 	else
 	{
-		unsigned long num = strtoul (sc.String, NULL, 10);
+		unsigned long num = strtoul (sc.String, nullptr, 10);
 		if (num < 1 || num > 65535)
 		{
 			sc.ScriptError ("Decal ID must be between 1 and 65535");
@@ -530,7 +530,7 @@ void FDecalLib::ParseDecal (FScanner &sc)
 			sc.MustGetString ();
 			if (!sc.Compare("BloodDefault"))
 			{
-				newdecal.ShadeColor = V_GetColor (NULL, sc.String);
+				newdecal.ShadeColor = V_GetColor (nullptr, sc.String);
 			}
 			else
 			{
@@ -545,8 +545,8 @@ void FDecalLib::ParseDecal (FScanner &sc)
 		case DECAL_COLORS:
 			DWORD startcolor, endcolor;
 
-			sc.MustGetString (); startcolor = V_GetColor (NULL, sc.String);
-			sc.MustGetString (); endcolor   = V_GetColor (NULL, sc.String);
+			sc.MustGetString (); startcolor = V_GetColor (nullptr, sc.String);
+			sc.MustGetString (); endcolor   = V_GetColor (nullptr, sc.String);
 			newdecal.Translation = GenerateTranslation (startcolor, endcolor)->Index;
 			break;
 
@@ -589,7 +589,7 @@ void FDecalLib::ParseDecalGroup (FScanner &sc)
 		}
 
 		targetDecal = ScanTreeForName (sc.String, Root);
-		if (targetDecal == NULL)
+		if (targetDecal == nullptr)
 		{
 			sc.ScriptError ("%s has not been defined", sc.String);
 		}
@@ -611,7 +611,7 @@ void FDecalLib::ParseGenerator (FScanner &sc)
 	if (optional) sc.MustGetString();
 
 	type = PClass::FindActor (sc.String);
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		if (!optional) sc.ScriptError ("%s is not an actor.", sc.String);
 	}
@@ -620,21 +620,21 @@ void FDecalLib::ParseGenerator (FScanner &sc)
 	sc.MustGetString ();
 	if (stricmp (sc.String, "None") == 0)
 	{
-		decal = NULL;
+		decal = nullptr;
 	}
 	else
 	{
 		decal = ScanTreeForName (sc.String, Root);
-		if (decal == NULL)
+		if (decal == nullptr)
 		{
 			if (!optional) sc.ScriptError ("%s has not been defined.", sc.String);
 		}
 	}
-	if (type != NULL)
+	if (type != nullptr)
 	{
 		AActor *actor = (AActor *)type->Defaults;
 		actor->DecalGenerator = decal;
-		if (decal != NULL)
+		if (decal != nullptr)
 		{
 			decal->Users.Push(type);
 		}
@@ -817,7 +817,7 @@ void FDecalLib::ParseColorchanger (FScanner &sc)
 		else if (sc.Compare ("Color"))
 		{
 			sc.MustGetString ();
-			goal = V_GetColor (NULL, sc.String);
+			goal = V_GetColor (nullptr, sc.String);
 		}
 		else
 		{
@@ -838,7 +838,7 @@ void FDecalLib::ParseCombiner (FScanner &sc)
 	while (!sc.Compare ("}"))
 	{
 		FDecalAnimator *anim = FindAnimator (sc.String);
-		if (anim == NULL)
+		if (anim == nullptr)
 		{
 			sc.ScriptError ("Undefined animator %s", sc.String);
 		}
@@ -859,7 +859,7 @@ void FDecalLib::ParseCombiner (FScanner &sc)
 
 void FDecalLib::ReplaceDecalRef (FDecalBase *from, FDecalBase *to, FDecalBase *root)
 {
-	if (root == NULL)
+	if (root == nullptr)
 	{
 		return;
 	}
@@ -886,7 +886,7 @@ void FDecalLib::AddDecal (FDecalBase *decal)
 	decal->SpawnID = 0;
 
 	// Check if this decal already exists.
-	while (node != NULL)
+	while (node != nullptr)
 	{
 		int lexx = stricmp (decal->Name, node->Name);
 		if (lexx == 0)
@@ -904,12 +904,12 @@ void FDecalLib::AddDecal (FDecalBase *decal)
 			node = node->Right;
 		}
 	}
-	if (node == NULL)
+	if (node == nullptr)
 	{ // No, add it.
 		decal->SpawnID = 0;
 		*prev = decal;
-		decal->Left = NULL;
-		decal->Right = NULL;
+		decal->Left = nullptr;
+		decal->Right = nullptr;
 	}
 	else
 	{ // Yes, replace the old one.
@@ -933,7 +933,7 @@ void FDecalLib::AddDecal (FDecalBase *decal)
 	if (num != 0)
 	{
 		FDecalBase *spawner = ScanTreeForNum (num, Root);
-		if (spawner != NULL)
+		if (spawner != nullptr)
 		{
 			spawner->SpawnID = 0;
 		}
@@ -945,40 +945,40 @@ const FDecalTemplate *FDecalLib::GetDecalByNum (WORD num) const
 {
 	if (num == 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 	FDecalBase *base = ScanTreeForNum (num, Root);
-	if (base != NULL)
+	if (base != nullptr)
 	{
 		return base->GetDecal ();
 	}
-	return NULL;
+	return nullptr;
 }
 
 const FDecalTemplate *FDecalLib::GetDecalByName (const char *name) const
 {
-	if (name == NULL)
+	if (name == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	FDecalBase *base = ScanTreeForName (name, Root);
-	if (base != NULL)
+	if (base != nullptr)
 	{
 		return static_cast<FDecalTemplate *>(base);
 	}
-	return NULL;
+	return nullptr;
 }
 
 FDecalBase *FDecalLib::ScanTreeForNum (const WORD num, FDecalBase *root)
 {
-	while (root != NULL)
+	while (root != nullptr)
 	{
 		if (root->SpawnID == num)
 		{
 			break;
 		}
 		FDecalBase *leftres = ScanTreeForNum (num, root->Left);
-		if (leftres != NULL)
+		if (leftres != nullptr)
 			return leftres;
 		root = root->Right;		// Avoid tail-recursion
 	}
@@ -987,7 +987,7 @@ FDecalBase *FDecalLib::ScanTreeForNum (const WORD num, FDecalBase *root)
 
 FDecalBase *FDecalLib::ScanTreeForName (const char *name, FDecalBase *root)
 {
-	while (root != NULL)
+	while (root != nullptr)
 	{
 		int lexx = stricmp (name, root->Name);
 		if (lexx == 0)
@@ -1010,15 +1010,15 @@ FDecalLib::FTranslation *FDecalLib::GenerateTranslation (DWORD start, DWORD end)
 {
 	FTranslation *trans;
 
-	if (Translations != NULL)
+	if (Translations != nullptr)
 	{
 		trans = Translations->LocateTranslation (start, end);
 	}
 	else
 	{
-		trans = NULL;
+		trans = nullptr;
 	}
-	if (trans == NULL)
+	if (trans == nullptr)
 	{
 		trans = new FTranslation (start, end);
 		trans->Next = Translations;
@@ -1055,7 +1055,7 @@ void FDecalTemplate::ApplyToDecal (DBaseDecal *decal, side_t *wall) const
 		decal->RenderFlags ^= pr_decal() &
 			((RenderFlags & (DECAL_RandomFlipX|DECAL_RandomFlipY)) >> 8);
 	}
-	if (Animator != NULL)
+	if (Animator != nullptr)
 	{
 		Animator->CreateThinker (decal, wall);
 	}
@@ -1075,7 +1075,7 @@ FDecalLib::FTranslation::FTranslation (DWORD start, DWORD end)
 
 	StartColor = start;
 	EndColor = end;
-	Next = NULL;
+	Next = nullptr;
 
 	if (DecalTranslations.Size() == 256*256)
 	{
@@ -1120,7 +1120,7 @@ FDecalLib::FTranslation *FDecalLib::FTranslation::LocateTranslation (DWORD start
 			return trans;
 		}
 		trans = trans->Next;
-	} while (trans != NULL);
+	} while (trans != nullptr);
 	return trans;
 }
 
@@ -1131,13 +1131,13 @@ const FDecalTemplate *FDecalGroup::GetDecal () const
 
 	// Repeatedly GetDecal() until the result is constant, since
 	// the choice might be another FDecalGroup.
-	if (decal != NULL)
+	if (decal != nullptr)
 	{
 		do
 		{
 			remember = decal;
 			decal = decal->GetDecal ();
-		} while (decal != NULL && decal != remember);
+		} while (decal != nullptr && decal != remember);
 	}
 	return static_cast<const FDecalTemplate *>(remember);
 }
@@ -1161,7 +1161,7 @@ void DDecalFader::Serialize (FArchive &arc)
 
 void DDecalFader::Tick ()
 {
-	if (TheDecal == NULL)
+	if (TheDecal == nullptr)
 	{
 		Destroy ();
 	}
@@ -1245,7 +1245,7 @@ DThinker *FDecalStretcherAnim::CreateThinker (DBaseDecal *actor, side_t *wall) c
 
 void DDecalStretcher::Tick ()
 {
-	if (TheDecal == NULL)
+	if (TheDecal == nullptr)
 	{
 		Destroy ();
 		return;
@@ -1314,7 +1314,7 @@ DThinker *FDecalSliderAnim::CreateThinker (DBaseDecal *actor, side_t *wall) cons
 
 void DDecalSlider::Tick ()
 {
-	if (TheDecal == NULL)
+	if (TheDecal == nullptr)
 	{
 		Destroy ();
 		return;
@@ -1345,7 +1345,7 @@ void DDecalSlider::Tick ()
 
 DThinker *FDecalCombinerAnim::CreateThinker (DBaseDecal *actor, side_t *wall) const
 {
-	DThinker *thinker = NULL;
+	DThinker *thinker = nullptr;
 
 	for (int i = 0; i < NumAnimators; ++i)
 	{
@@ -1365,7 +1365,7 @@ FDecalAnimator *FDecalLib::FindAnimator (const char *name)
 			return Animators[i];
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -1379,7 +1379,7 @@ void DDecalColorer::Serialize (FArchive &arc)
 
 void DDecalColorer::Tick ()
 {
-	if (TheDecal == NULL || !(TheDecal->RenderStyle.Flags & STYLEF_ColorIsFixed))
+	if (TheDecal == nullptr || !(TheDecal->RenderStyle.Flags & STYLEF_ColorIsFixed))
 	{
 		Destroy ();
 	}

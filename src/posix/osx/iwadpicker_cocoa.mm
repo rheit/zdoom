@@ -100,7 +100,7 @@ static const char* const tableHeaders[NUM_COLUMNS] = { "IWAD", "Game" };
 	{
 		NSMutableDictionary *record = [[NSMutableDictionary alloc] initWithCapacity:NUM_COLUMNS];
 		const char* filename = strrchr(wads[i].Path, '/');
-		if(filename == NULL)
+		if(filename == nullptr)
 			filename = wads[i].Path;
 		else
 			filename++;
@@ -402,7 +402,7 @@ static void RestartWithParameters(const char* iwadPath, NSString* parameters)
 	defaultiwad = ExtractFileBase(iwadPath);
 
 	GameConfig->DoGameSetup("Doom");
-	M_SaveDefaults(NULL);
+	M_SaveDefaults(nullptr);
 
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 

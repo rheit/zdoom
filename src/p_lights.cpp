@@ -613,7 +613,7 @@ void EV_LightTurnOnPartway (int tag, double frac)
 
 		for (j = 0; j < sector->linecount; ++j)
 		{
-			if ((temp = getNextSector (sector->lines[j], sector)) != NULL)
+			if ((temp = getNextSector (sector->lines[j], sector)) != nullptr)
 			{
 				if (temp->lightlevel > bright)
 				{
@@ -939,7 +939,7 @@ DPhased::DPhased (sector_t *sector, int baselevel)
 DPhased::DPhased (sector_t *sector)
 	: DLighting (sector)
 {
-	PhaseHelper (sector, 0, 0, NULL);
+	PhaseHelper (sector, 0, 0, nullptr);
 }
 
 DPhased::DPhased (sector_t *sector, int baselevel, int phase)
@@ -962,7 +962,7 @@ void EV_StopLightEffect (int tag)
 	TThinkerIterator<DLighting> iterator;
 	DLighting *effect;
 
-	while ((effect = iterator.Next()) != NULL)
+	while ((effect = iterator.Next()) != nullptr)
 	{
 		if (tagManager.SectorHasTag(effect->GetSector(), tag))
 		{

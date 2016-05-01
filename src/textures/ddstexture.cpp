@@ -178,12 +178,12 @@ protected:
 	static void CalcBitShift (DWORD mask, BYTE *lshift, BYTE *rshift);
 
 	void MakeTexture ();
-	void ReadRGB (FWadLump &lump, BYTE *tcbuf = NULL);
-	void DecompressDXT1 (FWadLump &lump, BYTE *tcbuf = NULL);
-	void DecompressDXT3 (FWadLump &lump, bool premultiplied, BYTE *tcbuf = NULL);
-	void DecompressDXT5 (FWadLump &lump, bool premultiplied, BYTE *tcbuf = NULL);
+	void ReadRGB (FWadLump &lump, BYTE *tcbuf = nullptr);
+	void DecompressDXT1 (FWadLump &lump, BYTE *tcbuf = nullptr);
+	void DecompressDXT3 (FWadLump &lump, bool premultiplied, BYTE *tcbuf = nullptr);
+	void DecompressDXT5 (FWadLump &lump, bool premultiplied, BYTE *tcbuf = nullptr);
 
-	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = NULL);
+	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = nullptr);
 	bool UseBasePalette();
 
 	friend class FTexture;
@@ -227,7 +227,7 @@ FTexture *DDSTexture_TryCreate (FileReader &data, int lumpnum)
 		DWORD			byteswapping[sizeof(DDSURFACEDESC2) / 4];
 	};
 
-	if (!CheckDDS(data)) return NULL;
+	if (!CheckDDS(data)) return nullptr;
 
 	data.Seek (4, SEEK_SET);
 	data.Read (&surfdesc, sizeof(surfdesc));
@@ -251,11 +251,11 @@ FTexture *DDSTexture_TryCreate (FileReader &data, int lumpnum)
 			surfdesc.PixelFormat.FourCC != ID_DXT4 &&
 			surfdesc.PixelFormat.FourCC != ID_DXT5)
 		{
-			return NULL;
+			return nullptr;
 		}
 		if (!(surfdesc.Flags & DDSD_LINEARSIZE))
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	else if (surfdesc.PixelFormat.Flags & DDPF_RGB)
@@ -263,16 +263,16 @@ FTexture *DDSTexture_TryCreate (FileReader &data, int lumpnum)
 		if ((surfdesc.PixelFormat.RGBBitCount >> 3) < 1 ||
 			(surfdesc.PixelFormat.RGBBitCount >> 3) > 4)
 		{
-			return NULL;
+			return nullptr;
 		}
 		if ((surfdesc.Flags & DDSD_PITCH) && (surfdesc.Pitch <= 0))
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 	return new FDDSTexture (data, lumpnum, &surfdesc);
 }
@@ -284,7 +284,7 @@ FTexture *DDSTexture_TryCreate (FileReader &data, int lumpnum)
 //==========================================================================
 
 FDDSTexture::FDDSTexture (FileReader &lump, int lumpnum, void *vsurfdesc)
-: FTexture(NULL, lumpnum), Pixels(0), Spans(0)
+: FTexture(nullptr, lumpnum), Pixels(0), Spans(0)
 {
 	DDSURFACEDESC2 *surf = (DDSURFACEDESC2 *)vsurfdesc;
 
@@ -381,10 +381,10 @@ void FDDSTexture::CalcBitShift (DWORD mask, BYTE *lshiftp, BYTE *rshiftp)
 FDDSTexture::~FDDSTexture ()
 {
 	Unload ();
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 }
 
@@ -396,10 +396,10 @@ FDDSTexture::~FDDSTexture ()
 
 void FDDSTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -435,7 +435,7 @@ FTextureFormat FDDSTexture::GetFormat()
 
 const BYTE *FDDSTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -450,9 +450,9 @@ const BYTE *FDDSTexture::GetColumn (unsigned int column, const Span **spans_out)
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -469,7 +469,7 @@ const BYTE *FDDSTexture::GetColumn (unsigned int column, const Span **spans_out)
 
 const BYTE *FDDSTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}

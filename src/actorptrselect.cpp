@@ -9,7 +9,7 @@
 // Standard pointer acquisition functions
 //
 // Possible effective results at run-time
-//   assigntovariable = NULL (or a RETURN statement is issued)
+//   assigntovariable = nullptr (or a RETURN statement is issued)
 //   P_BulletSlope(pointer_owner, &temporary), assigntovariable = temporary
 //   assigntovariable = pointer_owner->target or ...->master or ...->tracer
 //
@@ -29,7 +29,7 @@
 	Only one selector of each type can be used.
 */
 
-#define AAPTR_RESOLVE_PLAYERNUM(playernum) (playeringame[playernum] ? players[playernum].mo : NULL)
+#define AAPTR_RESOLVE_PLAYERNUM(playernum) (playeringame[playernum] ? players[playernum].mo : nullptr)
 
 AActor *COPY_AAPTR(AActor *origin, int selector)
 {
@@ -58,7 +58,7 @@ AActor *COPY_AAPTR(AActor *origin, int selector)
 		case AAPTR_MASTER: return origin->master;
 		case AAPTR_TRACER: return origin->tracer;
 		case AAPTR_FRIENDPLAYER:
-			return origin->FriendPlayer ? AAPTR_RESOLVE_PLAYERNUM(origin->FriendPlayer - 1) : NULL;
+			return origin->FriendPlayer ? AAPTR_RESOLVE_PLAYERNUM(origin->FriendPlayer - 1) : nullptr;
 
 		case AAPTR_GET_LINETARGET:
 			P_BulletSlope(origin, &t, ALF_PORTALRESTRICT);
@@ -76,7 +76,7 @@ AActor *COPY_AAPTR(AActor *origin, int selector)
 		case AAPTR_PLAYER6: return AAPTR_RESOLVE_PLAYERNUM(5);
 		case AAPTR_PLAYER7: return AAPTR_RESOLVE_PLAYERNUM(6);
 		case AAPTR_PLAYER8: return AAPTR_RESOLVE_PLAYERNUM(7);
-		case AAPTR_NULL: return NULL;
+		case AAPTR_NULL: return nullptr;
 	}
 
 	return origin;
@@ -118,7 +118,7 @@ void VerifyTargetChain(AActor *self, bool preciseMissileCheck)
 			{
 				// if any of the actors from self to (inclusive) origin match the next actor,
 				// self has reached/created a loop
-				self->target = NULL;
+				self->target = nullptr;
 				return;
 			}
 			if (compare == origin) break; // when "compare" = origin, we know that the next actor is, and should be "next"
@@ -144,7 +144,7 @@ void VerifyMasterChain(AActor *self)
 		{
 			if (compare == next)
 			{
-				self->master = NULL;
+				self->master = nullptr;
 				return;
 			}
 			if (compare == origin) break;

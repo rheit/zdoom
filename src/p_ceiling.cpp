@@ -431,7 +431,7 @@ bool P_CreateCeiling(sector_t *sec, DCeiling::ECeiling type, line_t *line, int t
 				   type == DCeiling::ceilLowerToFloor) ?
 				sec->FindModelFloorSector (targheight) :
 				sec->FindModelCeilingSector (targheight);
-			if (modelsec != NULL)
+			if (modelsec != nullptr)
 			{
 				ceiling->m_Texture = modelsec->GetTexture(sector_t::ceiling);
 				switch (change & 3)
@@ -471,7 +471,7 @@ bool P_CreateCeiling(sector_t *sec, DCeiling::ECeiling type, line_t *line, int t
 	}
 
 	ceiling->PlayCeilingSound ();
-	return ceiling != NULL;
+	return ceiling != nullptr;
 }
 
 //============================================================================

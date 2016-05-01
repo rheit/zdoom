@@ -124,7 +124,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ThrustRaise)
 	if ((actor->Floorclip < actor->Height) && actor->DirtClump)
 	{
 		actor->DirtClump->Destroy ();
-		actor->DirtClump = NULL;
+		actor->DirtClump = nullptr;
 	}
 
 	// Spawn some dirt

@@ -327,8 +327,8 @@ int I_PickIWad_Gtk (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 	gtk_window_set_title (GTK_WINDOW(window), caption);
 	gtk_window_set_position (GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 	gtk_container_set_border_width (GTK_CONTAINER(window), 10);
-	g_signal_connect (window, "delete_event", G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect (window, "key_press_event", G_CALLBACK(CheckEscape), NULL);
+	g_signal_connect (window, "delete_event", G_CALLBACK(gtk_main_quit), nullptr);
+	g_signal_connect (window, "key_press_event", G_CALLBACK(CheckEscape), nullptr);
 
 	// Create the vbox container.
 	vbox = gtk_vbox_new (FALSE, 10);
@@ -344,7 +344,7 @@ int I_PickIWad_Gtk (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 	for (i = 0; i < numwads; ++i)
 	{
 		const char *filepart = strrchr (wads[i].Path, '/');
-		if (filepart == NULL)
+		if (filepart == nullptr)
 			filepart = wads[i].Path;
 		else
 			filepart++;
@@ -363,10 +363,10 @@ int I_PickIWad_Gtk (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 	// Create the tree view control to show the list.
 	tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL(store));
 	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("IWAD", renderer, "text", 0, NULL);
+	column = gtk_tree_view_column_new_with_attributes ("IWAD", renderer, "text", 0, nullptr);
 	gtk_tree_view_append_column (GTK_TREE_VIEW(tree), column);
 	renderer = gtk_cell_renderer_text_new ();
-	column = gtk_tree_view_column_new_with_attributes ("Game", renderer, "text", 1, NULL);
+	column = gtk_tree_view_column_new_with_attributes ("Game", renderer, "text", 1, nullptr);
 	gtk_tree_view_append_column (GTK_TREE_VIEW(tree), column);
 	gtk_box_pack_start (GTK_BOX(vbox), GTK_WIDGET(tree), true, true, 0);
 	g_signal_connect(G_OBJECT(tree), "button_press_event", G_CALLBACK(DoubleClickChecker), &close_style);
@@ -432,7 +432,7 @@ int I_PickIWad_Gtk (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 	{
 		gtk_widget_destroy (window);
 		// If we don't do this, then the X window might not actually disappear.
-		while (g_main_context_iteration (NULL, FALSE)) {}
+		while (g_main_context_iteration (nullptr, FALSE)) {}
 	}
 
 	return i;
@@ -460,7 +460,7 @@ int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 		for(i = 0; i < numwads; ++i)
 		{
 			const char *filepart = strrchr(wads[i].Path, '/');
-			if(filepart == NULL)
+			if(filepart == nullptr)
 				filepart = wads[i].Path;
 			else
 				filepart++;
@@ -473,7 +473,7 @@ int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 		if(defaultiwad >= 0 && defaultiwad < numwads)
 		{
 			const char *filepart = strrchr(wads[defaultiwad].Path, '/');
-			if(filepart == NULL)
+			if(filepart == nullptr)
 				filepart = wads[defaultiwad].Path;
 			else
 				filepart++;
@@ -481,11 +481,11 @@ int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 		}
 
 		FILE *f = popen(cmd, "r");
-		if(f != NULL)
+		if(f != nullptr)
 		{
 			char gotstr[16];
 
-			if(fgets(gotstr, sizeof(gotstr), f) == NULL ||
+			if(fgets(gotstr, sizeof(gotstr), f) == nullptr ||
 			   sscanf(gotstr, "%d", &i) != 1)
 				i = -1;
 
@@ -513,7 +513,7 @@ int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 	for (i = 0; i < numwads; ++i)
 	{
 		const char *filepart = strrchr (wads[i].Path, '/');
-		if (filepart == NULL)
+		if (filepart == nullptr)
 			filepart = wads[i].Path;
 		else
 			filepart++;
@@ -588,7 +588,7 @@ int I_FindClose (void *handle)
 			free (state->namelist[i]);
 		state->count = 0;
 		free (state->namelist);
-		state->namelist = NULL;
+		state->namelist = nullptr;
 	}
 	return 0;
 }
@@ -610,11 +610,11 @@ static PasteboardRef s_clipboard;
 
 static CFDataRef GetPasteboardData(const PasteboardItemID itemID, const CFStringRef flavorType)
 {
-	CFDataRef data = NULL;
+	CFDataRef data = nullptr;
 
 	const OSStatus result = PasteboardCopyItemFlavorData(s_clipboard, itemID, flavorType, &data);
 
-	return noErr == result ? data : NULL;
+	return noErr == result ? data : nullptr;
 }
 #endif // __APPLE__
 
@@ -626,20 +626,20 @@ void I_PutInClipboard (const char *str)
 	if (GtkAvailable)
 	{
 		GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-		if (clipboard != NULL)
+		if (clipboard != nullptr)
 		{
 			gtk_clipboard_set_text(clipboard, str, -1);
 		}
 		/* Should I? I don't know. It's not actually a selection.
 		clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
-		if (clipboard != NULL)
+		if (clipboard != nullptr)
 		{
 			gtk_clipboard_set_text(clipboard, str, -1);
 		}
 		*/
 	}
 #elif defined __APPLE__
-	if (NULL == s_clipboard)
+	if (nullptr == s_clipboard)
 	{
 		PasteboardCreate(kPasteboardClipboard, &s_clipboard);
 	}
@@ -650,7 +650,7 @@ void I_PutInClipboard (const char *str)
 	const CFDataRef textData = CFDataCreate(kCFAllocatorDefault,
 		reinterpret_cast<const UInt8*>(str), strlen(str));
 
-	if (NULL != textData)
+	if (nullptr != textData)
 	{
 		PasteboardPutItemFlavor(s_clipboard, PasteboardItemID(1),
 			CFSTR("public.utf8-plain-text"), textData, 0);
@@ -665,10 +665,10 @@ FString I_GetFromClipboard (bool use_primary_selection)
 	{
 		GtkClipboard *clipboard = gtk_clipboard_get(use_primary_selection ?
 			GDK_SELECTION_PRIMARY : GDK_SELECTION_CLIPBOARD);
-		if (clipboard != NULL)
+		if (clipboard != nullptr)
 		{
 			gchar *text = gtk_clipboard_wait_for_text(clipboard);
-			if (text != NULL)
+			if (text != nullptr)
 			{
 				FString copy(text);
 				g_free(text);
@@ -679,7 +679,7 @@ FString I_GetFromClipboard (bool use_primary_selection)
 #elif defined __APPLE__
 	FString result;
 
-	if (NULL == s_clipboard)
+	if (nullptr == s_clipboard)
 	{
 		PasteboardCreate(kPasteboardClipboard, &s_clipboard);
 	}
@@ -723,11 +723,11 @@ FString I_GetFromClipboard (bool use_primary_selection)
 			const CFRange range = { 0, CFStringGetLength(utf16) };
 			CFIndex bufferLength = 0;
 
-			if (CFStringGetBytes(utf16, range, kCFStringEncodingUTF8, '?', false, NULL, 0, &bufferLength) > 0)
+			if (CFStringGetBytes(utf16, range, kCFStringEncodingUTF8, '?', false, nullptr, 0, &bufferLength) > 0)
 			{
 				UInt8* const buffer = reinterpret_cast<UInt8*>(result.LockNewBuffer(bufferLength));
 
-				CFStringGetBytes(utf16, range, kCFStringEncodingUTF8, '?', false, buffer, bufferLength, NULL);
+				CFStringGetBytes(utf16, range, kCFStringEncodingUTF8, '?', false, buffer, bufferLength, nullptr);
 
 				result.UnlockBuffer();
 			}
@@ -749,7 +749,7 @@ unsigned int I_MakeRNGSeed()
 
 	// Try reading from /dev/urandom first, then /dev/random, then
 	// if all else fails, use a crappy seed from time().
-	seed = time(NULL);
+	seed = time(nullptr);
 	file = open("/dev/urandom", O_RDONLY);
 	if (file < 0)
 	{

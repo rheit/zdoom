@@ -71,7 +71,7 @@ protected:
 //==========================================================================
 
 FBuildTexture::FBuildTexture (int tilenum, const BYTE *pixels, int width, int height, int left, int top)
-: Pixels (pixels), Spans (NULL)
+: Pixels (pixels), Spans (nullptr)
 {
 	Width = width;
 	Height = height;
@@ -90,10 +90,10 @@ FBuildTexture::FBuildTexture (int tilenum, const BYTE *pixels, int width, int he
 
 FBuildTexture::~FBuildTexture ()
 {
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 }
 
@@ -138,9 +138,9 @@ const BYTE *FBuildTexture::GetColumn (unsigned int column, const Span **spans_ou
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -235,7 +235,7 @@ void FTextureManager::AddTiles (void *tiles)
 			rot.Texture[8] =
 			rot.Texture[9] = texnum.GetIndex() + 4;
 			rot.Flip = 0x00FC;
-			rot.Voxel = NULL;
+			rot.Voxel = nullptr;
 			tex->Rotations = SpriteFrames.Push (rot);
 		}
 		else if (rotType == 2)
@@ -249,7 +249,7 @@ void FTextureManager::AddTiles (void *tiles)
 				rot.Texture[17-j*2] = texnum.GetIndex() + j;
 			}
 			rot.Flip = 0;
-			rot.Voxel = NULL;
+			rot.Voxel = nullptr;
 			tex->Rotations = SpriteFrames.Push (rot);
 		}
 	}
@@ -319,7 +319,7 @@ int FTextureManager::CountBuildTiles ()
 			artpath += artfile;
 
 			FILE *f = fopen (artpath, "rb");
-			if (f == NULL)
+			if (f == nullptr)
 			{
 				break;
 			}

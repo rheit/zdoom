@@ -15,7 +15,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ReaverRanged)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target != NULL)
+	if (self->target != nullptr)
 	{
 		DAngle bangle;
 		DAngle pitch;

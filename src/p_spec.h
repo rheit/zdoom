@@ -90,11 +90,11 @@ void	P_SpawnSpecials (void);
 void	P_UpdateSpecials (void);
 
 // when needed
-bool	P_ActivateLine (line_t *ld, AActor *mo, int side, int activationType, DVector3 *optpos = NULL);
-bool	P_TestActivateLine (line_t *ld, AActor *mo, int side, int activationType, DVector3 *optpos = NULL);
+bool	P_ActivateLine (line_t *ld, AActor *mo, int side, int activationType, DVector3 *optpos = nullptr);
+bool	P_TestActivateLine (line_t *ld, AActor *mo, int side, int activationType, DVector3 *optpos = nullptr);
 bool	P_PredictLine (line_t *ld, AActor *mo, int side, int activationType);
 
-void 	P_PlayerInSpecialSector (player_t *player, sector_t * sector=NULL);
+void 	P_PlayerInSpecialSector (player_t *player, sector_t * sector=nullptr);
 void	P_PlayerOnSpecialFlat (player_t *player, int floorType);
 void	P_SectorDamage(int tag, int amount, FName type, PClassActor *protectClass, int flags);
 void	P_SetSectorFriction (int tag, int amount, bool alterFlag);
@@ -104,15 +104,15 @@ void P_GiveSecret(AActor *actor, bool printmessage, bool playsound, int sectornu
 //
 // getNextSector()
 // Return sector_t * of sector next to current.
-// NULL if not two-sided line
+// nullptr if not two-sided line
 //
 inline sector_t *getNextSector (line_t *line, const sector_t *sec)
 {
 	if (!(line->flags & ML_TWOSIDED))
-		return NULL;
+		return nullptr;
 
 	return line->frontsector == sec ?
-		   (line->backsector != sec ? line->backsector : NULL) :
+		   (line->backsector != sec ? line->backsector : nullptr) :
 	       line->frontsector;
 }
 
@@ -149,8 +149,8 @@ void	EV_StartLightFading (int tag, int value, int tics);
 
 #define BUTTONTIME TICRATE		// 1 second, in ticks. 
 
-bool	P_ChangeSwitchTexture (side_t *side, int useAgain, BYTE special, bool *quest=NULL);
-bool	P_CheckSwitchRange(AActor *user, line_t *line, int sideno, const DVector3 *optpos = NULL);
+bool	P_ChangeSwitchTexture (side_t *side, int useAgain, BYTE special, bool *quest=nullptr);
+bool	P_CheckSwitchRange(AActor *user, line_t *line, int sideno, const DVector3 *optpos = nullptr);
 
 //
 // P_PLATS
@@ -303,7 +303,7 @@ protected:
 
 	int			m_LightTag;
 
-	void DoorSound (bool raise, class DSeqNode *curseq=NULL) const;
+	void DoorSound (bool raise, class DSeqNode *curseq=nullptr) const;
 
 	friend bool	EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
 						   int tag, double speed, int delay, int lock,

@@ -64,7 +64,7 @@ static TArray<FLatchedValue> LatchedValues;
 bool FBaseCVar::m_DoNoSet = false;
 bool FBaseCVar::m_UseCallback = false;
 
-FBaseCVar *CVars = NULL;
+FBaseCVar *CVars = nullptr;
 
 int cvar_defflags;
 
@@ -77,11 +77,11 @@ FBaseCVar::FBaseCVar (const char *var_name, DWORD flags, void (*callback)(FBaseC
 {
 	FBaseCVar *var;
 
-	var = FindCVar (var_name, NULL);
+	var = FindCVar (var_name, nullptr);
 
 	m_Callback = callback;
 	Flags = 0;
-	Name = NULL;
+	Name = nullptr;
 
 	if (var_name)
 	{
@@ -200,7 +200,7 @@ bool FBaseCVar::ToBool (UCVarValue value, ECVarType type)
 		else if (stricmp (value.String, "false") == 0)
 			return false;
 		else
-			return !!strtol (value.String, NULL, 0);
+			return !!strtol (value.String, nullptr, 0);
 
 	case CVAR_GUID:
 		return false;
@@ -233,7 +233,7 @@ int FBaseCVar::ToInt (UCVarValue value, ECVarType type)
 			else if (stricmp (value.String, "false") == 0)
 				res = 0;
 			else
-				res = strtol (value.String, NULL, 0); 
+				res = strtol (value.String, nullptr, 0); 
 			break;
 		}
 	case CVAR_GUID:			res = 0; break;
@@ -256,7 +256,7 @@ float FBaseCVar::ToFloat (UCVarValue value, ECVarType type)
 		return value.Float;
 
 	case CVAR_String:
-		return (float)strtod (value.String, NULL);
+		return (float)strtod (value.String, nullptr);
 
 	case CVAR_GUID:
 		return 0.f;
@@ -316,7 +316,7 @@ const GUID *FBaseCVar::ToGUID (UCVarValue value, ECVarType type)
 		return value.pGUID;
 
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -343,7 +343,7 @@ UCVarValue FBaseCVar::FromBool (bool value, ECVarType type)
 		break;
 
 	case CVAR_GUID:
-		ret.pGUID = NULL;
+		ret.pGUID = nullptr;
 		break;
 
 	default:
@@ -377,7 +377,7 @@ UCVarValue FBaseCVar::FromInt (int value, ECVarType type)
 		break;
 
 	case CVAR_GUID:
-		ret.pGUID = NULL;
+		ret.pGUID = nullptr;
 		break;
 
 	default:
@@ -413,7 +413,7 @@ UCVarValue FBaseCVar::FromFloat (float value, ECVarType type)
 		break;
 
 	case CVAR_GUID:
-		ret.pGUID = NULL;
+		ret.pGUID = nullptr;
 		break;
 
 	default:
@@ -458,7 +458,7 @@ UCVarValue FBaseCVar::FromString (const char *value, ECVarType type)
 		else if (stricmp (value, "false") == 0)
 			ret.Bool = false;
 		else
-			ret.Bool = strtol (value, NULL, 0) != 0;
+			ret.Bool = strtol (value, nullptr, 0) != 0;
 		break;
 
 	case CVAR_Int:
@@ -467,11 +467,11 @@ UCVarValue FBaseCVar::FromString (const char *value, ECVarType type)
 		else if (stricmp (value, "false") == 0)
 			ret.Int = 0;
 		else
-			ret.Int = strtol (value, NULL, 0);
+			ret.Int = strtol (value, nullptr, 0);
 		break;
 
 	case CVAR_Float:
-		ret.Float = (float)strtod (value, NULL);
+		ret.Float = (float)strtod (value, nullptr);
 		break;
 
 	case CVAR_String:
@@ -483,8 +483,8 @@ UCVarValue FBaseCVar::FromString (const char *value, ECVarType type)
 		// 01234567890123456789012345678901234567
 		// 0         1         2         3
 
-		ret.pGUID = NULL;
-		if (value == NULL)
+		ret.pGUID = nullptr;
+		if (value == nullptr)
 		{
 			break;
 		}
@@ -514,9 +514,9 @@ UCVarValue FBaseCVar::FromString (const char *value, ECVarType type)
 		}
 		if (i == 38 && value[i] == 0)
 		{
-			cGUID.Data1 = strtoul (value + 1, NULL, 16);
-			cGUID.Data2 = (WORD)strtoul (value + 10, NULL, 16);
-			cGUID.Data3 = (WORD)strtoul (value + 15, NULL, 16);
+			cGUID.Data1 = strtoul (value + 1, nullptr, 16);
+			cGUID.Data2 = (WORD)strtoul (value + 10, nullptr, 16);
+			cGUID.Data3 = (WORD)strtoul (value + 15, nullptr, 16);
 			cGUID.Data4[0] = HexToByte (value + 20);
 			cGUID.Data4[1] = HexToByte (value + 22);
 			cGUID.Data4[2] = HexToByte (value + 25);
@@ -573,7 +573,7 @@ FBaseCVar *cvar_set (const char *var_name, const char *val)
 {
 	FBaseCVar *var;
 
-	if ( (var = FindCVar (var_name, NULL)) )
+	if ( (var = FindCVar (var_name, nullptr)) )
 	{
 		UCVarValue value;
 		value.String = const_cast<char *>(val);
@@ -588,7 +588,7 @@ FBaseCVar *cvar_forceset (const char *var_name, const char *val)
 	FBaseCVar *var;
 	UCVarValue vval;
 
-	if ( (var = FindCVar (var_name, NULL)) )
+	if ( (var = FindCVar (var_name, nullptr)) )
 	{
 		vval.String = const_cast<char *>(val);
 		var->ForceSet (vval, CVAR_String);
@@ -817,12 +817,12 @@ FStringCVar::FStringCVar (const char *name, const char *def, DWORD flags, void (
 	if (Flags & CVAR_ISDEFAULT)
 		Value = copystring (def);
 	else
-		Value = NULL;
+		Value = nullptr;
 }
 
 FStringCVar::~FStringCVar ()
 {
-	if (Value != NULL)
+	if (Value != nullptr)
 	{
 		delete[] Value;
 	}
@@ -942,11 +942,11 @@ int FColorCVar::ToInt2 (UCVarValue value, ECVarType type)
 		// zdoom.ini, this shouldn't be a problem.
 		if (screen && !(string = V_GetColorStringByName (value.String)).IsEmpty() )
 		{
-			ret = V_GetColorFromString (NULL, string);
+			ret = V_GetColorFromString (nullptr, string);
 		}
 		else
 		{
-			ret = V_GetColorFromString (NULL, value.String);
+			ret = V_GetColorFromString (nullptr, value.String);
 		}
 	}
 	else
@@ -963,7 +963,7 @@ int FColorCVar::ToInt2 (UCVarValue value, ECVarType type)
 FGUIDCVar::FGUIDCVar (const char *name, const GUID *def, DWORD flags, void (*callback)(FGUIDCVar &))
 : FBaseCVar (name, flags, reinterpret_cast<void (*)(FBaseCVar &)>(callback))
 {
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		DefaultValue = *def;
 		if (Flags & CVAR_ISDEFAULT)
@@ -1010,7 +1010,7 @@ UCVarValue FGUIDCVar::GetFavoriteRepDefault (ECVarType *type) const
 void FGUIDCVar::SetGenericRepDefault (UCVarValue value, ECVarType type)
 {
 	const GUID *guid = ToGUID (value, type);
-	if (guid != NULL)
+	if (guid != nullptr)
 	{
 		Value = *guid;
 		if (Flags & CVAR_ISDEFAULT)
@@ -1024,7 +1024,7 @@ void FGUIDCVar::SetGenericRepDefault (UCVarValue value, ECVarType type)
 void FGUIDCVar::DoSet (UCVarValue value, ECVarType type)
 {
 	const GUID *guid = ToGUID (value, type);
-	if (guid != NULL)
+	if (guid != nullptr)
 	{
 		Value = *guid;
 	}
@@ -1071,7 +1071,7 @@ void FBaseCVar::ResetToDefault ()
 //
 
 FFlagCVar::FFlagCVar (const char *name, FIntCVar &realvar, DWORD bitval)
-: FBaseCVar (name, 0, NULL),
+: FBaseCVar (name, 0, nullptr),
 ValueVar (realvar),
 BitVal (bitval)
 {
@@ -1176,7 +1176,7 @@ void FFlagCVar::DoSet (UCVarValue value, ECVarType type)
 //
 
 FMaskCVar::FMaskCVar (const char *name, FIntCVar &realvar, DWORD bitval)
-: FBaseCVar (name, 0, NULL),
+: FBaseCVar (name, 0, nullptr),
 ValueVar (realvar),
 BitVal (bitval)
 {
@@ -1286,7 +1286,7 @@ static int sortcvars (const void *a, const void *b)
 void FilterCompactCVars (TArray<FBaseCVar *> &cvars, DWORD filter)
 {
 	// Accumulate all cvars that match the filter flags.
-	for (FBaseCVar *cvar = CVars; cvar != NULL; cvar = cvar->m_Next)
+	for (FBaseCVar *cvar = CVars; cvar != nullptr; cvar = cvar->m_Next)
 	{
 		if ((cvar->Flags & filter) && !(cvar->Flags & CVAR_IGNORE))
 			cvars.Push(cvar);
@@ -1325,7 +1325,7 @@ FString C_GetMassCVarString (DWORD filter, bool compact)
 	}
 	else
 	{
-		for (cvar = CVars; cvar != NULL; cvar = cvar->m_Next)
+		for (cvar = CVars; cvar != nullptr; cvar = cvar->m_Next)
 		{
 			if ((cvar->Flags & filter) && !(cvar->Flags & (CVAR_NOSAVE|CVAR_IGNORE)))
 			{
@@ -1354,7 +1354,7 @@ void C_ReadCVars (BYTE **demo_p)
 		ptr++;
 		breakpt = strchr (ptr, '\\');
 		*breakpt = 0;
-		filter = strtoul (ptr, NULL, 16);
+		filter = strtoul (ptr, nullptr, 16);
 		*breakpt = '\\';
 		ptr = breakpt + 1;
 
@@ -1418,7 +1418,7 @@ void C_BackupCVars (void)
 
 	FCVarBackup backup;
 
-	for (FBaseCVar *cvar = CVars; cvar != NULL; cvar = cvar->m_Next)
+	for (FBaseCVar *cvar = CVars; cvar != nullptr; cvar = cvar->m_Next)
 	{
 		if ((cvar->Flags & (CVAR_SERVERINFO|CVAR_DEMOSAVE)) && !(cvar->Flags & CVAR_LATCH))
 		{
@@ -1448,14 +1448,14 @@ FBaseCVar *FindCVar (const char *var_name, FBaseCVar **prev)
 	FBaseCVar *var;
 	FBaseCVar *dummy;
 
-	if (var_name == NULL)
-		return NULL;
+	if (var_name == nullptr)
+		return nullptr;
 
-	if (prev == NULL)
+	if (prev == nullptr)
 		prev = &dummy;
 
 	var = CVars;
-	*prev = NULL;
+	*prev = nullptr;
 	while (var)
 	{
 		if (stricmp (var->GetName (), var_name) == 0)
@@ -1470,8 +1470,8 @@ FBaseCVar *FindCVarSub (const char *var_name, int namelen)
 {
 	FBaseCVar *var;
 
-	if (var_name == NULL)
-		return NULL;
+	if (var_name == nullptr)
+		return nullptr;
 
 	var = CVars;
 	while (var)
@@ -1499,16 +1499,16 @@ FBaseCVar *FindCVarSub (const char *var_name, int namelen)
 
 FBaseCVar *C_CreateCVar(const char *var_name, ECVarType var_type, DWORD flags)
 {
-	assert(FindCVar(var_name, NULL) == NULL);
+	assert(FindCVar(var_name, nullptr) == nullptr);
 	flags |= CVAR_AUTO;
 	switch (var_type)
 	{
 	case CVAR_Bool:		return new FBoolCVar(var_name, 0, flags);
 	case CVAR_Int:		return new FIntCVar(var_name, 0, flags);
 	case CVAR_Float:	return new FFloatCVar(var_name, 0, flags);
-	case CVAR_String:	return new FStringCVar(var_name, NULL, flags);
+	case CVAR_String:	return new FStringCVar(var_name, nullptr, flags);
 	case CVAR_Color:	return new FColorCVar(var_name, 0, flags);
-	default:			return NULL;
+	default:			return nullptr;
 	}
 }
 
@@ -1603,9 +1603,9 @@ CCMD (set)
 	{
 		FBaseCVar *var;
 
-		var = FindCVar (argv[1], NULL);
-		if (var == NULL)
-			var = new FStringCVar (argv[1], NULL, CVAR_AUTO | CVAR_UNSETTABLE | cvar_defflags);
+		var = FindCVar (argv[1], nullptr);
+		if (var == nullptr)
+			var = new FStringCVar (argv[1], nullptr, CVAR_AUTO | CVAR_UNSETTABLE | cvar_defflags);
 
 		var->CmdSet (argv[2]);
 	}
@@ -1619,8 +1619,8 @@ CCMD (unset)
 	}
 	else
 	{
-		FBaseCVar *var = FindCVar (argv[1], NULL);
-		if (var != NULL)
+		FBaseCVar *var = FindCVar (argv[1], nullptr);
+		if (var != nullptr)
 		{
 			if (var->GetFlags() & CVAR_UNSETTABLE)
 			{
@@ -1719,7 +1719,7 @@ CCMD (cvarlist)
 {
 	if (argv.argc() == 1)
 	{
-		FBaseCVar::ListVars (NULL, false);
+		FBaseCVar::ListVars (nullptr, false);
 	}
 	else
 	{
@@ -1729,7 +1729,7 @@ CCMD (cvarlist)
 
 CCMD (cvarlistplain)
 {
-	FBaseCVar::ListVars (NULL, true);
+	FBaseCVar::ListVars (nullptr, true);
 }
 
 CCMD (archivecvar)
@@ -1741,9 +1741,9 @@ CCMD (archivecvar)
 	}
 	else
 	{
-		FBaseCVar *var = FindCVar (argv[1], NULL);
+		FBaseCVar *var = FindCVar (argv[1], nullptr);
 
-		if (var != NULL && (var->GetFlags() & CVAR_AUTO))
+		if (var != nullptr && (var->GetFlags() & CVAR_AUTO))
 		{
 			var->SetArchiveBit ();
 		}

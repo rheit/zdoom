@@ -273,7 +273,7 @@ void FScanner::PrepareScript ()
 	String = StringBuffer;
 	AlreadyGot = false;
 	LastGotToken = false;
-	LastGotPtr = NULL;
+	LastGotPtr = nullptr;
 	LastGotLine = 1;
 	CMode = false;
 	Escape = true;
@@ -313,7 +313,7 @@ const FScanner::SavedPos FScanner::SavePos ()
 	CheckOpen ();
 	if (End)
 	{
-		pos.SavedScriptPtr = NULL;
+		pos.SavedScriptPtr = nullptr;
 	}
 	else
 	{
@@ -838,7 +838,7 @@ int FScanner::MatchString (const char * const *strings, size_t stride)
 
 	stride /= sizeof(const char*);
 
-	for (i = 0; *strings != NULL; i++)
+	for (i = 0; *strings != nullptr; i++)
 	{
 		if (Compare (*strings))
 		{
@@ -905,7 +905,7 @@ FString FScanner::TokenName (int token, const char *string)
 	else if (token >= TK_Identifier && token < TK_LastToken)
 	{
 		work = names[token - TK_Identifier];
-		if (string != NULL && token >= TK_Identifier && token <= TK_FloatConst)
+		if (string != nullptr && token >= TK_Identifier && token <= TK_FloatConst)
 		{
 			work += ' ';
 			char quote = (token == TK_StringConst) ? '"' : '\'';
@@ -944,7 +944,7 @@ void FScanner::ScriptError (const char *message, ...)
 {
 	FString composed;
 
-	if (message == NULL)
+	if (message == nullptr)
 	{
 		composed = "Bad syntax.";
 	}
@@ -970,7 +970,7 @@ void FScanner::ScriptMessage (const char *message, ...)
 {
 	FString composed;
 
-	if (message == NULL)
+	if (message == nullptr)
 	{
 		composed = "Bad syntax.";
 	}
@@ -1044,7 +1044,7 @@ void FScriptPosition::Message (int severity, const char *message, ...) const
 
 	if ((severity == MSG_DEBUG || severity == MSG_DEBUGLOG) && !developer) return;
 
-	if (message == NULL)
+	if (message == nullptr)
 	{
 		composed = "Bad syntax.";
 	}

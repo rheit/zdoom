@@ -43,7 +43,7 @@
 static void ReplaceIntermission(FName intname,FIntermissionDescriptor *desc)
 {
 	FIntermissionDescriptor ** pDesc = IntermissionDescriptors.CheckKey(intname);
-	if (pDesc != NULL && *pDesc != NULL) delete *pDesc;
+	if (pDesc != nullptr && *pDesc != nullptr) delete *pDesc;
 	IntermissionDescriptors[intname] = desc;
 }
 
@@ -56,7 +56,7 @@ void DeinitIntermissions()
 	while (it.NextPair(pair))
 	{
 		delete pair->Value;
-		pair->Value = NULL;
+		pair->Value = nullptr;
 	}
 	IntermissionDescriptors.Clear();
 }
@@ -205,7 +205,7 @@ bool FIntermissionActionFader::ParseKey(FScanner &sc)
 	const FT[] = {
 		{ "FadeIn", FADE_In },
 		{ "FadeOut", FADE_Out },
-		{ NULL, FADE_In }
+		{ nullptr, FADE_In }
 	};
 
 	if (sc.Compare("FadeType"))
@@ -244,7 +244,7 @@ bool FIntermissionActionWiper::ParseKey(FScanner &sc)
 		{ "Melt", GS_FORCEWIPEMELT },
 		{ "Burn", GS_FORCEWIPEBURN },
 		{ "Default", GS_FORCEWIPE },
-		{ NULL, GS_FORCEWIPE }
+		{ nullptr, GS_FORCEWIPE }
 	};
 
 	if (sc.Compare("WipeType"))
@@ -378,7 +378,7 @@ bool FIntermissionActionCast::ParseKey(FScanner &sc)
 	}
 	else if (sc.Compare("AttackSound"))
 	{
-		static const char *const seqs[] = {"Missile", "Melee", NULL};
+		static const char *const seqs[] = {"Missile", "Melee", nullptr};
 		FCastSound *cs = &mCastSounds[mCastSounds.Reserve(1)];
 		sc.MustGetToken('=');
 		sc.MustGetToken(TK_StringConst);
@@ -421,7 +421,7 @@ bool FIntermissionActionScroller::ParseKey(FScanner &sc)
 		{ "Right", SCROLL_Right },
 		{ "Up", SCROLL_Up },
 		{ "Down", SCROLL_Down },
-		{ NULL, SCROLL_Left }
+		{ nullptr, SCROLL_Left }
 	};
 
 	if (sc.Compare("ScrollDirection"))
@@ -480,7 +480,7 @@ bool FIntermissionActionScroller::ParseKey(FScanner &sc)
 
 void FMapInfoParser::ParseIntermissionAction(FIntermissionDescriptor *desc)
 {
-	FIntermissionAction *ac = NULL;
+	FIntermissionAction *ac = nullptr;
 
 	sc.MustGetToken(TK_Identifier);
 	if (sc.Compare("image"))
@@ -532,7 +532,7 @@ void FMapInfoParser::ParseIntermissionAction(FIntermissionDescriptor *desc)
 		{
 			sc.MustGetToken(TK_Identifier);
 		}
-		if (ac != NULL)
+		if (ac != nullptr)
 		{
 			success = ac->ParseKey(sc);
 			if (!success)
@@ -542,7 +542,7 @@ void FMapInfoParser::ParseIntermissionAction(FIntermissionDescriptor *desc)
 		}
 		if (!success) SkipToNext();
 	}
-	if (ac != NULL) desc->mActions.Push(ac);
+	if (ac != nullptr) desc->mActions.Push(ac);
 }
 
 //==========================================================================
@@ -660,7 +660,7 @@ FName FMapInfoParser::ParseEndGame()
 		}
 	}
 	FIntermissionDescriptor *desc = new FIntermissionDescriptor;
-	FIntermissionAction *action = NULL;
+	FIntermissionAction *action = nullptr;
 
 	switch (newSeq.EndType)
 	{
@@ -699,7 +699,7 @@ FName FMapInfoParser::ParseEndGame()
 		break;
 	}
 
-	if (action == NULL)
+	if (action == nullptr)
 	{
 		sc.ScriptError("Endgame type was not defined");
 		return NAME_None;	// We won't really get here.
@@ -726,7 +726,7 @@ FName FMapInfoParser::ParseEndGame()
 
 FName FMapInfoParser::CheckEndSequence()
 {
-	const char *seqname = NULL;
+	const char *seqname = nullptr;
 
 	if (sc.Compare("endgame"))
 	{
@@ -800,7 +800,7 @@ FName FMapInfoParser::CheckEndSequence()
 		seqname = sc.String;
 	}
 
-	if (seqname != NULL)
+	if (seqname != nullptr)
 	{
 		return FName(seqname);
 	}
@@ -819,7 +819,7 @@ void F_StartFinale (const char *music, int musicorder, int cdtrack, unsigned int
 					bool ending, FName endsequence)
 {
 	// Hexen's chess ending doesn't have a text screen, even if the cluster has a message defined.
-	if (text != NULL && *text != 0 && endsequence != NAME_Inter_Chess)
+	if (text != nullptr && *text != 0 && endsequence != NAME_Inter_Chess)
 	{
 		FIntermissionActionTextscreen *textscreen = new FIntermissionActionTextscreen;
 		if (textInLump)
@@ -843,7 +843,7 @@ void F_StartFinale (const char *music, int musicorder, int cdtrack, unsigned int
 			textscreen->mText << '$' << text;
 		}
 		textscreen->mTextDelay = 10;
-		if (flat != NULL && *flat != 0)
+		if (flat != nullptr && *flat != 0)
 		{
 			textscreen->mBackground = flat;
 		}
@@ -854,7 +854,7 @@ void F_StartFinale (const char *music, int musicorder, int cdtrack, unsigned int
 		}
 		textscreen->mFlatfill = !finalePic;
 
-		if (music != NULL && *music != 0) 
+		if (music != nullptr && *music != 0) 
 		{
 			textscreen->mMusic = music;
 			textscreen->mMusicOrder = musicorder;
@@ -879,7 +879,7 @@ void F_StartFinale (const char *music, int musicorder, int cdtrack, unsigned int
 	else if (ending)
 	{
 		FIntermissionDescriptor **pdesc = IntermissionDescriptors.CheckKey(endsequence);
-		if (pdesc != NULL)
+		if (pdesc != nullptr)
 		{
 			F_StartIntermission(*pdesc, false, ending? FSTATE_EndingGame : FSTATE_ChangingLevel);
 		}

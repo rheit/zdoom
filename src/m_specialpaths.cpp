@@ -49,9 +49,9 @@ bool UseKnownFolders()
 		return !iswritable;
 	}
 	testpath << progdir << "writest";
-	file = CreateFile(testpath, GENERIC_READ | GENERIC_WRITE, 0, NULL,
+	file = CreateFile(testpath, GENERIC_READ | GENERIC_WRITE, 0, nullptr,
 		CREATE_ALWAYS,
-		FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, NULL);
+		FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
 	if (file != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(file);
@@ -81,13 +81,13 @@ bool GetKnownFolder(int shell_folder, REFKNOWNFOLDERID known_folder, bool create
 
 	// SHGetKnownFolderPath knows about more folders than SHGetFolderPath, but is
 	// new to Vista, hence the reason we support both.
-	if (SHGetKnownFolderPath == NULL)
+	if (SHGetKnownFolderPath == nullptr)
 	{
 		static TOptWin32Proc<HRESULT(WINAPI*)(HWND, int, HANDLE, DWORD, LPTSTR)>
 			SHGetFolderPathA("shell32.dll", "SHGetFolderPathA");
 
 		// NT4 doesn't even have this function.
-		if (SHGetFolderPathA == NULL)
+		if (SHGetFolderPathA == nullptr)
 			return false;
 
 		if (shell_folder < 0)
@@ -98,7 +98,7 @@ bool GetKnownFolder(int shell_folder, REFKNOWNFOLDERID known_folder, bool create
 		{
 			shell_folder |= CSIDL_FLAG_CREATE;
 		}
-		if (FAILED(SHGetFolderPathA.Call(NULL, shell_folder, NULL, 0, pathstr)))
+		if (FAILED(SHGetFolderPathA.Call(nullptr, shell_folder, nullptr, 0, pathstr)))
 		{
 			return false;
 		}
@@ -108,7 +108,7 @@ bool GetKnownFolder(int shell_folder, REFKNOWNFOLDERID known_folder, bool create
 	else
 	{
 		PWSTR wpath;
-		if (FAILED(SHGetKnownFolderPath.Call(known_folder, create ? KF_FLAG_CREATE : 0, NULL, &wpath)))
+		if (FAILED(SHGetKnownFolderPath.Call(known_folder, create ? KF_FLAG_CREATE : 0, nullptr, &wpath)))
 		{
 			return false;
 		}
@@ -117,7 +117,7 @@ bool GetKnownFolder(int shell_folder, REFKNOWNFOLDERID known_folder, bool create
 		// support Unicode. :(
 		bool converted = false;
 		if (WideCharToMultiByte(GetACP(), WC_NO_BEST_FIT_CHARS, wpath, -1,
-			pathstr, countof(pathstr), NULL, NULL) > 0)
+			pathstr, countof(pathstr), nullptr, nullptr) > 0)
 		{
 			path = pathstr;
 			converted = true;

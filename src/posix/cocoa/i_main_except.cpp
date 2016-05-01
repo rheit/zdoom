@@ -18,7 +18,7 @@ void OriginalMainExcept(int argc, char** argv)
 	{
 		const char* const message = error.GetMessage();
 
-		if (NULL != message)
+		if (nullptr != message)
 		{
 			fprintf(stderr, "%s\n", message);
 			Mac_I_FatalError(message);

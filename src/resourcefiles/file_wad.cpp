@@ -246,7 +246,7 @@ public:
 			Owner->Reader->Seek(Position, SEEK_SET);
 			return Owner->Reader;
 		}
-		return NULL;
+		return nullptr;
 	}
 	int FillCache()
 	{
@@ -254,7 +254,7 @@ public:
 		{
 			const char * buffer = Owner->Reader->GetBuffer();
 
-			if (buffer != NULL)
+			if (buffer != nullptr)
 			{
 				// This is an in-memory file so the cache can point directly to the file's data.
 				Cache = const_cast<char*>(buffer) + Position;
@@ -312,7 +312,7 @@ public:
 
 FWadFile::FWadFile(const char *filename, FileReader *file) : FResourceFile(filename, file)
 {
-	Lumps = NULL;
+	Lumps = nullptr;
 }
 
 FWadFile::~FWadFile()
@@ -370,7 +370,7 @@ bool FWadFile::Open(bool quiet)
 		Lumps[i].LumpSize = isBigEndian ? BigLong(fileinfo[i].Size) : LittleLong(fileinfo[i].Size);
 		Lumps[i].Namespace = ns_global;
 		Lumps[i].Flags = 0;
-		Lumps[i].FullName = NULL;
+		Lumps[i].FullName = nullptr;
 	}
 
 	delete[] fileinfo;
@@ -669,10 +669,10 @@ FResourceFile *CheckWad(const char *filename, FileReader *file, bool quiet)
 			FResourceFile *rf = new FWadFile(filename, file);
 			if (rf->Open(quiet)) return rf;
 
-			rf->Reader = NULL; // to avoid destruction of reader
+			rf->Reader = nullptr; // to avoid destruction of reader
 			delete rf;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 

@@ -181,7 +181,7 @@ static void DrawHudText(FFont *font, int color, char * text, int x, int y, int t
 	{
 		int width;
 		FTexture *texc = font->GetChar(text[i], &width);
-		if (texc != NULL)
+		if (texc != nullptr)
 		{
 			double offset = texc->GetScaledTopOffsetDouble() 
 				- tex_zero->GetScaledTopOffsetDouble() 
@@ -292,8 +292,8 @@ static void DrawHealth(player_t *CPlayer, int x, int y)
 		CR_BLUE;
 
 	const bool haveBerserk = hud_berserk_health
-		&& NULL != berserkpic
-		&& NULL != CPlayer->mo->FindInventory< APowerStrength >();
+		&& nullptr != berserkpic
+		&& nullptr != CPlayer->mo->FindInventory< APowerStrength >();
 
 	DrawImageToBox(haveBerserk ? berserkpic : healthpic, x, y, 31, 17);
 	DrawHudNumber(HudFont, fontcolor, health, x + 33, y + 17);
@@ -626,10 +626,10 @@ static int DrawAmmo(player_t *CPlayer, int x, int y)
 // Weapons List
 //
 //---------------------------------------------------------------------------
-FTextureID GetInventoryIcon(AInventory *item, DWORD flags, bool *applyscale=NULL)	// This function is also used by SBARINFO
+FTextureID GetInventoryIcon(AInventory *item, DWORD flags, bool *applyscale=nullptr)	// This function is also used by SBARINFO
 {
 	FTextureID picnum, AltIcon = GetHUDIcon(item->GetClass());
-	FState * state=NULL, *ReadyState;
+	FState * state=nullptr, *ReadyState;
 	
 	picnum.SetNull();
 	if (flags & DI_ALTICONFIRST)
@@ -653,7 +653,7 @@ FTextureID GetInventoryIcon(AInventory *item, DWORD flags, bool *applyscale=NULL
 		{
 			state = item->SpawnState;
 			
-			if (applyscale != NULL && !(flags & DI_FORCESCALE))
+			if (applyscale != nullptr && !(flags & DI_FORCESCALE))
 			{
 				*applyscale = true;
 			}
@@ -714,7 +714,7 @@ static void DrawWeapons(player_t *CPlayer, int x, int y)
 	for(inv = CPlayer->mo->Inventory; inv; inv = inv->Inventory)
 	{
 		if (inv->IsKindOf(RUNTIME_CLASS(AWeapon)) && 
-			!CPlayer->weapons.LocateWeapon(static_cast<AWeapon*>(inv)->GetClass(), NULL, NULL))
+			!CPlayer->weapons.LocateWeapon(static_cast<AWeapon*>(inv)->GetClass(), nullptr, nullptr))
 		{
 			DrawOneWeapon(CPlayer, x, y, static_cast<AWeapon*>(inv));
 		}
@@ -749,7 +749,7 @@ static void DrawInventory(player_t * CPlayer, int x,int y)
 	int i;
 
 	CPlayer->mo->InvFirst = rover = StatusBar->ValidateInvFirst(numitems);
-	if (rover!=NULL)
+	if (rover!=nullptr)
 	{
 		if(rover->PrevInv())
 		{
@@ -904,7 +904,7 @@ static void DrawTime()
 
 		struct tm* timeinfo = localtime(&now);
 
-		if (NULL != timeinfo)
+		if (nullptr != timeinfo)
 		{
 			hours   = timeinfo->tm_hour;
 			minutes = timeinfo->tm_min;
@@ -1146,8 +1146,8 @@ void HUD_InitHud()
 
 	IndexFont = V_GetFont("INDEXFONT");
 
-	if (HudFont == NULL) HudFont = BigFont;
-	if (IndexFont == NULL) IndexFont = ConFont;	// Emergency fallback
+	if (HudFont == nullptr) HudFont = BigFont;
+	if (IndexFont == nullptr) IndexFont = ConFont;	// Emergency fallback
 
 	invgems[0] = TexMan.FindTexture("INVGEML1");
 	invgems[1] = TexMan.FindTexture("INVGEML2");
@@ -1193,12 +1193,12 @@ void HUD_InitHud()
 				else if (!ti->IsDescendantOf(RUNTIME_CLASS(AInventory)))
 				{
 					Printf("Invalid item class '%s' in ALTHUDCF\n", sc.String);
-					ti=NULL;
+					ti=nullptr;
 				}
 				sc.MustGetString();
 				FTextureID tex;
 
-				if (!sc.Compare("0") && !sc.Compare("NULL") && !sc.Compare(""))
+				if (!sc.Compare("0") && !sc.Compare("nullptr") && !sc.Compare(""))
 				{
 					tex = TexMan.CheckForTexture(sc.String, FTexture::TEX_MiscPatch);
 				}

@@ -151,7 +151,7 @@ void G_DeferedInitNew (const char *mapname, int newskill)
 
 void G_DeferedInitNew (FGameStartup *gs)
 {
-	if (gs->PlayerClass != NULL) playerclass = gs->PlayerClass;
+	if (gs->PlayerClass != nullptr) playerclass = gs->PlayerClass;
 	d_mapname = AllEpisodes[gs->Episode].mEpisodeMap;
 	d_skill = gs->Skill;
 	CheckWarpTransMap (d_mapname, true);
@@ -283,7 +283,7 @@ void G_NewInit ()
 	APlayerPawn *pawn, *next;
 
 	next = it.Next();
-	while ((pawn = next) != NULL)
+	while ((pawn = next) != nullptr)
 	{
 		next = it.Next();
 		pawn->flags |= MF_NOSECTOR | MF_NOBLOCKMAP;
@@ -356,7 +356,7 @@ static void InitPlayerClasses ()
 			{
 				SinglePlayerClass[i] = (pr_classchoice()) % PlayerClasses.Size ();
 			}
-			players[i].cls = NULL;
+			players[i].cls = nullptr;
 			players[i].CurrentPlayerClass = SinglePlayerClass[i];
 		}
 	}
@@ -393,16 +393,16 @@ void G_InitNew (const char *mapname, bool bTitleLevel)
 		S_ResumeSound (false);
 	}
 
-	if (StatusBar != NULL)
+	if (StatusBar != nullptr)
 	{
 		StatusBar->Destroy();
-		StatusBar = NULL;
+		StatusBar = nullptr;
 	}
 	if (bTitleLevel)
 	{
 		StatusBar = new DBaseStatusBar (0);
 	}
-	else if (SBarInfoScript[SCRIPT_CUSTOM] != NULL)
+	else if (SBarInfoScript[SCRIPT_CUSTOM] != nullptr)
 	{
 		int cstype = SBarInfoScript[SCRIPT_CUSTOM]->GetGameType();
 
@@ -420,7 +420,7 @@ void G_InitNew (const char *mapname, bool bTitleLevel)
 			StatusBar = CreateCustomStatusBar(SCRIPT_DEFAULT);
 		}
 	}
-	if (StatusBar == NULL)
+	if (StatusBar == nullptr)
 	{
 		if (gameinfo.gametype & (GAME_DoomChex|GAME_Heretic|GAME_Hexen))
 		{
@@ -440,7 +440,7 @@ void G_InitNew (const char *mapname, bool bTitleLevel)
 	StatusBar->NewGame ();
 	setsizeneeded = true;
 
-	if (gameinfo.gametype == GAME_Strife || (SBarInfoScript[SCRIPT_CUSTOM] != NULL && SBarInfoScript[SCRIPT_CUSTOM]->GetGameType() == GAME_Strife))
+	if (gameinfo.gametype == GAME_Strife || (SBarInfoScript[SCRIPT_CUSTOM] != nullptr && SBarInfoScript[SCRIPT_CUSTOM]->GetGameType() == GAME_Strife))
 	{
 		// Set the initial quest log text for Strife.
 		for (i = 0; i < MAXPLAYERS; ++i)
@@ -528,7 +528,7 @@ static bool		unloading;
 
 void G_ChangeLevel(const char *levelname, int position, int flags, int nextSkill)
 {
-	level_info_t *nextinfo = NULL;
+	level_info_t *nextinfo = nullptr;
 
 	if (unloading)
 	{
@@ -540,10 +540,10 @@ void G_ChangeLevel(const char *levelname, int position, int flags, int nextSkill
 		return;
 	}
 
-	if (levelname == NULL || *levelname == 0)
+	if (levelname == nullptr || *levelname == 0)
 	{
 		// end the game
-		levelname = NULL;
+		levelname = nullptr;
 		if (!level.NextMap.Compare("enDSeQ",6))
 		{
 			nextlevel = level.NextMap;	// If there is already an end sequence please leave it alone!
@@ -558,10 +558,10 @@ void G_ChangeLevel(const char *levelname, int position, int flags, int nextSkill
 		FString reallevelname = levelname;
 		CheckWarpTransMap(reallevelname, true);
 		nextinfo = FindLevelInfo (reallevelname, false);
-		if (nextinfo != NULL)
+		if (nextinfo != nullptr)
 		{
 			level_info_t *nextredir = nextinfo->CheckLevelRedirect();
-			if (nextredir != NULL)
+			if (nextredir != nullptr)
 			{
 				nextinfo = nextredir;
 			}
@@ -586,12 +586,12 @@ void G_ChangeLevel(const char *levelname, int position, int flags, int nextSkill
 	}
 
 	cluster_info_t *thiscluster = FindClusterInfo (level.cluster);
-	cluster_info_t *nextcluster = nextinfo? FindClusterInfo (nextinfo->cluster) : NULL;
+	cluster_info_t *nextcluster = nextinfo? FindClusterInfo (nextinfo->cluster) : nullptr;
 
 	startpos = position;
 	gameaction = ga_completed;
 		
-	if (nextinfo != NULL) 
+	if (nextinfo != nullptr) 
 	{
 		if (thiscluster != nextcluster || (thiscluster && !(thiscluster->flags & CLUSTER_HUB)))
 		{
@@ -611,7 +611,7 @@ void G_ChangeLevel(const char *levelname, int position, int flags, int nextSkill
 
 	// [RH] Give scripts a chance to do something
 	unloading = true;
-	FBehavior::StaticStartTypedScripts (SCRIPT_Unloading, NULL, false, 0, true);
+	FBehavior::StaticStartTypedScripts (SCRIPT_Unloading, nullptr, false, 0, true);
 	unloading = false;
 
 	STAT_ChangeLevel(nextlevel);
@@ -637,7 +637,7 @@ void G_ChangeLevel(const char *levelname, int position, int flags, int nextSkill
 			if ((multiplayer || level.flags2 & LEVEL2_ALLOWRESPAWN) && !deathmatch && player->playerstate == PST_DEAD)
 			{
 				// Copied from the end of P_DeathThink [[
-				player->cls = NULL;		// Force a new class if the player is using a random class
+				player->cls = nullptr;		// Force a new class if the player is using a random class
 				player->playerstate = PST_REBORN;
 				if (player->mo->special1 > 2)
 				{
@@ -737,10 +737,10 @@ void G_DoCompleted (void)
 	else
 	{
 		level_info_t *nextinfo = FindLevelInfo (nextlevel, false);
-		if (nextinfo == NULL || strncmp (nextlevel, "enDSeQ", 6) == 0)
+		if (nextinfo == nullptr || strncmp (nextlevel, "enDSeQ", 6) == 0)
 		{
 			wminfo.next = nextlevel;
-			wminfo.LName1 = NULL;
+			wminfo.LName1 = nullptr;
 		}
 		else
 		{
@@ -984,8 +984,8 @@ void G_DoLoadLevel (int position, bool autosave)
 	// clear cmd building stuff
 	ResetButtonStates ();
 
-	SendItemUse = NULL;
-	SendItemDrop = NULL;
+	SendItemUse = nullptr;
+	SendItemDrop = nullptr;
 	mousex = mousey = 0; 
 	sendpause = sendsave = sendturn180 = SendLand = false;
 	LocalViewAngle = 0;
@@ -1015,7 +1015,7 @@ void G_DoLoadLevel (int position, bool autosave)
 	// For each player, if they are viewing through a player, make sure it is themselves.
 	for (int ii = 0; ii < MAXPLAYERS; ++ii)
 	{
-		if (playeringame[ii] && (players[ii].camera == NULL || players[ii].camera->player != NULL))
+		if (playeringame[ii] && (players[ii].camera == nullptr || players[ii].camera->player != nullptr))
 		{
 			players[ii].camera = players[ii].mo;
 		}
@@ -1056,7 +1056,7 @@ void G_WorldDone (void)
 
 	if (strncmp (nextlevel, "enDSeQ", 6) == 0)
 	{
-		FName endsequence = ENamedName(strtol(nextlevel.GetChars()+6, NULL, 16));
+		FName endsequence = ENamedName(strtol(nextlevel.GetChars()+6, nullptr, 16));
 		// Strife needs a special case here to choose between good and sad ending. Bad is handled elsewherw.
 		if (endsequence == NAME_Inter_Strife)
 		{
@@ -1156,7 +1156,7 @@ void G_StartTravel ()
 		{
 			AActor *pawn = players[i].mo;
 			AInventory *inv;
-			players[i].camera = NULL;
+			players[i].camera = nullptr;
 
 			// Only living players travel. Dead ones get a new body on the new level.
 			if (players[i].health > 0)
@@ -1168,7 +1168,7 @@ void G_StartTravel ()
 				pawn->tid = tid;		// Restore TID (but no longer linked into the hash chain)
 				pawn->ChangeStatNum (STAT_TRAVELLING);
 
-				for (inv = pawn->Inventory; inv != NULL; inv = inv->Inventory)
+				for (inv = pawn->Inventory; inv != nullptr; inv = inv->Inventory)
 				{
 					inv->ChangeStatNum (STAT_TRAVELLING);
 					inv->UnlinkFromWorld ();
@@ -1201,19 +1201,19 @@ void G_FinishTravel ()
 	int pnum;
 
 	next = it.Next ();
-	while ( (pawn = next) != NULL)
+	while ( (pawn = next) != nullptr)
 	{
 		next = it.Next ();
 		pnum = int(pawn->player - players);
 		pawn->ChangeStatNum (STAT_PLAYER);
 		pawndup = pawn->player->mo;
-		start = NULL;
+		start = nullptr;
 		assert (pawn != pawndup);
-		if (pawndup == NULL)
+		if (pawndup == nullptr)
 		{ // Oh no! there was no start for this player!
 			start = G_PickPlayerStart(pnum, PPS_FORCERANDOM); 
-			if (start != NULL) pawndup = P_SpawnPlayer(start, pnum, (level.flags2 & LEVEL2_PRERAISEWEAPON) ? SPF_WEAPONFULLYUP : 0);
-			if (pawndup == NULL)
+			if (start != nullptr) pawndup = P_SpawnPlayer(start, pnum, (level.flags2 & LEVEL2_PRERAISEWEAPON) ? SPF_WEAPONFULLYUP : 0);
+			if (pawndup == nullptr)
 			{
 				pawn->flags |= MF_NOSECTOR | MF_NOBLOCKMAP;
 				pawn->Destroy();
@@ -1221,10 +1221,10 @@ void G_FinishTravel ()
 			}
 		}
 
-		if (start == NULL)
+		if (start == nullptr)
 		{
 			start = G_PickPlayerStart(pnum, 0);
-			if (start == NULL)
+			if (start == nullptr)
 			{
 				Printf(TEXTCOLOR_RED "No player %d start to travel to!\n", pnum + 1);
 				// Move to the coordinates this player had when they left the level.
@@ -1236,7 +1236,7 @@ void G_FinishTravel ()
 		// The player being spawned here is a short lived dummy and
 		// must not start any ENTER script or big problems will happen.
 		pawndup = P_SpawnPlayer(start, pnum, SPF_TEMPPLAYER);
-		if (pawndup != NULL)
+		if (pawndup != nullptr)
 		{
 			if (!(changeflags & CHANGELEVEL_KEEPFACING))
 			{
@@ -1260,15 +1260,15 @@ void G_FinishTravel ()
 		{
 			P_FindFloorCeiling(pawn);
 		}
-		pawn->target = NULL;
-		pawn->lastenemy = NULL;
+		pawn->target = nullptr;
+		pawn->lastenemy = nullptr;
 		pawn->player->mo = pawn;
 		pawn->player->camera = pawn;
 		pawn->player->viewheight = pawn->ViewHeight;
 		pawn->flags2 &= ~MF2_BLASTED;
 		DObject::StaticPointerSubstitution (oldpawn, pawn);
 		oldpawn->Destroy();
-		if (pawndup != NULL)
+		if (pawndup != nullptr)
 		{
 			pawndup->Destroy();
 		}
@@ -1278,7 +1278,7 @@ void G_FinishTravel ()
 		pawn->SetState(pawn->SpawnState);
 		pawn->player->SendPitchLimits();
 
-		for (inv = pawn->Inventory; inv != NULL; inv = inv->Inventory)
+		for (inv = pawn->Inventory; inv != nullptr; inv = inv->Inventory)
 		{
 			inv->ChangeStatNum (STAT_INVENTORY);
 			inv->LinkToWorld ();
@@ -1520,7 +1520,7 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 		if (level.Scrolls)
 		{
 			delete[] level.Scrolls;
-			level.Scrolls = NULL;
+			level.Scrolls = nullptr;
 		}
 		if (t)
 		{
@@ -1548,7 +1548,7 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 		for (unsigned int i = 0; i < translationtables[TRANSLATION_LevelScripted].Size(); ++i)
 		{
 			trans = translationtables[TRANSLATION_LevelScripted][i];
-			if (trans != NULL && !trans->IsIdentity())
+			if (trans != nullptr && !trans->IsIdentity())
 			{
 				w = WORD(i);
 				arc << w;
@@ -1563,7 +1563,7 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 		while (arc << w, w != 0xffff)
 		{
 			trans = translationtables[TRANSLATION_LevelScripted].GetVal(w);
-			if (trans == NULL)
+			if (trans == nullptr)
 			{
 				trans = new FRemapTable;
 				translationtables[TRANSLATION_LevelScripted].SetVal(w, trans);
@@ -1586,7 +1586,7 @@ void G_SerializeLevel (FArchive &arc, bool hubLoad)
 		}
 		for (i = 0; i < MAXPLAYERS; ++i)
 		{
-			if (playeringame[i] && players[i].mo != NULL)
+			if (playeringame[i] && players[i].mo != nullptr)
 			{
 				players[i].mo->SetupWeaponSlots();
 			}
@@ -1628,7 +1628,7 @@ void G_SnapshotLevel ()
 
 void G_UnSnapshotLevel (bool hubLoad)
 {
-	if (level.info->snapshot == NULL)
+	if (level.info->snapshot == nullptr)
 		return;
 
 	if (level.info->isValid())
@@ -1649,7 +1649,7 @@ void G_UnSnapshotLevel (bool hubLoad)
 		while ((pawn = next) != 0)
 		{
 			next = it.Next();
-			if (pawn->player == NULL || pawn->player->mo == NULL || !playeringame[pawn->player - players])
+			if (pawn->player == nullptr || pawn->player->mo == nullptr || !playeringame[pawn->player - players])
 			{
 				int i;
 
@@ -1705,20 +1705,20 @@ void G_WriteSnapshots (FILE *file)
 			writeSnapShot (arc, (level_info_t *)&wadlevelinfos[i]);
 		}
 	}
-	if (TheDefaultLevelInfo.snapshot != NULL)
+	if (TheDefaultLevelInfo.snapshot != nullptr)
 	{
 		FPNGChunkArchive arc (file, DSNP_ID);
 		writeSnapShot(arc, &TheDefaultLevelInfo);
 	}
 
-	FPNGChunkArchive *arc = NULL;
+	FPNGChunkArchive *arc = nullptr;
 	
 	// Write out which levels have been visited
 	for (i = 0; i < wadlevelinfos.Size(); ++i)
 	{
 		if (wadlevelinfos[i].flags & LEVEL_VISITED)
 		{
-			if (arc == NULL)
+			if (arc == nullptr)
 			{
 				arc = new FPNGChunkArchive (file, VIST_ID);
 			}
@@ -1726,7 +1726,7 @@ void G_WriteSnapshots (FILE *file)
 		}
 	}
 
-	if (arc != NULL)
+	if (arc != nullptr)
 	{
 		FString empty = "";
 		(*arc) << empty;
@@ -1849,7 +1849,7 @@ CCMD(listsnapshots)
 	for (unsigned i = 0; i < wadlevelinfos.Size(); ++i)
 	{
 		FCompressedMemFile *snapshot = wadlevelinfos[i].snapshot;
-		if (snapshot != NULL)
+		if (snapshot != nullptr)
 		{
 			unsigned int comp, uncomp;
 			snapshot->GetSizes(comp, uncomp);
@@ -1875,13 +1875,13 @@ static void writeDefereds (FArchive &arc, level_info_t *i)
 
 void P_WriteACSDefereds (FILE *file)
 {
-	FPNGChunkArchive *arc = NULL;
+	FPNGChunkArchive *arc = nullptr;
 
 	for (unsigned int i = 0; i < wadlevelinfos.Size(); i++)
 	{
 		if (wadlevelinfos[i].defered)
 		{
-			if (arc == NULL)
+			if (arc == nullptr)
 			{
 				arc = new FPNGChunkArchive (file, ACSD_ID);
 			}
@@ -1889,7 +1889,7 @@ void P_WriteACSDefereds (FILE *file)
 		}
 	}
 
-	if (arc != NULL)
+	if (arc != nullptr)
 	{
 		// Signal end of defereds
 		FString empty = "";
@@ -1917,7 +1917,7 @@ void P_ReadACSDefereds (PNGHandle *png)
 		while (arc << MapName, MapName.Len() > 0)
 		{
 			level_info_t *i = FindLevelInfo(MapName);
-			if (i == NULL)
+			if (i == nullptr)
 			{
 				I_Error("Unknown map '%s' in savegame", MapName.GetChars());
 			}
@@ -1936,7 +1936,7 @@ void P_ReadACSDefereds (PNGHandle *png)
 void FLevelLocals::Tick ()
 {
 	// Reset carry sectors
-	if (Scrolls != NULL)
+	if (Scrolls != nullptr)
 	{
 		memset (Scrolls, 0, sizeof(*Scrolls)*numsectors);
 	}
@@ -1953,7 +1953,7 @@ void FLevelLocals::AddScroller (int secnum)
 	{
 		return;
 	}
-	if (Scrolls == NULL)
+	if (Scrolls == nullptr)
 	{
 		Scrolls = new FSectorScrollValues[numsectors];
 		memset (Scrolls, 0, sizeof(*Scrolls)*numsectors);
@@ -1973,7 +1973,7 @@ CCMD(listmaps)
 		level_info_t *info = &wadlevelinfos[i];
 		MapData *map = P_OpenMapData(info->MapName, true);
 
-		if (map != NULL)
+		if (map != nullptr)
 		{
 			Printf("%s: '%s' (%s)\n", info->MapName.GetChars(), info->LookupLevelName().GetChars(),
 				Wads.GetWadName(Wads.GetLumpFile(map->lumpnum)));

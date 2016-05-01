@@ -31,9 +31,9 @@ public:
 	static void StaticMarkHead() { GC::Mark(SequenceListHead); }
 
 	virtual void MakeSound (int loop, FSoundID id) {}
-	virtual void *Source () { return NULL; }
+	virtual void *Source () { return nullptr; }
 	virtual bool IsPlaying () { return false; }
-	virtual DSeqNode *SpawnChild (int seqnum) { return NULL; }
+	virtual DSeqNode *SpawnChild (int seqnum) { return nullptr; }
 
 	inline static DSeqNode *FirstSequence() { return SequenceListHead; }
 	inline DSeqNode *NextSequence() const { return m_Next; }

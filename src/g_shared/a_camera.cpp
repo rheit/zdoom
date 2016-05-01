@@ -138,7 +138,7 @@ void AAimingCamera::PostBeginPlay ()
 
 	TActorIterator<AActor> iterator (args[3]);
 	tracer = iterator.Next ();
-	if (tracer == NULL)
+	if (tracer == nullptr)
 	{
 		//Printf ("AimingCamera %d: Can't find TID %d\n", tid, args[3]);
 	}
@@ -150,12 +150,12 @@ void AAimingCamera::PostBeginPlay ()
 
 void AAimingCamera::Tick ()
 {
-	if (tracer == NULL && args[3] != 0)
+	if (tracer == nullptr && args[3] != 0)
 	{ // Recheck, in case something with this TID was created since the last time.
 		TActorIterator<AActor> iterator (args[3]);
 		tracer = iterator.Next ();
 	}
-	if (tracer != NULL)
+	if (tracer != nullptr)
 	{
 		DAngle delta;
 		int dir = P_FaceMobj (this, tracer, &delta);

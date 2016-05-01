@@ -47,7 +47,7 @@ gameinfo_t gameinfo;
 
 const char *GameNames[17] =
 {
-	NULL, "Doom", "Heretic", NULL, "Hexen", NULL, NULL, NULL, "Strife", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "Chex"
+	nullptr, "Doom", "Heretic", nullptr, "Hexen", nullptr, nullptr, nullptr, "Strife", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, "Chex"
 };
 
 
@@ -82,7 +82,7 @@ const char* GameInfoBorders[] =
 	"DoomBorder",
 	"HereticBorder",
 	"StrifeBorder",
-	NULL
+	nullptr
 };
 
 #define GAMEINFOKEY_CSTRING(key, variable, length) \
@@ -148,7 +148,7 @@ const char* GameInfoBorders[] =
 		FString colorName = V_GetColorStringByName(color); \
 		if(!colorName.IsEmpty()) \
 			color = colorName; \
-		gameinfo.key = V_GetColorFromString(NULL, color); \
+		gameinfo.key = V_GetColorFromString(nullptr, color); \
 	}
 
 #define GAMEINFOKEY_BOOL(key, variable) \

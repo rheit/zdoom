@@ -74,7 +74,7 @@ FPlayerNameBox::FPlayerNameBox(int x, int y, int height, int frameofs, const cha
 
 FPlayerNameBox::~FPlayerNameBox()
 {
-	if (mText != NULL) delete [] mText;
+	if (mText != nullptr) delete [] mText;
 }
 
 //=============================================================================
@@ -116,7 +116,7 @@ void FPlayerNameBox::DrawBorder (int x, int y, int len)
 	FTexture *left = TexMan[TexMan.CheckForTexture("M_LSLEFT", FTexture::TEX_MiscPatch)];
 	FTexture *mid = TexMan[TexMan.CheckForTexture("M_LSCNTR", FTexture::TEX_MiscPatch)];
 	FTexture *right = TexMan[TexMan.CheckForTexture("M_LSRGHT", FTexture::TEX_MiscPatch)];
-	if (left != NULL && right != NULL && mid != NULL)
+	if (left != nullptr && right != nullptr && mid != nullptr)
 	{
 		int i;
 
@@ -133,7 +133,7 @@ void FPlayerNameBox::DrawBorder (int x, int y, int len)
 	else
 	{
 		FTexture *slot = TexMan[TexMan.CheckForTexture("M_FSLOT", FTexture::TEX_MiscPatch)];
-		if (slot != NULL)
+		if (slot != nullptr)
 		{
 			screen->DrawTexture (slot, x, y+1, DTA_Clean, true, TAG_DONE);
 		}
@@ -153,7 +153,7 @@ void FPlayerNameBox::DrawBorder (int x, int y, int len)
 void FPlayerNameBox::Drawer(bool selected)
 {
 	const char *text = mText;
-	if (text != NULL)
+	if (text != nullptr)
 	{
 		if (*text == '$') text = GStrings(text+1);
 		screen->DrawText(mFont, selected? OptionSettings.mFontColorSelection : mFontColor, mXpos, mYpos, text, DTA_Clean, true, TAG_DONE);
@@ -228,7 +228,7 @@ FValueTextItem::FValueTextItem(int x, int y, int height, const char *text, FFont
 	if (values != NAME_None)
 	{
 		FOptionValues **opt = OptionValues.CheckKey(values);
-		if (opt != NULL) 
+		if (opt != nullptr) 
 		{
 			for(unsigned i=0;i<(*opt)->mValues.Size(); i++)
 			{
@@ -240,7 +240,7 @@ FValueTextItem::FValueTextItem(int x, int y, int height, const char *text, FFont
 
 FValueTextItem::~FValueTextItem()
 {
-	if (mText != NULL) delete [] mText;
+	if (mText != nullptr) delete [] mText;
 }
 
 //=============================================================================
@@ -352,7 +352,7 @@ FSliderItem::FSliderItem(int x, int y, int height, const char *text, FFont *font
 
 FSliderItem::~FSliderItem()
 {
-	if (mText != NULL) delete [] mText;
+	if (mText != nullptr) delete [] mText;
 }
 
 //=============================================================================
@@ -546,13 +546,13 @@ void DPlayerMenu::Init(DMenu *parent, FListMenuDescriptor *desc)
 	mRotation = 0;
 
 	li = GetItem(NAME_Playerdisplay);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetValue(FListMenuItemPlayerDisplay::PDF_ROTATION, 0);
 		li->SetValue(FListMenuItemPlayerDisplay::PDF_MODE, 1);
 		li->SetValue(FListMenuItemPlayerDisplay::PDF_TRANSLATE, 1);
 		li->SetValue(FListMenuItemPlayerDisplay::PDF_CLASS, players[consoleplayer].userinfo.GetPlayerClassNum());
-		if (PlayerClass != NULL && !(GetDefaultByType (PlayerClass->Type)->flags4 & MF4_NOSKIN) &&
+		if (PlayerClass != nullptr && !(GetDefaultByType (PlayerClass->Type)->flags4 & MF4_NOSKIN) &&
 			players[consoleplayer].userinfo.GetPlayerClassNum() != -1)
 		{
 			li->SetValue(FListMenuItemPlayerDisplay::PDF_SKIN, players[consoleplayer].userinfo.GetSkin());
@@ -560,13 +560,13 @@ void DPlayerMenu::Init(DMenu *parent, FListMenuDescriptor *desc)
 	}
 
 	li = GetItem(NAME_Playerbox);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetString(0, name);
 	}
 
 	li = GetItem(NAME_Team);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetString(0, "None");
 		for(unsigned i=0;i<Teams.Size(); i++)
@@ -582,28 +582,28 @@ void DPlayerMenu::Init(DMenu *parent, FListMenuDescriptor *desc)
 	UpdateColorsets();
 
 	li = GetItem(NAME_Red);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->Enable(mycolorset == -1);
 		li->SetValue(0, RPART(color));
 	}
 
 	li = GetItem(NAME_Green);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->Enable(mycolorset == -1);
 		li->SetValue(0, GPART(color));
 	}
 
 	li = GetItem(NAME_Blue);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->Enable(mycolorset == -1);
 		li->SetValue(0, BPART(color));
 	}
 
 	li = GetItem(NAME_Class);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		if (PlayerClasses.Size() == 1)
 		{
@@ -628,25 +628,25 @@ void DPlayerMenu::Init(DMenu *parent, FListMenuDescriptor *desc)
 	UpdateSkins();
 
 	li = GetItem(NAME_Gender);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetValue(0, players[consoleplayer].userinfo.GetGender());
 	}
 
 	li = GetItem(NAME_Autoaim);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetValue(0, (int)autoaim);
 	}
 
 	li = GetItem(NAME_Switch);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetValue(0, neverswitchonpickup);
 	}
 
 	li = GetItem(NAME_AlwaysRun);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		li->SetValue(0, cl_run);
 	}
@@ -668,7 +668,7 @@ bool DPlayerMenu::Responder (event_t *ev)
 		// turn the player sprite around
 		mRotation = 8 - mRotation;
 		FListMenuItem *li = GetItem(NAME_Playerdisplay);
-		if (li != NULL)
+		if (li != nullptr)
 		{
 			li->SetValue(FListMenuItemPlayerDisplay::PDF_ROTATION, mRotation);
 		}
@@ -689,7 +689,7 @@ void DPlayerMenu::UpdateTranslation()
 	int	PlayerSkin = players[consoleplayer].userinfo.GetSkin();
 	int PlayerColorset = players[consoleplayer].userinfo.GetColorSet();
 
-	if (PlayerClass != NULL)
+	if (PlayerClass != nullptr)
 	{
 		PlayerSkin = R_FindSkin (skins[PlayerSkin].name, int(PlayerClass - &PlayerClasses[0]));
 		R_GetPlayerTranslation(PlayerColor, PlayerClass->Type->GetColorSet(PlayerColorset),
@@ -709,7 +709,7 @@ void DPlayerMenu::PickPlayerClass()
 	/*
 	// What's the point of this? Aren't we supposed to edit the
 	// userinfo?
-	if (players[consoleplayer].mo != NULL)
+	if (players[consoleplayer].mo != nullptr)
 	{
 		PlayerClassIndex = players[consoleplayer].CurrentPlayerClass;
 	}
@@ -758,7 +758,7 @@ void DPlayerMenu::SendNewColor (int red, int green, int blue)
 void DPlayerMenu::UpdateColorsets()
 {
 	FListMenuItem *li = GetItem(NAME_Color);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		int sel = 0;
 		PlayerClass->Type->EnumColorSets(&PlayerColorSets);
@@ -794,7 +794,7 @@ void DPlayerMenu::UpdateSkins()
 	int sel = 0;
 	int skin;
 	FListMenuItem *li = GetItem(NAME_Skin);
-	if (li != NULL)
+	if (li != nullptr)
 	{
 		if (GetDefaultByType (PlayerClass->Type)->flags4 & MF4_NOSKIN ||
 			players[consoleplayer].userinfo.GetPlayerClassNum() == -1)
@@ -822,7 +822,7 @@ void DPlayerMenu::UpdateSkins()
 			skin = PlayerSkins[sel];
 		}
 		li = GetItem(NAME_Playerdisplay);
-		if (li != NULL)
+		if (li != nullptr)
 		{
 			li->SetValue(FListMenuItemPlayerDisplay::PDF_SKIN, skin);
 		}
@@ -879,9 +879,9 @@ void DPlayerMenu::ColorSetChanged (FListMenuItem *li)
 		FListMenuItem *blue  = GetItem(NAME_Blue);
 
 		// disable the sliders if a valid colorset is selected
-		if (red != NULL) red->Enable(mycolorset == -1);
-		if (green != NULL) green->Enable(mycolorset == -1);
-		if (blue != NULL) blue->Enable(mycolorset == -1);
+		if (red != nullptr) red->Enable(mycolorset == -1);
+		if (green != nullptr) green->Enable(mycolorset == -1);
+		if (blue != nullptr) blue->Enable(mycolorset == -1);
 
 		char command[24];
 		players[consoleplayer].userinfo.ColorSetChanged(mycolorset);
@@ -918,7 +918,7 @@ void DPlayerMenu::ClassChanged (FListMenuItem *li)
 		UpdateTranslation();
 
 		li = GetItem(NAME_Playerdisplay);
-		if (li != NULL)
+		if (li != nullptr)
 		{
 			li->SetValue(FListMenuItemPlayerDisplay::PDF_CLASS, players[consoleplayer].userinfo.GetPlayerClassNum());
 		}
@@ -949,7 +949,7 @@ void DPlayerMenu::SkinChanged (FListMenuItem *li)
 		cvar_set ("skin", skins[sel].name);
 
 		li = GetItem(NAME_Playerdisplay);
-		if (li != NULL)
+		if (li != nullptr)
 		{
 			li->SetValue(FListMenuItemPlayerDisplay::PDF_SKIN, sel);
 		}
@@ -986,7 +986,7 @@ bool DPlayerMenu::MenuEvent (int mkey, bool fromcontroller)
 		FListMenuItem *li = mDesc->mItems[mDesc->mSelectedItem];
 		if (li->MenuEvent(mkey, fromcontroller))
 		{
-			FName current = li->GetAction(NULL);
+			FName current = li->GetAction(nullptr);
 			switch(current)
 			{
 				// item specific handling comes here
@@ -1081,11 +1081,11 @@ bool DPlayerMenu::MouseEvent(int type, int x, int y)
 	int v;
 	FListMenuItem *li = mFocusControl;
 	bool res = Super::MouseEvent(type, x, y);
-	if (li == NULL) li = mFocusControl;
-	if (li != NULL)
+	if (li == nullptr) li = mFocusControl;
+	if (li != nullptr)
 	{
 		// Check if the colors have changed
-		FName current = li->GetAction(NULL);
+		FName current = li->GetAction(nullptr);
 		switch(current)
 		{
 		case NAME_Red:

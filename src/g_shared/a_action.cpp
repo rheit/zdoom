@@ -70,28 +70,28 @@ void A_Unblock(AActor *self, bool drop)
 	self->flags &= ~MF_SOLID;
 
 	// If the actor has a conversation that sets an item to drop, drop that.
-	if (self->Conversation != NULL && self->Conversation->DropType != NULL)
+	if (self->Conversation != nullptr && self->Conversation->DropType != nullptr)
 	{
 		P_DropItem (self, self->Conversation->DropType, -1, 256);
-		self->Conversation = NULL;
+		self->Conversation = nullptr;
 		return;
 	}
 
-	self->Conversation = NULL;
+	self->Conversation = nullptr;
 
 	// If the actor has attached metadata for items to drop, drop those.
 	if (drop && !self->IsKindOf (RUNTIME_CLASS (APlayerPawn)))	// [GRB]
 	{
 		DDropItem *di = self->GetDropItems();
 
-		if (di != NULL)
+		if (di != nullptr)
 		{
-			while (di != NULL)
+			while (di != nullptr)
 			{
 				if (di->Name != NAME_None)
 				{
 					PClassActor *ti = PClass::FindActor(di->Name);
-					if (ti != NULL)
+					if (ti != nullptr)
 					{
 						P_DropItem (self, ti, di->Amount, di->Probability);
 					}
@@ -213,7 +213,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FreezeDeath)
 	}
 	else if (self->flags3 & MF3_ISMONSTER && self->special)
 	{ // Initiate monster death actions
-		P_ExecuteSpecial(self->special, NULL, self, false, self->args[0],
+		P_ExecuteSpecial(self->special, nullptr, self, false, self->args[0],
 			self->args[1], self->args[2], self->args[3], self->args[4]);
 		self->special = 0;
 	}
@@ -310,7 +310,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FreezeDeathChunks)
 	if (self->player)
 	{ // attach the player's view to a chunk of ice
 		AActor *head = Spawn("IceChunkHead", self->PosPlusZ(self->player->mo->ViewHeight), ALLOW_REPLACE);
-		if (head != NULL)
+		if (head != nullptr)
 		{
 			head->Vel.X = pr_freeze.Random2() / 128.;
 			head->Vel.Y = pr_freeze.Random2() / 128.;
@@ -322,7 +322,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FreezeDeathChunks)
 			{
 				head->player = self->player;
 				head->player->mo = static_cast<APlayerPawn*>(head);
-				self->player = NULL;
+				self->player = nullptr;
 				head->ObtainInventory (self);
 			}
 			head->Angles.Pitch = 0.;
@@ -378,7 +378,7 @@ CUSTOM_CVAR(Int, sv_corpsequeuesize, 64, CVAR_ARCHIVE|CVAR_SERVERINFO)
 	{
 		TThinkerIterator<DCorpsePointer> iterator (STAT_CORPSEPOINTER);
 		DCorpsePointer *first = iterator.Next ();
-		while (first != NULL && first->Count > (DWORD)self)
+		while (first != nullptr && first->Count > (DWORD)self)
 		{
 			DCorpsePointer *next = iterator.Next ();
 			first->Destroy ();
@@ -423,12 +423,12 @@ void DCorpsePointer::Destroy ()
 		first = iterator.Next ();
 	}
 
-	if (first != NULL)
+	if (first != nullptr)
 	{
 		first->Count = prevCount - 1;
 	}
 
-	if (Corpse != NULL)
+	if (Corpse != nullptr)
 	{
 		Corpse->Destroy ();
 	}
@@ -462,11 +462,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_DeQueueCorpse)
 	TThinkerIterator<DCorpsePointer> iterator (STAT_CORPSEPOINTER);
 	DCorpsePointer *corpsePtr;
 
-	while ((corpsePtr = iterator.Next()) != NULL)
+	while ((corpsePtr = iterator.Next()) != nullptr)
 	{
 		if (corpsePtr->Corpse == self)
 		{
-			corpsePtr->Corpse = NULL;
+			corpsePtr->Corpse = nullptr;
 			corpsePtr->Destroy ();
 			return 0;
 		}

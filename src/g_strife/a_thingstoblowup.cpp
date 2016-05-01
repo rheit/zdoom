@@ -52,7 +52,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GiveQuestItem)
 	mysnprintf(messageid, countof(messageid), "TXT_QUEST_%d", questitem);
 	const char * name = GStrings[messageid];
 
-	if (name != NULL)
+	if (name != nullptr)
 	{
 		C_MidPrint (SmallFont, name);
 	}
@@ -65,7 +65,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ExtraLightOff)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target != NULL && self->target->player != NULL)
+	if (self->target != nullptr && self->target->player != nullptr)
 	{
 		self->target->player->extralight = 0;
 	}
@@ -77,7 +77,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Explode512)
 	PARAM_ACTION_PROLOGUE;
 
 	P_RadiusAttack (self, self->target, 512, 512, NAME_None, RADF_HURTSOURCE);
-	if (self->target != NULL && self->target->player != NULL)
+	if (self->target != nullptr && self->target->player != nullptr)
 	{
 		self->target->player->extralight = 5;
 	}
@@ -109,7 +109,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LightGoesOut)
 	for (int i = 0; i < 8; ++i)
 	{
 		foo = Spawn("Rubble1", self->Pos(), ALLOW_REPLACE);
-		if (foo != NULL)
+		if (foo != nullptr)
 		{
 			int t = pr_lightout() & 15;
 			foo->Vel.X = t - (pr_lightout() & 7);

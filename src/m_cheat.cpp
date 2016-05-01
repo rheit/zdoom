@@ -150,7 +150,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_FLY:
-		if (player->mo != NULL)
+		if (player->mo != nullptr)
 		{
 			player->mo->flags7 ^= MF7_FLYCHEAT;
 			if (player->mo->flags7 & MF7_FLYCHEAT)
@@ -198,10 +198,10 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_CHAINSAW:
-		if (player->mo != NULL && player->health >= 0)
+		if (player->mo != nullptr && player->health >= 0)
 		{
 			type = PClass::FindActor("Chainsaw");
-			if (player->mo->FindInventory (type) == NULL)
+			if (player->mo->FindInventory (type) == nullptr)
 			{
 				player->mo->GiveInventoryType (type);
 			}
@@ -214,10 +214,10 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_POWER:
-		if (player->mo != NULL && player->health >= 0)
+		if (player->mo != nullptr && player->health >= 0)
 		{
 			item = player->mo->FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true);
-			if (item != NULL)
+			if (item != nullptr)
 			{
 				item->Destroy ();
 				msg = GStrings("TXT_CHEATPOWEROFF");
@@ -262,10 +262,10 @@ void cht_DoCheat (player_t *player, int cheat)
 		{
 			level.flags2 ^= LEVEL2_ALLMAP;
 		}
-		else if (player->mo != NULL && player->health >= 0)
+		else if (player->mo != nullptr && player->health >= 0)
 		{
 			item = player->mo->FindInventory(PClass::FindActor(BeholdPowers[i]));
-			if (item == NULL)
+			if (item == nullptr)
 			{
 				if (i != 0)
 				{
@@ -300,7 +300,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_HEALTH:
-		if (player->mo != NULL && player->playerstate == PST_LIVE)
+		if (player->mo != nullptr && player->playerstate == PST_LIVE)
 		{
 			player->health = player->mo->health = player->mo->GetDefault()->health;
 			msg = GStrings("TXT_CHEATHEALTH");
@@ -314,7 +314,7 @@ void cht_DoCheat (player_t *player, int cheat)
 
 	// [GRB]
 	case CHT_RESSURECT:
-		if (player->playerstate != PST_LIVE && player->mo != NULL)
+		if (player->playerstate != PST_LIVE && player->mo != nullptr)
 		{
 			if (player->mo->IsKindOf(RUNTIME_CLASS(APlayerChunk)))
 			{
@@ -343,7 +343,7 @@ void cht_DoCheat (player_t *player, int cheat)
 					player->mo->Translation = TRANSLATION(TRANSLATION_Players, BYTE(player-players));
 				}
 				player->mo->DamageType = NAME_None;
-				if (player->ReadyWeapon != NULL)
+				if (player->ReadyWeapon != nullptr)
 				{
 					P_SetPsprite(player, ps_weapon, player->ReadyWeapon->GetUpState());
 				}
@@ -416,14 +416,14 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_TAKEWEAPS:
-		if (player->morphTics || player->mo == NULL || player->mo->health <= 0)
+		if (player->morphTics || player->mo == nullptr || player->mo->health <= 0)
 		{
 			return;
 		}
 		{
 			// Take away all weapons that are either non-wimpy or use ammo.
 			AInventory **invp = &player->mo->Inventory, **lastinvp;
-			for (item = *invp; item != NULL; item = *invp)
+			for (item = *invp; item != nullptr; item = *invp)
 			{
 				lastinvp = invp;
 				invp = &(*invp)->Inventory;
@@ -431,7 +431,7 @@ void cht_DoCheat (player_t *player, int cheat)
 				{
 					AWeapon *weap = static_cast<AWeapon *> (item);
 					if (!(weap->WeaponFlags & WIF_WIMPY_WEAPON) ||
-						weap->AmmoType1 != NULL)
+						weap->AmmoType1 != nullptr)
 					{
 						item->Destroy ();
 						invp = lastinvp;
@@ -461,7 +461,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_MDK:
-		if (player->mo == NULL)
+		if (player->mo == nullptr)
 		{
 			Printf ("What do you want to kill outside of a game?\n");
 		}
@@ -481,12 +481,12 @@ void cht_DoCheat (player_t *player, int cheat)
 		break;
 
 	case CHT_LEGO:
-		if (player->mo != NULL && player->health >= 0)
+		if (player->mo != nullptr && player->health >= 0)
 		{
 			int oldpieces = ASigil::GiveSigilPiece (player->mo);
 			item = player->mo->FindInventory (RUNTIME_CLASS(ASigil));
 
-			if (item != NULL)
+			if (item != nullptr)
 			{
 				if (oldpieces == 5)
 				{
@@ -547,7 +547,7 @@ void cht_DoCheat (player_t *player, int cheat)
 
 const char *cht_Morph (player_t *player, PClassPlayerPawn *morphclass, bool quickundo)
 {
-	if (player->mo == NULL)
+	if (player->mo == nullptr)
 	{
 		return "";
 	}
@@ -584,7 +584,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 	if (player != &players[consoleplayer])
 		Printf ("%s is a cheater: give %s\n", player->userinfo.GetName(), name);
 
-	if (player->mo == NULL || player->health <= 0)
+	if (player->mo == nullptr || player->health <= 0)
 	{
 		return;
 	}
@@ -616,7 +616,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 	{
 		// Select the correct type of backpack based on the game
 		type = PClass::FindActor(gameinfo.backpacktype);
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			player->mo->GiveInventory(static_cast<PClassInventory *>(type), 1, true);
 		}
@@ -637,7 +637,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 			{
 				PClassAmmo *atype = static_cast<PClassAmmo *>(type);
 				AInventory *ammo = player->mo->FindInventory(atype);
-				if (ammo == NULL)
+				if (ammo == nullptr)
 				{
 					ammo = static_cast<AInventory *>(Spawn (atype));
 					ammo->AttachToOwner (player->mo);
@@ -718,7 +718,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 				 static_cast<PClassActor *>(type)->GetReplacement()->IsDescendantOf(RUNTIME_CLASS(ADehackedPickup))))
 			{
 				// Give the weapon only if it belongs to the current game or
-				if (player->weapons.LocateWeapon(static_cast<PClassWeapon*>(type), NULL, NULL))
+				if (player->weapons.LocateWeapon(static_cast<PClassWeapon*>(type), nullptr, nullptr))
 				{
 					AWeapon *def = (AWeapon*)GetDefaultByType (type);
 					if (giveall == ALL_YESYES || !(def->WeaponFlags & WIF_CHEATNOTWEAPON))
@@ -785,7 +785,7 @@ void cht_Give (player_t *player, const char *name, int amount)
 		return;
 
 	type = PClass::FindActor(name);
-	if (type == NULL || !type->IsDescendantOf (RUNTIME_CLASS(AInventory)))
+	if (type == nullptr || !type->IsDescendantOf (RUNTIME_CLASS(AInventory)))
 	{
 		if (player == &players[consoleplayer])
 			Printf ("Unknown item \"%s\"\n", name);
@@ -802,7 +802,7 @@ void cht_Take (player_t *player, const char *name, int amount)
 	bool takeall;
 	PClassActor *type;
 
-	if (player->mo == NULL || player->health <= 0)
+	if (player->mo == nullptr || player->health <= 0)
 	{
 		return;
 	}
@@ -932,10 +932,10 @@ void cht_Take (player_t *player, const char *name, int amount)
 				if (weapon)
 					weapon->Destroy ();
 
-				player->ReadyWeapon = NULL;
+				player->ReadyWeapon = nullptr;
 				player->PendingWeapon = WP_NOCHANGE;
-				player->psprites[ps_weapon].state = NULL;
-				player->psprites[ps_flash].state = NULL;
+				player->psprites[ps_weapon].state = nullptr;
+				player->psprites[ps_flash].state = nullptr;
 			}
 		}
 
@@ -992,7 +992,7 @@ void cht_Take (player_t *player, const char *name, int amount)
 		return;
 
 	type = PClass::FindActor (name);
-	if (type == NULL || !type->IsDescendantOf (RUNTIME_CLASS (AInventory)))
+	if (type == nullptr || !type->IsDescendantOf (RUNTIME_CLASS (AInventory)))
 	{
 		if (player == &players[consoleplayer])
 			Printf ("Unknown item \"%s\"\n", name);
@@ -1046,7 +1046,7 @@ void cht_Suicide (player_t *plyr)
 	// so the console has not gone up yet. Use a temporary thinker to delay
 	// the suicide until the game ticks so that death noises can be heard on
 	// the initial tick.
-	if (plyr->mo != NULL)
+	if (plyr->mo != nullptr)
 	{
 		DSuicider *suicide = new DSuicider;
 		suicide->Pawn = plyr->mo;

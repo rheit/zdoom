@@ -47,8 +47,8 @@ extern TArray<spriteframe_t> SpriteFrames;
 class FPlayerSkin
 {
 public:
-	char		name[17];	// 16 chars + NULL
-	char		face[4];	// 3 chars ([MH] + NULL so can use as a C string)
+	char		name[17];	// 16 chars + nullptr
+	char		face[4];	// 3 chars ([MH] + nullptr so can use as a C string)
 	BYTE		gender;		// This skin's gender (not really used)
 	BYTE		range0start;
 	BYTE		range0end;

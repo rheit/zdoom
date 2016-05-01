@@ -348,7 +348,7 @@ CCMD (hxvisit)
 
 CCMD (changemap)
 {
-	if (who == NULL || !usergame)
+	if (who == nullptr || !usergame)
 	{
 		Printf ("Use the map command when not in a game.\n");
 		return;
@@ -433,7 +433,7 @@ CCMD (print)
 		return;
 	}
 	const char *str = GStrings[argv[1]];
-	if (str == NULL)
+	if (str == nullptr)
 	{
 		Printf ("%s unknown\n", argv[1]);
 	}
@@ -479,7 +479,7 @@ CCMD (logfile)
 		const char *timestr = myasctime();
 		Printf("Log stopped: %s\n", timestr);
 		fclose (Logfile);
-		Logfile = NULL;
+		Logfile = nullptr;
 	}
 
 	if (argv.argc() >= 2)
@@ -874,7 +874,7 @@ CCMD(linetarget)
 {
 	FTranslatedLineTarget t;
 
-	if (CheckCheatmode () || players[consoleplayer].mo == NULL) return;
+	if (CheckCheatmode () || players[consoleplayer].mo == nullptr) return;
 	P_AimLineAttack(players[consoleplayer].mo,players[consoleplayer].mo->Angles.Yaw, MISSILERANGE, &t, 0.);
 	if (t.linetarget)
 	{
@@ -891,7 +891,7 @@ CCMD(info)
 {
 	FTranslatedLineTarget t;
 
-	if (CheckCheatmode () || players[consoleplayer].mo == NULL) return;
+	if (CheckCheatmode () || players[consoleplayer].mo == nullptr) return;
 	P_AimLineAttack(players[consoleplayer].mo,players[consoleplayer].mo->Angles.Yaw, MISSILERANGE,
 		&t, 0.,	ALF_CHECKNONSHOOTABLE|ALF_FORCENOSMART);
 	if (t.linetarget)
@@ -926,12 +926,12 @@ static bool IsActorACountItem(AActor *mo)
 static void PrintFilteredActorList(const ActorTypeChecker IsActorType, const char *FilterName)
 {
 	AActor *mo;
-	const PClass *FilterClass = NULL;
+	const PClass *FilterClass = nullptr;
 
-	if (FilterName != NULL)
+	if (FilterName != nullptr)
 	{
 		FilterClass = PClass::FindActor(FilterName);
-		if (FilterClass == NULL)
+		if (FilterClass == nullptr)
 		{
 			Printf("%s is not an actor class.\n", FilterName);
 			return;
@@ -941,7 +941,7 @@ static void PrintFilteredActorList(const ActorTypeChecker IsActorType, const cha
 
 	while ( (mo = it.Next()) )
 	{
-		if ((FilterClass == NULL || mo->IsA(FilterClass)) && IsActorType(mo))
+		if ((FilterClass == nullptr || mo->IsA(FilterClass)) && IsActorType(mo))
 		{
 			Printf ("%s at (%f,%f,%f)\n",
 				mo->GetClass()->TypeName.GetChars(), mo->X(), mo->Y(), mo->Z());
@@ -958,7 +958,7 @@ CCMD(monster)
 {
 	if (CheckCheatmode ()) return;
 
-	PrintFilteredActorList(IsActorAMonster, argv.argc() > 1 ? argv[1] : NULL);
+	PrintFilteredActorList(IsActorAMonster, argv.argc() > 1 ? argv[1] : nullptr);
 }
 
 //-----------------------------------------------------------------------------
@@ -970,7 +970,7 @@ CCMD(items)
 {
 	if (CheckCheatmode ()) return;
 
-	PrintFilteredActorList(IsActorAnItem, argv.argc() > 1 ? argv[1] : NULL);
+	PrintFilteredActorList(IsActorAnItem, argv.argc() > 1 ? argv[1] : nullptr);
 }
 
 //-----------------------------------------------------------------------------
@@ -982,7 +982,7 @@ CCMD(countitems)
 {
 	if (CheckCheatmode ()) return;
 
-	PrintFilteredActorList(IsActorACountItem, argv.argc() > 1 ? argv[1] : NULL);
+	PrintFilteredActorList(IsActorACountItem, argv.argc() > 1 ? argv[1] : nullptr);
 }
 
 //-----------------------------------------------------------------------------
@@ -1131,7 +1131,7 @@ CCMD(vmengine)
 static void PrintSecretString(const char *string, bool thislevel)
 {
 	const char *colstr = thislevel? TEXTCOLOR_YELLOW : TEXTCOLOR_CYAN;
-	if (string != NULL)
+	if (string != nullptr)
 	{
 		if (*string == '$')
 		{

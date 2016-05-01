@@ -53,7 +53,7 @@ FCanvasTexture::FCanvasTexture (const char *name, int width, int height)
 	DummySpans[1].TopOffset = 0;
 	DummySpans[1].Length = 0;
 	UseType = TEX_Wall;
-	Canvas = NULL;
+	Canvas = nullptr;
 	bNeedsUpdate = true;
 	bDidUpdate = false;
 	bHasCanvas = true;
@@ -69,7 +69,7 @@ FCanvasTexture::~FCanvasTexture ()
 const BYTE *FCanvasTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
 	bNeedsUpdate = true;
-	if (Canvas == NULL)
+	if (Canvas == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -84,7 +84,7 @@ const BYTE *FCanvasTexture::GetColumn (unsigned int column, const Span **spans_o
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpans;
 	}
@@ -94,7 +94,7 @@ const BYTE *FCanvasTexture::GetColumn (unsigned int column, const Span **spans_o
 const BYTE *FCanvasTexture::GetPixels ()
 {
 	bNeedsUpdate = true;
-	if (Canvas == NULL)
+	if (Canvas == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -125,16 +125,16 @@ void FCanvasTexture::Unload ()
 {
 	if (bPixelsAllocated)
 	{
-		if (Pixels != NULL) delete [] Pixels;
+		if (Pixels != nullptr) delete [] Pixels;
 		bPixelsAllocated = false;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 
-	if (Canvas != NULL)
+	if (Canvas != nullptr)
 	{
 		GC::DelSoftRoot(Canvas);
 		Canvas->Destroy();
-		Canvas = NULL;
+		Canvas = nullptr;
 	}
 }
 

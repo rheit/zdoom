@@ -16,7 +16,7 @@ int ChildQuit;
 
 void ChildSigHandler (int signum)
 {
-	ChildQuit = waitpid (-1, NULL, WNOHANG);
+	ChildQuit = waitpid (-1, nullptr, WNOHANG);
 }
 #endif
 
@@ -46,7 +46,7 @@ CUSTOM_CVAR (Float, timidity_mastervolume, 1.0f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0.f;
 	else if (self > 4.f)
 		self = 4.f;
-	if (currSong != NULL)
+	if (currSong != nullptr)
 		currSong->TimidityVolumeChanged();
 }
 
@@ -86,13 +86,13 @@ TimidityPPMIDIDevice::TimidityPPMIDIDevice(const char *args)
 	WavePipe[0] = WavePipe[1] = -1;
 #endif
 
-	if (args == NULL || *args == 0) args = timidity_exe;
+	if (args == nullptr || *args == 0) args = timidity_exe;
 
 	CommandLine.Format("%s %s -EFchorus=%s -EFreverb=%s -s%d ",
 		args, *timidity_extargs,
 		*timidity_chorus, *timidity_reverb, *timidity_frequency);
 
-	if (DiskName == NULL)
+	if (DiskName == nullptr)
 	{
 		Printf(PRINT_BOLD, "Could not create temp music file\n");
 		return;
@@ -157,7 +157,7 @@ bool TimidityPPMIDIDevice::Preprocess(MIDIStreamer *song, bool looping)
 	song->CreateSMF(midi, looping ? 0 : 1);
 
 	f = fopen(DiskName, "wb");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		Printf(PRINT_BOLD, "Could not open temp music file\n");
 		return false;
@@ -183,7 +183,7 @@ int TimidityPPMIDIDevice::Open(void (*callback)(unsigned int, void *, DWORD, DWO
 	int pipeSize;
 
 #ifdef _WIN32
-	static SECURITY_ATTRIBUTES inheritable = { sizeof(inheritable), NULL, TRUE };
+	static SECURITY_ATTRIBUTES inheritable = { sizeof(inheritable), nullptr, TRUE };
 	
 	if (!Validated && !ValidateTimidity ())
 	{
@@ -221,7 +221,7 @@ int TimidityPPMIDIDevice::Open(void (*callback)(unsigned int, void *, DWORD, DWO
 				(timidity_stereo ? 0 : SoundStream::Mono) |
 				(timidity_8bit ? SoundStream::Bits8 : 0),
 				timidity_frequency, this);
-			if (Stream == NULL)
+			if (Stream == nullptr)
 			{
 				Printf(PRINT_BOLD, "Could not create music stream.\n");
 				pipeSize = 0;
@@ -292,7 +292,7 @@ bool TimidityPPMIDIDevice::ValidateTimidity()
 	const BYTE *exe;
 	bool good;
 
-	pathLen = SearchPath (NULL, timidity_exe, NULL, MAX_PATH, foundPath, &filePart);
+	pathLen = SearchPath (nullptr, timidity_exe, nullptr, MAX_PATH, foundPath, &filePart);
 	if (pathLen == 0)
 	{
 		Printf(PRINT_BOLD, "Please set the timidity_exe cvar to the location of TiMidity++\n");
@@ -304,23 +304,23 @@ bool TimidityPPMIDIDevice::ValidateTimidity()
 		return false;
 	}
 
-	diskFile = CreateFile (foundPath, GENERIC_READ, FILE_SHARE_READ, NULL,
-		OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	diskFile = CreateFile (foundPath, GENERIC_READ, FILE_SHARE_READ, nullptr,
+		OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
 	if (diskFile == INVALID_HANDLE_VALUE)
 	{
 		Printf(PRINT_BOLD, "Could not access %s\n", foundPath);
 		return false;
 	}
-	fileLen = GetFileSize (diskFile, NULL);
-	mapping = CreateFileMapping (diskFile, NULL, PAGE_READONLY, 0, 0, NULL);
-	if (mapping == NULL)
+	fileLen = GetFileSize (diskFile, nullptr);
+	mapping = CreateFileMapping (diskFile, nullptr, PAGE_READONLY, 0, 0, nullptr);
+	if (mapping == nullptr)
 	{
 		Printf(PRINT_BOLD, "Could not create mapping for %s\n", foundPath);
 		CloseHandle (diskFile);
 		return false;
 	}
 	exeBase = (const BYTE *)MapViewOfFile (mapping, FILE_MAP_READ, 0, 0, 0);
-	if (exeBase == NULL)
+	if (exeBase == nullptr)
 	{
 		Printf(PRINT_BOLD, "Could not map %s\n", foundPath);
 		CloseHandle (mapping);
@@ -334,7 +334,7 @@ bool TimidityPPMIDIDevice::ValidateTimidity()
 		for (exe = exeBase, exeEnd = exeBase+fileLen; exe < exeEnd; )
 		{
 			const char *tSpot = (const char *)memchr(exe, 'T', exeEnd - exe);
-			if (tSpot == NULL)
+			if (tSpot == nullptr)
 			{
 				break;
 			}
@@ -392,8 +392,8 @@ bool TimidityPPMIDIDevice::LaunchTimidity ()
 	startup.lpTitle = TimidityTitle;
 	startup.wShowWindow = SW_SHOWMINNOACTIVE;
 
-	if (CreateProcess(NULL, CommandLine.LockBuffer(), NULL, NULL, TRUE,
-		DETACHED_PROCESS, NULL, NULL, &startup, &procInfo))
+	if (CreateProcess(nullptr, CommandLine.LockBuffer(), nullptr, nullptr, TRUE,
+		DETACHED_PROCESS, nullptr, nullptr, &startup, &procInfo))
 	{
 		ChildProcess = procInfo.hProcess;
 		//SetThreadPriority (procInfo.hThread, THREAD_PRIORITY_HIGHEST);
@@ -410,7 +410,7 @@ bool TimidityPPMIDIDevice::LaunchTimidity ()
 	if (!FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
 						FORMAT_MESSAGE_FROM_SYSTEM |
 						FORMAT_MESSAGE_IGNORE_INSERTS,
-						NULL, err, 0, (LPTSTR)&msgBuf, 0, NULL))
+						nullptr, err, 0, (LPTSTR)&msgBuf, 0, nullptr))
 	{
 		mysnprintf(hres, countof(hres), "%08lx", err);
 		msgBuf = hres;
@@ -424,7 +424,7 @@ bool TimidityPPMIDIDevice::LaunchTimidity ()
 	}
 	return false;
 #else
-	if (WavePipe[0] != -1 && WavePipe[1] == -1 && Stream != NULL)
+	if (WavePipe[0] != -1 && WavePipe[1] == -1 && Stream != nullptr)
 	{
 		// Timidity was previously launched, so the write end of the pipe
 		// is closed, and the read end is still open. Close the pipe
@@ -433,8 +433,8 @@ bool TimidityPPMIDIDevice::LaunchTimidity ()
 		close (WavePipe[0]);
 		WavePipe[0] = -1;
 		delete Stream;
-		Stream = NULL;
-		Open (NULL, NULL);
+		Stream = nullptr;
+		Open (nullptr, nullptr);
 	}
 	
 	int forkres;
@@ -476,7 +476,7 @@ bool TimidityPPMIDIDevice::LaunchTimidity ()
 		close (WavePipe[1]);
 		WavePipe[1] = -1;
 /*		usleep(1000000);
-		if (waitpid(ChildProcess, NULL, WNOHANG) == ChildProcess)
+		if (waitpid(ChildProcess, nullptr, WNOHANG) == ChildProcess)
 		{
 		    fprintf(stderr,"Launching timidity failed\n");
 		}*/
@@ -500,7 +500,7 @@ bool TimidityPPMIDIDevice::FillStream(SoundStream *stream, void *buff, int len, 
 #ifdef _WIN32
 	DWORD avail, got, didget;
 
-	if (!PeekNamedPipe(song->ReadWavePipe, NULL, 0, NULL, &avail, NULL) || avail == 0)
+	if (!PeekNamedPipe(song->ReadWavePipe, nullptr, 0, nullptr, &avail, nullptr) || avail == 0)
 	{ // If nothing is available from the pipe, play silence.
 		memset (buff, 0, len);
 	}
@@ -509,14 +509,14 @@ bool TimidityPPMIDIDevice::FillStream(SoundStream *stream, void *buff, int len, 
 		didget = 0;
 		for (;;)
 		{
-			ReadFile(song->ReadWavePipe, (BYTE *)buff+didget, len-didget, &got, NULL);
+			ReadFile(song->ReadWavePipe, (BYTE *)buff+didget, len-didget, &got, nullptr);
 			didget += got;
 			if (didget >= (DWORD)len)
 				break;
 
 			// Give TiMidity++ a chance to output something more to the pipe
 			Sleep (10);
-			if (!PeekNamedPipe(song->ReadWavePipe, NULL, 0, NULL, &avail, NULL) || avail == 0)
+			if (!PeekNamedPipe(song->ReadWavePipe, nullptr, 0, nullptr, &avail, nullptr) || avail == 0)
 			{
 				memset ((BYTE *)buff+didget, 0, len-didget);
 				break;
@@ -541,7 +541,7 @@ bool TimidityPPMIDIDevice::FillStream(SoundStream *stream, void *buff, int len, 
 	tv.tv_sec = 0;
 	tv.tv_usec = 50;
 //	fprintf(stderr,"select\n");
-	if (select(1, &rfds, NULL, NULL, &tv) <= 0 && 0)
+	if (select(1, &rfds, nullptr, nullptr, &tv) <= 0 && 0)
 	{ // Nothing available, so play silence.
 //	fprintf(stderr,"nothing\n");
 	 //   memset(buff, 0, len);
@@ -566,7 +566,7 @@ bool TimidityPPMIDIDevice::FillStream(SoundStream *stream, void *buff, int len, 
 
 void TimidityPPMIDIDevice::TimidityVolumeChanged()
 {
-	if (Stream != NULL)
+	if (Stream != nullptr)
 	{
 		Stream->SetVolume(timidity_mastervolume);
 	}
@@ -590,7 +590,7 @@ bool TimidityPPMIDIDevice::IsOpen() const
 #else
 	if (ChildProcess != -1)
 	{
-		if (waitpid (ChildProcess, NULL, WNOHANG) == ChildProcess)
+		if (waitpid (ChildProcess, nullptr, WNOHANG) == ChildProcess)
 		{
 			const_cast<TimidityPPMIDIDevice *>(this)->ChildProcess = -1;
 #endif
@@ -614,7 +614,7 @@ int TimidityPPMIDIDevice::Resume()
 		if (LaunchTimidity())
 		{
 			// Assume success if not mixing with the sound system
-			if (Stream == NULL || Stream->Play(true, timidity_mastervolume))
+			if (Stream == nullptr || Stream->Play(true, timidity_mastervolume))
 			{
 				Started = true;
 				return 0;
@@ -635,7 +635,7 @@ void TimidityPPMIDIDevice::Stop ()
 {
 	if (Started)
 	{
-		if (Stream != NULL)
+		if (Stream != nullptr)
 		{
 			Stream->Stop();
 		}
@@ -656,7 +656,7 @@ void TimidityPPMIDIDevice::Stop ()
 			{
 				kill(ChildProcess, SIGKILL);
 			}
-			waitpid(ChildProcess, NULL, 0);
+			waitpid(ChildProcess, nullptr, 0);
 			ChildProcess = -1;
 		}
 #endif
@@ -677,7 +677,7 @@ BOOL SafeTerminateProcess(HANDLE hProcess, UINT uExitCode)
 {
 	DWORD dwTID, dwCode;
 	HRESULT dwErr = 0;
-	HANDLE hRT = NULL;
+	HANDLE hRT = nullptr;
 	HINSTANCE hKernel = GetModuleHandle("Kernel32");
 	BOOL bSuccess = FALSE;
 
@@ -692,19 +692,19 @@ BOOL SafeTerminateProcess(HANDLE hProcess, UINT uExitCode)
 		// CreateRemoteThread does not exist on 9x systems.
 		pfCreateRemoteThread = (CreateRemoteThreadProto)GetProcAddress(hKernel, "CreateRemoteThread");
 
-		if (pfCreateRemoteThread == NULL)
+		if (pfCreateRemoteThread == nullptr)
 		{
 			dwErr = ERROR_INVALID_FUNCTION;
 		}
 		else
 		{
 			hRT = pfCreateRemoteThread(hProcess,
-										NULL,
+										nullptr,
 										0,
 										(LPTHREAD_START_ROUTINE)pfnExitProc,
 										(PVOID)(UINT_PTR)uExitCode, 0, &dwTID);
 
-			if ( hRT == NULL )
+			if ( hRT == nullptr )
 				dwErr = GetLastError();
 		}
 	}

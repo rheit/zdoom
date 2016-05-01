@@ -122,13 +122,13 @@ CUSTOM_CVAR (Float, snd_musicvolume, 0.5f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 	else
 	{
 		// Set general music volume.
-		if (GSnd != NULL)
+		if (GSnd != nullptr)
 		{
 			GSnd->SetMusicVolume(clamp<float>(self * relative_volume, 0, 1));
 		}
 		// For music not implemented through the digital sound system,
 		// let them know about the change.
-		if (currSong != NULL)
+		if (currSong != nullptr)
 		{
 			currSong->MusicVolumeChanged();
 		}
@@ -186,7 +186,7 @@ void I_ShutdownMusic(bool onexit)
 	if (currSong)
 	{
 		S_StopMusic (true);
-		assert (currSong == NULL);
+		assert (currSong == nullptr);
 	}
 	Timidity::FreeAll();
 	if (onexit) WildMidi_Shutdown();
@@ -214,7 +214,7 @@ MusInfo::MusInfo()
 
 MusInfo::~MusInfo ()
 {
-	if (currSong == this) currSong = NULL;
+	if (currSong == this) currSong = nullptr;
 }
 
 //==========================================================================
@@ -235,7 +235,7 @@ void MusInfo::Start(bool loop, float rel_vol, int subsong)
 	if (m_Status == MusInfo::STATE_Playing)
 		currSong = this;
 	else
-		currSong = NULL;
+		currSong = nullptr;
 		
 	// Notify the sound system of the changed relative volume
 	snd_musicvolume.Callback();
@@ -297,12 +297,12 @@ FString MusInfo::GetStats()
 
 MusInfo *MusInfo::GetOPLDumper(const char *filename)
 {
-	return NULL;
+	return nullptr;
 }
 
 MusInfo *MusInfo::GetWaveDumper(const char *filename, int rate)
 {
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -328,7 +328,7 @@ static MIDIStreamer *CreateMIDIStreamer(FileReader &reader, EMidiDevice devtype,
 		return new XMISong(reader, devtype, args);
 
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -389,7 +389,7 @@ static EMIDIType IdentifyMIDIType(DWORD *id, int size)
 
 MusInfo *I_RegisterSong (FileReader *reader, MidiDeviceSetting *device)
 {
-	MusInfo *info = NULL;
+	MusInfo *info = nullptr;
 	const char *fmt;
 	DWORD id[32/4];
 
@@ -416,11 +416,11 @@ MusInfo *I_RegisterSong (FileReader *reader, MidiDeviceSetting *device)
 		{
 			delete[] gzipped;
 			delete reader;
-			return NULL;
+			return nullptr;
 		}
 		delete reader;
 
-		MemoryArrayReader *memreader = new MemoryArrayReader(NULL, 0);
+		MemoryArrayReader *memreader = new MemoryArrayReader(nullptr, 0);
 		if (!ungzip(gzipped, len, memreader->GetArray()))
 		{
 			delete[] gzipped;
@@ -441,7 +441,7 @@ MusInfo *I_RegisterSong (FileReader *reader, MidiDeviceSetting *device)
 	EMIDIType miditype = IdentifyMIDIType(id, sizeof(id));
 	if (miditype != MIDI_NOTMIDI)
 	{
-		EMidiDevice devtype = device == NULL? MDEV_DEFAULT : (EMidiDevice)device->device;
+		EMidiDevice devtype = device == nullptr? MDEV_DEFAULT : (EMidiDevice)device->device;
 #ifndef _WIN32
 		// non-Windows platforms don't support MDEV_MMAPI so map to MDEV_SNDSYS
 		if (devtype == MDEV_MMAPI)
@@ -449,19 +449,19 @@ MusInfo *I_RegisterSong (FileReader *reader, MidiDeviceSetting *device)
 #endif
 
 retry_as_sndsys:
-		info = CreateMIDIStreamer(*reader, devtype, miditype, device != NULL? device->args.GetChars() : "");
-		if (info != NULL && !info->IsValid())
+		info = CreateMIDIStreamer(*reader, devtype, miditype, device != nullptr? device->args.GetChars() : "");
+		if (info != nullptr && !info->IsValid())
 		{
 			delete info;
-			info = NULL;
+			info = nullptr;
 		}
-		if (info == NULL && devtype != MDEV_SNDSYS && snd_mididevice < 0)
+		if (info == nullptr && devtype != MDEV_SNDSYS && snd_mididevice < 0)
 		{
 			devtype = MDEV_SNDSYS;
 			goto retry_as_sndsys;
 		}
 #ifdef _WIN32
-		if (info == NULL && devtype != MDEV_MMAPI && snd_mididevice >= 0)
+		if (info == nullptr && devtype != MDEV_MMAPI && snd_mididevice >= 0)
 		{
 			info = CreateMIDIStreamer(*reader, MDEV_MMAPI, miditype, "");
 		}
@@ -474,10 +474,10 @@ retry_as_sndsys:
 		(id[0] == MAKE_ID('D','B','R','A') && id[1] == MAKE_ID('W','O','P','L')) ||		// DosBox Raw OPL
 		(id[0] == MAKE_ID('A','D','L','I') && *((BYTE *)id + 4) == 'B'))		// Martin Fernandez's modified IMF
 	{
-		info = new OPLMUSSong (*reader, device != NULL? device->args.GetChars() : "");
+		info = new OPLMUSSong (*reader, device != nullptr? device->args.GetChars() : "");
 	}
 	// Check for game music
-	else if ((fmt = GME_CheckFormat(id[0])) != NULL && fmt[0] != '\0')
+	else if ((fmt = GME_CheckFormat(id[0])) != nullptr && fmt[0] != '\0')
 	{
 		info = GME_OpenSong(*reader, fmt);
 	}
@@ -487,7 +487,7 @@ retry_as_sndsys:
 		info = MOD_OpenSong(*reader);
 	}
 
-    if (info == NULL)
+    if (info == nullptr)
     {
         // Check for CDDA "format"
         if (id[0] == (('R')|(('I')<<8)|(('F')<<16)|(('F')<<24)))
@@ -514,21 +514,21 @@ retry_as_sndsys:
         // smaller than this can't possibly be a valid music file if it hasn't
         // been identified already, so don't even bother trying to load it.
         // Of course MIDIs shorter than 1024 bytes should pass.
-        if (info == NULL && (reader->GetLength() >= 1024 || id[0] == MAKE_ID('M','T','h','d')))
+        if (info == nullptr && (reader->GetLength() >= 1024 || id[0] == MAKE_ID('M','T','h','d')))
         {
             // Let the sound system figure out what it is.
             info = new StreamSong (reader);
 			// Assumed ownership
-			reader = NULL;
+			reader = nullptr;
         }
     }
 
-	if (reader != NULL) delete reader;
+	if (reader != nullptr) delete reader;
 
 	if (info && !info->IsValid ())
 	{
 		delete info;
-		info = NULL;
+		info = nullptr;
 	}
 
 	return info;
@@ -547,7 +547,7 @@ MusInfo *I_RegisterCDSong (int track, int id)
 	if (info && !info->IsValid ())
 	{
 		delete info;
-		info = NULL;
+		info = nullptr;
 	}
 
 	return info;
@@ -569,7 +569,7 @@ MusInfo *I_RegisterURLSong (const char *url)
 		return song;
 	}
 	delete song;
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -656,7 +656,7 @@ static bool ungzip(BYTE *data, int complen, TArray<BYTE> &newdata)
 
 void I_UpdateMusic()
 {
-	if (currSong != NULL)
+	if (currSong != nullptr)
 	{
 		currSong->Update();
 	}
@@ -685,7 +685,7 @@ CCMD(testmusicvol)
 {
 	if (argv.argc() > 1) 
 	{
-		relative_volume = (float)strtod(argv[1], NULL);
+		relative_volume = (float)strtod(argv[1], nullptr);
 		snd_musicvolume.Callback();
 	}
 	else
@@ -700,7 +700,7 @@ CCMD(testmusicvol)
 
 ADD_STAT(music)
 {
-	if (currSong != NULL)
+	if (currSong != nullptr)
 	{
 		return currSong->GetStats();
 	}
@@ -720,14 +720,14 @@ CCMD (writeopl)
 {
 	if (argv.argc() == 2)
 	{
-		if (currSong == NULL)
+		if (currSong == nullptr)
 		{
 			Printf ("No song is currently playing.\n");
 		}
 		else
 		{
 			MusInfo *dumper = currSong->GetOPLDumper(argv[1]);
-			if (dumper == NULL)
+			if (dumper == nullptr)
 			{
 				Printf ("Current song cannot be saved as OPL data.\n");
 			}
@@ -758,14 +758,14 @@ CCMD (writewave)
 {
 	if (argv.argc() >= 2 && argv.argc() <= 3)
 	{
-		if (currSong == NULL)
+		if (currSong == nullptr)
 		{
 			Printf ("No song is currently playing.\n");
 		}
 		else
 		{
 			MusInfo *dumper = currSong->GetWaveDumper(argv[1], argv.argc() == 3 ? atoi(argv[2]) : 0);
-			if (dumper == NULL)
+			if (dumper == nullptr)
 			{
 				Printf ("Current song cannot be saved as wave data.\n");
 			}
@@ -799,7 +799,7 @@ CCMD (writemidi)
 		Printf("Usage: writemidi <filename>");
 		return;
 	}
-	if (currSong == NULL)
+	if (currSong == nullptr)
 	{
 		Printf("No song is currently playing.\n");
 		return;
@@ -816,7 +816,7 @@ CCMD (writemidi)
 
 	static_cast<MIDIStreamer *>(currSong)->CreateSMF(midi, 1);
 	f = fopen(argv[1], "wb");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		Printf("Could not open %s.\n", argv[1]);
 		return;

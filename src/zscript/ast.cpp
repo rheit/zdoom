@@ -39,7 +39,7 @@ public:
 
 	void Open(const char *label)
 	{
-		size_t labellen = label != NULL ? strlen(label) : 0;
+		size_t labellen = label != nullptr ? strlen(label) : 0;
 		CheckWrap(labellen + 1 + NeedSpace);
 		if (NeedSpace)
 		{
@@ -48,13 +48,13 @@ public:
 		}
 		Str << '(';
 		ConsecOpens++;
-		if (label != NULL)
+		if (label != nullptr)
 		{
 			Str.AppendCStrPart(label, labellen);
 		}
 		Column += labellen + 1 + NeedSpace;
 		NestDepth++;
-		NeedSpace = (label != NULL);
+		NeedSpace = (label != nullptr);
 	}
 	void Close()
 	{
@@ -182,7 +182,7 @@ private:
 
 static void PrintNode(FLispString &out, ZCC_TreeNode *node)
 {
-	assert(TreeNodePrinter[NUM_AST_NODE_TYPES-1] != NULL);
+	assert(TreeNodePrinter[NUM_AST_NODE_TYPES-1] != nullptr);
 	if (node->NodeType >= 0 && node->NodeType < NUM_AST_NODE_TYPES)
 	{
 		TreeNodePrinter[node->NodeType](out, node);
@@ -199,7 +199,7 @@ static void PrintNodes(FLispString &out, ZCC_TreeNode *node, bool newlist=true, 
 {
 	ZCC_TreeNode *p;
 
-	if (node == NULL)
+	if (node == nullptr)
 	{
 		out.Add("nil", 3);
 	}
@@ -207,7 +207,7 @@ static void PrintNodes(FLispString &out, ZCC_TreeNode *node, bool newlist=true, 
 	{
 		if (newlist)
 		{
-			out.Open(NULL);
+			out.Open(nullptr);
 		}
 		p = node;
 		do
@@ -306,7 +306,7 @@ static void PrintEnum(FLispString &out, ZCC_TreeNode *node)
 	out.Open("enum");
 	out.AddName(enode->NodeName);
 	PrintBuiltInType(out, enode->EnumType);
-	out.Add(enode->Elements == NULL ? "nil" : "...", 3);
+	out.Add(enode->Elements == nullptr ? "nil" : "...", 3);
 	out.Close();
 }
 

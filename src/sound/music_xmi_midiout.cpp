@@ -112,7 +112,7 @@ XMISong::XMISong (FileReader &reader, EMidiDevice type, const char *args)
 : MIDIStreamer(type, args), MusHeader(0), Songs(0)
 {
 #ifdef _WIN32
-	if (ExitEvent == NULL)
+	if (ExitEvent == nullptr)
 	{
 		return;
 	}
@@ -123,7 +123,7 @@ XMISong::XMISong (FileReader &reader, EMidiDevice type, const char *args)
         return;
 
 	// Find all the songs in this file.
-	NumSongs = FindXMIDforms(MusHeader, SongLen, NULL);
+	NumSongs = FindXMIDforms(MusHeader, SongLen, nullptr);
 	if (NumSongs == 0)
 	{
 		return;
@@ -154,11 +154,11 @@ XMISong::XMISong (FileReader &reader, EMidiDevice type, const char *args)
 
 XMISong::~XMISong ()
 {
-	if (Songs != NULL)
+	if (Songs != nullptr)
 	{
 		delete[] Songs;
 	}
-	if (MusHeader != NULL)
+	if (MusHeader != nullptr)
 	{
 		delete[] MusHeader;
 	}
@@ -185,7 +185,7 @@ int XMISong::FindXMIDforms(const BYTE *chunk, int len, TrackInfo *songs) const
 		{
 			if (GetNativeInt(chunk + p + 8) == MAKE_ID('X','M','I','D'))
 			{
-				if (songs != NULL)
+				if (songs != nullptr)
 				{
 					FoundXMID(chunk + p + 12, chunklen - 4, songs + count);
 				}

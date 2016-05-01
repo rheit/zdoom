@@ -57,12 +57,12 @@
 static int convert_8s(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((gus_sample->data_length + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data++ = (*read_data++) << 8;
@@ -83,13 +83,13 @@ static int convert_8sp(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->loop_start;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((new_length + 2), sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data++ = (*read_data++) << 8;
@@ -131,13 +131,13 @@ static int convert_8sp(unsigned char *data, struct _sample *gus_sample) {
 static int convert_8sr(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 	unsigned long int tmp_loop = 0;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((gus_sample->data_length + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data + gus_sample->data_length - 1;
 		do {
 			*write_data-- = (*read_data++) << 8;
@@ -162,13 +162,13 @@ static int convert_8srp(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data + gus_sample->data_length - 1;
 	unsigned char *read_end = data + gus_sample->loop_end;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((new_length + 2), sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data++ = (*read_data--) << 8;
@@ -209,12 +209,12 @@ static int convert_8srp(unsigned char *data, struct _sample *gus_sample) {
 static int convert_8u(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((gus_sample->data_length + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data++ = ((*read_data++) ^ 0x80) << 8;
@@ -234,13 +234,13 @@ static int convert_8up(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->loop_start;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((new_length + 2), sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data++ = ((*read_data++) ^ 0x80) << 8;
@@ -282,13 +282,13 @@ static int convert_8up(unsigned char *data, struct _sample *gus_sample) {
 static int convert_8ur(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 	unsigned long int tmp_loop = 0;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((gus_sample->data_length + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data + gus_sample->data_length - 1;
 		do {
 			*write_data-- = ((*read_data++) ^ 0x80) << 8;
@@ -313,13 +313,13 @@ static int convert_8urp(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data + gus_sample->data_length - 1;
 	unsigned char *read_end = data + gus_sample->loop_end;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc((new_length + 2), sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data++ = ((*read_data--) ^ 0x80) << 8;
@@ -359,12 +359,12 @@ static int convert_8urp(unsigned char *data, struct _sample *gus_sample) {
 static int convert_16s(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((gus_sample->data_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data = *read_data++;
@@ -388,14 +388,14 @@ static int convert_16sp(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->loop_start;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((new_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data = (*read_data++);
@@ -445,13 +445,13 @@ static int convert_16sp(unsigned char *data, struct _sample *gus_sample) {
 static int convert_16sr(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 	unsigned long int tmp_loop = 0;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((gus_sample->data_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data + (gus_sample->data_length >> 1) - 1;
 		do {
 			*write_data = *read_data++;
@@ -480,14 +480,14 @@ static int convert_16srp(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data + gus_sample->data_length - 1;
 	unsigned char *read_end = data + gus_sample->loop_end;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((new_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data = (*read_data--) << 8;
@@ -532,12 +532,12 @@ static int convert_16srp(unsigned char *data, struct _sample *gus_sample) {
 static int convert_16u(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((gus_sample->data_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data = *read_data++;
@@ -561,14 +561,14 @@ static int convert_16up(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->loop_start;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((new_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data = (*read_data++);
@@ -618,13 +618,13 @@ static int convert_16up(unsigned char *data, struct _sample *gus_sample) {
 static int convert_16ur(unsigned char *data, struct _sample *gus_sample) {
 	unsigned char *read_data = data;
 	unsigned char *read_end = data + gus_sample->data_length;
-	signed short int *write_data = NULL;
+	signed short int *write_data = nullptr;
 	unsigned long int tmp_loop = 0;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((gus_sample->data_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data + (gus_sample->data_length >> 1) - 1;
 		do {
 			*write_data = *read_data++;
@@ -653,14 +653,14 @@ static int convert_16urp(unsigned char *data, struct _sample *gus_sample) {
 	unsigned long int new_length = gus_sample->data_length + dloop_length;
 	unsigned char *read_data = data + gus_sample->data_length - 1;
 	unsigned char *read_end = data + gus_sample->loop_end;
-	signed short int *write_data = NULL;
-	signed short int *write_data_a = NULL;
-	signed short int *write_data_b = NULL;
+	signed short int *write_data = nullptr;
+	signed short int *write_data_a = nullptr;
+	signed short int *write_data_b = nullptr;
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__);
 	gus_sample->data = (short*)calloc(((new_length >> 1) + 2),
 			sizeof(signed short int));
-	if (gus_sample->data != NULL) {
+	if (gus_sample->data != nullptr) {
 		write_data = gus_sample->data;
 		do {
 			*write_data = ((*read_data--) ^ 0x80) << 8;
@@ -708,8 +708,8 @@ struct _sample * _WM_load_gus_pat(const char *filename, int fix_release) {
 	unsigned long int gus_size;
 	unsigned long int gus_ptr;
 	unsigned char no_of_samples;
-	struct _sample *gus_sample = NULL;
-	struct _sample *first_gus_sample = NULL;
+	struct _sample *gus_sample = nullptr;
+	struct _sample *first_gus_sample = nullptr;
 	unsigned long int i = 0;
 
 	int (*do_convert[])(unsigned char *data, struct _sample *gus_sample) = {
@@ -736,14 +736,14 @@ struct _sample * _WM_load_gus_pat(const char *filename, int fix_release) {
 
 	SAMPLE_CONVERT_DEBUG(__FUNCTION__); SAMPLE_CONVERT_DEBUG(filename);
 
-	if ((gus_patch = _WM_BufferFile(filename, &gus_size)) == NULL) {
-		return NULL;
+	if ((gus_patch = _WM_BufferFile(filename, &gus_size)) == nullptr) {
+		return nullptr;
 	}
 	if (gus_size < 239) {
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_CORUPT, "(too short)", 0);
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, 0);
 		free(gus_patch);
-		return NULL;
+		return nullptr;
 	}
 	if (memcmp(gus_patch, "GF1PATCH110\0ID#000002", 22)
 			&& memcmp(gus_patch, "GF1PATCH100\0ID#000002", 22)) {
@@ -751,21 +751,21 @@ struct _sample * _WM_load_gus_pat(const char *filename, int fix_release) {
 				0);
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, 0);
 		free(gus_patch);
-		return NULL;
+		return nullptr;
 	}
 	if (gus_patch[82] > 1) {
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_INVALID, "(unsupported format)",
 				0);
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, 0);
 		free(gus_patch);
-		return NULL;
+		return nullptr;
 	}
 	if (gus_patch[151] > 1) {
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_INVALID, "(unsupported format)",
 				0);
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, 0);
 		free(gus_patch);
-		return NULL;
+		return nullptr;
 	}
 
 	GUSPAT_FILENAME_DEBUG(filename); GUSPAT_INT_DEBUG("voices",gus_patch[83]);
@@ -774,21 +774,21 @@ struct _sample * _WM_load_gus_pat(const char *filename, int fix_release) {
 	gus_ptr = 239;
 	while (no_of_samples) {
 		unsigned long int tmp_cnt;
-		if (first_gus_sample == NULL) {
+		if (first_gus_sample == nullptr) {
 			first_gus_sample = (struct _sample*)malloc(sizeof(struct _sample));
 			gus_sample = first_gus_sample;
 		} else {
 			gus_sample->next = (struct _sample*)malloc(sizeof(struct _sample));
 			gus_sample = gus_sample->next;
 		}
-		if (gus_sample == NULL) {
-			_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_MEM, NULL, 0);
+		if (gus_sample == nullptr) {
+			_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_MEM, nullptr, 0);
 			_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, 0);
 			free(gus_patch);
-			return NULL;
+			return nullptr;
 		}
 
-		gus_sample->next = NULL;
+		gus_sample->next = nullptr;
 		gus_sample->loop_fraction = gus_patch[gus_ptr + 7];
 		gus_sample->data_length = (gus_patch[gus_ptr + 11] << 24)
 				| (gus_patch[gus_ptr + 10] << 16)
@@ -943,7 +943,7 @@ struct _sample * _WM_load_gus_pat(const char *filename, int fix_release) {
 				| (gus_sample->modes & 0x03))](&gus_patch[gus_ptr], gus_sample)
 				== -1) {
 			free(gus_patch);
-			return NULL;
+			return nullptr;
 		}
 
 		/*

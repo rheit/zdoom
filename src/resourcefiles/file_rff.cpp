@@ -114,7 +114,7 @@ public:
 	FRFFFile(const char * filename, FileReader *file);
 	virtual ~FRFFFile();
 	virtual bool Open(bool quiet);
-	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : NULL; }
+	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : nullptr; }
 };
 
 
@@ -127,7 +127,7 @@ public:
 FRFFFile::FRFFFile(const char *filename, FileReader *file)
 : FResourceFile(filename, file)
 {
-	Lumps = NULL;
+	Lumps = nullptr;
 }
 
 //==========================================================================
@@ -190,7 +190,7 @@ bool FRFFFile::Open(bool quiet)
 
 FRFFFile::~FRFFFile()
 {
-	if (Lumps != NULL)
+	if (Lumps != nullptr)
 	{
 		delete[] Lumps;
 	}
@@ -199,7 +199,7 @@ FRFFFile::~FRFFFile()
 
 //==========================================================================
 //
-// Get reader (only returns non-NULL if not encrypted)
+// Get reader (only returns non-nullptr if not encrypted)
 //
 //==========================================================================
 
@@ -213,7 +213,7 @@ FileReader *FRFFLump::GetReader()
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -261,11 +261,11 @@ FResourceFile *CheckRFF(const char *filename, FileReader *file, bool quiet)
 			FResourceFile *rf = new FRFFFile(filename, file);
 			if (rf->Open(quiet)) return rf;
 
-			rf->Reader = NULL; // to avoid destruction of reader
+			rf->Reader = nullptr; // to avoid destruction of reader
 			delete rf;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 

@@ -5,7 +5,7 @@
 // Standard pointer acquisition functions
 //
 // Possible effective results at run-time
-//   assigntovariable = NULL (or a RETURN statement is issued)
+//   assigntovariable = nullptr (or a RETURN statement is issued)
 //   P_BulletSlope(pointer_owner, &temporary), assigntovariable = temporary
 //   assigntovariable = pointer_owner->target or ...->master or ...->tracer
 //

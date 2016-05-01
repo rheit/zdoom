@@ -63,7 +63,7 @@ void ASectorAction::Destroy ()
 		prev.act = &probe->tracer;
 		probe = probe->tracer;
 	}
-	if (probe != NULL)
+	if (probe != nullptr)
 	{
 		*prev.act = probe->tracer;
 	}
@@ -104,7 +104,7 @@ bool ASectorAction::TriggerAction(AActor *triggerer, int activationType)
 
 bool ASectorAction::DoTriggerAction (AActor *triggerer, int activationType)
 {
-	if (tracer != NULL)
+	if (tracer != nullptr)
 		return barrier_cast<ASectorAction *>(tracer)->DoTriggerAction (triggerer, activationType);
 	else
 		return false;
@@ -122,7 +122,7 @@ bool ASectorAction::CheckTrigger (AActor *triggerer) const
 {
 	if (CanTrigger(triggerer))
 	{
-		bool res = !!P_ExecuteSpecial(special, NULL, triggerer, false, args[0], args[1],
+		bool res = !!P_ExecuteSpecial(special, nullptr, triggerer, false, args[0], args[1],
 			args[2], args[3], args[4]);
 		return res;
 	}

@@ -47,7 +47,7 @@ extern int CleanWidth_1, CleanHeight_1, CleanXfac_1, CleanYfac_1;
 extern int DisplayWidth, DisplayHeight, DisplayBits;
 
 bool V_DoModeSetup (int width, int height, int bits);
-void V_CalcCleanFacs (int designwidth, int designheight, int realwidth, int realheight, int *cleanx, int *cleany, int *cx1=NULL, int *cx2=NULL);
+void V_CalcCleanFacs (int designwidth, int designheight, int realwidth, int realheight, int *cleanx, int *cleany, int *cx1=nullptr, int *cx2=nullptr);
 
 class FTexture;
 
@@ -199,7 +199,7 @@ public:
 	// Access control
 	virtual bool Lock (bool buffered=true) = 0;		// Returns true if the surface was lost since last time
 	virtual void Unlock () = 0;
-	virtual bool IsLocked () { return Buffer != NULL; }	// Returns true if the surface is locked
+	virtual bool IsLocked () { return Buffer != nullptr; }	// Returns true if the surface is locked
 
 	// Draw a linear block of pixels into the canvas
 	virtual void DrawBlock (int x, int y, int width, int height, const BYTE *src) const;
@@ -508,7 +508,7 @@ void V_SetBorderNeedRefresh();
 extern "C" void ASM_PatchPitch (void);
 #endif
 
-int CheckRatio (int width, int height, int *trueratio=NULL);
+int CheckRatio (int width, int height, int *trueratio=nullptr);
 static inline int CheckRatio (double width, double height) { return CheckRatio(int(width), int(height)); }
 extern const int BaseRatioSizes[7][4];
 

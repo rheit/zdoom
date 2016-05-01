@@ -412,7 +412,7 @@ static FFlagDef *FindFlag (FFlagDef *flags, int numflags, const char *flag)
 			max = mid - 1;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -426,14 +426,14 @@ FFlagDef *FindFlag (const PClass *type, const char *part1, const char *part2)
 	FFlagDef *def;
 	size_t i;
 
-	if (part2 == NULL)
+	if (part2 == nullptr)
 	{ // Search all lists
 		for (i = 0; i < NUM_FLAG_LISTS; ++i)
 		{
 			if (type->IsDescendantOf (*FlagLists[i].Type))
 			{
 				def = FindFlag (FlagLists[i].Defs, FlagLists[i].NumDefs, part1);
-				if (def != NULL)
+				if (def != nullptr)
 				{
 					return def;
 				}
@@ -452,12 +452,12 @@ FFlagDef *FindFlag (const PClass *type, const char *part1, const char *part2)
 				}
 				else
 				{
-					return NULL;
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -506,7 +506,7 @@ FPropertyInfo *FindProperty(const char * string)
 			max = mid - 1;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -536,7 +536,7 @@ AFuncDesc *FindFunction(const char * string)
 			max = mid - 1;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -592,7 +592,7 @@ void InitThingdef()
 	{
 		FAutoSegIterator probe(GRegHead, GRegTail);
 
-		while (*++probe != NULL)
+		while (*++probe != nullptr)
 		{
 			properties.Push((FPropertyInfo *)*probe);
 		}
@@ -606,10 +606,10 @@ void InitThingdef()
 	{
 		FAutoSegIterator probe(ARegHead, ARegTail);
 
-		while (*++probe != NULL)
+		while (*++probe != nullptr)
 		{
 			AFuncDesc *afunc = (AFuncDesc *)*probe;
-			assert(afunc->VMPointer != NULL);
+			assert(afunc->VMPointer != nullptr);
 			*(afunc->VMPointer) = new VMNativeFunction(afunc->Function, afunc->Name);
 			AFTable.Push(*afunc);
 		}

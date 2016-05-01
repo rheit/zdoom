@@ -293,7 +293,7 @@ loop:
 //==========================================================================
 int FParseContext::PrintError (const char *s)
 {
-	if (SourceFile != NULL)
+	if (SourceFile != nullptr)
 		Printf ("%s, line %d: %s\n", SourceFile, SourceLine, s);
 	else
 		Printf ("%s\n", s);

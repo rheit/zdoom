@@ -94,7 +94,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BridgeOrbit)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 	{ // Don't crash if somebody spawned this into the world
 	  // independantly of a Bridge actor.
 		return 0;
@@ -122,11 +122,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_BridgeOrbit)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BridgeInit)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(balltype, AActor)	{ balltype = NULL; }
+	PARAM_CLASS_OPT(balltype, AActor)	{ balltype = nullptr; }
 
 	AActor *ball;
 
-	if (balltype == NULL)
+	if (balltype == nullptr)
 	{
 		balltype = PClass::FindActor("BridgeBall");
 	}

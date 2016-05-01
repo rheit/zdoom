@@ -44,7 +44,7 @@ bool APuzzleItem::Use (bool pickup)
 	}
 	// [RH] Always play the sound if the use fails.
 	S_Sound (Owner, CHAN_VOICE, "*puzzfail", 1, ATTN_IDLE);
-	if (Owner != NULL && Owner->CheckLocalView (consoleplayer))
+	if (Owner != nullptr && Owner->CheckLocalView (consoleplayer))
 	{
 		FString message = GetClass()->PuzzFailMessage;
 		if (message.IsNotEmpty() && message[0] == '$') message = GStrings[&message[1]];

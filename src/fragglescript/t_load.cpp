@@ -303,7 +303,7 @@ bool FScriptLoader::ParseInfo(MapData * map)
 		if (!drownflag) level.airsupply=0;	// Legacy doesn't to water damage so we need to check if it has to be disabled here.
 
 		FFsOptions *opt = level.info->GetOptData<FFsOptions>("fragglescript", false);
-		if (opt != NULL)
+		if (opt != nullptr)
 		{
 			DFraggleThinker::ActiveThinker->nocheckposition = opt->nocheckposition;
 		}

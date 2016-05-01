@@ -8,12 +8,12 @@ void Mac_I_FatalError(const char* errortext)
 	
 	const CFStringRef errorString = CFStringCreateWithCStringNoCopy( kCFAllocatorDefault, 
 		errortext, kCFStringEncodingASCII, kCFAllocatorNull );
-	if ( NULL != errorString )
+	if ( nullptr != errorString )
 	{
 		CFOptionFlags dummy;
 	
-		CFUserNotificationDisplayAlert( 0, kCFUserNotificationStopAlertLevel, NULL, NULL, NULL, 
-			CFSTR( "Fatal Error" ), errorString, CFSTR( "Exit" ), NULL, NULL, &dummy );
+		CFUserNotificationDisplayAlert( 0, kCFUserNotificationStopAlertLevel, nullptr, nullptr, nullptr, 
+			CFSTR( "Fatal Error" ), errorString, CFSTR( "Exit" ), nullptr, nullptr, &dummy );
 		CFRelease( errorString );
 	}
 }

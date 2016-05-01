@@ -87,7 +87,7 @@ public:
 	void Unload ();
 	FTextureFormat GetFormat ();
 
-	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = NULL);
+	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = nullptr);
 	bool UseBasePalette();
 
 protected:
@@ -111,7 +111,7 @@ FTexture *TGATexture_TryCreate(FileReader & file, int lumpnum)
 {
 	TGAHeader hdr;
 
-	if (file.GetLength() < (long)sizeof(hdr)) return NULL;
+	if (file.GetLength() < (long)sizeof(hdr)) return nullptr;
 	
 	file.Seek(0, SEEK_SET);
 	file.Read(&hdr, sizeof(hdr));
@@ -120,12 +120,12 @@ FTexture *TGATexture_TryCreate(FileReader & file, int lumpnum)
 	
 	// Not much that can be done here because TGA does not have a proper
 	// header to be identified with.
-	if (hdr.has_cm != 0 && hdr.has_cm != 1) return NULL;
-	if (hdr.width <=0 || hdr.height <=0 || hdr.width > 2048 || hdr.height > 2048) return NULL;
-	if (hdr.bpp != 8 && hdr.bpp != 15 && hdr.bpp != 16 && hdr.bpp !=24 && hdr.bpp !=32) return NULL;
-	if (hdr.img_type <= 0 || hdr.img_type > 11) return NULL;
-	if (hdr.img_type >=4  && hdr.img_type <= 8) return NULL;
-	if ((hdr.img_desc & 16) != 0) return NULL;
+	if (hdr.has_cm != 0 && hdr.has_cm != 1) return nullptr;
+	if (hdr.width <=0 || hdr.height <=0 || hdr.width > 2048 || hdr.height > 2048) return nullptr;
+	if (hdr.bpp != 8 && hdr.bpp != 15 && hdr.bpp != 16 && hdr.bpp !=24 && hdr.bpp !=32) return nullptr;
+	if (hdr.img_type <= 0 || hdr.img_type > 11) return nullptr;
+	if (hdr.img_type >=4  && hdr.img_type <= 8) return nullptr;
+	if ((hdr.img_desc & 16) != 0) return nullptr;
 
 	file.Seek(0, SEEK_SET);
 	file.Read(&hdr, sizeof(hdr));
@@ -142,7 +142,7 @@ FTexture *TGATexture_TryCreate(FileReader & file, int lumpnum)
 //==========================================================================
 
 FTGATexture::FTGATexture (int lumpnum, TGAHeader * hdr)
-: FTexture(NULL, lumpnum), Pixels(0), Spans(0)
+: FTexture(nullptr, lumpnum), Pixels(0), Spans(0)
 {
 	Wads.GetLumpName (Name, lumpnum);
 	Width = hdr->width;
@@ -161,10 +161,10 @@ FTGATexture::FTGATexture (int lumpnum, TGAHeader * hdr)
 FTGATexture::~FTGATexture ()
 {
 	Unload ();
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 }
 
@@ -176,10 +176,10 @@ FTGATexture::~FTGATexture ()
 
 void FTGATexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -202,7 +202,7 @@ FTextureFormat FTGATexture::GetFormat()
 
 const BYTE *FTGATexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -217,9 +217,9 @@ const BYTE *FTGATexture::GetColumn (unsigned int column, const Span **spans_out)
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -236,7 +236,7 @@ const BYTE *FTGATexture::GetColumn (unsigned int column, const Span **spans_out)
 
 const BYTE *FTGATexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}

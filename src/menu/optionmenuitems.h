@@ -124,7 +124,7 @@ public:
 		const char *msg = GStrings("SAFEMESSAGE");
 
 		const char *actionLabel = mLabel;
-		if (actionLabel != NULL)
+		if (actionLabel != nullptr)
 		{
 			if (*actionLabel == '$')
 			{
@@ -133,7 +133,7 @@ public:
 		}
 
 		FString FullString;
-		FullString.Format(TEXTCOLOR_WHITE "%s" TEXTCOLOR_NORMAL "\n\n" "%s", actionLabel != NULL ? actionLabel : "", msg);
+		FullString.Format(TEXTCOLOR_WHITE "%s" TEXTCOLOR_NORMAL "\n\n" "%s", actionLabel != nullptr ? actionLabel : "", msg);
 
 		if (msg && FullString) M_StartMessage(FullString, 0);
 		return true;
@@ -164,7 +164,7 @@ public:
 		: FOptionMenuItem(label, menu)
 	{
 		mValues = values;
-		mGrayCheck = (FBoolCVar*)FindCVar(graycheck, NULL);
+		mGrayCheck = (FBoolCVar*)FindCVar(graycheck, nullptr);
 		mCenter = center;
 	}
 
@@ -174,7 +174,7 @@ public:
 		{
 			FOptionValues **opt = OptionValues.CheckKey(newtext);
 			mValues = newtext;
-			if (opt != NULL && *opt != NULL) 
+			if (opt != nullptr && *opt != nullptr) 
 			{
 				int s = GetSelection();
 				if (s >= (int)(*opt)->mValues.Size()) s = 0;
@@ -194,7 +194,7 @@ public:
 	//=============================================================================
 	int Draw(FOptionMenuDescriptor *desc, int y, int indent, bool selected)
 	{
-		bool grayed = mGrayCheck != NULL && !(mGrayCheck->GetGenericRep(CVAR_Bool).Bool);
+		bool grayed = mGrayCheck != nullptr && !(mGrayCheck->GetGenericRep(CVAR_Bool).Bool);
 
 		if (mCenter)
 		{
@@ -206,7 +206,7 @@ public:
 		const char *text;
 		int Selection = GetSelection();
 		FOptionValues **opt = OptionValues.CheckKey(mValues);
-		if (Selection < 0 || opt == NULL || *opt == NULL)
+		if (Selection < 0 || opt == nullptr || *opt == nullptr)
 		{
 			text = "Unknown";
 		}
@@ -224,7 +224,7 @@ public:
 	bool MenuEvent (int mkey, bool fromcontroller)
 	{
 		FOptionValues **opt = OptionValues.CheckKey(mValues);
-		if (opt != NULL && *opt != NULL && (*opt)->mValues.Size() > 0)
+		if (opt != nullptr && *opt != nullptr && (*opt)->mValues.Size() > 0)
 		{
 			int Selection = GetSelection();
 			if (mkey == MKEY_Left)
@@ -252,7 +252,7 @@ public:
 
 	bool Selectable()
 	{
-		return !(mGrayCheck != NULL && !(mGrayCheck->GetGenericRep(CVAR_Bool).Bool));
+		return !(mGrayCheck != nullptr && !(mGrayCheck->GetGenericRep(CVAR_Bool).Bool));
 	}
 };
 
@@ -271,7 +271,7 @@ public:
 	FOptionMenuItemOption(const char *label, const char *menu, const char *values, const char *graycheck, int center)
 		: FOptionMenuItemOptionBase(label, menu, values, graycheck, center)
 	{
-		mCVar = FindCVar(mAction, NULL);
+		mCVar = FindCVar(mAction, nullptr);
 	}
 
 	//=============================================================================
@@ -279,7 +279,7 @@ public:
 	{
 		int Selection = -1;
 		FOptionValues **opt = OptionValues.CheckKey(mValues);
-		if (opt != NULL && *opt != NULL && mCVar != NULL && (*opt)->mValues.Size() > 0)
+		if (opt != nullptr && *opt != nullptr && mCVar != nullptr && (*opt)->mValues.Size() > 0)
 		{
 			if ((*opt)->mValues[0].TextValue.IsEmpty())
 			{
@@ -313,7 +313,7 @@ public:
 	{
 		UCVarValue value;
 		FOptionValues **opt = OptionValues.CheckKey(mValues);
-		if (opt != NULL && *opt != NULL && mCVar != NULL && (*opt)->mValues.Size() > 0)
+		if (opt != nullptr && *opt != nullptr && mCVar != nullptr && (*opt)->mValues.Size() > 0)
 		{
 			if ((*opt)->mValues[0].TextValue.IsEmpty())
 			{
@@ -363,7 +363,7 @@ public:
 		{
 			DOptionMenu *m = barrier_cast<DOptionMenu*>(mParentMenu);
 			FListMenuItem *it = m->GetItem(NAME_Controlmessage);
-			if (it != NULL)
+			if (it != nullptr)
 			{
 				it->SetValue(0, which);
 			}
@@ -711,12 +711,12 @@ public:
 	FOptionMenuSliderCVar(const char *label, const char *menu, double min, double max, double step, int showval)
 		: FOptionMenuSliderBase(label, min, max, step, showval)
 	{
-		mCVar = FindCVar(menu, NULL);
+		mCVar = FindCVar(menu, nullptr);
 	}
 
 	double GetSliderValue()
 	{
-		if (mCVar != NULL)
+		if (mCVar != nullptr)
 		{
 			return mCVar->GetGenericRep(CVAR_Float).Float;
 		}
@@ -728,7 +728,7 @@ public:
 
 	void SetSliderValue(double val)
 	{
-		if (mCVar != NULL)
+		if (mCVar != nullptr)
 		{
 			UCVarValue value;
 			value.Float = (float)val;
@@ -784,12 +784,12 @@ public:
 	FOptionMenuItemColorPicker(const char *label, const char *menu)
 		: FOptionMenuItem(label, menu)
 	{
-		FBaseCVar *cv = FindCVar(menu, NULL);
-		if (cv != NULL && cv->GetRealType() == CVAR_Color)
+		FBaseCVar *cv = FindCVar(menu, nullptr);
+		if (cv != nullptr && cv->GetRealType() == CVAR_Color)
 		{
 			mCVar = (FColorCVar*)cv;
 		}
-		else mCVar = NULL;
+		else mCVar = nullptr;
 	}
 
 	//=============================================================================
@@ -797,7 +797,7 @@ public:
 	{
 		drawLabel(indent, y, selected? OptionSettings.mFontColorSelection : OptionSettings.mFontColor);
 
-		if (mCVar != NULL)
+		if (mCVar != nullptr)
 		{
 			int box_x = indent + CURSORSPACE;
 			int box_y = y + CleanYfac_1;
@@ -809,7 +809,7 @@ public:
 
 	bool SetValue(int i, int v)
 	{
-		if (i == CPF_RESET && mCVar != NULL)
+		if (i == CPF_RESET && mCVar != nullptr)
 		{
 			mCVar->ResetToDefault();
 			return true;
@@ -819,11 +819,11 @@ public:
 
 	bool Activate()
 	{
-		if (mCVar != NULL)
+		if (mCVar != nullptr)
 		{
 			S_Sound (CHAN_VOICE | CHAN_UI, "menu/choose", snd_menuvolume, ATTN_NONE);
 			DMenu *picker = StartPickerMenu(DMenu::CurrentMenu, mLabel, mCVar);
-			if (picker != NULL)
+			if (picker != nullptr)
 			{
 				M_ActivateMenu(picker);
 				return true;
@@ -987,12 +987,12 @@ class FOptionMenuFieldBase : public FOptionMenuItem
 public:
 	FOptionMenuFieldBase ( const char* label, const char* menu, const char* graycheck ) :
 		FOptionMenuItem ( label, menu ),
-		mCVar ( FindCVar( mAction, NULL )),
-		mGrayCheck (( graycheck && strlen( graycheck )) ? FindCVar( graycheck, NULL ) : NULL ) {}
+		mCVar ( FindCVar( mAction, nullptr )),
+		mGrayCheck (( graycheck && strlen( graycheck )) ? FindCVar( graycheck, nullptr ) : nullptr ) {}
 
 	const char* GetCVarString()
 	{
-		if ( mCVar == NULL )
+		if ( mCVar == nullptr )
 			return "";
 
 		return mCVar->GetHumanString();
@@ -1005,7 +1005,7 @@ public:
 
 	int Draw ( FOptionMenuDescriptor*, int y, int indent, bool selected )
 	{
-		bool grayed = mGrayCheck != NULL && !( mGrayCheck->GetGenericRep( CVAR_Bool ).Bool );
+		bool grayed = mGrayCheck != nullptr && !( mGrayCheck->GetGenericRep( CVAR_Bool ).Bool );
 		drawLabel( indent, y, selected ? OptionSettings.mFontColorSelection : OptionSettings.mFontColor, grayed );
 		int overlay = grayed? MAKEARGB( 96, 48, 0, 0 ) : 0;
 

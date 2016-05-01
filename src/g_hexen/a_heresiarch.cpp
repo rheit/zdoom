@@ -89,7 +89,7 @@ void AHeresiarch::Die (AActor *source, AActor *inflictor, int dmgflags)
 
 	if (script != 0)
 	{
-		P_StartScript (this, NULL, script, level.MapName, NULL, 0, 0);
+		P_StartScript (this, nullptr, script, level.MapName, nullptr, 0, 0);
 	}
 }
 
@@ -252,7 +252,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SorcBallOrbit)
 	PARAM_ACTION_PROLOGUE_TYPE(ASorcBall);
 
 	// [RH] If no parent, then die instead of crashing
-	if (self->target == NULL)
+	if (self->target == nullptr)
 	{
 		self->SetState (self->FindState(NAME_Pain));
 		return 0;
@@ -642,7 +642,7 @@ void A_SorcOffense2(AActor *self)
 	double dist;
 
 	// [RH] If no enemy, then don't try to shoot.
-	if (dest == NULL)
+	if (dest == nullptr)
 	{
 		return;
 	}
@@ -787,7 +787,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SorcFX2Orbit)
 	AActor *parent = self->target;
 
 	// [RH] If no parent, then disappear
-	if (parent == NULL)
+	if (parent == nullptr)
 	{
 		self->Destroy();
 		return 0;
@@ -858,7 +858,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpawnBishop)
 			mo->ClearCounters();
 			mo->Destroy ();
 		}
-		else if (self->target != NULL)
+		else if (self->target != nullptr)
 		{ // [RH] Make the new bishops inherit the Heriarch's target
 			mo->CopyFriendliness (self->target, true);
 			mo->master = self->target;

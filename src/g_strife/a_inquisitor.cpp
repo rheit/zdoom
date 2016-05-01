@@ -32,7 +32,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_InquisitorDecide)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	A_FaceTarget (self);
@@ -56,7 +56,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_InquisitorAttack)
 
 	AActor *proj;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	A_FaceTarget (self);
@@ -64,13 +64,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_InquisitorAttack)
 	self->AddZ(32);
 	self->Angles.Yaw -= 45./32;
 	proj = P_SpawnMissileZAimed (self, self->Z(), self->target, PClass::FindActor("InquisitorShot"));
-	if (proj != NULL)
+	if (proj != nullptr)
 	{
 		proj->Vel.Z += 9;
 	}
 	self->Angles.Yaw += 45./16;
 	proj = P_SpawnMissileZAimed (self, self->Z(), self->target, PClass::FindActor("InquisitorShot"));
-	if (proj != NULL)
+	if (proj != nullptr)
 	{
 		proj->Vel.Z += 16;
 	}
@@ -85,7 +85,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_InquisitorJump)
 	double dist;
 	double speed;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_ITEM|CHAN_LOOP, "inquisitor/jump", 1, ATTN_NORM);

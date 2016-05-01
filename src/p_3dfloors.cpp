@@ -128,7 +128,7 @@ static void P_Add3DFloor(sector_t* sec, sector_t* sec2, line_t* master, int flag
 	ffloor->top.copied = ffloor->bottom.copied = false;
 	ffloor->top.model = ffloor->bottom.model = ffloor->model = sec2;
 	ffloor->target = sec;
-	ffloor->ceilingclip = ffloor->floorclip = NULL;
+	ffloor->ceilingclip = ffloor->floorclip = nullptr;
 	ffloor->validcount = 0;
 
 	if (!(flags&FF_THINFLOOR))
@@ -418,8 +418,8 @@ void P_Recalculate3DFloors(sector_t * sector)
 	F3DFloor *		rover;
 	F3DFloor *		pick;
 	unsigned		pickindex;
-	F3DFloor *		clipped=NULL;
-	F3DFloor *		solid=NULL;
+	F3DFloor *		clipped=nullptr;
+	F3DFloor *		solid=nullptr;
 	double			solid_bottom=0;
 	double			clipped_top;
 	double			clipped_bottom=0;
@@ -490,7 +490,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 			else if ((pick->flags&(FF_SWIMMABLE|FF_TRANSLUCENT) || (!(pick->flags&FF_RENDERALL))) && pick->flags&FF_EXISTS)
 			{
 				// We must check if this nonsolid segment gets clipped from the top by another 3D floor
-				if (solid != NULL && solid_bottom < height)
+				if (solid != nullptr && solid_bottom < height)
 				{
 					ffloors.Push(pick);
 					if (solid_bottom < pick_bottom)
@@ -536,7 +536,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 
 				if (pick_bottom<=clipped_bottom)
 				{
-					clipped=NULL;
+					clipped=nullptr;
 				}
 				else
 				{
@@ -554,8 +554,8 @@ void P_Recalculate3DFloors(sector_t * sector)
 			}
 			else
 			{
-				clipped = NULL;
-				if (solid == NULL || solid_bottom > pick_bottom)
+				clipped = nullptr;
+				if (solid == nullptr || solid_bottom > pick_bottom)
 				{
 					// only if this one is lower
 					solid = pick;
@@ -576,8 +576,8 @@ void P_Recalculate3DFloors(sector_t * sector)
 		lightlist.Resize(1);
 		lightlist[0].plane = sector->ceilingplane;
 		lightlist[0].p_lightlevel = &sector->lightlevel;
-		lightlist[0].caster = NULL;
-		lightlist[0].lightsource = NULL;
+		lightlist[0].caster = nullptr;
+		lightlist[0].lightsource = nullptr;
 		lightlist[0].extra_colormap = sector->ColorMap;
 		lightlist[0].blend = 0;
 		lightlist[0].flags = 0;
@@ -627,7 +627,7 @@ void P_Recalculate3DFloors(sector_t * sector)
 			else if (rover->flags & FF_RESET)
 			{
 				resetlight.p_lightlevel = &sector->lightlevel;
-				resetlight.lightsource = NULL;
+				resetlight.lightsource = nullptr;
 				resetlight.extra_colormap = sector->ColorMap;
 				resetlight.blend = 0;
 			}
@@ -681,7 +681,7 @@ void P_RecalculateLights(sector_t *sector)
 	for(unsigned i = 0; i < lightlist.Size(); i++)
 	{
 		lightlist_t *ll = &lightlist[i];
-		if (ll->lightsource != NULL)
+		if (ll->lightsource != nullptr)
 		{
 			ll->lightsource->UpdateColormap(ll->extra_colormap);
 			ll->blend = ll->lightsource->GetBlend();
@@ -762,8 +762,8 @@ void P_LineOpening_XFloors (FLineOpening &open, AActor * thing, const line_t *li
 			FTextureID highestfloorpic;
 			int highestfloorterrain = -1;
 			FTextureID lowestceilingpic;
-			sector_t *lowestceilingsec = NULL, *highestfloorsec = NULL;
-			secplane_t *highestfloorplanes[2] = { NULL, NULL };
+			sector_t *lowestceilingsec = nullptr, *highestfloorsec = nullptr;
+			secplane_t *highestfloorplanes[2] = { nullptr, nullptr };
 			
 			highestfloorpic.SetInvalid();
 			lowestceilingpic.SetInvalid();
@@ -922,7 +922,7 @@ secplane_t P_FindFloorPlane(sector_t * sector, const DVector3 &pos)
 int	P_Find3DFloor(sector_t * sec, const DVector3 &pos, bool above, bool floor, double &cmpz)
 {
 	// If no sector given, find the one appropriate
-	if (sec == NULL)
+	if (sec == nullptr)
 		sec = P_PointInSector(pos);
 
 	// Above normal ceiling
@@ -974,7 +974,7 @@ CCMD (dump3df)
 {
 	if (argv.argc() > 1) 
 	{
-		int sec = strtol(argv[1], NULL, 10);
+		int sec = strtol(argv[1], nullptr, 10);
 		sector_t *sector = &sectors[sec];
 		TArray<F3DFloor*> & ffloors=sector->e->XFloor.ffloors;
 

@@ -46,7 +46,7 @@
 
 FHelperThread::FHelperThread ()
 {
-	ThreadHandle = NULL;
+	ThreadHandle = nullptr;
 	ThreadID = 0;
 	Thread_Events[0] = Thread_Events[1] = 0;
 	memset (Messages, 0, sizeof(Messages));
@@ -78,7 +78,7 @@ bool FHelperThread::LaunchThread ()
 	MessageHead = MessageTail = 0;
 	for (i = 0; i < MSG_QUEUE_SIZE; i++)
 	{
-		if ((Messages[i].CompletionEvent = CreateEvent (NULL, FALSE, i > 0, NULL)) == NULL)
+		if ((Messages[i].CompletionEvent = CreateEvent (nullptr, FALSE, i > 0, nullptr)) == nullptr)
 			break;
 	}
 	if (i < MSG_QUEUE_SIZE)
@@ -90,11 +90,11 @@ bool FHelperThread::LaunchThread ()
 		return false;
 	}
 	InitializeCriticalSection (&Thread_Critical);
-	if ((Thread_Events[0] = CreateEvent (NULL, TRUE, FALSE, NULL)))
+	if ((Thread_Events[0] = CreateEvent (nullptr, TRUE, FALSE, nullptr)))
 	{
-		if ((Thread_Events[1] = CreateEvent (NULL, TRUE, FALSE, NULL)))
+		if ((Thread_Events[1] = CreateEvent (nullptr, TRUE, FALSE, nullptr)))
 		{
-			if ((ThreadHandle = CreateThread (NULL, 0, ThreadLaunch, (LPVOID)this, 0, &ThreadID)))
+			if ((ThreadHandle = CreateThread (nullptr, 0, ThreadLaunch, (LPVOID)this, 0, &ThreadID)))
 			{
 				HANDLE waiters[2] = { Messages[0].CompletionEvent, ThreadHandle };
 
@@ -148,7 +148,7 @@ void FHelperThread::DestroyThread ()
 {
 	int i;
 
-	if (ThreadHandle == NULL)
+	if (ThreadHandle == nullptr)
 		return;
 
 	SetEvent (Thread_Events[THREAD_KillSelf]);
@@ -169,7 +169,7 @@ void FHelperThread::DestroyThread ()
 	LeaveCriticalSection (&Thread_Critical);
 	DeleteCriticalSection (&Thread_Critical);
 
-	ThreadHandle = NULL;
+	ThreadHandle = nullptr;
 }
 
 //==========================================================================
@@ -180,7 +180,7 @@ void FHelperThread::DestroyThread ()
 
 bool FHelperThread::HaveThread () const
 {
-	return ThreadHandle != NULL;
+	return ThreadHandle != nullptr;
 }
 
 //==========================================================================

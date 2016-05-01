@@ -190,7 +190,7 @@ static void I_CheckGUICapture ()
 	if (wantCapt != GUICapture)
 	{
 		GUICapture = wantCapt;
-		if (wantCapt && Keyboard != NULL)
+		if (wantCapt && Keyboard != nullptr)
 		{
 			Keyboard->AllKeysUp();
 		}
@@ -330,7 +330,7 @@ bool GUIWndProcHook(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESU
 
 		ev.data1 = LOWORD(lParam);
 		ev.data2 = HIWORD(lParam);
-		if (screen != NULL)
+		if (screen != nullptr)
 		{
 			screen->ScaleCoordsFromWindow(ev.data1, ev.data2);
 		}
@@ -374,7 +374,7 @@ bool GUIWndProcHook(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESU
 
 bool CallHook(FInputDevice *device, HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT *result)
 {
-	if (device == NULL)
+	if (device == nullptr)
 	{
 		return false;
 	}
@@ -388,22 +388,22 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	if (message == WM_INPUT)
 	{
-		if (MyGetRawInputData != NULL)
+		if (MyGetRawInputData != nullptr)
 		{
 			UINT size;
 
-			if (!MyGetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER)) &&
+			if (!MyGetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) &&
 				size != 0)
 			{
 				BYTE *buffer = (BYTE *)alloca(size);
 				if (MyGetRawInputData((HRAWINPUT)lParam, RID_INPUT, buffer, &size, sizeof(RAWINPUTHEADER)) == size)
 				{
 					int code = GET_RAWINPUT_CODE_WPARAM(wParam);
-					if (Keyboard == NULL || !Keyboard->ProcessRawInput((RAWINPUT *)buffer, code))
+					if (Keyboard == nullptr || !Keyboard->ProcessRawInput((RAWINPUT *)buffer, code))
 					{
-						if (Mouse == NULL || !Mouse->ProcessRawInput((RAWINPUT *)buffer, code))
+						if (Mouse == nullptr || !Mouse->ProcessRawInput((RAWINPUT *)buffer, code))
 						{
-							if (JoyDevices[INPUT_RawPS2] != NULL)
+							if (JoyDevices[INPUT_RawPS2] != nullptr)
 							{
 								JoyDevices[INPUT_RawPS2]->ProcessRawInput((RAWINPUT *)buffer, code);
 							}
@@ -456,7 +456,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_PAINT:
-		if (screen != NULL && 0)
+		if (screen != nullptr && 0)
 		{
 			static_cast<BaseWinFB *> (screen)->PaintToWindow ();
 		}
@@ -481,7 +481,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SETCURSOR:
 		if (!CursorState)
 		{
-			SetCursor(NULL); // turn off window cursor
+			SetCursor(nullptr); // turn off window cursor
 			return TRUE;	// Prevent Windows from setting cursor to window class cursor
 		}
 		else
@@ -491,7 +491,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SIZE:
-		InvalidateRect (Window, NULL, FALSE);
+		InvalidateRect (Window, nullptr, FALSE);
 		break;
 
 	case WM_KEYDOWN:
@@ -603,7 +603,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
-			if (GSnd != NULL)
+			if (GSnd != nullptr)
 			{
 #if 0
 				// Do we actually need this here?
@@ -628,14 +628,14 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PALETTECHANGED:
 		if ((HWND)wParam == Window)
 			break;
-		if (screen != NULL)
+		if (screen != nullptr)
 		{
 			screen->PaletteChanged ();
 		}
 		return DefWindowProc (hWnd, message, wParam, lParam);
 
 	case WM_QUERYNEWPALETTE:
-		if (screen != NULL)
+		if (screen != nullptr)
 		{
 			return screen->QueryNewPalette ();
 		}
@@ -669,24 +669,24 @@ bool I_InitInput (void *hwnd)
 	atterm (I_ShutdownInput);
 
 	noidle = !!Args->CheckParm ("-noidle");
-	g_pdi = NULL;
-	g_pdi3 = NULL;
+	g_pdi = nullptr;
+	g_pdi3 = nullptr;
 
 	FindRawInputFunctions();
 
 	// Try for DirectInput 8 first, then DirectInput 3 for NT 4's benefit.
 	DInputDLL = LoadLibrary("dinput8.dll");
-	if (DInputDLL != NULL)
+	if (DInputDLL != nullptr)
 	{
 		typedef HRESULT (WINAPI *blah)(HINSTANCE, DWORD, REFIID, LPVOID *, LPUNKNOWN);
 		blah di8c = (blah)GetProcAddress(DInputDLL, "DirectInput8Create");
-		if (di8c != NULL)
+		if (di8c != nullptr)
 		{
-			hr = di8c(g_hInst, DIRECTINPUT_VERSION, IID_IDirectInput8A, (void **)&g_pdi, NULL);
+			hr = di8c(g_hInst, DIRECTINPUT_VERSION, IID_IDirectInput8A, (void **)&g_pdi, nullptr);
 			if (FAILED(hr))
 			{
 				Printf(TEXTCOLOR_ORANGE "DirectInput8Create failed: %08lx", hr);
-				g_pdi = NULL;	// Just to be sure DirectInput8Create didn't change it
+				g_pdi = nullptr;	// Just to be sure DirectInput8Create didn't change it
 			}
 		}
 		else
@@ -695,14 +695,14 @@ bool I_InitInput (void *hwnd)
 		}
 	}
 
-	if (g_pdi == NULL)
+	if (g_pdi == nullptr)
 	{
-		if (DInputDLL != NULL)
+		if (DInputDLL != nullptr)
 		{
 			FreeLibrary(DInputDLL);
 		}
 		DInputDLL = LoadLibrary ("dinput.dll");
-		if (DInputDLL == NULL)
+		if (DInputDLL == nullptr)
 		{
 			I_FatalError ("Could not load dinput.dll: %08lx", GetLastError());
 		}
@@ -710,12 +710,12 @@ bool I_InitInput (void *hwnd)
 		typedef HRESULT (WINAPI *blah)(HINSTANCE, DWORD, LPDIRECTINPUT*, LPUNKNOWN);
 		blah dic = (blah)GetProcAddress (DInputDLL, "DirectInputCreateA");
 
-		if (dic == NULL)
+		if (dic == nullptr)
 		{
 			I_FatalError ("dinput.dll is corrupt");
 		}
 
-		hr = dic (g_hInst, 0x0300, &g_pdi3, NULL);
+		hr = dic (g_hInst, 0x0300, &g_pdi3, nullptr);
 		if (FAILED(hr))
 		{
 			I_FatalError ("DirectInputCreate failed: %08lx", hr);
@@ -744,38 +744,38 @@ bool I_InitInput (void *hwnd)
 // Free all input resources
 void I_ShutdownInput ()
 {
-	if (Keyboard != NULL)
+	if (Keyboard != nullptr)
 	{
 		delete Keyboard;
-		Keyboard = NULL;
+		Keyboard = nullptr;
 	}
-	if (Mouse != NULL)
+	if (Mouse != nullptr)
 	{
 		delete Mouse;
-		Mouse = NULL;
+		Mouse = nullptr;
 	}
 	for (int i = 0; i < NUM_JOYDEVICES; ++i)
 	{
-		if (JoyDevices[i] != NULL)
+		if (JoyDevices[i] != nullptr)
 		{
 			delete JoyDevices[i];
-			JoyDevices[i] = NULL;
+			JoyDevices[i] = nullptr;
 		}
 	}
 	if (g_pdi)
 	{
 		g_pdi->Release ();
-		g_pdi = NULL;
+		g_pdi = nullptr;
 	}
 	if (g_pdi3)
 	{
 		g_pdi3->Release ();
-		g_pdi3 = NULL;
+		g_pdi3 = nullptr;
 	}
-	if (DInputDLL != NULL)
+	if (DInputDLL != nullptr)
 	{
 		FreeLibrary (DInputDLL);
-		DInputDLL = NULL;
+		DInputDLL = nullptr;
 	}
 }
 
@@ -787,7 +787,7 @@ void I_GetEvent ()
 	// crashed, we will execute the APC it sent now.
 	SleepEx (0, TRUE);
 
-	while (PeekMessage (&mess, NULL, 0, 0, PM_REMOVE))
+	while (PeekMessage (&mess, nullptr, 0, 0, PM_REMOVE))
 	{
 		if (mess.message == WM_QUIT)
 			exit (mess.wParam);
@@ -801,11 +801,11 @@ void I_GetEvent ()
 		}
 	}
 
-	if (Keyboard != NULL)
+	if (Keyboard != nullptr)
 	{
 		Keyboard->ProcessInput();
 	}
-	if (Mouse != NULL)
+	if (Mouse != nullptr)
 	{
 		Mouse->ProcessInput();
 	}
@@ -832,7 +832,7 @@ void I_StartFrame ()
 	{
 		for (int i = 0; i < NUM_JOYDEVICES; ++i)
 		{
-			if (JoyDevices[i] != NULL)
+			if (JoyDevices[i] != nullptr)
 			{
 				JoyDevices[i]->ProcessInput();
 			}
@@ -852,7 +852,7 @@ void I_GetAxes(float axes[NUM_JOYAXIS])
 	{
 		for (i = 0; i < NUM_JOYDEVICES; ++i)
 		{
-			if (JoyDevices[i] != NULL)
+			if (JoyDevices[i] != nullptr)
 			{
 				JoyDevices[i]->AddAxes(axes);
 			}
@@ -865,7 +865,7 @@ void I_GetJoysticks(TArray<IJoystickConfig *> &sticks)
 	sticks.Clear();
 	for (int i = 0; i < NUM_JOYDEVICES; ++i)
 	{
-		if (JoyDevices[i] != NULL)
+		if (JoyDevices[i] != nullptr)
 		{
 			JoyDevices[i]->GetDevices(sticks);
 		}
@@ -875,13 +875,13 @@ void I_GetJoysticks(TArray<IJoystickConfig *> &sticks)
 // If a new controller was added, returns a pointer to it.
 IJoystickConfig *I_UpdateDeviceList()
 {
-	IJoystickConfig *newone = NULL;
+	IJoystickConfig *newone = nullptr;
 	for (int i = 0; i < NUM_JOYDEVICES; ++i)
 	{
-		if (JoyDevices[i] != NULL)
+		if (JoyDevices[i] != nullptr)
 		{
 			IJoystickConfig *thisnewone = JoyDevices[i]->Rescan();
-			if (newone == NULL)
+			if (newone == nullptr)
 			{
 				newone = thisnewone;
 			}
@@ -892,12 +892,12 @@ IJoystickConfig *I_UpdateDeviceList()
 
 void I_PutInClipboard (const char *str)
 {
-	if (str == NULL || !OpenClipboard (Window))
+	if (str == nullptr || !OpenClipboard (Window))
 		return;
 	EmptyClipboard ();
 
 	HGLOBAL cliphandle = GlobalAlloc (GMEM_DDESHARE, strlen (str) + 1);
-	if (cliphandle != NULL)
+	if (cliphandle != nullptr)
 	{
 		char *ptr = (char *)GlobalLock (cliphandle);
 		strcpy (ptr, str);
@@ -918,10 +918,10 @@ FString I_GetFromClipboard (bool return_nothing)
 		return retstr;
 
 	cliphandle = GetClipboardData (CF_TEXT);
-	if (cliphandle != NULL)
+	if (cliphandle != nullptr)
 	{
 		clipstr = (char *)GlobalLock (cliphandle);
-		if (clipstr != NULL)
+		if (clipstr != nullptr)
 		{
 			// Convert CR-LF pairs to just LF while copying to the FString
 			for (nlstr = clipstr; *nlstr != '\0'; ++nlstr)
@@ -1017,7 +1017,7 @@ static void FindRawInputFunctions()
 	{
 		HMODULE user32 = GetModuleHandle("user32.dll");
 
-		if (user32 == NULL)
+		if (user32 == nullptr)
 		{
 			return;		// WTF kind of broken system are we running on?
 		}

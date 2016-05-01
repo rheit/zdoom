@@ -277,8 +277,8 @@ static const CLSID CLSID_WbemLocator =	{ 0x4590f811, 0x1d3a, 0x11d0,
 
 FDInputJoystick::FDInputJoystick(const GUID *instance, FString &name)
 {
-	Device = NULL;
-	DataFormat.rgodf = NULL;
+	Device = nullptr;
+	DataFormat.rgodf = nullptr;
 	Instance = *instance;
 	Name = name;
 	Marked = false;
@@ -294,13 +294,13 @@ FDInputJoystick::~FDInputJoystick()
 {
 	unsigned int i;
 
-	if (Device != NULL)
+	if (Device != nullptr)
 	{
 		M_SaveJoystickConfig(this);
 		Device->Release();
-		Device = NULL;
+		Device = nullptr;
 	}
-	if (DataFormat.rgodf != NULL)
+	if (DataFormat.rgodf != nullptr)
 	{
 		delete[] DataFormat.rgodf;
 	}
@@ -341,12 +341,12 @@ bool FDInputJoystick::GetDevice()
 {
 	HRESULT hr;
 
-	if (g_pdi == NULL)
+	if (g_pdi == nullptr)
 	{
 		return false;
 	}
-	hr = g_pdi->CreateDevice(Instance, &Device, NULL);
-	if (FAILED(hr) || Device == NULL)
+	hr = g_pdi->CreateDevice(Instance, &Device, nullptr);
+	if (FAILED(hr) || Device == nullptr)
 	{
 		return false;
 	}
@@ -385,7 +385,7 @@ void FDInputJoystick::ProcessInput()
 	unsigned i;
 	event_t ev;
 
-	if (Device == NULL)
+	if (Device == nullptr)
 	{
 		return;
 	}
@@ -1016,7 +1016,7 @@ FDInputJoystickManager::~FDInputJoystickManager()
 
 bool FDInputJoystickManager::GetDevice()
 {
-	if (g_pdi == NULL)
+	if (g_pdi == nullptr)
 	{
 		return false;
 	}
@@ -1036,7 +1036,7 @@ void FDInputJoystickManager::ProcessInput()
 {
 	for (unsigned i = 0; i < Devices.Size(); ++i)
 	{
-		if (Devices[i] != NULL)
+		if (Devices[i] != nullptr)
 		{
 			Devices[i]->ProcessInput();
 		}
@@ -1098,8 +1098,8 @@ BOOL CALLBACK FDInputJoystickManager::EnumCallback(LPCDIDEVICEINSTANCE lpddi, LP
 
 	// Do not add PS2 adapters if Raw PS2 Input was initialized.
 	// Do not add XInput devices if XInput was initialized.
-	if ((JoyDevices[INPUT_RawPS2] == NULL || !I_IsPS2Adapter(lpddi->guidProduct.Data1)) &&
-		(JoyDevices[INPUT_XInput] == NULL || !IsXInputDevice(&lpddi->guidProduct)))
+	if ((JoyDevices[INPUT_RawPS2] == nullptr || !I_IsPS2Adapter(lpddi->guidProduct.Data1)) &&
+		(JoyDevices[INPUT_XInput] == nullptr || !IsXInputDevice(&lpddi->guidProduct)))
 	{
 		Enumerator thisone;
 
@@ -1124,7 +1124,7 @@ BOOL CALLBACK FDInputJoystickManager::EnumCallback(LPCDIDEVICEINSTANCE lpddi, LP
 
 bool FDInputJoystickManager::IsXInputDevice(const GUID *guid)
 {
-	if (MyGetRawInputDeviceList == NULL || MyGetRawInputDeviceInfoA == NULL)
+	if (MyGetRawInputDeviceList == nullptr || MyGetRawInputDeviceInfoA == nullptr)
 	{
 		return IsXInputDeviceSlow(guid);
 	}
@@ -1155,13 +1155,13 @@ bool FDInputJoystickManager::IsXInputDevice(const GUID *guid)
 
 bool FDInputJoystickManager::IsXInputDeviceSlow(const GUID *guid)
 {
-	IWbemLocator *wbemlocator = NULL;
-	IEnumWbemClassObject *enumdevices = NULL;
+	IWbemLocator *wbemlocator = nullptr;
+	IEnumWbemClassObject *enumdevices = nullptr;
 	IWbemClassObject *devices[20] = { 0 };
-	IWbemServices *wbemservices = NULL;
-	BSTR namespce = NULL;
-	BSTR deviceid = NULL;
-	BSTR classname = NULL;
+	IWbemServices *wbemservices = nullptr;
+	BSTR namespce = nullptr;
+	BSTR deviceid = nullptr;
+	BSTR classname = nullptr;
 	DWORD returned = 0;
 	bool isxinput = false;
 	UINT device = 0;
@@ -1169,25 +1169,25 @@ bool FDInputJoystickManager::IsXInputDeviceSlow(const GUID *guid)
 	HRESULT hr;
 
 	// Create WMI
-	hr = CoCreateInstance(CLSID_WbemLocator, NULL, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&wbemlocator);
-	if (FAILED(hr) || wbemlocator == NULL)
+	hr = CoCreateInstance(CLSID_WbemLocator, nullptr, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&wbemlocator);
+	if (FAILED(hr) || wbemlocator == nullptr)
 		goto cleanup;
 
-	if (NULL == (namespce = SysAllocString(OLESTR("\\\\.\\root\\cimv2")))) goto cleanup;
-	if (NULL == (classname = SysAllocString(OLESTR("Win32_PNPEntity")))) goto cleanup;
-	if (NULL == (deviceid = SysAllocString(OLESTR("DeviceID")))) goto cleanup;
+	if (nullptr == (namespce = SysAllocString(OLESTR("\\\\.\\root\\cimv2")))) goto cleanup;
+	if (nullptr == (classname = SysAllocString(OLESTR("Win32_PNPEntity")))) goto cleanup;
+	if (nullptr == (deviceid = SysAllocString(OLESTR("DeviceID")))) goto cleanup;
 
 	// Connect to WMI
-	hr = wbemlocator->ConnectServer(namespce, NULL, NULL, 0, 0, NULL, NULL, &wbemservices);
-	if (FAILED(hr) || wbemservices == NULL)
+	hr = wbemlocator->ConnectServer(namespce, nullptr, nullptr, 0, 0, nullptr, nullptr, &wbemservices);
+	if (FAILED(hr) || wbemservices == nullptr)
 		goto cleanup;
 
 	// Switch security level to IMPERSONATE.
-	CoSetProxyBlanket(wbemservices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
-		RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+	CoSetProxyBlanket(wbemservices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr,
+		RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
 
-	hr = wbemservices->CreateInstanceEnum(classname, 0, NULL, &enumdevices);
-	if (FAILED(hr) || enumdevices == NULL)
+	hr = wbemservices->CreateInstanceEnum(classname, 0, nullptr, &enumdevices);
+	if (FAILED(hr) || enumdevices == nullptr)
 		goto cleanup;
 
 	// Loop over all devices
@@ -1203,8 +1203,8 @@ bool FDInputJoystickManager::IsXInputDeviceSlow(const GUID *guid)
 		for (device = 0; device < returned; device++)
 		{
 			// For each device, get its device ID.
-			hr = devices[device]->Get(deviceid, 0L, &var, NULL, NULL);
-			if (SUCCEEDED(hr) && var.vt == VT_BSTR && var.bstrVal != NULL)
+			hr = devices[device]->Get(deviceid, 0L, &var, nullptr, nullptr);
+			if (SUCCEEDED(hr) && var.vt == VT_BSTR && var.bstrVal != nullptr)
 			{
 				// Check if the device ID contains "IG_". If it does, then it's an XInput device.
 				// This information cannot be found from DirectInput.
@@ -1263,11 +1263,11 @@ bool FDInputJoystickManager::IsXInputDeviceFast(const GUID *guid)
 	UINT i;
 	bool isxinput = false;
 
-	if (MyGetRawInputDeviceList(NULL, &nDevices, sizeof(RAWINPUTDEVICELIST)) != 0)
+	if (MyGetRawInputDeviceList(nullptr, &nDevices, sizeof(RAWINPUTDEVICELIST)) != 0)
 	{
 		return false;
 	}
-	if ((devices = (RAWINPUTDEVICELIST *)malloc(sizeof(RAWINPUTDEVICELIST) * nDevices)) == NULL)
+	if ((devices = (RAWINPUTDEVICELIST *)malloc(sizeof(RAWINPUTDEVICELIST) * nDevices)) == nullptr)
 	{
 		return false;
 	}
@@ -1298,7 +1298,7 @@ bool FDInputJoystickManager::IsXInputDeviceFast(const GUID *guid)
 					reslen = MyGetRawInputDeviceInfoA(devices[i].hDevice, RIDI_DEVICENAME, name, &namelen);
 					if (reslen != (UINT)-1)
 					{
-						isxinput = (strstr(name, "IG_") != NULL);
+						isxinput = (strstr(name, "IG_") != nullptr);
 						break;
 					}
 				}
@@ -1339,7 +1339,7 @@ int FDInputJoystickManager::NameSort(const void *a, const void *b)
 
 FDInputJoystick *FDInputJoystickManager::EnumDevices()
 {
-	FDInputJoystick *newone = NULL;
+	FDInputJoystick *newone = nullptr;
 	TArray<Enumerator> controllers;
 	EnumData data;
 	unsigned i, j, k;
@@ -1407,7 +1407,7 @@ FDInputJoystick *FDInputJoystickManager::EnumDevices()
 			{
 				device->Marked = true;
 				Devices.Push(device);
-				if (newone == NULL)
+				if (newone == nullptr)
 				{
 					newone = device;
 				}
@@ -1459,16 +1459,16 @@ void I_StartupDirectInputJoystick()
 {
 	if (!joy_dinput || !use_joystick || Args->CheckParm("-nojoy"))
 	{
-		if (JoyDevices[INPUT_DIJoy] != NULL)
+		if (JoyDevices[INPUT_DIJoy] != nullptr)
 		{
 			delete JoyDevices[INPUT_DIJoy];
-			JoyDevices[INPUT_DIJoy] = NULL;
-			UpdateJoystickMenu(NULL);
+			JoyDevices[INPUT_DIJoy] = nullptr;
+			UpdateJoystickMenu(nullptr);
 		}
 	}
 	else
 	{
-		if (JoyDevices[INPUT_DIJoy] == NULL)
+		if (JoyDevices[INPUT_DIJoy] == nullptr)
 		{
 			FJoystickCollection *joys = new FDInputJoystickManager;
 			if (joys->GetDevice())

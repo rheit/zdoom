@@ -99,7 +99,7 @@ bool ABasicArmor::HandlePickup (AInventory *item)
 
 		armor->SaveAmount = int(armor->SaveAmount * G_SkillProperty(SKILLP_ArmorFactor));
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -146,21 +146,21 @@ void ABasicArmor::AbsorbDamage (int damage, FName damageType, int &newdamage)
 			ArmorType = NAME_None; // Not NAME_BasicArmor.
 			// Now see if the player has some more armor in their inventory
 			// and use it if so. As in Strife, the best armor is used up first.
-			ABasicArmorPickup *best = NULL;
+			ABasicArmorPickup *best = nullptr;
 			AInventory *probe = Owner->Inventory;
-			while (probe != NULL)
+			while (probe != nullptr)
 			{
 				if (probe->IsKindOf (RUNTIME_CLASS(ABasicArmorPickup)))
 				{
 					ABasicArmorPickup *inInv = static_cast<ABasicArmorPickup*>(probe);
-					if (best == NULL || best->SavePercent < inInv->SavePercent)
+					if (best == nullptr || best->SavePercent < inInv->SavePercent)
 					{
 						best = inInv;
 					}
 				}
 				probe = probe->Inventory;
 			}
-			if (best != NULL)
+			if (best != nullptr)
 			{
 				Owner->UseInventory (best);
 			}
@@ -175,12 +175,12 @@ void ABasicArmor::AbsorbDamage (int damage, FName damageType, int &newdamage)
 		// The differences include not using a default value, and of course the way
 		// the damage factor info is obtained.
 		DmgFactors *df = PClass::FindActor(ArmorType)->DamageFactors;
-		if (df != NULL)
+		if (df != nullptr)
 		{
 			damage = newdamage = df->Apply(damageType, damage);
 		}
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		Inventory->AbsorbDamage (damage, damageType, newdamage);
 	}
@@ -237,7 +237,7 @@ bool ABasicArmorPickup::Use (bool pickup)
 {
 	ABasicArmor *armor = Owner->FindInventory<ABasicArmor> ();
 
-	if (armor == NULL)
+	if (armor == nullptr)
 	{
 		armor = Spawn<ABasicArmor> ();
 		armor->BecomeItem ();
@@ -320,7 +320,7 @@ bool ABasicArmorBonus::Use (bool pickup)
 	ABasicArmor *armor = Owner->FindInventory<ABasicArmor> ();
 	bool result = false;
 
-	if (armor == NULL)
+	if (armor == nullptr)
 	{
 		armor = Spawn<ABasicArmor> ();
 		armor->BecomeItem ();
@@ -407,7 +407,7 @@ AInventory *AHexenArmor::CreateCopy (AActor *other)
 
 AInventory *AHexenArmor::CreateTossable ()
 {
-	return NULL;
+	return nullptr;
 }
 
 //===========================================================================
@@ -426,7 +426,7 @@ bool AHexenArmor::HandlePickup (AInventory *item)
 		}
 		return true;
 	}
-	else if (Inventory != NULL)
+	else if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -444,13 +444,13 @@ bool AHexenArmor::AddArmorToSlot (AActor *actor, int slot, int amount)
 	APlayerPawn *ppawn;
 	double hits;
 
-	if (actor->player != NULL)
+	if (actor->player != nullptr)
 	{
 		ppawn = static_cast<APlayerPawn *>(actor);
 	}
 	else
 	{
-		ppawn = NULL;
+		ppawn = nullptr;
 	}
 
 	if (slot < 0 || slot > 3)
@@ -527,7 +527,7 @@ void AHexenArmor::AbsorbDamage (int damage, FName damageType, int &newdamage)
 			damage = newdamage;
 		}
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		Inventory->AbsorbDamage (damage, damageType, newdamage);
 	}

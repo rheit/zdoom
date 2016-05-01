@@ -269,7 +269,7 @@ static int LayoutErrorPane (HWND pane, int w)
 	ctl = GetDlgItem (pane, IDOK);
 	GetClientRect (ctl, &rectc);	// Find out how big it is.
 	MoveWindow (ctl, w - rectc.right - 1, 1, rectc.right, rectc.bottom, TRUE);
-	InvalidateRect (ctl, NULL, TRUE);
+	InvalidateRect (ctl, nullptr, TRUE);
 
 	// Return the needed height for this layout
 	return rectc.bottom + 2;
@@ -341,40 +341,40 @@ void LayoutMainWindow (HWND hWnd, HWND pane)
 	w = rect.right;
 	h = rect.bottom;
 
-	if (DoomStartupInfo.Name.IsNotEmpty() && GameTitleWindow != NULL)
+	if (DoomStartupInfo.Name.IsNotEmpty() && GameTitleWindow != nullptr)
 	{
 		bannerheight = GameTitleFontHeight + 5;
 		MoveWindow (GameTitleWindow, 0, 0, w, bannerheight, TRUE);
-		InvalidateRect (GameTitleWindow, NULL, FALSE);
+		InvalidateRect (GameTitleWindow, nullptr, FALSE);
 	}
-	if (ProgressBar != NULL)
+	if (ProgressBar != nullptr)
 	{
 		// Base the height of the progress bar on the height of a scroll bar
 		// arrow, just as in the progress bar example.
 		progressheight = GetSystemMetrics (SM_CYVSCROLL);
 		MoveWindow (ProgressBar, 0, h - progressheight, w, progressheight, TRUE);
 	}
-	if (NetStartPane != NULL)
+	if (NetStartPane != nullptr)
 	{
 		netpaneheight = LayoutNetStartPane (NetStartPane, w);
 		SetWindowPos (NetStartPane, HWND_TOP, 0, h - progressheight - netpaneheight, w, netpaneheight, SWP_SHOWWINDOW);
 	}
-	if (pane != NULL)
+	if (pane != nullptr)
 	{
 		errorpaneheight = LayoutErrorPane (pane, w);
 		SetWindowPos (pane, HWND_TOP, 0, h - progressheight - netpaneheight - errorpaneheight, w, errorpaneheight, 0);
 	}
-	if (ErrorIcon != NULL)
+	if (ErrorIcon != nullptr)
 	{
 		leftside = GetSystemMetrics (SM_CXICON) + 6;
 		MoveWindow (ErrorIcon, 0, bannerheight, leftside, h - bannerheight - errorpaneheight - progressheight - netpaneheight, TRUE);
 	}
 	// If there is a startup screen, it covers the log window
-	if (StartupScreen != NULL)
+	if (StartupScreen != nullptr)
 	{
 		SetWindowPos (StartupScreen, HWND_TOP, leftside, bannerheight, w - leftside,
 			h - bannerheight - errorpaneheight - progressheight - netpaneheight, SWP_SHOWWINDOW);
-		InvalidateRect (StartupScreen, NULL, FALSE);
+		InvalidateRect (StartupScreen, nullptr, FALSE);
 		MoveWindow (ConWindow, 0, 0, 0, 0, TRUE);
 	}
 	else
@@ -395,7 +395,7 @@ void LayoutMainWindow (HWND hWnd, HWND pane)
 void I_SetIWADInfo()
 {
 	// Make the startup banner show itself
-	LayoutMainWindow(Window, NULL);
+	LayoutMainWindow(Window, nullptr);
 }
 
 //==========================================================================
@@ -438,7 +438,7 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		oldfont = SelectObject (hdc, GetStockObject (DEFAULT_GUI_FONT));
 		GetTextMetrics (hdc, &tm);
 		DefaultGUIFontHeight = tm.tmHeight;
-		if (GameTitleFont == NULL)
+		if (GameTitleFont == nullptr)
 		{
 			GameTitleFontHeight = DefaultGUIFontHeight;
 		}
@@ -451,14 +451,14 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		SelectObject (hdc, oldfont);
 
 		// Create log read-only edit control
-		view = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "RichEdit20W", NULL,
+		view = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "RichEdit20W", nullptr,
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL |
 			ES_LEFT | ES_MULTILINE | WS_CLIPSIBLINGS,
 			0, 0, 0, 0,
-			hWnd, NULL, inst, NULL);
+			hWnd, nullptr, inst, nullptr);
 		HRESULT hr;
 		hr = GetLastError();
-		if (view == NULL)
+		if (view == nullptr)
 		{
 			ReleaseDC (hWnd, hdc);
 			return -1;
@@ -481,8 +481,8 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		ConWindow = view;
 		ReleaseDC (hWnd, hdc);
 
-		view = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_OWNERDRAW, 0, 0, 0, 0, hWnd, NULL, inst, NULL);
-		if (view == NULL)
+		view = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_OWNERDRAW, 0, 0, 0, 0, hWnd, nullptr, inst, nullptr);
+		if (view == nullptr)
 		{
 			return -1;
 		}
@@ -517,7 +517,7 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// Calculate width of the title string.
 			SetTextAlign (drawitem->hDC, TA_TOP);
-			oldfont = SelectObject (drawitem->hDC, GameTitleFont != NULL ? GameTitleFont : (HFONT)GetStockObject (DEFAULT_GUI_FONT));
+			oldfont = SelectObject (drawitem->hDC, GameTitleFont != nullptr ? GameTitleFont : (HFONT)GetStockObject (DEFAULT_GUI_FONT));
 			titlelen = (int)DoomStartupInfo.Name.Len();
 			GetTextExtentPoint32 (drawitem->hDC, DoomStartupInfo.Name, titlelen, &size);
 
@@ -532,7 +532,7 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		// Draw startup screen
 		else if (wParam == IDC_STATIC_STARTUP)
 		{
-			if (StartupScreen != NULL)
+			if (StartupScreen != nullptr)
 			{
 				drawitem = (LPDRAWITEMSTRUCT)lParam;
 
@@ -545,7 +545,7 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 				// If the title banner is gone, then this is an ENDOOM screen, so draw a short prompt
 				// where the command prompt would have been in DOS.
-				if (GameTitleWindow == NULL)
+				if (GameTitleWindow == nullptr)
 				{
 					static const char QuitText[] = "Press any key or click anywhere in the window to quit.";
 
@@ -579,10 +579,10 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return FALSE;
 
 	case WM_COMMAND:
-		if (ErrorIcon != NULL && (HWND)lParam == ConWindow && HIWORD(wParam) == EN_UPDATE)
+		if (ErrorIcon != nullptr && (HWND)lParam == ConWindow && HIWORD(wParam) == EN_UPDATE)
 		{
 			// Be sure to redraw the error icon if the edit control changes.
-			InvalidateRect (ErrorIcon, NULL, TRUE);
+			InvalidateRect (ErrorIcon, nullptr, TRUE);
 			return 0;
 		}
 		break;
@@ -592,7 +592,7 @@ LRESULT CALLBACK LConProc (HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-		if (GameTitleFont != NULL)
+		if (GameTitleFont != nullptr)
 		{
 			DeleteObject (GameTitleFont);
 		}
@@ -672,7 +672,7 @@ void RestoreConView()
 	}
 	else
 	{
-		SetWindowPos (Window, NULL, 0, 0, 512, 384,
+		SetWindowPos (Window, nullptr, 0, 0, 512, 384,
 			SWP_DRAWFRAME | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOZORDER);
 	}
 
@@ -683,10 +683,10 @@ void RestoreConView()
 	I_ShutdownInput ();		// Make sure the mouse pointer is available.
 	I_FlushBufferedConsoleStuff();
 	// Make sure the progress bar isn't visible.
-	if (StartScreen != NULL)
+	if (StartScreen != nullptr)
 	{
 		delete StartScreen;
-		StartScreen = NULL;
+		StartScreen = nullptr;
 	}
 }
 
@@ -701,9 +701,9 @@ void RestoreConView()
 
 void ShowErrorPane(const char *text)
 {
-	if (Window == NULL || ConWindow == NULL)
+	if (Window == nullptr || ConWindow == nullptr)
 	{
-		if (text != NULL)
+		if (text != nullptr)
 		{
 			MessageBox (Window, text,
 				GAMESIG " Fatal Error", MB_OK|MB_ICONSTOP|MB_TASKMODAL);
@@ -711,24 +711,24 @@ void ShowErrorPane(const char *text)
 		return;
 	}
 
-	if (StartScreen != NULL)	// Ensure that the network pane is hidden.
+	if (StartScreen != nullptr)	// Ensure that the network pane is hidden.
 	{
 		StartScreen->NetDone();
 	}
-	if (text != NULL)
+	if (text != nullptr)
 	{
 		char caption[100];
 		mysnprintf(caption, countof(caption), "Fatal Error - " GAMESIG " %s " X64 " (%s)", GetVersionString(), GetGitTime());
 		SetWindowText (Window, caption);
-		ErrorIcon = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_OWNERDRAW, 0, 0, 0, 0, Window, NULL, g_hInst, NULL);
-		if (ErrorIcon != NULL)
+		ErrorIcon = CreateWindowEx (WS_EX_NOPARENTNOTIFY, "STATIC", nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_OWNERDRAW, 0, 0, 0, 0, Window, nullptr, g_hInst, nullptr);
+		if (ErrorIcon != nullptr)
 		{
 			SetWindowLong (ErrorIcon, GWL_ID, IDC_ICONPIC);
 		}
 	}
-	ErrorPane = CreateDialogParam (g_hInst, MAKEINTRESOURCE(IDD_ERRORPANE), Window, ErrorPaneProc, (LONG_PTR)NULL);
+	ErrorPane = CreateDialogParam (g_hInst, MAKEINTRESOURCE(IDD_ERRORPANE), Window, ErrorPaneProc, (LONG_PTR)nullptr);
 
-	if (text != NULL)
+	if (text != nullptr)
 	{
 		CHARRANGE end;
 		CHARFORMAT2 oldformat, newformat;
@@ -781,7 +781,7 @@ void ShowErrorPane(const char *text)
 	BOOL bRet;
 	MSG msg;
 
-	while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+	while ((bRet = GetMessage(&msg, nullptr, 0, 0)) != 0)
 	{
 		if (bRet == -1)
 		{
@@ -833,7 +833,7 @@ void DoMain (HINSTANCE hInstance)
 			// handle instead of creating a console window.
 
 			StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-			if (StdOut != NULL)
+			if (StdOut != nullptr)
 			{
 				// It seems that running from a shell always creates a std output
 				// for us, even if it doesn't go anywhere. (Running from Explorer
@@ -843,23 +843,23 @@ void DoMain (HINSTANCE hInstance)
 				BY_HANDLE_FILE_INFORMATION info;
 				if (!GetFileInformationByHandle(StdOut, &info))
 				{
-					StdOut = NULL;
+					StdOut = nullptr;
 				}
 			}
-			if (StdOut == NULL)
+			if (StdOut == nullptr)
 			{
 				// AttachConsole was introduced with Windows XP. (OTOH, since we
 				// have to share the console with the shell, I'm not sure if it's
 				// a good idea to actually attach to it.)
 				typedef BOOL (WINAPI *ac)(DWORD);
-				ac attach_console = kernel != NULL ? (ac)GetProcAddress(kernel, "AttachConsole") : NULL;
-				if (attach_console != NULL && attach_console(ATTACH_PARENT_PROCESS))
+				ac attach_console = kernel != nullptr ? (ac)GetProcAddress(kernel, "AttachConsole") : nullptr;
+				if (attach_console != nullptr && attach_console(ATTACH_PARENT_PROCESS))
 				{
 					StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-					DWORD foo; WriteFile(StdOut, "\n", 1, &foo, NULL);
+					DWORD foo; WriteFile(StdOut, "\n", 1, &foo, nullptr);
 					AttachedStdOut = true;
 				}
-				if (StdOut == NULL && AllocConsole())
+				if (StdOut == nullptr && AllocConsole())
 				{
 					StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 				}
@@ -920,7 +920,7 @@ void DoMain (HINSTANCE hInstance)
 		// element. DEVMODE is not one of those structures.
 		memset (&displaysettings, 0, sizeof(displaysettings));
 		displaysettings.dmSize = sizeof(displaysettings);
-		EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &displaysettings);
+		EnumDisplaySettings (nullptr, ENUM_CURRENT_SETTINGS, &displaysettings);
 		x = (displaysettings.dmPelsWidth - width) / 2;
 		y = (displaysettings.dmPelsHeight - height) / 2;
 
@@ -936,9 +936,9 @@ void DoMain (HINSTANCE hInstance)
 		WndClass.cbWndExtra		= 0;
 		WndClass.hInstance		= hInstance;
 		WndClass.hIcon			= LoadIcon (hInstance, MAKEINTRESOURCE(IDI_ICON1));
-		WndClass.hCursor		= LoadCursor (NULL, IDC_ARROW);
-		WndClass.hbrBackground	= NULL;
-		WndClass.lpszMenuName	= NULL;
+		WndClass.hCursor		= LoadCursor (nullptr, IDC_ARROW);
+		WndClass.hbrBackground	= nullptr;
+		WndClass.lpszMenuName	= nullptr;
 		WndClass.lpszClassName	= (LPCTSTR)WinClassName;
 		
 		/* register this new class with Windows */
@@ -954,15 +954,15 @@ void DoMain (HINSTANCE hInstance)
 				(LPCTSTR)caption,
 				WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN,
 				x, y, width, height,
-				(HWND)   NULL,
-				(HMENU)  NULL,
+				(HWND)   nullptr,
+				(HMENU)  nullptr,
 						hInstance,
-				NULL);
+				nullptr);
 
 		if (!Window)
 			I_FatalError ("Could not open window");
 
-		if (kernel != NULL)
+		if (kernel != nullptr)
 		{
 			typedef BOOL (WINAPI *pts)(DWORD, DWORD *);
 			pts pidsid = (pts)GetProcAddress (kernel, "ProcessIdToSessionId");
@@ -994,7 +994,7 @@ void DoMain (HINSTANCE hInstance)
 		WinWidth = cRect.right;
 		WinHeight = cRect.bottom;
 
-		CoInitialize (NULL);
+		CoInitialize (nullptr);
 		atterm (UnCOM);
 
 		C_InitConsole (((WinWidth / 8) + 2) * 8, (WinHeight / 12) * 8, false);
@@ -1013,14 +1013,14 @@ void DoMain (HINSTANCE hInstance)
 				HANDLE stdinput = GetStdHandle(STD_INPUT_HANDLE);
 
 				ShowWindow(Window, SW_HIDE);
-				WriteFile(StdOut, "Press any key to exit...", 24, &bytes, NULL);
+				WriteFile(StdOut, "Press any key to exit...", 24, &bytes, nullptr);
 				FlushConsoleInputBuffer(stdinput);
 				SetConsoleMode(stdinput, 0);
-				ReadConsole(stdinput, &bytes, 1, &bytes, NULL);
+				ReadConsole(stdinput, &bytes, 1, &bytes, nullptr);
 			}
-			else if (StdOut == NULL)
+			else if (StdOut == nullptr)
 			{
-				ShowErrorPane(NULL);
+				ShowErrorPane(nullptr);
 			}
 		}
 		exit(0);
@@ -1061,7 +1061,7 @@ void DoomSpecificInfo (char *buffer, size_t bufflen)
 	buffer += mysnprintf (buffer, buffend - buffer, GAMENAME " version %s (%s)", GetVersionString(), GetGitHash());
 	buffer += mysnprintf (buffer, buffend - buffer, "\r\nCommand line: %s\r\n", GetCommandLine());
 
-	for (i = 0; (arg = Wads.GetWadName (i)) != NULL; ++i)
+	for (i = 0; (arg = Wads.GetWadName (i)) != nullptr; ++i)
 	{
 		buffer += mysnprintf (buffer, buffend - buffer, "\r\nWad %d: %s", i, arg);
 	}
@@ -1234,12 +1234,12 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE nothing, LPSTR cmdline, int n
 	InitCommonControls ();			// Load some needed controls and be pretty under XP
 
 	// We need to load riched20.dll so that we can create the control.
-	if (NULL == LoadLibrary ("riched20.dll"))
+	if (nullptr == LoadLibrary ("riched20.dll"))
 	{
 		// This should only happen on basic Windows 95 installations, but since we
 		// don't support Windows 95, we have no obligation to provide assistance in
 		// getting it installed.
-		MessageBoxA(NULL, "Could not load riched20.dll", GAMENAME " Error", MB_OK | MB_ICONSTOP);
+		MessageBoxA(nullptr, "Could not load riched20.dll", GAMENAME " Error", MB_OK | MB_ICONSTOP);
 		exit(0);
 	}
 
@@ -1251,7 +1251,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE nothing, LPSTR cmdline, int n
 			*(int *)0 = 0;
 		}
 		__except(CrashPointers = *GetExceptionInformation(),
-			CreateCrashLog (__argv[1], 9, NULL), EXCEPTION_EXECUTE_HANDLER)
+			CreateCrashLog (__argv[1], 9, nullptr), EXCEPTION_EXECUTE_HANDLER)
 		{
 		}
 		DisplayCrashLog ();
@@ -1264,7 +1264,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE nothing, LPSTR cmdline, int n
 			infiniterecursion(1);
 		}
 		__except(CrashPointers = *GetExceptionInformation(),
-			CreateCrashLog (__argv[1], 14, NULL), EXCEPTION_EXECUTE_HANDLER)
+			CreateCrashLog (__argv[1], 14, nullptr), EXCEPTION_EXECUTE_HANDLER)
 		{
 		}
 		DisplayCrashLog ();

@@ -92,7 +92,7 @@ class FDirectory : public FResourceFile
 public:
 	FDirectory(const char * dirname);
 	bool Open(bool quiet);
-	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : NULL; }
+	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : nullptr; }
 };
 
 
@@ -104,12 +104,12 @@ public:
 //==========================================================================
 
 FDirectory::FDirectory(const char * directory)
-: FResourceFile(NULL, NULL)
+: FResourceFile(nullptr, nullptr)
 {
 	FString dirname;
 
 	#ifdef _WIN32
-		directory = _fullpath(NULL, directory, _MAX_PATH);
+		directory = _fullpath(nullptr, directory, _MAX_PATH);
 	#else
 		// Todo for Linux: Resolve the path before using it
 	#endif
@@ -195,14 +195,14 @@ int FDirectory::AddDirectory(const char *dirpath)
 	for(unsigned int i = 0;i < scanDirectories.Size();i++)
 	{
 		DIR* directory = opendir(scanDirectories[i].GetChars());
-		if (directory == NULL)
+		if (directory == nullptr)
 		{
 			Printf("Could not read directory: %s\n", strerror(errno));
 			return 0;
 		}
 
 		struct dirent *file;
-		while((file = readdir(directory)) != NULL)
+		while((file = readdir(directory)) != nullptr)
 		{
 			if(file->d_name[0] == '.') //File is hidden or ./.. directory so ignore it.
 				continue;
@@ -236,20 +236,20 @@ int FDirectory::AddDirectory(const char *dirpath)
 
 int FDirectory::AddDirectory(const char *dirpath)
 {
-	char *argv [2] = { NULL, NULL };
+	char *argv [2] = { nullptr, nullptr };
 	argv[0] = new char[strlen(dirpath)+1];
 	strcpy(argv[0], dirpath);
 	FTS *fts;
 	FTSENT *ent;
 	int count = 0;
 
-	fts = fts_open(argv, FTS_LOGICAL, NULL);
-	if (fts == NULL)
+	fts = fts_open(argv, FTS_LOGICAL, nullptr);
+	if (fts == nullptr)
 	{
 		Printf("Failed to start directory traversal: %s\n", strerror(errno));
 		return 0;
 	}
-	while ((ent = fts_read(fts)) != NULL)
+	while ((ent = fts_read(fts)) != nullptr)
 	{
 		if (ent->fts_info == FTS_D && ent->fts_name[0] == '.')
 		{
@@ -330,7 +330,7 @@ FileReader *FDirectoryLump::NewReader()
 	}
 	catch (CRecoverableError &)
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -344,7 +344,7 @@ int FDirectoryLump::FillCache()
 {
 	Cache = new char[LumpSize];
 	FileReader *reader = NewReader();
-	if (reader == NULL)
+	if (reader == nullptr)
 	{
 		memset(Cache, 0, LumpSize);
 		return 0;
@@ -366,6 +366,6 @@ FResourceFile *CheckDir(const char *filename, FileReader *file, bool quiet)
 	FResourceFile *rf = new FDirectory(filename);
 	if (rf->Open(quiet)) return rf;
 	delete rf;
-	return NULL;
+	return nullptr;
 }
 

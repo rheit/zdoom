@@ -137,7 +137,7 @@ void FNodeBuilder::Extract (node_t *&outNodes, int &nodeCount,
 		memcpy (outSubs, &Subsectors[0], subCount*sizeof(subsector_t));
 		segCount = Segs.Size ();
 		outSegs = new seg_t[segCount];
-		outSegExtras = NULL;
+		outSegExtras = nullptr;
 		for (i = 0; i < segCount; ++i)
 		{
 			const FPrivSeg *org = &Segs[SegList[i].SegNum];
@@ -247,8 +247,8 @@ void FNodeBuilder::ExtractMini (FMiniBSP *bsp)
 			}
 			else	// part of a miniseg
 			{
-				out->linedef = NULL;
-				out->sidedef = NULL;
+				out->linedef = nullptr;
+				out->sidedef = nullptr;
 			}
 		}
 		for (i = 0; i < bsp->Subsectors.Size(); ++i)
@@ -328,7 +328,7 @@ int FNodeBuilder::CloseSubsector (TArray<glseg_t> &segs, int subsector, vertex_t
 		for (i = first + 1; i < max; ++i)
 		{
 			angle_t bestdiff = ANGLE_MAX;
-			FPrivSeg *bestseg = NULL;
+			FPrivSeg *bestseg = nullptr;
 			DWORD bestj = DWORD_MAX;
 			j = first;
 			do
@@ -351,8 +351,8 @@ int FNodeBuilder::CloseSubsector (TArray<glseg_t> &segs, int subsector, vertex_t
 				}
 			}
 			while (++j < max);
-			// Is a NULL bestseg actually okay?
-			if (bestseg != NULL)
+			// Is a nullptr bestseg actually okay?
+			if (bestseg != nullptr)
 			{
 				seg = bestseg;
 			}
@@ -411,7 +411,7 @@ int FNodeBuilder::CloseSubsector (TArray<glseg_t> &segs, int subsector, vertex_t
 	for (i = segs.Size() - count; i < (int)segs.Size(); ++i)
 	{
 		Printf(PRINT_LOG, "  Seg %5d%c(%5d,%5d)-(%5d,%5d)  [%08x,%08x]-[%08x,%08x]\n", i,
-			segs[i].linedef == NULL ? '+' : ' ',
+			segs[i].linedef == nullptr ? '+' : ' ',
 			segs[i].v1->fixX()>>16,
 			segs[i].v1->fixY()>>16,
 			segs[i].v2->fixX()>>16,
@@ -448,7 +448,7 @@ int FNodeBuilder::OutputDegenerateSubsector (TArray<glseg_t> &segs, int subsecto
 	for (i = first + 1; i < max; ++i)
 	{
 		double bestdot = bestinit[bForward];
-		FPrivSeg *bestseg = NULL;
+		FPrivSeg *bestseg = nullptr;
 		for (j = first + 1; j < max; ++j)
 		{
 			seg = &Segs[SegList[j].SegNum];
@@ -477,7 +477,7 @@ int FNodeBuilder::OutputDegenerateSubsector (TArray<glseg_t> &segs, int subsecto
 				}
 			}
 		}
-		if (bestseg != NULL)
+		if (bestseg != nullptr)
 		{
 			if (prev->v2 != bestseg->v1)
 			{
@@ -508,8 +508,8 @@ DWORD FNodeBuilder::PushGLSeg (TArray<glseg_t> &segs, const FPrivSeg *seg, verte
 	}
 	else
 	{
-		newseg.linedef = NULL;
-		newseg.sidedef = NULL;
+		newseg.linedef = nullptr;
+		newseg.sidedef = nullptr;
 	}
 	newseg.Partner = seg->partner;
 	return (DWORD)segs.Push (newseg);
@@ -521,10 +521,10 @@ void FNodeBuilder::PushConnectingGLSeg (int subsector, TArray<glseg_t> &segs, ve
 
 	newseg.v1 = v1;
 	newseg.v2 = v2;
-	newseg.backsector = NULL;
-	newseg.frontsector = NULL;
-	newseg.linedef = NULL;
-	newseg.sidedef = NULL;
+	newseg.backsector = nullptr;
+	newseg.frontsector = nullptr;
+	newseg.linedef = nullptr;
+	newseg.sidedef = nullptr;
 	newseg.Partner = DWORD_MAX;
 	segs.Push (newseg);
 }

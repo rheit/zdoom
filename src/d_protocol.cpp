@@ -140,7 +140,7 @@ int UnpackUserCmd (usercmd_t *ucmd, const usercmd_t *basis, BYTE **stream)
 	BYTE *start = *stream;
 	BYTE flags;
 
-	if (basis != NULL)
+	if (basis != nullptr)
 	{
 		if (basis != ucmd)
 		{
@@ -206,7 +206,7 @@ int PackUserCmd (const usercmd_t *ucmd, const usercmd_t *basis, BYTE **stream)
 	usercmd_t blank;
 	DWORD buttons_changed;
 
-	if (basis == NULL)
+	if (basis == nullptr)
 	{
 		memset (&blank, 0, sizeof(blank));
 		basis = &blank;
@@ -298,7 +298,7 @@ FArchive &operator<< (FArchive &arc, usercmd_t &cmd)
 	BYTE *stream = bytes;
 	if (arc.IsStoring ())
 	{
-		BYTE len = PackUserCmd (&cmd, NULL, &stream);
+		BYTE len = PackUserCmd (&cmd, nullptr, &stream);
 		arc << len;
 		arc.Write (bytes, len);
 	}
@@ -307,14 +307,14 @@ FArchive &operator<< (FArchive &arc, usercmd_t &cmd)
 		BYTE len;
 		arc << len;
 		arc.Read (bytes, len);
-		UnpackUserCmd (&cmd, NULL, &stream);
+		UnpackUserCmd (&cmd, nullptr, &stream);
 	}
 	return arc;
 }
 
 int WriteUserCmdMessage (usercmd_t *ucmd, const usercmd_t *basis, BYTE **stream)
 {
-	if (basis == NULL)
+	if (basis == nullptr)
 	{
 		if (ucmd->buttons != 0 ||
 			ucmd->pitch != 0 ||
@@ -425,7 +425,7 @@ void ReadTicCmd (BYTE **stream, int player, int tic)
 	if (type == DEM_USERCMD)
 	{
 		UnpackUserCmd (&tcmd->ucmd,
-			tic ? &netcmds[player][(tic-1)%BACKUPTICS].ucmd : NULL, stream);
+			tic ? &netcmds[player][(tic-1)%BACKUPTICS].ucmd : nullptr, stream);
 	}
 	else
 	{
@@ -460,7 +460,7 @@ void RunNetSpecs (int player, int buf)
 				Net_DoCommand (type, &stream, player);
 			}
 			if (!demorecording)
-				NetSpecs[player][buf].SetData (NULL, 0);
+				NetSpecs[player][buf].SetData (nullptr, 0);
 		}
 	}
 }
@@ -490,7 +490,7 @@ void FinishChunk (BYTE **stream)
 	if (len & 1)
 		WriteByte (0, stream);
 
-	lenspot = NULL;
+	lenspot = nullptr;
 }
 
 // Skip past an unknown chunk. *stream should be

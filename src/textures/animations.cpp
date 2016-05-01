@@ -111,7 +111,7 @@ FAnimDef *FTextureManager::AddSimpleAnim (FTextureID picnum, int animcount, DWOR
 		anim->Frames[0].FramePic = anim->BasePic;
 		return AddAnim (anim);
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -217,7 +217,7 @@ void FTextureManager::InitAnimated (void)
 						(anim_p[21] << 16) | (anim_p[22] << 24);
 
 			// SMMU-style swirly hack? Don't apply on already-warping texture
-			if (animspeed > 65535 && tex1 != NULL && !tex1->bWarped)
+			if (animspeed > 65535 && tex1 != nullptr && !tex1->bWarped)
 			{
 				FTexture *warper = new FWarpTexture (tex1, 2);
 				ReplaceTexture (pic1, warper, false);
@@ -254,7 +254,7 @@ void FTextureManager::InitAnimated (void)
 
 				// Speed is stored as tics, but we want ms so scale accordingly.
 				FAnimDef *adef = AddSimpleAnim (pic1, pic2 - pic1 + 1, Scale (animspeed, 1000, 35));
-				if (adef != NULL) adef->AnimType = animtype;
+				if (adef != nullptr) adef->AnimType = animtype;
 			}
 		}
 	}
@@ -316,7 +316,7 @@ void FTextureManager::InitAnimDefs ()
 			}
 			else
 			{
-				sc.ScriptError (NULL);
+				sc.ScriptError (nullptr);
 			}
 		}
 	}
@@ -338,7 +338,7 @@ void FTextureManager::ParseAnim (FScanner &sc, int usetype)
 	FTextureID picnum;
 	int defined = 0;
 	bool optional = false, missing = false;
-	FAnimDef *ani = NULL;
+	FAnimDef *ani = nullptr;
 	BYTE type = FAnimDef::ANIM_Forward;
 
 	sc.MustGetString ();
@@ -437,7 +437,7 @@ void FTextureManager::ParseAnim (FScanner &sc, int usetype)
 		}
 		ani = AddComplexAnim (picnum, frames);
 	}
-	if (ani != NULL && type != FAnimDef::ANIM_Forward)
+	if (ani != nullptr && type != FAnimDef::ANIM_Forward)
 	{
 		if (ani->AnimType == FAnimDef::ANIM_Backward && type == FAnimDef::ANIM_OscillateUp) ani->AnimType = FAnimDef::ANIM_OscillateDown;
 		else ani->AnimType = type;
@@ -466,7 +466,7 @@ FAnimDef *FTextureManager::ParseRangeAnim (FScanner &sc, FTextureID picnum, int 
 
 	if (framenum == picnum || !picnum.Exists() || !framenum.Exists())
 	{
-		return NULL;		// Animation is only one frame or does not exist
+		return nullptr;		// Animation is only one frame or does not exist
 	}
 
 	if (Texture(framenum)->Name.IsEmpty())
@@ -482,7 +482,7 @@ FAnimDef *FTextureManager::ParseRangeAnim (FScanner &sc, FTextureID picnum, int 
 		swapvalues (framenum, picnum);
 	}
 	FAnimDef *ani = AddSimpleAnim (picnum, framenum - picnum + 1, min, max - min);
-	if (ani != NULL) ani->AnimType = type;
+	if (ani != nullptr) ani->AnimType = type;
 	return ani;
 }
 
@@ -599,7 +599,7 @@ void FTextureManager::ParseWarp(FScanner &sc)
 	}
 	else
 	{
-		sc.ScriptError (NULL);
+		sc.ScriptError (nullptr);
 	}
 	FTextureID picnum = CheckForTexture (sc.String, isflat ? FTexture::TEX_Flat : FTexture::TEX_Wall, texflags);
 	if (picnum.isValid())
@@ -855,7 +855,7 @@ FDoorAnimation *FTextureManager::FindAnimatedDoor (FTextureID picnum)
 			return &mAnimatedDoors[i];
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================

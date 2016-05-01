@@ -144,7 +144,7 @@ FLumpSourceMgr::FLumpSourceMgr (FileReader *lump, j_decompress_ptr cinfo)
 	resync_to_restart = jpeg_resync_to_restart;
 	term_source = TermSource;
 	bytes_in_buffer = 0;
-	next_input_byte = NULL;
+	next_input_byte = nullptr;
 }
 
 //==========================================================================
@@ -189,7 +189,7 @@ public:
 	const BYTE *GetPixels ();
 	void Unload ();
 	FTextureFormat GetFormat ();
-	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = NULL);
+	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = nullptr);
 	bool UseBasePalette();
 
 protected:
@@ -218,10 +218,10 @@ FTexture *JPEGTexture_TryCreate(FileReader & data, int lumpnum)
 	} first4bytes;
 
 	data.Seek(0, SEEK_SET);
-	if (data.Read(&first4bytes, 4) < 4) return NULL;
+	if (data.Read(&first4bytes, 4) < 4) return nullptr;
 
 	if (first4bytes.b[0] != 0xFF || first4bytes.b[1] != 0xD8 || first4bytes.b[2] != 0xFF)
-		return NULL;
+		return nullptr;
 
 	// Find the SOFn marker to extract the image dimensions,
 	// where n is 0, 1, or 2 (other types are unsupported).
@@ -229,25 +229,25 @@ FTexture *JPEGTexture_TryCreate(FileReader & data, int lumpnum)
 	{
 		if (data.Read (first4bytes.w, 2) != 2)
 		{
-			return NULL;
+			return nullptr;
 		}
 		data.Seek (BigShort(first4bytes.w[0]) - 2, SEEK_CUR);
 		if (data.Read (first4bytes.b + 2, 2) != 2 || first4bytes.b[2] != 0xFF)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	if (data.Read (first4bytes.b, 3) != 3)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (BigShort (first4bytes.w[0]) < 5)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (data.Read (first4bytes.b, 4) != 4)
 	{
-		return NULL;
+		return nullptr;
 	}
 	return new FJPEGTexture (lumpnum, BigShort(first4bytes.w[1]), BigShort(first4bytes.w[0]));
 }
@@ -259,7 +259,7 @@ FTexture *JPEGTexture_TryCreate(FileReader & data, int lumpnum)
 //==========================================================================
 
 FJPEGTexture::FJPEGTexture (int lumpnum, int width, int height)
-: FTexture(NULL, lumpnum), Pixels(0)
+: FTexture(nullptr, lumpnum), Pixels(0)
 {
 	UseType = TEX_MiscPatch;
 	LeftOffset = 0;
@@ -295,10 +295,10 @@ FJPEGTexture::~FJPEGTexture ()
 
 void FJPEGTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -321,7 +321,7 @@ FTextureFormat FJPEGTexture::GetFormat()
 
 const BYTE *FJPEGTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -336,7 +336,7 @@ const BYTE *FJPEGTexture::GetColumn (unsigned int column, const Span **spans_out
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpans;
 	}
@@ -351,7 +351,7 @@ const BYTE *FJPEGTexture::GetColumn (unsigned int column, const Span **spans_out
 
 const BYTE *FJPEGTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -367,7 +367,7 @@ const BYTE *FJPEGTexture::GetPixels ()
 void FJPEGTexture::MakeTexture ()
 {
 	FWadLump lump = Wads.OpenLumpNum (SourceLump);
-	JSAMPLE *buff = NULL;
+	JSAMPLE *buff = nullptr;
 
 	jpeg_decompress_struct cinfo;
 	jpeg_error_mgr jerr;
@@ -451,7 +451,7 @@ void FJPEGTexture::MakeTexture ()
 		Printf (TEXTCOLOR_ORANGE "   in texture %s\n", Name.GetChars());
 		jpeg_destroy_decompress(&cinfo);
 	}
-	if (buff != NULL)
+	if (buff != nullptr)
 	{
 		delete[] buff;
 	}
@@ -471,7 +471,7 @@ int FJPEGTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FC
 	PalEntry pe[256];
 
 	FWadLump lump = Wads.OpenLumpNum (SourceLump);
-	JSAMPLE *buff = NULL;
+	JSAMPLE *buff = nullptr;
 
 	jpeg_decompress_struct cinfo;
 	jpeg_error_mgr jerr;
@@ -535,7 +535,7 @@ int FJPEGTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FC
 		Printf (TEXTCOLOR_ORANGE "   in JPEG texture %s\n", Name.GetChars());
 	}
 	jpeg_destroy_decompress(&cinfo);
-	if (buff != NULL) delete [] buff;
+	if (buff != nullptr) delete [] buff;
 	return 0;
 }
 

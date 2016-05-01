@@ -11,11 +11,11 @@ static FRandom pr_fly("GetOffMeFly");
 
 static AActor *FindCorpse(AActor *fly, sector_t *sec, int recurselimit)
 {
-	AActor *fallback = NULL;
+	AActor *fallback = nullptr;
 	sec->validcount = validcount;
 
 	// Search the current sector
-	for (AActor *check = sec->thinglist; check != NULL; check = check->snext)
+	for (AActor *check = sec->thinglist; check != nullptr; check = check->snext)
 	{
 		if (check == fly)
 			continue;
@@ -28,7 +28,7 @@ static AActor *FindCorpse(AActor *fly, sector_t *sec, int recurselimit)
 			continue;
 		return check;
 	}
-	if (--recurselimit <= 0 || (fallback != NULL && pr_fly(2)))
+	if (--recurselimit <= 0 || (fallback != nullptr && pr_fly(2)))
 	{
 		return fallback;
 	}
@@ -37,10 +37,10 @@ static AActor *FindCorpse(AActor *fly, sector_t *sec, int recurselimit)
 	{
 		line_t *line = sec->lines[i];
 		sector_t *sec2 = (line->frontsector == sec) ? line->backsector : line->frontsector;
-		if (sec2 != NULL && sec2->validcount != validcount)
+		if (sec2 != nullptr && sec2->validcount != validcount)
 		{
 			AActor *neighbor = FindCorpse(fly, sec2, recurselimit);
-			if (neighbor != NULL)
+			if (neighbor != nullptr)
 			{
 				return neighbor;
 			}
@@ -64,7 +64,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FlySearch)
 
 	validcount++;
 	AActor *other = FindCorpse(self, self->Sector, 5);
-	if (other != NULL)
+	if (other != nullptr)
 	{
 		self->target = other;
 		self->SetState(self->FindState("Buzz"));
@@ -78,7 +78,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FlyBuzz)
 
 	AActor *targ = self->target;
 
-	if (targ == NULL || !(targ->flags & MF_CORPSE) || pr_fly() < 5)
+	if (targ == nullptr || !(targ->flags & MF_CORPSE) || pr_fly() < 5)
 	{
 		self->SetIdle();
 		return 0;

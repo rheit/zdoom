@@ -46,11 +46,11 @@ struct RIFF_Chunk
 	~RIFF_Chunk()
 	{
 		// data is not freed here because it may be owned by a parent chunk
-		if (child != NULL)
+		if (child != nullptr)
 		{
 			delete child;
 		}
-		if (next != NULL)
+		if (next != nullptr)
 		{
 			delete next;
 		}
@@ -92,7 +92,7 @@ static void LoadSubChunks(RIFF_Chunk *chunk, BYTE *data, DWORD left)
 
 	while ( left > 8 ) {
 		RIFF_Chunk *child = new RIFF_Chunk;
-		RIFF_Chunk *next, *prev = NULL;
+		RIFF_Chunk *next, *prev = nullptr;
 		for ( next = chunk->child; next; next = next->next ) {
 			prev = next;
 		}
@@ -146,18 +146,18 @@ RIFF_Chunk *LoadRIFF(FILE *src)
 	if ( chunk->magic != RIFF ) {
 		__Sound_SetError("Not a RIFF file");
 		delete chunk;
-		return NULL;
+		return nullptr;
 	}
 	chunk->data = (BYTE *)malloc(chunk->length);
-	if ( chunk->data == NULL ) {
+	if ( chunk->data == nullptr ) {
 		__Sound_SetError(ERR_OUT_OF_MEMORY);
 		delete chunk;
-		return NULL;
+		return nullptr;
 	}
 	if ( fread(chunk->data, chunk->length, 1, src) != 1 ) {
 		__Sound_SetError(ERR_IO_ERROR);
 		FreeRIFF(chunk);
-		return NULL;
+		return nullptr;
 	}
 	subchunkData = chunk->data;
 	subchunkDataLen = chunk->length;
@@ -702,14 +702,14 @@ DLS_Data *LoadDLS(FILE *src)
 	DLS_Data *data = (DLS_Data *)malloc(sizeof(*data));
 	if ( !data ) {
 		__Sound_SetError(ERR_OUT_OF_MEMORY);
-		return NULL;
+		return nullptr;
 	}
 	memset(data, 0, sizeof(*data));
 
 	data->chunk = LoadRIFF(src);
 	if ( !data->chunk ) {
 		FreeDLS(data);
-		return NULL;
+		return nullptr;
 	}
 
 	for ( chunk = data->chunk->child; chunk; chunk = chunk->next ) {
@@ -1132,7 +1132,7 @@ static void load_region_dls(Renderer *song, Sample *sample, DLS_Instrument *ins,
 
 	sample->modes = wave->format->wBitsPerSample == 8 ? PATCH_UNSIGNED : PATCH_16;
 	sample->sample_rate = wave->format->dwSamplesPerSec;
-	sample->data = NULL;
+	sample->data = nullptr;
 	sample->data_length = wave->length;
 	convert_sample_data(sample, wave->data);
 	if (rgn->wsmp->cSampleLoops)
@@ -1148,8 +1148,8 @@ static void load_region_dls(Renderer *song, Sample *sample, DLS_Instrument *ins,
 	{
 		int value;
 		int attack, hold, decay, release; int sustain;
-		CONNECTIONLIST *art = NULL;
-		CONNECTION *artList = NULL;
+		CONNECTIONLIST *art = nullptr;
+		CONNECTION *artList = nullptr;
 
 		if (ins->art && ins->art->cConnections > 0 && ins->artList) {
 			art = ins->art;
@@ -1188,11 +1188,11 @@ Instrument *load_instrument_dls(Renderer *song, int drum, int bank, int instrume
 {
 	Instrument *inst;
 	DWORD i;
-	DLS_Instrument *dls_ins = NULL;
+	DLS_Instrument *dls_ins = nullptr;
 
-	if (song->patches == NULL)
+	if (song->patches == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	drum = drum ? 0x80000000 : 0;
 	for (i = 0; i < song->patches->cInstruments; ++i)
@@ -1216,7 +1216,7 @@ Instrument *load_instrument_dls(Renderer *song, int drum, int bank, int instrume
 	if (i == song->patches->cInstruments)
 	{
 //		SNDDBG(("Couldn't find %s instrument %d in bank %d\n", drum ? "drum" : "melodic", instrument, bank));
-		return NULL;
+		return nullptr;
 	}
 
 	inst = (Instrument *)safe_malloc(sizeof(Instrument));

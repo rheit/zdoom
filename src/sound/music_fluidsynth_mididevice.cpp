@@ -100,19 +100,19 @@ CUSTOM_CVAR(Float, fluid_gain, 0.5, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 10)
 		self = 10;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingNum("synth.gain", self);
 }
 
 CUSTOM_CVAR(Bool, fluid_reverb, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (currSong != NULL)
+	if (currSong != nullptr)
 		currSong->FluidSettingInt("synth.reverb.active", self);
 }
 
 CUSTOM_CVAR(Bool, fluid_chorus, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (currSong != NULL)
+	if (currSong != nullptr)
 		currSong->FluidSettingInt("synth.chorus.active", self);
 }
 
@@ -122,7 +122,7 @@ CUSTOM_CVAR(Int, fluid_voices, 128, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 16;
 	else if (self > 4096)
 		self = 4096;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("synth.polyphony", self);
 }
 
@@ -142,7 +142,7 @@ CUSTOM_CVAR(Int, fluid_interp, 1, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 4;
 	else if (self == 6 || self > 7)
 		self = 7;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("synth.interpolation", self);
 }
 
@@ -164,7 +164,7 @@ CUSTOM_CVAR(Float, fluid_reverb_roomsize, 0.61f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 1.2f)
 		self = 1.2f;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.reverb-changed", 0);
 }
 
@@ -174,7 +174,7 @@ CUSTOM_CVAR(Float, fluid_reverb_damping, 0.23f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 1)
 		self = 1;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.reverb-changed", 0);
 }
 
@@ -184,7 +184,7 @@ CUSTOM_CVAR(Float, fluid_reverb_width, 0.76f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 100)
 		self = 100;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.reverb-changed", 0);
 }
 
@@ -194,7 +194,7 @@ CUSTOM_CVAR(Float, fluid_reverb_level, 0.57f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 1)
 		self = 1;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.reverb-changed", 0);
 }
 
@@ -204,7 +204,7 @@ CUSTOM_CVAR(Int, fluid_chorus_voices, 3, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 99)
 		self = 99;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.chorus-changed", 0);
 }
 
@@ -214,7 +214,7 @@ CUSTOM_CVAR(Float, fluid_chorus_level, 1.2f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 1)
 		self = 1;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.chorus-changed", 0);
 }
 
@@ -224,7 +224,7 @@ CUSTOM_CVAR(Float, fluid_chorus_speed, 0.3f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0.29f;
 	else if (self > 5)
 		self = 5;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.chorus-changed", 0);
 }
 
@@ -235,7 +235,7 @@ CUSTOM_CVAR(Float, fluid_chorus_depth, 8, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		self = 0;
 	else if (self > 21)
 		self = 21;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.chorus-changed", 0);
 }
 
@@ -243,7 +243,7 @@ CUSTOM_CVAR(Int, fluid_chorus_type, FLUID_CHORUS_DEFAULT_TYPE, CVAR_ARCHIVE|CVAR
 {
 	if (self != FLUID_CHORUS_MOD_SINE && self != FLUID_CHORUS_MOD_TRIANGLE)
 		self = FLUID_CHORUS_DEFAULT_TYPE;
-	else if (currSong != NULL)
+	else if (currSong != nullptr)
 		currSong->FluidSettingInt("z.chorus-changed", 0);
 }
 
@@ -257,8 +257,8 @@ CUSTOM_CVAR(Int, fluid_chorus_type, FLUID_CHORUS_DEFAULT_TYPE, CVAR_ARCHIVE|CVAR
 
 FluidSynthMIDIDevice::FluidSynthMIDIDevice(const char *args)
 {
-	FluidSynth = NULL;
-	FluidSettings = NULL;
+	FluidSynth = nullptr;
+	FluidSettings = nullptr;
 #ifdef DYN_FLUIDSYNTH
 	if (!LoadFluidSynth())
 	{
@@ -266,7 +266,7 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice(const char *args)
 	}
 #endif
 	FluidSettings = new_fluid_settings();
-	if (FluidSettings == NULL)
+	if (FluidSettings == nullptr)
 	{
 		printf("Failed to create FluidSettings.\n");
 		return;
@@ -283,7 +283,7 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice(const char *args)
 	fluid_settings_setint(FluidSettings, "synth.polyphony", fluid_voices);
 	fluid_settings_setint(FluidSettings, "synth.cpu-cores", fluid_threads);
 	FluidSynth = new_fluid_synth(FluidSettings);
-	if (FluidSynth == NULL)
+	if (FluidSynth == nullptr)
 	{
 		Printf("Failed to create FluidSynth.\n");
 		return;
@@ -296,7 +296,7 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice(const char *args)
 
 	// try loading a patch set that got specified with $mididevice.
 	int res = 0;
-	if (args != NULL && *args != 0)
+	if (args != nullptr && *args != 0)
 	{
 		res = LoadPatchSets(args);
 	}
@@ -324,7 +324,7 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice(const char *args)
 #endif
 					Printf("Failed to load any MIDI patches.\n");
 					delete_fluid_synth(FluidSynth);
-					FluidSynth = NULL;
+					FluidSynth = nullptr;
 #ifdef _WIN32
 				}
 			}
@@ -345,11 +345,11 @@ FluidSynthMIDIDevice::FluidSynthMIDIDevice(const char *args)
 FluidSynthMIDIDevice::~FluidSynthMIDIDevice()
 {
 	Close();
-	if (FluidSynth != NULL)
+	if (FluidSynth != nullptr)
 	{
 		delete_fluid_synth(FluidSynth);
 	}
-	if (FluidSettings != NULL)
+	if (FluidSettings != nullptr)
 	{
 		delete_fluid_settings(FluidSettings);
 	}
@@ -368,7 +368,7 @@ FluidSynthMIDIDevice::~FluidSynthMIDIDevice()
 
 int FluidSynthMIDIDevice::Open(void (*callback)(unsigned int, void *, DWORD, DWORD), void *userdata)
 {
-	if (FluidSynth == NULL)
+	if (FluidSynth == nullptr)
 	{
 		return 2;
 	}
@@ -436,7 +436,7 @@ void FluidSynthMIDIDevice::HandleLongEvent(const BYTE *data, int len)
 {
 	if (len > 1 && (data[0] == 0xF0 || data[0] == 0xF7))
 	{
-		fluid_synth_sysex(FluidSynth, (const char *)data + 1, len - 1, NULL, NULL, NULL, 0);
+		fluid_synth_sysex(FluidSynth, (const char *)data + 1, len - 1, nullptr, nullptr, nullptr, 0);
 	}
 }
 
@@ -474,13 +474,13 @@ int FluidSynthMIDIDevice::LoadPatchSets(const char *patches)
 	const char *const delim = ":";
 #endif
 
-	if (wpatches == NULL)
+	if (wpatches == nullptr)
 	{
 		return 0;
 	}
 	tok = strtok(wpatches, delim);
 	count = 0;
-	while (tok != NULL)
+	while (tok != nullptr)
 	{
 		FString path;
 #ifdef _WIN32
@@ -505,7 +505,7 @@ int FluidSynthMIDIDevice::LoadPatchSets(const char *patches)
 		{
 			DPrintf("Failed to load patch set %s.\n", tok);
 		}
-		tok = strtok(NULL, delim);
+		tok = strtok(nullptr, delim);
 	}
 	free(wpatches);
 	return count;
@@ -521,7 +521,7 @@ int FluidSynthMIDIDevice::LoadPatchSets(const char *patches)
 
 void FluidSynthMIDIDevice::FluidSettingInt(const char *setting, int value)
 {
-	if (FluidSynth == NULL || FluidSettings == NULL)
+	if (FluidSynth == nullptr || FluidSettings == nullptr)
 	{
 		return;
 	}
@@ -575,7 +575,7 @@ void FluidSynthMIDIDevice::FluidSettingInt(const char *setting, int value)
 
 void FluidSynthMIDIDevice::FluidSettingNum(const char *setting, double value)
 {
-	if (FluidSettings != NULL)
+	if (FluidSettings != nullptr)
 	{
 		if (0 == fluid_settings_setnum(FluidSettings, setting, value))
 		{
@@ -594,7 +594,7 @@ void FluidSynthMIDIDevice::FluidSettingNum(const char *setting, double value)
 
 void FluidSynthMIDIDevice::FluidSettingStr(const char *setting, const char *value)
 {
-	if (FluidSettings != NULL)
+	if (FluidSettings != nullptr)
 	{
 		if (0 == fluid_settings_setstr(FluidSettings, setting, value))
 		{
@@ -611,7 +611,7 @@ void FluidSynthMIDIDevice::FluidSettingStr(const char *setting, const char *valu
 
 FString FluidSynthMIDIDevice::GetStats()
 {
-	if (FluidSynth == NULL || FluidSettings == NULL)
+	if (FluidSynth == nullptr || FluidSettings == nullptr)
 	{
 		return "FluidSynth is invalid";
 	}
@@ -690,10 +690,10 @@ bool FluidSynthMIDIDevice::LoadFluidSynth()
 
 #ifdef _WIN32
 	FluidSynthDLL = LoadLibrary((libname = FLUIDSYNTHLIB1));
-	if (FluidSynthDLL == NULL)
+	if (FluidSynthDLL == nullptr)
 	{
 		FluidSynthDLL = LoadLibrary((libname = FLUIDSYNTHLIB2));
-		if (FluidSynthDLL == NULL)
+		if (FluidSynthDLL == nullptr)
 		{
 			Printf(TEXTCOLOR_RED"Could not load " FLUIDSYNTHLIB1 " or " FLUIDSYNTHLIB2 "\n");
 			return false;
@@ -701,7 +701,7 @@ bool FluidSynthMIDIDevice::LoadFluidSynth()
 	}
 #else
 	FluidSynthSO = dlopen((libname = FLUIDSYNTHLIB), RTLD_LAZY);
-	if (FluidSynthSO == NULL)
+	if (FluidSynthSO == nullptr)
 	{
 		Printf(TEXTCOLOR_RED"Could not load " FLUIDSYNTHLIB ": %s\n", dlerror());
 		return false;
@@ -715,7 +715,7 @@ bool FluidSynthMIDIDevice::LoadFluidSynth()
 #else
 		void *proc = dlsym(FluidSynthSO, imports[i].FuncName);
 #endif
-		if (proc == NULL)
+		if (proc == nullptr)
 		{
 			Printf(TEXTCOLOR_RED"Failed to find %s in %s\n", imports[i].FuncName, libname);
 			fail++;
@@ -730,10 +730,10 @@ bool FluidSynthMIDIDevice::LoadFluidSynth()
 	{
 #ifdef _WIN32
 		FreeLibrary(FluidSynthDLL);
-		FluidSynthDLL = NULL;
+		FluidSynthDLL = nullptr;
 #else
 		dlclose(FluidSynthSO);
-		FluidSynthSO = NULL;
+		FluidSynthSO = nullptr;
 #endif
 		return false;
 	}
@@ -749,16 +749,16 @@ bool FluidSynthMIDIDevice::LoadFluidSynth()
 void FluidSynthMIDIDevice::UnloadFluidSynth()
 {
 #ifdef _WIN32
-	if (FluidSynthDLL != NULL)
+	if (FluidSynthDLL != nullptr)
 	{
 		FreeLibrary(FluidSynthDLL);
-		FluidSynthDLL = NULL;
+		FluidSynthDLL = nullptr;
 	}
 #else
-	if (FluidSynthSO != NULL)
+	if (FluidSynthSO != nullptr)
 	{
 		dlclose(FluidSynthSO);
-		FluidSynthSO = NULL;
+		FluidSynthSO = nullptr;
 	}
 #endif
 }

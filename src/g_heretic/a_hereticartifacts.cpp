@@ -28,7 +28,7 @@ bool AArtiTomeOfPower::Use (bool pickup)
 		{ // Failed
 			if (!(Owner->player->MorphStyle & MORPH_FAILNOTELEFRAG))
 			{
-				P_DamageMobj (Owner, NULL, NULL, TELEFRAG_DAMAGE, NAME_Telefrag);
+				P_DamageMobj (Owner, nullptr, nullptr, TELEFRAG_DAMAGE, NAME_Telefrag);
 			}
 		}
 		else

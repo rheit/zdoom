@@ -23,8 +23,8 @@ fixed_t fakeAlpha;
 int fakeActive = 0;
 double sclipBottom;
 double sclipTop;
-HeightLevel *height_top = NULL;
-HeightLevel *height_cur = NULL;
+HeightLevel *height_top = nullptr;
+HeightLevel *height_cur = nullptr;
 int CurrentMirror = 0;
 int CurrentSkybox = 0;
 
@@ -33,8 +33,8 @@ CVAR(Int, r_3dfloors, true, 0);
 // private variables
 int height_max = -1;
 TArray<HeightStack> toplist;
-ClipStack *clip_top = NULL;
-ClipStack *clip_cur = NULL;
+ClipStack *clip_top = nullptr;
+ClipStack *clip_cur = nullptr;
 
 void R_3D_DeleteHeights()
 {
@@ -45,7 +45,7 @@ void R_3D_DeleteHeights()
 		M_Free(height_top);
 	}
 	height_max = -1;
-	height_top = height_cur = NULL;
+	height_top = height_cur = nullptr;
 }
 
 void R_3D_AddHeight(secplane_t *add, sector_t *sec)
@@ -75,15 +75,15 @@ void R_3D_AddHeight(secplane_t *add, sector_t *sec)
 			curr = (HeightLevel*)M_Malloc(sizeof(HeightLevel));
 			curr->height = height;
 			curr->prev = height_cur;
-			curr->next = NULL;
+			curr->next = nullptr;
 			height_cur->next = curr;
 			height_cur = curr;
 		}
 	} else {
 		height_top = height_cur = (HeightLevel*)M_Malloc(sizeof(HeightLevel));
 		height_top->height = height;
-		height_top->prev = NULL;
-		height_top->next = NULL;
+		height_top->prev = nullptr;
+		height_top->next = nullptr;
 	}
 	height_max++;
 }
@@ -99,8 +99,8 @@ void R_3D_NewClip()
 	memcpy(curr->floorclip, floorclip, sizeof(short) * MAXWIDTH);
 	memcpy(curr->ceilingclip, ceilingclip, sizeof(short) * MAXWIDTH);
 	curr->ffloor = fakeFloor;
-	assert(fakeFloor->floorclip == NULL);
-	assert(fakeFloor->ceilingclip == NULL);
+	assert(fakeFloor->floorclip == nullptr);
+	assert(fakeFloor->ceilingclip == nullptr);
 	fakeFloor->floorclip = curr->floorclip;
 	fakeFloor->ceilingclip = curr->ceilingclip;
 	if(clip_top) {
@@ -116,14 +116,14 @@ void R_3D_ResetClip()
 	clip_cur = clip_top;
 	while(clip_cur) 
 	{
-		assert(clip_cur->ffloor->floorclip != NULL);
-		assert(clip_cur->ffloor->ceilingclip != NULL);
-		clip_cur->ffloor->ceilingclip = clip_cur->ffloor->floorclip = NULL;
+		assert(clip_cur->ffloor->floorclip != nullptr);
+		assert(clip_cur->ffloor->ceilingclip != nullptr);
+		clip_cur->ffloor->ceilingclip = clip_cur->ffloor->floorclip = nullptr;
 		clip_top = clip_cur;
 		clip_cur = clip_cur->next;
 		M_Free(clip_top);
 	}
-	clip_cur = clip_top = NULL;
+	clip_cur = clip_top = nullptr;
 }
 
 void R_3D_EnterSkybox()
@@ -136,8 +136,8 @@ void R_3D_EnterSkybox()
 
 	toplist.Push(current);
 
-	height_top = NULL;
-	height_cur = NULL;
+	height_top = nullptr;
+	height_cur = nullptr;
 	height_max = -1;
 
 	CurrentSkybox++;
@@ -147,8 +147,8 @@ void R_3D_LeaveSkybox()
 {
 	HeightStack current;
 
-	current.height_top = NULL;
-	current.height_cur = NULL;
+	current.height_top = nullptr;
+	current.height_cur = nullptr;
 	current.height_max = -1;
 
 	toplist.Pop(current);

@@ -99,7 +99,7 @@ TArray<FPlayerClass> PlayerClasses;
 
 FPlayerClass::FPlayerClass ()
 {
-	Type = NULL;
+	Type = nullptr;
 	Flags = 0;
 }
 
@@ -140,7 +140,7 @@ FString GetPrintableDisplayName(PClassPlayerPawn *cls)
 
 bool ValidatePlayerClass(PClassActor *ti, const char *name)
 {
-	if (ti == NULL)
+	if (ti == nullptr)
 	{
 		Printf("Unknown player class '%s'\n", name);
 		return false;
@@ -423,7 +423,7 @@ size_t player_t::FixPointers (const DObject *old, DObject *rep)
 	size_t changed = 0;
 
 	// The construct *& is used in several of these to avoid the read barriers
-	// that would turn the pointer we want to check to NULL if the old object
+	// that would turn the pointer we want to check to nullptr if the old object
 	// is pending deletion.
 	if (mo == old)					mo = replacement, changed++;
 	if (*&poisoner == old)			poisoner = replacement, changed++;
@@ -567,10 +567,10 @@ bool PClassPlayerPawn::GetPainFlash(FName type, PalEntry *color) const
 {
 	const PClassPlayerPawn *info = this;
 
-	while (info != NULL)
+	while (info != nullptr)
 	{
 		const PalEntry *flash = info->PainFlashes.CheckKey(type);
-		if (flash != NULL)
+		if (flash != nullptr)
 		{
 			*color = *flash;
 			return true;
@@ -585,7 +585,7 @@ void PClassPlayerPawn::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 {
 	Super::ReplaceClassRef(oldclass, newclass);
 	APlayerPawn *def = (APlayerPawn*)Defaults;
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		if (def->FlechetteType == oldclass) def->FlechetteType = static_cast<PClassInventory *>(newclass);
 	}
@@ -721,7 +721,7 @@ void APlayerPawn::BeginPlay ()
 
 void APlayerPawn::Tick()
 {
-	if (player != NULL && player->mo == this && player->CanCrouch() && player->playerstate != PST_DEAD)
+	if (player != nullptr && player->mo == this && player->CanCrouch() && player->playerstate != PST_DEAD)
 	{
 		Height = GetDefault()->Height * player->crouchfactor;
 	}
@@ -744,7 +744,7 @@ void APlayerPawn::PostBeginPlay()
 	SetupWeaponSlots();
 
 	// Voodoo dolls: restore original floorz/ceilingz logic
-	if (player == NULL || player->mo != this)
+	if (player == nullptr || player->mo != this)
 	{
 		P_FindFloorCeiling(this, FFCF_ONLYSPAWNPOS|FFCF_NOPORTALS);
 		SetZ(floorz);
@@ -768,16 +768,16 @@ void APlayerPawn::PostBeginPlay()
 
 void APlayerPawn::SetupWeaponSlots()
 {
-	if (player != NULL && player->mo == this)
+	if (player != nullptr && player->mo == this)
 	{
 		player->weapons.StandardSetup(GetClass());
 		// If we're the local player, then there's a bit more work to do.
 		// This also applies if we're a bot and this is the net arbitrator.
 		if (player - players == consoleplayer ||
-			(player->Bot != NULL && consoleplayer == Net_Arbitrator))
+			(player->Bot != nullptr && consoleplayer == Net_Arbitrator))
 		{
 			FWeaponSlots local_slots(player->weapons);
-			if (player->Bot != NULL)
+			if (player->Bot != nullptr)
 			{ // Bots only need weapons from KEYCONF, not INI modifications.
 				P_PlaybackKeyConfWeapons(&local_slots);
 			}
@@ -799,7 +799,7 @@ void APlayerPawn::SetupWeaponSlots()
 void APlayerPawn::AddInventory (AInventory *item)
 {
 	// Adding inventory to a voodoo doll should add it to the real player instead.
-	if (player != NULL && player->mo != this && player->mo != NULL)
+	if (player != nullptr && player->mo != this && player->mo != nullptr)
 	{
 		player->mo->AddInventory (item);
 		return;
@@ -807,7 +807,7 @@ void APlayerPawn::AddInventory (AInventory *item)
 	Super::AddInventory (item);
 
 	// If nothing is selected, select this item.
-	if (InvSel == NULL && (item->ItemFlags & IF_INVBAR))
+	if (InvSel == nullptr && (item->ItemFlags & IF_INVBAR))
 	{
 		InvSel = item;
 	}
@@ -828,12 +828,12 @@ void APlayerPawn::RemoveInventory (AInventory *item)
 
 	// If the item removed is the selected one, select something else, either the next
 	// item, if there is one, or the previous item.
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		if (InvSel == item)
 		{
 			InvSel = item->NextInv ();
-			if (InvSel == NULL)
+			if (InvSel == nullptr)
 			{
 				InvSel = item->PrevInv ();
 			}
@@ -841,7 +841,7 @@ void APlayerPawn::RemoveInventory (AInventory *item)
 		if (InvFirst == item)
 		{
 			InvFirst = item->NextInv ();
-			if (InvFirst == NULL)
+			if (InvFirst == nullptr)
 			{
 				InvFirst = item->PrevInv ();
 			}
@@ -854,14 +854,14 @@ void APlayerPawn::RemoveInventory (AInventory *item)
 		{
 			// If the current weapon is removed, clear the refire counter and pick a new one.
 			pickWeap = true;
-			player->ReadyWeapon = NULL;
+			player->ReadyWeapon = nullptr;
 			player->refire = 0;
 		}
 	}
 	Super::RemoveInventory (item);
 	if (pickWeap && player->mo == this && player->PendingWeapon == WP_NOCHANGE)
 	{
-		PickNewWeapon (NULL);
+		PickNewWeapon (nullptr);
 	}
 }
 
@@ -879,7 +879,7 @@ bool APlayerPawn::UseInventory (AInventory *item)
 	{ // You can't use items if you're totally frozen
 		return false;
 	}
-	if ((level.flags2 & LEVEL2_FROZEN) && (player == NULL || player->timefreezer == 0))
+	if ((level.flags2 & LEVEL2_FROZEN) && (player == nullptr || player->timefreezer == 0))
 	{
 		// Time frozen
 		return false;
@@ -910,14 +910,14 @@ bool APlayerPawn::UseInventory (AInventory *item)
 
 AWeapon *APlayerPawn::BestWeapon(PClassAmmo *ammotype)
 {
-	AWeapon *bestMatch = NULL;
+	AWeapon *bestMatch = nullptr;
 	int bestOrder = INT_MAX;
 	AInventory *item;
 	AWeapon *weap;
-	bool tomed = NULL != FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true);
+	bool tomed = nullptr != FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true);
 
 	// Find the best weapon the player has.
-	for (item = Inventory; item != NULL; item = item->Inventory)
+	for (item = Inventory; item != nullptr; item = item->Inventory)
 	{
 		if (!item->IsKindOf (RUNTIME_CLASS(AWeapon)))
 			continue;
@@ -929,13 +929,13 @@ AWeapon *APlayerPawn::BestWeapon(PClassAmmo *ammotype)
 			continue;
 
 		// Don't select it if its primary fire doesn't use the desired ammo.
-		if (ammotype != NULL &&
-			(weap->Ammo1 == NULL ||
+		if (ammotype != nullptr &&
+			(weap->Ammo1 == nullptr ||
 			 weap->Ammo1->GetClass() != ammotype))
 			continue;
 
 		// Don't select it if the Tome is active and this isn't the powered-up version.
-		if (tomed && weap->SisterWeapon != NULL && weap->SisterWeapon->WeaponFlags & WIF_POWERED_UP)
+		if (tomed && weap->SisterWeapon != nullptr && weap->SisterWeapon->WeaponFlags & WIF_POWERED_UP)
 			continue;
 
 		// Don't select it if it's powered-up and the Tome is not active.
@@ -948,9 +948,9 @@ AWeapon *APlayerPawn::BestWeapon(PClassAmmo *ammotype)
 			continue;
 
 		// Don't select if if there isn't enough ammo as determined by the weapon's author.
-		if (weap->MinSelAmmo1 > 0 && (weap->Ammo1 == NULL || weap->Ammo1->Amount < weap->MinSelAmmo1))
+		if (weap->MinSelAmmo1 > 0 && (weap->Ammo1 == nullptr || weap->Ammo1->Amount < weap->MinSelAmmo1))
 			continue;
-		if (weap->MinSelAmmo2 > 0 && (weap->Ammo2 == NULL || weap->Ammo2->Amount < weap->MinSelAmmo2))
+		if (weap->MinSelAmmo2 > 0 && (weap->Ammo2 == nullptr || weap->Ammo2->Amount < weap->MinSelAmmo2))
 			continue;
 
 		// This weapon is usable!
@@ -974,10 +974,10 @@ AWeapon *APlayerPawn::PickNewWeapon(PClassAmmo *ammotype)
 {
 	AWeapon *best = BestWeapon (ammotype);
 
-	if (best != NULL)
+	if (best != nullptr)
 	{
 		player->PendingWeapon = best;
-		if (player->ReadyWeapon != NULL)
+		if (player->ReadyWeapon != nullptr)
 		{
 			P_DropWeapon(player);
 		}
@@ -1002,11 +1002,11 @@ void APlayerPawn::CheckWeaponSwitch(PClassAmmo *ammotype)
 {
 	if (!player->userinfo.GetNeverSwitch() &&
 		player->PendingWeapon == WP_NOCHANGE && 
-		(player->ReadyWeapon == NULL ||
+		(player->ReadyWeapon == nullptr ||
 		 (player->ReadyWeapon->WeaponFlags & WIF_WIMPY_WEAPON)))
 	{
 		AWeapon *best = BestWeapon (ammotype);
-		if (best != NULL && (player->ReadyWeapon == NULL ||
+		if (best != nullptr && (player->ReadyWeapon == nullptr ||
 			best->SelectionOrder < player->ReadyWeapon->SelectionOrder))
 		{
 			player->PendingWeapon = best;
@@ -1074,7 +1074,7 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 	{
 		// Walk through the old player's inventory and destroy or modify
 		// according to dmflags.
-		for (item = oldplayer->Inventory; item != NULL; item = next)
+		for (item = oldplayer->Inventory; item != nullptr; item = next)
 		{
 			next = item->Inventory;
 
@@ -1084,13 +1084,13 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 			defitem = FindInventory (item->GetClass());
 
 			if ((dmflags & DF_COOP_LOSE_KEYS) &&
-				defitem == NULL &&
+				defitem == nullptr &&
 				item->IsKindOf(RUNTIME_CLASS(AKey)))
 			{
 				item->Destroy();
 			}
 			else if ((dmflags & DF_COOP_LOSE_WEAPONS) &&
-				defitem == NULL &&
+				defitem == nullptr &&
 				item->IsKindOf(RUNTIME_CLASS(AWeapon)))
 			{
 				item->Destroy();
@@ -1098,7 +1098,7 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 			else if ((dmflags & DF_COOP_LOSE_ARMOR) &&
 				item->IsKindOf(RUNTIME_CLASS(AArmor)))
 			{
-				if (defitem == NULL)
+				if (defitem == nullptr)
 				{
 					item->Destroy();
 				}
@@ -1116,7 +1116,7 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 				}
 			}
 			else if ((dmflags & DF_COOP_LOSE_POWERUPS) &&
-				defitem == NULL &&
+				defitem == nullptr &&
 				item->IsKindOf(RUNTIME_CLASS(APowerupGiver)))
 			{
 				item->Destroy();
@@ -1124,7 +1124,7 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 			else if ((dmflags & (DF_COOP_LOSE_AMMO | DF_COOP_HALVE_AMMO)) &&
 				item->IsKindOf(RUNTIME_CLASS(AAmmo)))
 			{
-				if (defitem == NULL)
+				if (defitem == nullptr)
 				{
 					if (dmflags & DF_COOP_LOSE_AMMO)
 					{
@@ -1158,8 +1158,8 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 	DestroyAllInventory();
 	ObtainInventory (oldplayer);
 
-	player->ReadyWeapon = NULL;
-	PickNewWeapon (NULL);
+	player->ReadyWeapon = nullptr;
+	PickNewWeapon (nullptr);
 }
 
 //===========================================================================
@@ -1170,8 +1170,8 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 
 const char *APlayerPawn::GetSoundClass() const
 {
-	if (player != NULL &&
-		(player->mo == NULL || !(player->mo->flags4 &MF4_NOSKIN)) &&
+	if (player != nullptr &&
+		(player->mo == nullptr || !(player->mo->flags4 &MF4_NOSKIN)) &&
 		(unsigned int)player->userinfo.GetSkin() >= PlayerClasses.Size () &&
 		(size_t)player->userinfo.GetSkin() < numskins)
 	{
@@ -1208,7 +1208,7 @@ bool APlayerPawn::UpdateWaterLevel (bool splash)
 {
 	int oldlevel = waterlevel;
 	bool retval = Super::UpdateWaterLevel (splash);
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		if (oldlevel < 3 && waterlevel == 3)
 		{ // Our head just went under.
@@ -1263,18 +1263,18 @@ void APlayerPawn::PlayIdle ()
 
 void APlayerPawn::PlayRunning ()
 {
-	if (InStateSequence(state, SpawnState) && SeeState != NULL)
+	if (InStateSequence(state, SpawnState) && SeeState != nullptr)
 		SetState (SeeState);
 }
 
 void APlayerPawn::PlayAttacking ()
 {
-	if (MissileState != NULL) SetState (MissileState);
+	if (MissileState != nullptr) SetState (MissileState);
 }
 
 void APlayerPawn::PlayAttacking2 ()
 {
-	if (MeleeState != NULL) SetState (MeleeState);
+	if (MeleeState != nullptr) SetState (MeleeState);
 }
 
 void APlayerPawn::ThrowPoisonBag ()
@@ -1289,7 +1289,7 @@ void APlayerPawn::ThrowPoisonBag ()
 
 void APlayerPawn::GiveDefaultInventory ()
 {
-	if (player == NULL) return;
+	if (player == nullptr) return;
 
 	// HexenArmor must always be the first item in the inventory because
 	// it provides player class based protection that should not affect
@@ -1321,7 +1321,7 @@ void APlayerPawn::GiveDefaultInventory ()
 		if (ti)
 		{
 			AInventory *item = FindInventory (ti);
-			if (item != NULL)
+			if (item != nullptr)
 			{
 				item->Amount = clamp<int>(
 					item->Amount + (di->Amount ? di->Amount : ((AInventory *)item->GetDefault ())->Amount),
@@ -1349,10 +1349,10 @@ void APlayerPawn::GiveDefaultInventory ()
 						I_Error("Cannot give morph items when starting a game");
 					}
 					item->Destroy ();
-					item = NULL;
+					item = nullptr;
 				}
 			}
-			if (item != NULL && item->IsKindOf (RUNTIME_CLASS (AWeapon)) &&
+			if (item != nullptr && item->IsKindOf (RUNTIME_CLASS (AWeapon)) &&
 				static_cast<AWeapon*>(item)->CheckAmmo(AWeapon::EitherFire, false))
 			{
 				player->ReadyWeapon = player->PendingWeapon = static_cast<AWeapon *> (item);
@@ -1372,32 +1372,32 @@ void APlayerPawn::ActivateMorphWeapon ()
 	player->PendingWeapon = WP_NOCHANGE;
 	player->psprites[ps_weapon].sy = WEAPONTOP;
 
-	if (morphweapon == NULL || !morphweapon->IsDescendantOf (RUNTIME_CLASS(AWeapon)))
+	if (morphweapon == nullptr || !morphweapon->IsDescendantOf (RUNTIME_CLASS(AWeapon)))
 	{ // No weapon at all while morphed!
-		player->ReadyWeapon = NULL;
-		P_SetPsprite (player, ps_weapon, NULL);
+		player->ReadyWeapon = nullptr;
+		P_SetPsprite (player, ps_weapon, nullptr);
 	}
 	else
 	{
 		player->ReadyWeapon = static_cast<AWeapon *>(player->mo->FindInventory (morphweapon));
-		if (player->ReadyWeapon == NULL)
+		if (player->ReadyWeapon == nullptr)
 		{
 			player->ReadyWeapon = static_cast<AWeapon *>(player->mo->GiveInventoryType (morphweapon));
-			if (player->ReadyWeapon != NULL)
+			if (player->ReadyWeapon != nullptr)
 			{
 				player->ReadyWeapon->GivenAsMorphWeapon = true; // flag is used only by new beastweap semantics in P_UndoPlayerMorph
 			}
 		}
-		if (player->ReadyWeapon != NULL)
+		if (player->ReadyWeapon != nullptr)
 		{
 			P_SetPsprite (player, ps_weapon, player->ReadyWeapon->GetReadyState());
 		}
 		else
 		{
-			P_SetPsprite (player, ps_weapon, NULL);
+			P_SetPsprite (player, ps_weapon, nullptr);
 		}
 	}
-	P_SetPsprite (player, ps_flash, NULL);
+	P_SetPsprite (player, ps_flash, nullptr);
 
 	player->PendingWeapon = WP_NOCHANGE;
 }
@@ -1412,27 +1412,27 @@ void APlayerPawn::Die (AActor *source, AActor *inflictor, int dmgflags)
 {
 	Super::Die (source, inflictor, dmgflags);
 
-	if (player != NULL && player->mo == this) player->bonuscount = 0;
+	if (player != nullptr && player->mo == this) player->bonuscount = 0;
 
-	if (player != NULL && player->mo != this)
+	if (player != nullptr && player->mo != this)
 	{ // Make the real player die, too
 		player->mo->Die (source, inflictor, dmgflags);
 	}
 	else
 	{
-		if (player != NULL && (dmflags2 & DF2_YES_WEAPONDROP))
+		if (player != nullptr && (dmflags2 & DF2_YES_WEAPONDROP))
 		{ // Voodoo dolls don't drop weapons
 			AWeapon *weap = player->ReadyWeapon;
-			if (weap != NULL)
+			if (weap != nullptr)
 			{
 				AInventory *item;
 
 				// kgDROP - start - modified copy from a_action.cpp
 				DDropItem *di = weap->GetDropItems();
 
-				if (di != NULL)
+				if (di != nullptr)
 				{
-					while (di != NULL)
+					while (di != nullptr)
 					{
 						if (di->Name != NAME_None)
 						{
@@ -1443,11 +1443,11 @@ void APlayerPawn::Die (AActor *source, AActor *inflictor, int dmgflags)
 					}
 				} else
 				// kgDROP - end
-				if (weap->SpawnState != NULL &&
+				if (weap->SpawnState != nullptr &&
 					weap->SpawnState != ::GetDefault<AActor>()->SpawnState)
 				{
 					item = P_DropItem (this, weap->GetClass(), -1, 256);
-					if (item != NULL && item->IsKindOf(RUNTIME_CLASS(AWeapon)))
+					if (item != nullptr && item->IsKindOf(RUNTIME_CLASS(AWeapon)))
 					{
 						if (weap->AmmoGive1 && weap->Ammo1)
 						{
@@ -1463,13 +1463,13 @@ void APlayerPawn::Die (AActor *source, AActor *inflictor, int dmgflags)
 				else
 				{
 					item = P_DropItem (this, weap->AmmoType1, -1, 256);
-					if (item != NULL)
+					if (item != nullptr)
 					{
 						item->Amount = weap->Ammo1->Amount;
 						item->ItemFlags |= IF_IGNORESKILL;
 					}
 					item = P_DropItem (this, weap->AmmoType2, -1, 256);
-					if (item != NULL)
+					if (item != nullptr)
 					{
 						item->Amount = weap->Ammo2->Amount;
 						item->ItemFlags |= IF_IGNORESKILL;
@@ -1518,7 +1518,7 @@ void APlayerPawn::TweakSpeeds (double &forward, double &side)
 		side *= SideMove2;
 	}
 
-	if (!player->morphTics && Inventory != NULL)
+	if (!player->morphTics && Inventory != nullptr)
 	{
 		double factor = Inventory->GetSpeedFactor ();
 		forward *= factor;
@@ -1542,7 +1542,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PlayerScream)
 	int sound = 0;
 	int chan = CHAN_VOICE;
 
-	if (self->player == NULL || self->DeathSound != 0)
+	if (self->player == nullptr || self->DeathSound != 0)
 	{
 		if (self->DeathSound != 0)
 		{
@@ -1614,16 +1614,16 @@ DEFINE_ACTION_FUNCTION(AActor, A_PlayerScream)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SkullPop)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, APlayerChunk)	{ spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, APlayerChunk)	{ spawntype = nullptr; }
 
 	APlayerPawn *mo;
 	player_t *player;
 
 	// [GRB] Parameterized version
-	if (spawntype == NULL || !spawntype->IsDescendantOf(RUNTIME_CLASS(APlayerChunk)))
+	if (spawntype == nullptr || !spawntype->IsDescendantOf(RUNTIME_CLASS(APlayerChunk)))
 	{
 		spawntype = dyn_cast<PClassPlayerPawn>(PClass::FindClass("BloodySkull"));
-		if (spawntype == NULL)
+		if (spawntype == nullptr)
 			return 0;
 	}
 
@@ -1635,12 +1635,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SkullPop)
 	mo->Vel.Z = 2. + (pr_skullpop() / 1024.);
 	// Attach player mobj to bloody skull
 	player = self->player;
-	self->player = NULL;
+	self->player = nullptr;
 	mo->ObtainInventory (self);
 	mo->player = player;
 	mo->health = self->health;
 	mo->Angles.Yaw = self->Angles.Yaw;
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		player->mo = mo;
 		player->damagecount = 32;
@@ -1665,7 +1665,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CheckPlayerDone)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->player == NULL)
+	if (self->player == nullptr)
 	{
 		self->Destroy();
 	}
@@ -1987,7 +1987,7 @@ void P_MovePlayer (player_t *player)
 				player->cheats&CF_PREDICTING?'p':' ',
 				player->mo->X(), player->mo->Y(), player->mo->Z(),forwardmove, sidemove, movefactor, friction, player->mo->waterlevel);
 			msecnode_t *n = player->mo->touching_sectorlist;
-			while (n != NULL)
+			while (n != nullptr)
 			{
 				fprintf (debugfile, "%td ", n->m_sector-sectors);
 				n = n->m_tnext;
@@ -2100,7 +2100,7 @@ void P_FallingDamage (AActor *actor)
 			damage = 999;
 		}
 	}
-	P_DamageMobj (actor, NULL, NULL, damage, NAME_Falling);
+	P_DamageMobj (actor, nullptr, nullptr, damage, NAME_Falling);
 }
 
 //==========================================================================
@@ -2199,9 +2199,9 @@ void P_DeathThink (player_t *player)
 	if ((player->cmd.ucmd.buttons & BT_USE ||
 		((multiplayer || alwaysapplydmflags) && (dmflags & DF_FORCE_RESPAWN))) && !(dmflags2 & DF2_NO_RESPAWN))
 	{
-		if (level.time >= player->respawn_time || ((player->cmd.ucmd.buttons & BT_USE) && player->Bot == NULL))
+		if (level.time >= player->respawn_time || ((player->cmd.ucmd.buttons & BT_USE) && player->Bot == nullptr))
 		{
-			player->cls = NULL;		// Force a new class if the player is using a random class
+			player->cls = nullptr;		// Force a new class if the player is using a random class
 			player->playerstate = (multiplayer || (level.flags2 & LEVEL2_ALLOWRESPAWN)) ? PST_REBORN : PST_ENTER;
 			if (player->mo->special1 > 2)
 			{
@@ -2229,7 +2229,7 @@ void P_CrouchMove(player_t * player, int direction)
 
 	// check whether the move is ok
 	player->mo->Height  = defaultheight * player->crouchfactor;
-	if (!P_TryMove(player->mo, player->mo->Pos(), false, NULL))
+	if (!P_TryMove(player->mo, player->mo->Pos(), false, nullptr))
 	{
 		player->mo->Height = savedheight;
 		if (direction > 0)
@@ -2259,7 +2259,7 @@ void P_PlayerThink (player_t *player)
 {
 	ticcmd_t *cmd;
 
-	if (player->mo == NULL)
+	if (player->mo == nullptr)
 	{
 		I_Error ("No player %td start\n", player - players + 1);
 	}
@@ -2277,7 +2277,7 @@ void P_PlayerThink (player_t *player)
 	float desired = player->DesiredFOV;
 	// Adjust FOV using on the currently held weapon.
 	if (player->playerstate != PST_DEAD &&		// No adjustment while dead.
-		player->ReadyWeapon != NULL &&			// No adjustment if no weapon.
+		player->ReadyWeapon != nullptr &&			// No adjustment if no weapon.
 		player->ReadyWeapon->FOVScale != 0)		// No adjustment if the adjustment is zero.
 	{
 		// A negative scale is used to prevent G_AddViewAngle/G_AddViewPitch
@@ -2411,7 +2411,7 @@ void P_PlayerThink (player_t *player)
 	player->crouchoffset = -(player->mo->ViewHeight) * (1 - player->crouchfactor);
 
 	// MUSINFO stuff
-	if (player->MUSINFOtics >= 0 && player->MUSINFOactor != NULL)
+	if (player->MUSINFOtics >= 0 && player->MUSINFOactor != nullptr)
 	{
 		if (--player->MUSINFOtics < 0)
 		{
@@ -2421,7 +2421,7 @@ void P_PlayerThink (player_t *player)
 				{
 					FName *music = level.info->MusicMap.CheckKey(player->MUSINFOactor->args[0]);
 
-					if (music != NULL)
+					if (music != nullptr)
 					{
 						S_ChangeMusic(music->GetChars(), player->MUSINFOactor->args[1]);
 					}
@@ -2574,7 +2574,7 @@ void P_PlayerThink (player_t *player)
 			else if (cmd->ucmd.upmove > 0 && !(player->cheats & CF_PREDICTING))
 			{
 				AInventory *fly = player->mo->FindInventory (NAME_ArtiFly);
-				if (fly != NULL)
+				if (fly != nullptr)
 				{
 					player->mo->UseInventory (fly);
 				}
@@ -2647,7 +2647,7 @@ void P_PlayerThink (player_t *player)
 		{
 			player->hazardcount--;
 			if (!(level.time % player->hazardinterval) && player->hazardcount > 16*TICRATE)
-				P_DamageMobj (player->mo, NULL, NULL, 5, player->hazardtype);
+				P_DamageMobj (player->mo, nullptr, nullptr, 5, player->hazardtype);
 		}
 
 		if (player->poisoncount && !(level.time & 15))
@@ -2686,7 +2686,7 @@ void P_PlayerThink (player_t *player)
 			}
 			else if (player->air_finished <= level.time && !(level.time & 31))
 			{
-				P_DamageMobj (player->mo, NULL, NULL, 2 + ((level.time-player->air_finished)/TICRATE), NAME_Drowning);
+				P_DamageMobj (player->mo, nullptr, nullptr, 2 + ((level.time-player->air_finished)/TICRATE), NAME_Drowning);
 			}
 		}
 	}
@@ -2722,7 +2722,7 @@ void P_PredictPlayer (player_t *player)
 	if (cl_noprediction ||
 		singletics ||
 		demoplayback ||
-		player->mo == NULL ||
+		player->mo == nullptr ||
 		player != &players[consoleplayer] ||
 		player->playerstate != PST_LIVE ||
 		!netgame ||
@@ -2756,7 +2756,7 @@ void P_PredictPlayer (player_t *player)
 	PredictionSector_sprev_Backup.Clear();
 	PredictionTouchingSectorsBackup.Clear ();
 
-	while (mnode != NULL)
+	while (mnode != nullptr)
 	{
 		PredictionTouchingSectorsBackup.Push (mnode->m_sector);
 
@@ -2778,7 +2778,7 @@ void P_PredictPlayer (player_t *player)
 	{
 		AActor *link = act->Sector->thinglist;
 		
-		while (link != NULL)
+		while (link != nullptr)
 		{
 			PredictionSectorListBackup.Push(link);
 			link = link->snext;
@@ -2789,16 +2789,16 @@ void P_PredictPlayer (player_t *player)
 	// without releasing them. (They will be used again in P_UnpredictPlayer).
 	FBlockNode *block = act->BlockNode;
 
-	while (block != NULL)
+	while (block != nullptr)
 	{
-		if (block->NextActor != NULL)
+		if (block->NextActor != nullptr)
 		{
 			block->NextActor->PrevActor = block->PrevActor;
 		}
 		*(block->PrevActor) = block->NextActor;
 		block = block->NextBlock;
 	}
-	act->BlockNode = NULL;
+	act->BlockNode = nullptr;
 
 	// Values too small to be usable for lerping can be considered "off".
 	bool CanLerp = (!(cl_predict_lerpscale < 0.01f) && (ticdup == 1)), DoLerp = false, NoInterpolateOld = R_GetViewInterpolationStatus();
@@ -2893,8 +2893,8 @@ void P_UnPredictPlayer ()
 			AActor *me, *next;
 			AActor **link;// , **prev;
 
-			// The thinglist is just a pointer chain. We are restoring the exact same things, so we can NULL the head safely
-			sec->thinglist = NULL;
+			// The thinglist is just a pointer chain. We are restoring the exact same things, so we can nullptr the head safely
+			sec->thinglist = nullptr;
 
 			for (i = PredictionSectorListBackup.Size(); i-- > 0;)
 			{
@@ -2911,24 +2911,24 @@ void P_UnPredictPlayer ()
 			msecnode_t *node = sector_list;
 			while (node)
 			{
-				node->m_thing = NULL;
+				node->m_thing = nullptr;
 				node = node->m_tnext;
 			}
 
 			// Make the sector_list match the player's touching_sectorlist before it got predicted.
 			P_DelSeclist(sector_list);
-			sector_list = NULL;
+			sector_list = nullptr;
 			for (i = PredictionTouchingSectorsBackup.Size(); i-- > 0;)
 			{
 				sector_list = P_AddSecnode(PredictionTouchingSectorsBackup[i], act, sector_list, PredictionTouchingSectorsBackup[i]->touching_thinglist);
 			}
 			act->touching_sectorlist = sector_list;	// Attach to thing
-			sector_list = NULL;		// clear for next time
+			sector_list = nullptr;		// clear for next time
 
 			node = sector_list;
 			while (node)
 			{
-				if (node->m_thing == NULL)
+				if (node->m_thing == nullptr)
 				{
 					if (node == sector_list)
 						sector_list = node->m_tnext;
@@ -2946,7 +2946,7 @@ void P_UnPredictPlayer ()
 			for (i = PredictionTouchingSectorsBackup.Size(); i-- > 0;)
 			{
 				// If we were already the head node, then nothing needs to change
-				if (PredictionSector_sprev_Backup[i] == NULL)
+				if (PredictionSector_sprev_Backup[i] == nullptr)
 					continue;
 
 				for (snode = PredictionTouchingSectorsBackup[i]->touching_thinglist; snode; snode = snode->m_snext)
@@ -2976,10 +2976,10 @@ void P_UnPredictPlayer ()
 		// Now fix the pointers in the blocknode chain
 		FBlockNode *block = act->BlockNode;
 
-		while (block != NULL)
+		while (block != nullptr)
 		{
 			*(block->PrevActor) = block;
-			if (block->NextActor != NULL)
+			if (block->NextActor != nullptr)
 			{
 				block->NextActor->PrevActor = &block->NextActor;
 			}

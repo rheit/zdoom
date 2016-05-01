@@ -134,7 +134,7 @@ public:
 	const FString *GetAutoname(unsigned int num) const
 	{
 		if (num < mIWads.Size()) return &mIWads[num].Autoname;
-		else return NULL;
+		else return nullptr;
 	}
 	int GetIWadFlags(unsigned int num) const
 	{

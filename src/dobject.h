@@ -161,7 +161,7 @@ protected: \
 
 #define _IMP_PCLASS(cls,ptrs,create) \
 	ClassReg cls::RegistrationInfo = {\
-		NULL, \
+		nullptr, \
 		#cls, \
 		&cls::Super::RegistrationInfo, \
 		ptrs, \
@@ -181,13 +181,13 @@ protected: \
 
 #define IMPLEMENT_CLASS(cls) \
 	_IMP_CREATE_OBJ(cls) \
-	_IMP_PCLASS(cls,NULL,cls::InPlaceConstructor) 
+	_IMP_PCLASS(cls,nullptr,cls::InPlaceConstructor) 
 
 #define IMPLEMENT_ABSTRACT_CLASS(cls) \
-	_IMP_PCLASS(cls,NULL,NULL)
+	_IMP_PCLASS(cls,nullptr,nullptr)
 
 #define IMPLEMENT_ABSTRACT_POINTY_CLASS(cls) \
-	_IMP_PCLASS(cls,cls::PointerOffsets,NULL) \
+	_IMP_PCLASS(cls,cls::PointerOffsets,nullptr) \
 	const size_t cls::PointerOffsets[] = {
 
 enum EObjectFlags
@@ -280,11 +280,11 @@ namespace GC
 	// Handles a read barrier.
 	template<class T> inline T *ReadBarrier(T *&obj)
 	{
-		if (obj == NULL || !(obj->ObjectFlags & OF_EuthanizeMe))
+		if (obj == nullptr || !(obj->ObjectFlags & OF_EuthanizeMe))
 		{
 			return obj;
 		}
-		return obj = NULL;
+		return obj = nullptr;
 	}
 
 	// Check if it's time to collect, and do a collection step if it is.
@@ -374,7 +374,7 @@ public:
 	T &operator*()
 	{
 		T *q = GC::ReadBarrier(p);
-		assert(q != NULL);
+		assert(q != nullptr);
 		return *q;
 	}
 	T **operator&() throw()
@@ -467,7 +467,7 @@ public:
 	virtual void Serialize (FArchive &arc);
 	void ClearClass()
 	{
-		Class = NULL;
+		Class = nullptr;
 	}
 
 	// For catching Serialize functions in derived classes
@@ -484,7 +484,7 @@ public:
 
 	PClass *GetClass() const
 	{
-		if (Class == NULL)
+		if (Class == nullptr)
 		{
 			// Save a little time the next time somebody wants this object's type
 			// by recording it now.
@@ -578,7 +578,7 @@ protected:
 
 static inline void GC::WriteBarrier(DObject *pointing, DObject *pointed)
 {
-	if (pointed != NULL && pointed->IsWhite() && pointing->IsBlack())
+	if (pointed != nullptr && pointed->IsWhite() && pointing->IsBlack())
 	{
 		Barrier(pointing, pointed);
 	}
@@ -586,9 +586,9 @@ static inline void GC::WriteBarrier(DObject *pointing, DObject *pointed)
 
 static inline void GC::WriteBarrier(DObject *pointed)
 {
-	if (pointed != NULL && State == GCS_Propagate && pointed->IsWhite())
+	if (pointed != nullptr && State == GCS_Propagate && pointed->IsWhite())
 	{
-		Barrier(NULL, pointed);
+		Barrier(nullptr, pointed);
 	}
 }
 
@@ -606,11 +606,11 @@ inline bool DObject::IsA (const PClass *type) const
 
 template<class T> T *dyn_cast(DObject *p)
 {
-	if (p != NULL && p->IsKindOf(RUNTIME_CLASS_CASTLESS(T)))
+	if (p != nullptr && p->IsKindOf(RUNTIME_CLASS_CASTLESS(T)))
 	{
 		return static_cast<T *>(p);
 	}
-	return NULL;
+	return nullptr;
 }
 
 template<class T> const T *dyn_cast(const DObject *p)

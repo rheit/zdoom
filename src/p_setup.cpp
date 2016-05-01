@@ -229,7 +229,7 @@ static int GetMapIndex(const char *mapname, int lastindex, const char *lumpname,
 		//{"SCRIPTS",	 false},
 	};
 
-	if (lumpname==NULL) lumpname="";
+	if (lumpname==nullptr) lumpname="";
 
 	for(size_t i=lastindex+1;i<countof(check);i++)
 	{
@@ -258,7 +258,7 @@ static int GetMapIndex(const char *mapname, int lastindex, const char *lumpname,
 MapData *P_OpenMapData(const char * mapname, bool justcheck)
 {
 	MapData * map = new MapData;
-	FileReader * wadReader = NULL;
+	FileReader * wadReader = nullptr;
 	bool externalfile = !strnicmp(mapname, "file:", 5);
 	
 	if (externalfile)
@@ -267,9 +267,9 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 		if (!FileExists(mapname))
 		{
 			delete map;
-			return NULL;
+			return nullptr;
 		}
-		map->resource = FResourceFile::OpenResourceFile(mapname, NULL, true);
+		map->resource = FResourceFile::OpenResourceFile(mapname, nullptr, true);
 		wadReader = map->resource->GetReader();
 	}
 	else
@@ -303,7 +303,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 				if (!P_IsBuildMap(map))
 				{
 					delete map;
-					return NULL;
+					return nullptr;
 				}
 				return map;
 			}
@@ -320,7 +320,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 				if (!P_IsBuildMap(map))
 				{
 					delete map;
-					return NULL;
+					return nullptr;
 				}
 				return map;
 			}
@@ -346,7 +346,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 					if (index == -2)
 					{
 						delete map;
-						return NULL;
+						return nullptr;
 					}
 					if (index == ML_BEHAVIOR) map->HasBehavior = true;
 
@@ -365,7 +365,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 				{
 					const char * lumpname = Wads.GetLumpFullName(lump_name + i);
 
-					if (lumpname == NULL)
+					if (lumpname == nullptr)
 					{
 						I_Error("Invalid map definition for %s", mapname);
 					}
@@ -411,7 +411,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 			if (lump_wad == -1)
 			{
 				delete map;
-				return NULL;
+				return nullptr;
 			}
 			map->lumpnum = lump_wad;
 			map->resource = FResourceFile::OpenResourceFile(Wads.GetLumpFullName(lump_wad), Wads.ReopenLumpNum(lump_wad), true);
@@ -491,7 +491,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 				if (index == -2)
 				{
 					delete map;
-					return NULL;
+					return nullptr;
 				}
 				if (index == ML_BEHAVIOR) map->HasBehavior = true;
 
@@ -515,7 +515,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 		if (!P_IsBuildMap(map))
 		{
 			delete map;
-			return NULL;
+			return nullptr;
 		}
 	}
 	return map;		
@@ -524,7 +524,7 @@ MapData *P_OpenMapData(const char * mapname, bool justcheck)
 bool P_CheckMapData(const char *mapname)
 {
 	MapData *mapd = P_OpenMapData(mapname, true);
-	if (mapd == NULL) return false;
+	if (mapd == nullptr) return false;
 	delete mapd;
 	return true;
 }
@@ -545,28 +545,28 @@ void MapData::GetChecksum(BYTE cksum[16])
 	if (isText)
 	{
 		Seek(ML_TEXTMAP);
-		if (file != NULL) md5.Update(file, Size(ML_TEXTMAP));
+		if (file != nullptr) md5.Update(file, Size(ML_TEXTMAP));
 	}
 	else
 	{
 		if (Size(ML_LABEL) != 0)
 		{
 			Seek(ML_LABEL);
-			if (file != NULL) md5.Update(file, Size(ML_LABEL));
+			if (file != nullptr) md5.Update(file, Size(ML_LABEL));
 		}
 		Seek(ML_THINGS);
-		if (file != NULL) md5.Update(file, Size(ML_THINGS));
+		if (file != nullptr) md5.Update(file, Size(ML_THINGS));
 		Seek(ML_LINEDEFS);
-		if (file != NULL) md5.Update(file, Size(ML_LINEDEFS));
+		if (file != nullptr) md5.Update(file, Size(ML_LINEDEFS));
 		Seek(ML_SIDEDEFS);
-		if (file != NULL) md5.Update(file, Size(ML_SIDEDEFS));
+		if (file != nullptr) md5.Update(file, Size(ML_SIDEDEFS));
 		Seek(ML_SECTORS);
-		if (file != NULL) md5.Update(file, Size(ML_SECTORS));
+		if (file != nullptr) md5.Update(file, Size(ML_SECTORS));
 	}
 	if (HasBehavior)
 	{
 		Seek(ML_BEHAVIOR);
-		if (file != NULL) md5.Update(file, Size(ML_BEHAVIOR));
+		if (file != nullptr) md5.Update(file, Size(ML_BEHAVIOR));
 	}
 	md5.Final(cksum);
 }
@@ -736,9 +736,9 @@ static void SetTextureNoErr (side_t *side, int position, DWORD *color, const cha
 
 				int factor = l==7? 0 : clamp<int> ((name2[6]&223)-'A', 0, 25);
 
-				name2[6]=0; int blue=strtol(name2+4,NULL,16);
-				name2[4]=0; int green=strtol(name2+2,NULL,16);
-				name2[2]=0; int red=strtol(name2,NULL,16);
+				name2[6]=0; int blue=strtol(name2+4,nullptr,16);
+				name2[4]=0; int green=strtol(name2+2,nullptr,16);
+				name2[2]=0; int red=strtol(name2,nullptr,16);
 
 				if (!isFog) 
 				{
@@ -785,17 +785,17 @@ void P_FloodZone (sector_t *sec, int zonenum)
 		line_t *check = sec->lines[i];
 		sector_t *other;
 
-		if (check->sidedef[1] == NULL || (check->flags & ML_ZONEBOUNDARY))
+		if (check->sidedef[1] == nullptr || (check->flags & ML_ZONEBOUNDARY))
 			continue;
 
 		if (check->frontsector == sec)
 		{
-			assert(check->backsector != NULL);
+			assert(check->backsector != nullptr);
 			other = check->backsector;
 		}
 		else
 		{
-			assert(check->frontsector != NULL);
+			assert(check->frontsector != nullptr);
 			other = check->frontsector;
 		}
 
@@ -819,7 +819,7 @@ void P_FloodZones ()
 	numzones = z;
 	zones = new zone_t[z];
 	reverb = S_FindEnvironment(level.DefaultEnvironment);
-	if (reverb == NULL)
+	if (reverb == nullptr)
 	{
 		Printf("Sound environment %d, %d not found\n", level.DefaultEnvironment >> 8, level.DefaultEnvironment & 255);
 		reverb = DefaultEnvironments[0];
@@ -852,7 +852,7 @@ void P_LoadVertexes (MapData * map)
 
 	// Allocate memory for buffer.
 	vertexes = new vertex_t[numvertexes];		
-	vertexdatas = NULL;
+	vertexdatas = nullptr;
 
 	map->Seek(ML_VERTEXES);
 		
@@ -888,7 +888,7 @@ void P_LoadZSegs (FileReaderBase &data)
 		segs[i].linedef = ldef = &lines[line];
 		segs[i].sidedef = ldef->sidedef[side];
 		segs[i].frontsector = ldef->sidedef[side]->sector;
-		if (ldef->flags & ML_TWOSIDED && ldef->sidedef[side^1] != NULL)
+		if (ldef->flags & ML_TWOSIDED && ldef->sidedef[side^1] != nullptr)
 		{
 			segs[i].backsector = ldef->sidedef[side^1]->sector;
 		}
@@ -950,7 +950,7 @@ void P_LoadGLZSegs (FileReaderBase &data, int type)
 				seg->linedef = ldef = &lines[line];
 				seg->sidedef = ldef->sidedef[side];
 				seg->frontsector = ldef->sidedef[side]->sector;
-				if (ldef->flags & ML_TWOSIDED && ldef->sidedef[side^1] != NULL)
+				if (ldef->flags & ML_TWOSIDED && ldef->sidedef[side^1] != nullptr)
 				{
 					seg->backsector = ldef->sidedef[side^1]->sector;
 				}
@@ -962,8 +962,8 @@ void P_LoadGLZSegs (FileReaderBase &data, int type)
 			}
 			else
 			{
-				seg->linedef = NULL;
-				seg->sidedef = NULL;
+				seg->linedef = nullptr;
+				seg->sidedef = nullptr;
 				seg->frontsector = seg->backsector = subsectors[i].firstline->frontsector;
 			}
 		}
@@ -1049,7 +1049,7 @@ void LoadZNodes(FileReaderBase &data, int glnodes)
 	numsegs = numSegs;
 	segs = new seg_t[numsegs];
 	memset (segs, 0, numsegs*sizeof(seg_t));
-	glsegextras = NULL;
+	glsegextras = nullptr;
 
 	for (i = 0; i < numSubs; ++i)
 	{
@@ -1349,7 +1349,7 @@ void P_LoadSegs (MapData * map)
 			li->frontsector = ldef->sidedef[side]->sector;
 
 			// killough 5/3/98: ignore 2s flag if second sidedef missing:
-			if (ldef->flags & ML_TWOSIDED && ldef->sidedef[side^1] != NULL)
+			if (ldef->flags & ML_TWOSIDED && ldef->sidedef[side^1] != nullptr)
 			{
 				li->backsector = ldef->sidedef[side^1]->sector;
 			}
@@ -1482,7 +1482,7 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 	else
 		defSeqType = -1;
 
-	fogMap = normMap = NULL;
+	fogMap = normMap = nullptr;
 
 	msp = new char[lumplen];
 	map->Read(ML_SECTORS, msp);
@@ -1508,9 +1508,9 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 		else	// [RH] Translate to new sector special
 			ss->special = P_TranslateSectorSpecial (LittleShort(ms->special));
 		tagManager.AddSectorTag(i, LittleShort(ms->tag));
-		ss->thinglist = NULL;
-		ss->touching_thinglist = NULL;		// phares 3/14/98
-		ss->render_thinglist = NULL;
+		ss->thinglist = nullptr;
+		ss->touching_thinglist = nullptr;		// phares 3/14/98
+		ss->render_thinglist = nullptr;
 		ss->seqType = defSeqType;
 		ss->SeqName = NAME_None;
 		ss->nextsec = -1;	//jff 2/26/98 add fields to support locking out
@@ -1523,7 +1523,7 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 		ss->SetXScale(sector_t::ceiling, 1.);
 		ss->SetYScale(sector_t::ceiling, 1.);
 
-		ss->heightsec = NULL;	// sector used to get floor and ceiling height
+		ss->heightsec = nullptr;	// sector used to get floor and ceiling height
 		// killough 3/7/98: end changes
 
 		ss->gravity = 1.f;	// [RH] Default sector gravity of 1.0
@@ -1534,13 +1534,13 @@ void P_LoadSectors (MapData *map, FMissingTextureTracker &missingtex)
 		//		If they are outside (have a sky ceiling), they use the outside fog.
 		if (level.outsidefog != 0xff000000 && (ss->GetTexture(sector_t::ceiling) == skyflatnum || (ss->special&0xff) == Sector_Outside))
 		{
-			if (fogMap == NULL)
+			if (fogMap == nullptr)
 				fogMap = GetSpecialLights (PalEntry (255,255,255), level.outsidefog, 0);
 			ss->ColorMap = fogMap;
 		}
 		else
 		{
-			if (normMap == NULL)
+			if (normMap == nullptr)
 				normMap = GetSpecialLights (PalEntry (255,255,255), level.fadeto, NormalLight.Desaturate);
 			ss->ColorMap = normMap;
 		}
@@ -1675,7 +1675,7 @@ AActor *SpawnMapThing(int index, FMapThing *mt, int position)
 
 static void SetMapThingUserData(AActor *actor, unsigned udi)
 {
-	if (actor == NULL)
+	if (actor == nullptr)
 	{
 		return;
 	}
@@ -1687,7 +1687,7 @@ static void SetMapThingUserData(AActor *actor, unsigned udi)
 
 		udi++;
 
-		if (var == NULL || (var->Flags & VARF_Native) || !var->Type->IsKindOf(RUNTIME_CLASS(PBasicType)))
+		if (var == nullptr || (var->Flags & VARF_Native) || !var->Type->IsKindOf(RUNTIME_CLASS(PBasicType)))
 		{
 			DPrintf("%s is not a user variable in class %s\n", varname.GetChars(),
 				actor->GetClass()->TypeName.GetChars());
@@ -1761,7 +1761,7 @@ void P_LoadThings (MapData * map)
 
 
 #ifndef NO_EDATA
-		if (mti[i].info != NULL && mti[i].info->Special == SMT_EDThing)
+		if (mti[i].info != nullptr && mti[i].info->Special == SMT_EDThing)
 		{
 			ProcessEDMapthing(&mti[i], flags);
 		}
@@ -1861,14 +1861,14 @@ void P_SpawnThings (int position)
 	{
 		AActor *actor = SpawnMapThing (i, &MapThingsConverted[i], position);
 		unsigned *udi = MapThingsUserDataIndex.CheckKey((unsigned)i);
-		if (udi != NULL)
+		if (udi != nullptr)
 		{
 			SetMapThingUserData(actor, *udi);
 		}
 	}
 	for(int i=0; i<MAXPLAYERS; i++)
 	{
-		if (playeringame[i] && players[i].mo != NULL)
+		if (playeringame[i] && players[i].mo != nullptr)
 			P_PlayerStartStomp(players[i].mo);
 	}
 }
@@ -1979,7 +1979,7 @@ void P_SetLineID (int i, line_t *ld)
 
 void P_SaveLineSpecial (line_t *ld)
 {
-	if (ld->sidedef[0] == NULL)
+	if (ld->sidedef[0] == nullptr)
 		return;
 
 	DWORD sidenum = DWORD(ld->sidedef[0]-sides);
@@ -2000,13 +2000,13 @@ void P_FinishLoadingLineDef(line_t *ld, int alpha)
 {
 	bool additive = false;
 
-	ld->frontsector = ld->sidedef[0] != NULL ? ld->sidedef[0]->sector : NULL;
-	ld->backsector  = ld->sidedef[1] != NULL ? ld->sidedef[1]->sector : NULL;
+	ld->frontsector = ld->sidedef[0] != nullptr ? ld->sidedef[0]->sector : nullptr;
+	ld->backsector  = ld->sidedef[1] != nullptr ? ld->sidedef[1]->sector : nullptr;
 	double dx = (ld->v2->fX() - ld->v1->fX());
 	double dy = (ld->v2->fY() - ld->v1->fY());
 	int linenum = int(ld-lines);
 
-	if (ld->frontsector == NULL)
+	if (ld->frontsector == nullptr)
 	{
 		Printf ("Line %d has no front sector\n", linemap[linenum]);
 	}
@@ -2014,13 +2014,13 @@ void P_FinishLoadingLineDef(line_t *ld, int alpha)
 	// [RH] Set some new sidedef properties
 	int len = (int)(g_sqrt (dx*dx + dy*dy) + 0.5f);
 
-	if (ld->sidedef[0] != NULL)
+	if (ld->sidedef[0] != nullptr)
 	{
 		ld->sidedef[0]->linedef = ld;
 		ld->sidedef[0]->TexelLength = len;
 
 	}
-	if (ld->sidedef[1] != NULL)
+	if (ld->sidedef[1] != nullptr)
 	{
 		ld->sidedef[1]->linedef = ld;
 		ld->sidedef[1]->TexelLength = len;
@@ -2083,7 +2083,7 @@ static void P_SetSideNum (side_t **sidenum_p, WORD sidenum)
 {
 	if (sidenum == NO_INDEX)
 	{
-		*sidenum_p = NULL;
+		*sidenum_p = nullptr;
 	}
 	else if (sidecount < numsides)
 	{
@@ -2331,7 +2331,7 @@ static void P_LoopSidedefs (bool firstloop)
 {
 	int i;
 
-	if (sidetemp != NULL)
+	if (sidetemp != nullptr)
 	{
 		delete[] sidetemp;
 	}
@@ -2379,7 +2379,7 @@ static void P_LoopSidedefs (bool firstloop)
 		{
 			const side_t* const rightside = line->sidedef[!sidetemp[i].b.lineside];
 
-			if (NULL == rightside)
+			if (nullptr == rightside)
 			{
 				// There is no right side!
 				if (firstloop) Printf ("Line %d's right edge is unconnected\n", linemap[unsigned(line-lines)]);
@@ -2508,7 +2508,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 		  //	  but a packed ARGB word for blending, so we also allow
 		  //	  the blend to be specified directly by the texture names
 		  //	  instead of figuring something out from the colormap.
-		if (sec != NULL)
+		if (sec != nullptr)
 		{
 			SetTexture (sd, side_t::bottom, &sec->bottommap, msd->bottomtexture);
 			SetTexture (sd, side_t::mid, &sec->midmap, msd->midtexture);
@@ -2531,7 +2531,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 			if (colorgood | foggood)
 			{
 				int s;
-				FDynamicColormap *colormap = NULL;
+				FDynamicColormap *colormap = nullptr;
 
 				for (s = 0; s < numsectors; s++)
 				{
@@ -2539,7 +2539,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 					{
 						if (!colorgood) color = sectors[s].ColorMap->Color;
 						if (!foggood) fog = sectors[s].ColorMap->Fade;
-						if (colormap == NULL ||
+						if (colormap == nullptr ||
 							colormap->Color != color ||
 							colormap->Fade != fog)
 						{
@@ -2555,7 +2555,7 @@ void P_ProcessSideTextures(bool checktranmap, side_t *sd, sector_t *sec, intmaps
 	case Sector_Set3DFloor:
 		if (msd->toptexture[0]=='#')
 		{
-			sd->SetTexture(side_t::top, FNullTextureID() +(-strtol(&msd->toptexture[1], NULL, 10)));	// store the alpha as a negative texture index
+			sd->SetTexture(side_t::top, FNullTextureID() +(-strtol(&msd->toptexture[1], nullptr, 10)));	// store the alpha as a negative texture index
 														// This will be sorted out by the 3D-floor code later.
 		}
 		else
@@ -2631,7 +2631,7 @@ void P_LoadSideDefs2 (MapData *map, FMissingTextureTracker &missingtex)
 		sd->SetTextureYOffset(LittleShort(msd->rowoffset));
 		sd->SetTextureXScale(1.);
 		sd->SetTextureYScale(1.);
-		sd->linedef = NULL;
+		sd->linedef = nullptr;
 		sd->Flags = 0;
 		sd->Index = i;
 
@@ -2642,7 +2642,7 @@ void P_LoadSideDefs2 (MapData *map, FMissingTextureTracker &missingtex)
 		if ((unsigned)LittleShort(msd->sector)>=(unsigned)numsectors)
 		{
 			Printf (PRINT_HIGH, "Sidedef %d has a bad sector\n", i);
-			sd->sector = sec = NULL;
+			sd->sector = sec = nullptr;
 		}
 		else
 		{
@@ -3110,7 +3110,7 @@ static void P_GroupLines (bool buildmap)
 	{
 		subsectors[i].sector = subsectors[i].firstline->sidedef->sector;
 	}
-	if (glsegextras != NULL)
+	if (glsegextras != nullptr)
 	{
 		for (i = 0; i < numsubsectors; i++)
 		{
@@ -3127,7 +3127,7 @@ static void P_GroupLines (bool buildmap)
 	total = 0;
 	for (i = 0, li = lines; i < numlines; i++, li++)
 	{
-		if (li->frontsector == NULL)
+		if (li->frontsector == nullptr)
 		{
 			if (!flaggedNoFronts)
 			{
@@ -3178,11 +3178,11 @@ static void P_GroupLines (bool buildmap)
 
 	for (i = numlines, li = lines; i > 0; --i, ++li)
 	{
-		if (li->frontsector != NULL)
+		if (li->frontsector != nullptr)
 		{
 			li->frontsector->lines[linesDoneInEachSector[li->frontsector - sectors]++] = li;
 		}
-		if (li->backsector != NULL && li->backsector != li->frontsector)
+		if (li->backsector != nullptr && li->backsector != li->frontsector)
 		{
 			li->backsector->lines[linesDoneInEachSector[li->backsector - sectors]++] = li;
 		}
@@ -3287,7 +3287,7 @@ void P_LoadReject (MapData * map, bool junk)
 			Printf ("REJECT is %d byte%s too small.\n", neededsize - rejectsize,
 				neededsize-rejectsize==1?"":"s");
 		}
-		rejectmatrix = NULL;
+		rejectmatrix = nullptr;
 	}
 	else
 	{
@@ -3322,7 +3322,7 @@ void P_LoadReject (MapData * map, bool junk)
 
 		// Reject has no data, so pretend it isn't there.
 		delete[] rejectmatrix;
-		rejectmatrix = NULL;
+		rejectmatrix = nullptr;
 	}
 }
 
@@ -3347,7 +3347,7 @@ void P_GetPolySpots (MapData * map, TArray<FNodeBuilder::FPolyStart> &spots, TAr
 		for (unsigned int i = 0; i < MapThingsConverted.Size(); ++i)
 		{
 			FDoomEdEntry *mentry = MapThingsConverted[i].info;
-			if (mentry != NULL && mentry->Type == NULL && mentry->Special >= SMT_PolyAnchor && mentry->Special <= SMT_PolySpawnHurt)
+			if (mentry != nullptr && mentry->Type == nullptr && mentry->Special >= SMT_PolyAnchor && mentry->Special <= SMT_PolySpawnHurt)
 			{
 				FNodeBuilder::FPolyStart newvert;
 				newvert.x = FLOAT2FIXED(MapThingsConverted[i].pos.X);
@@ -3382,86 +3382,86 @@ void P_FreeLevelData ()
 		wminfo.maxfrags = 0;
 		
 	FBehavior::StaticUnloadModules ();
-	if (vertexes != NULL)
+	if (vertexes != nullptr)
 	{
 		delete[] vertexes;
-		vertexes = NULL;
+		vertexes = nullptr;
 	}
 	numvertexes = 0;
-	if (segs != NULL)
+	if (segs != nullptr)
 	{
 		delete[] segs;
-		segs = NULL;
+		segs = nullptr;
 	}
 	numsegs = 0;
-	if (glsegextras != NULL)
+	if (glsegextras != nullptr)
 	{
 		delete[] glsegextras;
-		glsegextras = NULL;
+		glsegextras = nullptr;
 	}
-	if (sectors != NULL)
+	if (sectors != nullptr)
 	{
 		delete[] sectors[0].e;
 		delete[] sectors;
-		sectors = NULL;
+		sectors = nullptr;
 	}
 	numsectors = 0;
-	if (gamenodes != NULL && gamenodes != nodes)
+	if (gamenodes != nullptr && gamenodes != nodes)
 	{
 		delete[] gamenodes;
 	}
-	if (gamesubsectors != NULL && gamesubsectors != subsectors)
+	if (gamesubsectors != nullptr && gamesubsectors != subsectors)
 	{
 		delete[] gamesubsectors;
 	}
-	if (subsectors != NULL)
+	if (subsectors != nullptr)
 	{
 		for (int i = 0; i < numsubsectors; ++i)
 		{
-			if (subsectors[i].BSP != NULL)
+			if (subsectors[i].BSP != nullptr)
 			{
 				delete subsectors[i].BSP;
 			}
 		}
 		delete[] subsectors;
 	}
-	if (nodes != NULL)
+	if (nodes != nullptr)
 	{
 		delete[] nodes;
 	}
-	subsectors = gamesubsectors = NULL;
+	subsectors = gamesubsectors = nullptr;
 	numsubsectors = numgamesubsectors = 0;
-	nodes = gamenodes = NULL;
+	nodes = gamenodes = nullptr;
 	numnodes = numgamenodes = 0;
-	if (lines != NULL)
+	if (lines != nullptr)
 	{
 		delete[] lines;
-		lines = NULL;
+		lines = nullptr;
 	}
 	numlines = 0;
-	if (sides != NULL)
+	if (sides != nullptr)
 	{
 		delete[] sides;
-		sides = NULL;
+		sides = nullptr;
 	}
 	numsides = 0;
 
-	if (blockmaplump != NULL)
+	if (blockmaplump != nullptr)
 	{
 		delete[] blockmaplump;
-		blockmaplump = NULL;
+		blockmaplump = nullptr;
 	}
-	if (blocklinks != NULL)
+	if (blocklinks != nullptr)
 	{
 		delete[] blocklinks;
-		blocklinks = NULL;
+		blocklinks = nullptr;
 	}
-	if (PolyBlockMap != NULL)
+	if (PolyBlockMap != nullptr)
 	{
 		for (int i = bmapwidth*bmapheight-1; i >= 0; --i)
 		{
 			polyblock_t *link = PolyBlockMap[i];
-			while (link != NULL)
+			while (link != nullptr)
 			{
 				polyblock_t *next = link->next;
 				delete link;
@@ -3469,35 +3469,35 @@ void P_FreeLevelData ()
 			}
 		}
 		delete[] PolyBlockMap;
-		PolyBlockMap = NULL;
+		PolyBlockMap = nullptr;
 	}
-	if (rejectmatrix != NULL)
+	if (rejectmatrix != nullptr)
 	{
 		delete[] rejectmatrix;
-		rejectmatrix = NULL;
+		rejectmatrix = nullptr;
 	}
-	if (linebuffer != NULL)
+	if (linebuffer != nullptr)
 	{
 		delete[] linebuffer;
-		linebuffer = NULL;
+		linebuffer = nullptr;
 	}
-	if (polyobjs != NULL)
+	if (polyobjs != nullptr)
 	{
 		delete[] polyobjs;
-		polyobjs = NULL;
+		polyobjs = nullptr;
 	}
 	po_NumPolyobjs = 0;
-	if (zones != NULL)
+	if (zones != nullptr)
 	{
 		delete[] zones;
-		zones = NULL;
+		zones = nullptr;
 	}
 	numzones = 0;
 	P_FreeStrifeConversations ();
-	if (level.Scrolls != NULL)
+	if (level.Scrolls != nullptr)
 	{
 		delete[] level.Scrolls;
-		level.Scrolls = NULL;
+		level.Scrolls = nullptr;
 	}
 	P_ClearUDMFKeys();
 }
@@ -3511,24 +3511,24 @@ void P_FreeExtraLevelData()
 	// P_FreeLevelData() first, or they might not all be freed.
 	{
 		FBlockNode *node = FBlockNode::FreeBlocks;
-		while (node != NULL)
+		while (node != nullptr)
 		{
 			FBlockNode *next = node->NextBlock;
 			delete node;
 			node = next;
 		}
-		FBlockNode::FreeBlocks = NULL;
+		FBlockNode::FreeBlocks = nullptr;
 	}
 	{
 		msecnode_t *node = headsecnode;
 
-		while (node != NULL)
+		while (node != nullptr)
 		{
 			msecnode_t *next = node->m_snext;
 			M_Free (node);
 			node = next;
 		}
-		headsecnode = NULL;
+		headsecnode = nullptr;
 	}
 }
 
@@ -3544,7 +3544,7 @@ void P_SetupLevel (const char *lumpname, int position)
 	int numbuildthings;
 	int i;
 	bool buildmap;
-	const int *oldvertextable = NULL;
+	const int *oldvertextable = nullptr;
 
 	// This is motivated as follows:
 
@@ -3576,16 +3576,16 @@ void P_SetupLevel (const char *lumpname, int position)
 	}
 	for (i = 0; i < MAXPLAYERS; ++i)
 	{
-		players[i].mo = NULL;
+		players[i].mo = nullptr;
 	}
 	// [RH] Clear any scripted translation colors the previous level may have set.
 	for (i = 0; i < int(translationtables[TRANSLATION_LevelScripted].Size()); ++i)
 	{
 		FRemapTable *table = translationtables[TRANSLATION_LevelScripted][i];
-		if (table != NULL)
+		if (table != nullptr)
 		{
 			delete table;
-			translationtables[TRANSLATION_LevelScripted][i] = NULL;
+			translationtables[TRANSLATION_LevelScripted][i] = nullptr;
 		}
 	}
 	translationtables[TRANSLATION_LevelScripted].Clear();
@@ -3599,13 +3599,13 @@ void P_SetupLevel (const char *lumpname, int position)
 	AActor::ClearTIDHashes ();
 
 	// [RH] clear out the mid-screen message
-	C_MidPrint (NULL, NULL);
+	C_MidPrint (nullptr, nullptr);
 
 	// Free all level data from the previous map
 	P_FreeLevelData ();
 
 	MapData *map = P_OpenMapData(lumpname, true);
-	if (map == NULL)
+	if (map == nullptr)
 	{
 		I_Error("Unable to open map '%s'\n", lumpname);
 	}
@@ -3653,7 +3653,7 @@ void P_SetupLevel (const char *lumpname, int position)
 			{
 				// Has the user overridden the game's default translator with a commandline parameter?
 				translator = Args->CheckValue("-xlat");
-				if (translator == NULL) 
+				if (translator == nullptr) 
 				{
 					// Use the game's default.
 					translator = gameinfo.translator.GetChars();
@@ -3799,20 +3799,20 @@ void P_SetupLevel (const char *lumpname, int position)
 				Printf ("Error loading nodes: %s\n", error.GetMessage());
 
 				ForceNodeBuild = true;
-				if (subsectors != NULL)
+				if (subsectors != nullptr)
 				{
 					delete[] subsectors;
-					subsectors = NULL;
+					subsectors = nullptr;
 				}
-				if (segs != NULL)
+				if (segs != nullptr)
 				{
 					delete[] segs;
-					segs = NULL;
+					segs = nullptr;
 				}
-				if (nodes != NULL)
+				if (nodes != nullptr)
 				{
 					delete[] nodes;
-					nodes = NULL;
+					nodes = nullptr;
 				}
 			}
 		}
@@ -3933,7 +3933,7 @@ void P_SetupLevel (const char *lumpname, int position)
 	}
 	else
 	{
-		gamenodes=NULL;
+		gamenodes=nullptr;
 	}
 
 	if (RequireGLNodes)
@@ -3976,7 +3976,7 @@ void P_SetupLevel (const char *lumpname, int position)
 // not assumed to be from this one.
 
 	for (i = 0; i < BODYQUESIZE; i++)
-		bodyque[i] = NULL;
+		bodyque[i] = nullptr;
 
 	deathmatchstarts.Clear();
 	AllPlayerStarts.Clear();
@@ -3996,7 +3996,7 @@ void P_SetupLevel (const char *lumpname, int position)
 
 		for (i = 0; i < MAXPLAYERS; ++i)
 		{
-			if (playeringame[i] && players[i].mo != NULL)
+			if (playeringame[i] && players[i].mo != nullptr)
 				players[i].health = players[i].mo->health;
 		}
 		times[14].Unclock();
@@ -4015,7 +4015,7 @@ void P_SetupLevel (const char *lumpname, int position)
 		delete[] buildthings;
 	}
 	delete map;
-	if (oldvertextable != NULL)
+	if (oldvertextable != nullptr)
 	{
 		delete[] oldvertextable;
 	}
@@ -4032,9 +4032,9 @@ void P_SetupLevel (const char *lumpname, int position)
 	P_FinalizePortals();	// finalize line portals after polyobjects have been initialized. This info is needed for properly flagging them.
 	times[16].Unclock();
 
-	assert(sidetemp != NULL);
+	assert(sidetemp != nullptr);
 	delete[] sidetemp;
-	sidetemp = NULL;
+	sidetemp = nullptr;
 
 	// if deathmatch, randomly spawn the active players
 	if (deathmatch)
@@ -4043,7 +4043,7 @@ void P_SetupLevel (const char *lumpname, int position)
 		{
 			if (playeringame[i])
 			{
-				players[i].mo = NULL;
+				players[i].mo = nullptr;
 				G_DeathMatchSpawnPlayer (i);
 			}
 		}
@@ -4055,7 +4055,7 @@ void P_SetupLevel (const char *lumpname, int position)
 		{
 			if (playeringame[i])
 			{
-				players[i].mo = NULL;
+				players[i].mo = nullptr;
 				FPlayerStart *mthing = G_PickPlayerStart(i);
 				P_SpawnPlayer(mthing, i, (level.flags2 & LEVEL2_PRERAISEWEAPON) ? SPF_WEAPONFULLYUP : 0);
 			}
@@ -4140,10 +4140,10 @@ void P_SetupLevel (const char *lumpname, int position)
 	MapThingsUserDataIndex.Clear();
 	MapThingsUserData.Clear();
 
-	if (glsegextras != NULL)
+	if (glsegextras != nullptr)
 	{
 		delete[] glsegextras;
-		glsegextras = NULL;
+		glsegextras = nullptr;
 	}
 }
 

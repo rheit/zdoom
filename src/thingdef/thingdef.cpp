@@ -82,8 +82,8 @@ PClassActor *QuestItemClasses[31];
 //==========================================================================
 PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName parentName, bool native)
 {
-	PClassActor *replacee = NULL;
-	PClassActor *ti = NULL;
+	PClassActor *replacee = nullptr;
+	PClassActor *ti = nullptr;
 
 	PClassActor *parent = RUNTIME_CLASS(AActor);
 
@@ -92,7 +92,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 		parent = PClass::FindActor(parentName);
 		
 		PClassActor *p = parent;
-		while (p != NULL)
+		while (p != nullptr)
 		{
 			if (p->TypeName == typeName)
 			{
@@ -102,7 +102,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 			p = dyn_cast<PClassActor>(p->ParentClass);
 		}
 
-		if (parent == NULL)
+		if (parent == nullptr)
 		{
 			sc.Message(MSG_ERROR, "Parent type '%s' not found in %s", parentName.GetChars(), typeName.GetChars());
 			parent = RUNTIME_CLASS(AActor);
@@ -117,7 +117,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 	if (native)
 	{
 		ti = PClass::FindActor(typeName);
-		if (ti == NULL)
+		if (ti == nullptr)
 		{
 			extern void DumpTypeTable();
 			DumpTypeTable();
@@ -130,7 +130,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 			parent = RUNTIME_CLASS(AActor);
 			goto create;
 		}
-		else if (ti->Defaults != NULL)
+		else if (ti->Defaults != nullptr)
 		{
 			sc.Message(MSG_ERROR, "Redefinition of internal class '%s'", typeName.GetChars());
 			goto create;
@@ -144,7 +144,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 		ti = static_cast<PClassActor *>(parent->CreateDerivedClass (typeName, parent->Size));
 	}
 
-	ti->Replacee = ti->Replacement = NULL;
+	ti->Replacee = ti->Replacement = nullptr;
 	ti->DoomEdNum = -1;
 	return ti;
 }
@@ -163,12 +163,12 @@ void SetReplacement(FScanner &sc, PClassActor *info, FName replaceName)
 		// Get actor name
 		PClassActor *replacee = PClass::FindActor(replaceName);
 
-		if (replacee == NULL)
+		if (replacee == nullptr)
 		{
 			sc.ScriptMessage("Replaced type '%s' not found for %s", replaceName.GetChars(), info->TypeName.GetChars());
 			return;
 		}
-		if (replacee != NULL)
+		if (replacee != nullptr)
 		{
 			replacee->Replacement = info;
 			info->Replacee = replacee;
@@ -194,11 +194,11 @@ void FinishActor(const FScriptPosition &sc, PClassActor *info, Baggage &bag)
 	catch (CRecoverableError &err)
 	{
 		sc.Message(MSG_ERROR, "%s", err.GetMessage());
-		bag.statedef.MakeStateDefines(NULL);
+		bag.statedef.MakeStateDefines(nullptr);
 		return;
 	}
 	bag.statedef.InstallStates (info, defaults);
-	bag.statedef.MakeStateDefines(NULL);
+	bag.statedef.MakeStateDefines(nullptr);
 	if (bag.DropItemSet)
 	{
 		info->DropItems = bag.DropItemList;
@@ -263,7 +263,7 @@ static void FinishThingdef()
 	int errorcount = 0;
 	unsigned i;
 	int codesize = 0;
-	FILE *dump = NULL;
+	FILE *dump = nullptr;
 
 	if (Args->CheckParm("-dumpdisasm")) dump = fopen("disasm.txt", "w");
 
@@ -272,18 +272,18 @@ static void FinishThingdef()
 		FStateTempCall *tcall = StateTempCalls[i];
 		VMFunction *func;
 
-		assert(tcall->Code != NULL);
+		assert(tcall->Code != nullptr);
 
 		// Can we call this function directly without wrapping it in an
 		// anonymous function? e.g. Are we passing any parameters to it?
 		func = tcall->Code->GetDirectFunction();
-		if (func == NULL)
+		if (func == nullptr)
 		{
 			FCompileContext ctx(tcall->ActorClass);
 			tcall->Code = tcall->Code->Resolve(ctx);
 
 			// Make sure resolving it didn't obliterate it.
-			if (tcall->Code != NULL)
+			if (tcall->Code != nullptr)
 			{
 				VMFunctionBuilder buildit;
 
@@ -299,8 +299,8 @@ static void FinishThingdef()
 				
 				// Generate prototype for this anonymous function
 				TArray<PType *> args(3);
-				SetImplicitArgs(&args, NULL, tcall->ActorClass, VARF_Method | VARF_Action);
-				if (tcall->Proto != NULL)
+				SetImplicitArgs(&args, nullptr, tcall->ActorClass, VARF_Method | VARF_Action);
+				if (tcall->Proto != nullptr)
 				{
 					sfunc->Proto = NewPrototype(tcall->Proto->ReturnTypes, args);
 				}
@@ -312,7 +312,7 @@ static void FinishThingdef()
 
 				func = sfunc;
 
-				if (dump != NULL)
+				if (dump != nullptr)
 				{
 					char label[64];
 					int labellen = mysnprintf(label, countof(label), "Function %s.States[%d] (*%d)",
@@ -322,10 +322,10 @@ static void FinishThingdef()
 				}
 			}
 		}
-		if (tcall->Code != NULL)
+		if (tcall->Code != nullptr)
 		{
 			delete tcall->Code;
-			tcall->Code = NULL;
+			tcall->Code = nullptr;
 			for (int k = 0; k < tcall->NumStates; ++k)
 			{
 				tcall->ActorClass->OwnedStates[tcall->FirstState + k].SetAction(func);
@@ -353,12 +353,12 @@ static void FinishThingdef()
 			continue;
 		}
 
-		if (def->Damage != NULL)
+		if (def->Damage != nullptr)
 		{
 			FxDamageValue *dmg = (FxDamageValue *)ActorDamageFuncs[(uintptr_t)def->Damage - 1];
 			VMScriptFunction *sfunc;
 			sfunc = dmg->GetFunction();
-			if (sfunc == NULL)
+			if (sfunc == nullptr)
 			{
 				FCompileContext ctx(ti);
 				dmg->Resolve(ctx);
@@ -367,14 +367,14 @@ static void FinishThingdef()
 				dmg->Emit(&buildit);
 				sfunc = buildit.MakeFunction();
 				sfunc->NumArgs = 1;
-				sfunc->Proto = NULL;		///FIXME: Need a proper prototype here
+				sfunc->Proto = nullptr;		///FIXME: Need a proper prototype here
 				// Save this function in case this damage value was reused
 				// (which happens quite easily with inheritance).
 				dmg->SetFunction(sfunc);
 			}
 			def->Damage = sfunc;
 
-			if (dump != NULL && sfunc != NULL)
+			if (dump != nullptr && sfunc != nullptr)
 			{
 				char label[64];
 				int labellen = mysnprintf(label, countof(label), "Function %s.Damage",
@@ -384,7 +384,7 @@ static void FinishThingdef()
 			}
 		}
 	}
-	if (dump != NULL)
+	if (dump != nullptr)
 	{
 		fprintf(dump, "\n*************************************************************************\n%i code bytes\n", codesize * 4);
 		fclose(dump);
@@ -456,7 +456,7 @@ VMScriptFunction *CreateDamageFunction(int dmg)
 	if (dmg == 0)
 	{
 		// For zero damage, do not create a function so that the special collision detection case still works as before.
-		return NULL;
+		return nullptr;
 	}
 	else
 	{

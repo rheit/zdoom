@@ -50,14 +50,14 @@ sector_t *sector_t::NextSpecialSector (int type, sector_t *nogood) const
 	{
 		line_t *ln = lines[i];
 
-		if (NULL != (tsec = getNextSector (ln, this)) &&
+		if (nullptr != (tsec = getNextSector (ln, this)) &&
 			tsec != nogood &&
 			tsec->special == type)
 		{
 			return tsec;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //
@@ -81,7 +81,7 @@ double sector_t::FindLowestFloorSurrounding (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			ofloor = other->floorplane.ZatPoint (check->v1);
 			if (ofloor < floor && ofloor < floorplane.ZatPoint (check->v1))
@@ -97,7 +97,7 @@ double sector_t::FindLowestFloorSurrounding (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return floor;
 }
@@ -125,7 +125,7 @@ double sector_t::FindHighestFloorSurrounding (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			ofloor = other->floorplane.ZatPoint (check->v1);
 			if (ofloor > floor)
@@ -141,7 +141,7 @@ double sector_t::FindHighestFloorSurrounding (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return floor;
 }
@@ -177,7 +177,7 @@ double sector_t::FindNextHighestFloor (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			ofloor = other->floorplane.ZatPoint (check->v1);
 			floor = floorplane.ZatPoint (check->v1);
@@ -197,7 +197,7 @@ double sector_t::FindNextHighestFloor (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -232,7 +232,7 @@ double sector_t::FindNextLowestFloor (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			ofloor = other->floorplane.ZatPoint (check->v1);
 			floor = floorplane.ZatPoint (check->v1);
@@ -252,7 +252,7 @@ double sector_t::FindNextLowestFloor (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -287,7 +287,7 @@ double sector_t::FindNextLowestCeiling (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			oceil = other->ceilingplane.ZatPoint(check->v1);
 			ceil = ceilingplane.ZatPoint(check->v1);
@@ -307,7 +307,7 @@ double sector_t::FindNextLowestCeiling (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -341,7 +341,7 @@ double sector_t::FindNextHighestCeiling (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			oceil = other->ceilingplane.ZatPoint(check->v1);
 			ceil = ceilingplane.ZatPoint(check->v1);
@@ -361,7 +361,7 @@ double sector_t::FindNextHighestCeiling (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -386,7 +386,7 @@ double sector_t::FindLowestCeilingSurrounding (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			oceil = other->ceilingplane.ZatPoint(check->v1);
 			if (oceil < height)
@@ -402,7 +402,7 @@ double sector_t::FindLowestCeilingSurrounding (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -428,7 +428,7 @@ double sector_t::FindHighestCeilingSurrounding (vertex_t **v) const
 	for (i = 0; i < linecount; i++)
 	{
 		check = lines[i];
-		if (NULL != (other = getNextSector (check, this)))
+		if (nullptr != (other = getNextSector (check, this)))
 		{
 			oceil = other->ceilingplane.ZatPoint(check->v1);
 			if (oceil > height)
@@ -444,7 +444,7 @@ double sector_t::FindHighestCeilingSurrounding (vertex_t **v) const
 			}
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -463,7 +463,7 @@ static inline void CheckShortestTex (FTextureID texnum, double &minsize)
 	if (texnum.isValid() || (texnum.isNull() && (i_compatflags & COMPATF_SHORTTEX)))
 	{
 		FTexture *tex = TexMan[texnum];
-		if (tex != NULL)
+		if (tex != nullptr)
 		{
 			double h = tex->GetScaledHeight();
 			if (h < minsize)
@@ -523,7 +523,7 @@ double sector_t::FindShortestUpperAround () const
 // a sector with that floor height across the lowest numbered two sided
 // line surrounding the sector.
 //
-// Note: If no sector at that height bounds the sector passed, return NULL
+// Note: If no sector at that height bounds the sector passed, return nullptr
 //
 // jff 02/03/98 Add routine to find numeric model floor
 //  around a sector specified by sector number
@@ -540,14 +540,14 @@ sector_t *sector_t::FindModelFloorSector (double floordestheight) const
 	for (i = 0; i < linecount; i++)
 	{
 		sec = getNextSector (lines[i], this);
-		if (sec != NULL &&
+		if (sec != nullptr &&
 			(sec->floorplane.ZatPoint(lines[i]->v1) == floordestheight ||
 			 sec->floorplane.ZatPoint(lines[i]->v2) == floordestheight))
 		{
 			return sec;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -558,7 +558,7 @@ sector_t *sector_t::FindModelFloorSector (double floordestheight) const
 // a sector with that ceiling height across the lowest numbered two sided
 // line surrounding the sector.
 //
-// Note: If no sector at that height bounds the sector passed, return NULL
+// Note: If no sector at that height bounds the sector passed, return nullptr
 //
 // jff 02/03/98 Add routine to find numeric model ceiling
 //  around a sector specified by sector number
@@ -576,14 +576,14 @@ sector_t *sector_t::FindModelCeilingSector (double floordestheight) const
 	for (i = 0; i < linecount; i++)
 	{
 		sec = getNextSector (lines[i], this);
-		if (sec != NULL &&
+		if (sec != nullptr &&
 			(sec->ceilingplane.ZatPoint(lines[i]->v1) == floordestheight ||
 			 sec->ceilingplane.ZatPoint(lines[i]->v2) == floordestheight))
 		{
 			return sec;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //
@@ -598,7 +598,7 @@ int sector_t::FindMinSurroundingLight (int min) const
 	for (i = 0; i < linecount; i++)
 	{
 		line = lines[i];
-		if (NULL != (check = getNextSector (line, this)) &&
+		if (nullptr != (check = getNextSector (line, this)) &&
 			check->lightlevel < min)
 		{
 			min = check->lightlevel;
@@ -616,11 +616,11 @@ double sector_t::FindHighestFloorPoint (vertex_t **v) const
 	line_t *line;
 	double height = -FLT_MAX;
 	double probeheight;
-	vertex_t *spot = NULL;
+	vertex_t *spot = nullptr;
 
 	if (!floorplane.isSlope())
 	{
-		if (v != NULL)
+		if (v != nullptr)
 		{
 			if (linecount == 0) *v = &vertexes[0];
 			else *v = lines[0]->v1;
@@ -644,7 +644,7 @@ double sector_t::FindHighestFloorPoint (vertex_t **v) const
 			spot = line->v2;
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -658,11 +658,11 @@ double sector_t::FindLowestCeilingPoint (vertex_t **v) const
 	line_t *line;
 	double height = FLT_MAX;
 	double probeheight;
-	vertex_t *spot = NULL;
+	vertex_t *spot = nullptr;
 
 	if (!ceilingplane.isSlope())
 	{
-		if (v != NULL)
+		if (v != nullptr)
 		{
 			if (linecount == 0) *v = &vertexes[0];
 			else *v = lines[0]->v1;
@@ -686,7 +686,7 @@ double sector_t::FindLowestCeilingPoint (vertex_t **v) const
 			spot = line->v2;
 		}
 	}
-	if (v != NULL)
+	if (v != nullptr)
 		*v = spot;
 	return height;
 }
@@ -773,9 +773,9 @@ void sector_t::ClosestPoint(const DVector2 &in, DVector2 &out) const
 bool sector_t::PlaneMoving(int pos)
 {
 	if (pos == floor)
-		return (floordata != NULL || (planes[floor].Flags & PLANEF_BLOCKED));
+		return (floordata != nullptr || (planes[floor].Flags & PLANEF_BLOCKED));
 	else
-		return (ceilingdata != NULL || (planes[ceiling].Flags & PLANEF_BLOCKED));
+		return (ceilingdata != nullptr || (planes[ceiling].Flags & PLANEF_BLOCKED));
 }
 
 
@@ -816,13 +816,13 @@ FSectorPortal *sector_t::ValidatePortal(int which)
 
 sector_t *sector_t::GetHeightSec() const 
 {
-	if (heightsec == NULL)
+	if (heightsec == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (heightsec->MoreFlags & SECF_IGNOREHEIGHTSEC)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (e && e->XFloor.ffloors.Size())
 	{
@@ -831,7 +831,7 @@ sector_t *sector_t::GetHeightSec() const
 		{
 			if ((e->XFloor.ffloors[i]->flags & (FF_EXISTS | FF_RENDERPLANES)) == (FF_EXISTS | FF_RENDERPLANES))
 			{
-				return NULL;
+				return nullptr;
 			}
 		}
 	}
@@ -961,7 +961,7 @@ double sector_t::NextHighestCeilingAt(double x, double y, double bottomz, double
 		}
 		if ((flags & FFCF_NOPORTALS) || sec->PortalBlocksMovement(ceiling) || planeheight >= sec->GetPortalPlaneZ(ceiling))
 		{ // Use sector's floor
-			if (resultffloor) *resultffloor = NULL;
+			if (resultffloor) *resultffloor = nullptr;
 			if (resultsec) *resultsec = sec;
 			return realceil;
 		}
@@ -1006,7 +1006,7 @@ double sector_t::NextLowestFloorAt(double x, double y, double z, int flags, doub
 		}
 		if ((flags & FFCF_NOPORTALS) || sec->PortalBlocksMovement(sector_t::floor) || planeheight <= sec->GetPortalPlaneZ(floor))
 		{ // Use sector's floor
-			if (resultffloor) *resultffloor = NULL;
+			if (resultffloor) *resultffloor = nullptr;
 			if (resultsec) *resultsec = sec;
 			return realfloor;
 		}
@@ -1152,7 +1152,7 @@ static FNodeBuilder PolyNodeBuilder(PolyNodeLevel);
 
 void subsector_t::BuildPolyBSP()
 {
-	assert((BSP == NULL || BSP->bDirty) && "BSP computed more than once");
+	assert((BSP == nullptr || BSP->bDirty) && "BSP computed more than once");
 
 	// Set up level information for the node builder.
 	PolyNodeLevel.Sides = sides;
@@ -1163,12 +1163,12 @@ void subsector_t::BuildPolyBSP()
 	// Feed segs to the nodebuilder and build the nodes.
 	PolyNodeBuilder.Clear();
 	PolyNodeBuilder.AddSegs(firstline, numlines);
-	for (FPolyNode *pn = polys; pn != NULL; pn = pn->pnext)
+	for (FPolyNode *pn = polys; pn != nullptr; pn = pn->pnext)
 	{
 		PolyNodeBuilder.AddPolySegs(&pn->segs[0], (int)pn->segs.Size());
 	}
 	PolyNodeBuilder.BuildMini(false);
-	if (BSP == NULL)
+	if (BSP == nullptr)
 	{
 		BSP = new FMiniBSP;
 	}
@@ -1204,7 +1204,7 @@ int side_t::GetLightLevel (bool foggy, int baselight, bool is3dlight, int *pfake
 		baselight = Light;
 	}
 
-	if (pfakecontrast != NULL)
+	if (pfakecontrast != nullptr)
 	{
 		*pfakecontrast = 0;
 	}
@@ -1230,7 +1230,7 @@ int side_t::GetLightLevel (bool foggy, int baselight, bool is3dlight, int *pfake
 				rel = delta.X == 0 ? level.WallVertLight : 
 					  delta.Y == 0 ? level.WallHorizLight : 0;
 			}
-			if (pfakecontrast != NULL)
+			if (pfakecontrast != nullptr)
 			{
 				*pfakecontrast = rel;
 			}

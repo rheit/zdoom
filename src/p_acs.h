@@ -158,14 +158,14 @@ struct ACSLocalArrays
 	ACSLocalArrays()
 	{
 		Count = 0;
-		Info = NULL;
+		Info = nullptr;
 	}
 	~ACSLocalArrays()
 	{
-		if (Info != NULL)
+		if (Info != nullptr)
 		{
 			delete[] Info;
-			Info = NULL;
+			Info = nullptr;
 		}
 	}
 
@@ -285,7 +285,7 @@ class FBehavior
 public:
 	FBehavior ();
 	~FBehavior ();
-	bool Init(int lumpnum, FileReader * fr = NULL, int len = 0);
+	bool Init(int lumpnum, FileReader * fr = nullptr, int len = 0);
 
 	bool IsGood ();
 	BYTE *FindChunk (DWORD id) const;
@@ -307,17 +307,17 @@ public:
 	int GetLibraryID () const { return LibraryID; }
 	int *GetScriptAddress (const ScriptPtr *ptr) const { return (int *)(ptr->Address + Data); }
 	int GetScriptIndex (const ScriptPtr *ptr) const { ptrdiff_t index = ptr - Scripts; return index >= NumScripts ? -1 : (int)index; }
-	ScriptPtr *GetScriptPtr(int index) const { return index >= 0 && index < NumScripts ? &Scripts[index] : NULL; }
+	ScriptPtr *GetScriptPtr(int index) const { return index >= 0 && index < NumScripts ? &Scripts[index] : nullptr; }
 	int GetLumpNum() const { return LumpNum; }
 	int GetDataSize() const { return DataSize; }
 	const char *GetModuleName() const { return ModuleName; }
-	ACSProfileInfo *GetFunctionProfileData(int index) { return index >= 0 && index < NumFunctions ? &FunctionProfileData[index] : NULL; }
+	ACSProfileInfo *GetFunctionProfileData(int index) { return index >= 0 && index < NumFunctions ? &FunctionProfileData[index] : nullptr; }
 	ACSProfileInfo *GetFunctionProfileData(ScriptFunction *func) { return GetFunctionProfileData((int)(func - (ScriptFunction *)Functions)); }
 	const char *LookupString (DWORD index) const;
 
 	SDWORD *MapVars[NUM_MAPVARS];
 
-	static FBehavior *StaticLoadModule (int lumpnum, FileReader * fr=NULL, int len=0);
+	static FBehavior *StaticLoadModule (int lumpnum, FileReader * fr=nullptr, int len=0);
 	static void StaticLoadDefaultModules ();
 	static void StaticUnloadModules ();
 	static bool StaticCheckAllGood ();

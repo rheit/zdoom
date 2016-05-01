@@ -391,7 +391,7 @@ static bool CheatCheckList (event_t *ev, cheatseq_t *cheats, int numcheats)
 
 static bool CheatAddKey (cheatseq_t *cheat, BYTE key, bool *eat)
 {
-	if (cheat->Pos == NULL)
+	if (cheat->Pos == nullptr)
 	{
 		cheat->Pos = cheat->Sequence;
 		cheat->CurrentArg = 0;

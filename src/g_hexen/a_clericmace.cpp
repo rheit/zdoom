@@ -24,7 +24,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CMaceAttack)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -41,7 +41,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CMaceAttack)
 			if (t.linetarget)
 			{
 				P_LineAttack(player->mo, angle, 2 * MELEERANGE, slope, damage, NAME_Melee, hammertime, true, &t);
-				if (t.linetarget != NULL)
+				if (t.linetarget != nullptr)
 				{
 					AdjustPlayerAngle(player->mo, &t);
 					return 0;

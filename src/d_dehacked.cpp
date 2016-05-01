@@ -192,7 +192,7 @@ static AmmoPerAttack AmmoPerAttacks[] = {
 	{ &A_FireBFG_VMPtr, -1},	// uses deh.BFGCells
 	{ &A_FireOldBFG_VMPtr, 1},
 	{ &A_FireRailgun_VMPtr, 1},
-	{ NULL, 0}
+	{ nullptr, 0}
 };
 
 
@@ -344,7 +344,7 @@ static const struct {
 	{ "[PARS]",		PatchPars },
 	{ "[CODEPTR]",	PatchCodePtrs },
 	{ "[MUSIC]",	PatchMusic },
-	{ NULL, NULL },
+	{ nullptr, nullptr },
 };
 
 static int HandleMode (const char *mode, int num);
@@ -423,13 +423,13 @@ static FState *FindState (int statenum)
 	unsigned i;
 
 	if (statenum == 0)
-		return NULL;
+		return nullptr;
 
 	for (i = 0, stateacc = 1; i < StateMap.Size(); i++)
 	{
 		if (stateacc <= statenum && stateacc + StateMap[i].StateSpan > statenum)
 		{
-			if (StateMap[i].State != NULL)
+			if (StateMap[i].State != nullptr)
 			{
 				if (StateMap[i].OwnerIsPickup)
 				{
@@ -437,11 +437,11 @@ static FState *FindState (int statenum)
 				}
 				return StateMap[i].State + statenum - stateacc;
 			}
-			else return NULL;
+			else return nullptr;
 		}
 		stateacc += StateMap[i].StateSpan;
 	}
-	return NULL;
+	return nullptr;
 }
 
 int FindStyle (const char *namestr)
@@ -569,7 +569,7 @@ static char *igets (void)
 	char *line;
 
 	if (*PatchPt == '\0' || PatchPt >= PatchFile + PatchSize )
-		return NULL;
+		return nullptr;
 
 	line = PatchPt;
 
@@ -669,7 +669,7 @@ static int CreateMushroomFunc(VMFunctionBuilder &buildit, int value1, int value2
 // misc1 = type (arg +0), misc2 = Z-pos (arg +2)
 static int CreateSpawnFunc(VMFunctionBuilder &buildit, int value1, int value2)
 { // A_SpawnItem
-	if (InfoNames[value1-1] == NULL)
+	if (InfoNames[value1-1] == nullptr)
 	{
 		I_Error("No class found for dehackednum %d!\n", value1+1);
 		return 0;
@@ -787,7 +787,7 @@ void SetDehParams(FState *state, int codepointer)
 	int value2 = state->GetMisc2();
 	if (!(value1|value2)) return;
 	
-	// Fakey fake script position thingamajig. Because NULL cannot be used instead.
+	// Fakey fake script position thingamajig. Because nullptr cannot be used instead.
 	// Even if the lump was parsed by an FScanner, there would hardly be a way to
 	// identify which line is troublesome.
 	FScriptPosition *pos = new FScriptPosition(FString("DEHACKED"), 0);
@@ -795,7 +795,7 @@ void SetDehParams(FState *state, int codepointer)
 	// Let's identify the codepointer we're dealing with.
 	PFunction *sym;
 	sym = dyn_cast<PFunction>(RUNTIME_CLASS(AInventory)->Symbols.FindSymbol(FName(MBFCodePointers[codepointer].name), true));
-	if (sym == NULL) return;
+	if (sym == nullptr) return;
 
 	if (codepointer < 0 || (unsigned)codepointer >= countof(MBFCodePointerFactories))
 	{
@@ -851,7 +851,7 @@ static int PatchThing (int thingy)
 	PClassActor *type;
 	SWORD *ednum, dummyed;
 
-	type = NULL;
+	type = nullptr;
 	info = (AActor *)&dummy;
 	ednum = &dummyed;
 	if (thingy > (int)InfoNames.Size() || thingy <= 0)
@@ -864,7 +864,7 @@ static int PatchThing (int thingy)
 		if (thingy > 0)
 		{
 			type = InfoNames[thingy - 1];
-			if (type == NULL)
+			if (type == nullptr)
 			{
 				info = (AActor *)&dummy;
 				ednum = &dummyed;
@@ -939,7 +939,7 @@ static int PatchThing (int thingy)
 			{
 				stripwhite (Line2);
 				const FDecalTemplate *decal = DecalLibrary.GetDecalByName (Line2);
-				if (decal != NULL)
+				if (decal != nullptr)
 				{
 					info->DecalGenerator = const_cast <FDecalTemplate *>(decal);
 				}
@@ -976,7 +976,7 @@ static int PatchThing (int thingy)
 			{
 				FState *state = FindState (val);
 
-				if (type != NULL && !patchedStates)
+				if (type != nullptr && !patchedStates)
 				{
 					statedef.MakeStateDefines(type);
 					patchedStates = true;
@@ -1058,15 +1058,15 @@ static int PatchThing (int thingy)
 				bool zdoomflags = false;
 				char *strval;
 
-				for (strval = Line2; (strval = strtok (strval, ",+| \t\f\r")); strval = NULL)
+				for (strval = Line2; (strval = strtok (strval, ",+| \t\f\r")); strval = nullptr)
 				{
 					if (IsNum (strval))
 					{
 						// I have no idea why everyone insists on using strtol here even though it fails
 						// dismally if a value is parsed where the highest bit it set. Do people really
 						// use negative values here? Let's better be safe and check both.
-						if (strchr(strval, '-')) value[0] |= (unsigned long)strtol(strval, NULL, 10);
-						else value[0] |= (unsigned long)strtoul(strval, NULL, 10);
+						if (strchr(strval, '-')) value[0] |= (unsigned long)strtol(strval, nullptr, 10);
+						else value[0] |= (unsigned long)strtoul(strval, nullptr, 10);
 						vchanged[0] = true;
 					}
 					else
@@ -1523,8 +1523,8 @@ static int PatchSprite (int sprNum)
 
 static int PatchAmmo (int ammoNum)
 {
-	PClassAmmo *ammoType = NULL;
-	AAmmo *defaultAmmo = NULL;
+	PClassAmmo *ammoType = nullptr;
+	AAmmo *defaultAmmo = nullptr;
 	int result;
 	int oldclip;
 	int dummy;
@@ -1535,10 +1535,10 @@ static int PatchAmmo (int ammoNum)
 	{
 		DPrintf ("Ammo %d.\n", ammoNum);
 		ammoType = AmmoNames[ammoNum];
-		if (ammoType != NULL)
+		if (ammoType != nullptr)
 		{
 			defaultAmmo = (AAmmo *)GetDefaultByType (ammoType);
-			if (defaultAmmo != NULL)
+			if (defaultAmmo != nullptr)
 			{
 				max = &defaultAmmo->MaxAmount;
 				per = &defaultAmmo->Amount;
@@ -1546,7 +1546,7 @@ static int PatchAmmo (int ammoNum)
 		}
 	}
 
-	if (ammoType == NULL)
+	if (ammoType == nullptr)
 	{
 		Printf ("Ammo %d out of range.\n", ammoNum);
 	}
@@ -1561,7 +1561,7 @@ static int PatchAmmo (int ammoNum)
 	}
 
 	// Calculate the new backpack-given amounts for this ammo.
-	if (ammoType != NULL)
+	if (ammoType != nullptr)
 	{
 		defaultAmmo->BackpackMaxAmount = defaultAmmo->MaxAmount * 2;
 		defaultAmmo->BackpackAmount = defaultAmmo->Amount;
@@ -1604,7 +1604,7 @@ static int PatchAmmo (int ammoNum)
 static int PatchWeapon (int weapNum)
 {
 	int result;
-	PClassActor *type = NULL;
+	PClassActor *type = nullptr;
 	BYTE dummy[sizeof(AWeapon)];
 	AWeapon *info = (AWeapon *)&dummy;
 	bool patchedStates = false;
@@ -1613,14 +1613,14 @@ static int PatchWeapon (int weapNum)
 	if (weapNum >= 0 && weapNum < 9 && (unsigned)weapNum < WeaponNames.Size())
 	{
 		type = WeaponNames[weapNum];
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			info = (AWeapon *)GetDefaultByType (type);
 			DPrintf ("Weapon %d\n", weapNum);
 		}
 	}
 
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		Printf ("Weapon %d out of range.\n", weapNum);
 	}
@@ -1635,7 +1635,7 @@ static int PatchWeapon (int weapNum)
 			{
 				FState *state = FindState (val);
 
-				if (type != NULL && !patchedStates)
+				if (type != nullptr && !patchedStates)
 				{
 					statedef.MakeStateDefines(type);
 					patchedStates = true;
@@ -1659,7 +1659,7 @@ static int PatchWeapon (int weapNum)
 					val = 5;
 				}
 				info->AmmoType1 = AmmoNames[val];
-				if (info->AmmoType1 != NULL)
+				if (info->AmmoType1 != nullptr)
 				{
 					info->AmmoGive1 = ((AAmmo*)GetDefaultByType (info->AmmoType1))->Amount * 2;
 					if (info->AmmoUse1 == 0)
@@ -1677,7 +1677,7 @@ static int PatchWeapon (int weapNum)
 		{
 			stripwhite (Line2);
 			const FDecalTemplate *decal = DecalLibrary.GetDecalByName (Line2);
-			if (decal != NULL)
+			if (decal != nullptr)
 			{
 				info->DecalGenerator = const_cast <FDecalTemplate *>(decal);
 			}
@@ -1701,7 +1701,7 @@ static int PatchWeapon (int weapNum)
 		}
 	}
 
-	if (info->AmmoType1 == NULL)
+	if (info->AmmoType1 == nullptr)
 	{
 		info->AmmoUse1 = 0;
 	}
@@ -1716,7 +1716,7 @@ static int PatchWeapon (int weapNum)
 
 static void SetPointer(FState *state, PFunction *sym, int frame = 0)
 {
-	if (sym == NULL)
+	if (sym == nullptr)
 	{
 		state->ClearAction();
 		return;
@@ -1747,7 +1747,7 @@ static int PatchPointer (int ptrNum)
 	char * key;
 	int indexnum;
 	key=strchr(Line2, '(');
-	if (key++) key=strchr(key, ' '); else key=NULL;
+	if (key++) key=strchr(key, ' '); else key=nullptr;
 	if ((ptrNum == 0) && key++)
 	{
 		*strchr(key, ')') = '\0';
@@ -1782,7 +1782,7 @@ static int PatchPointer (int ptrNum)
 				int index = atoi(Line2);
 				if ((unsigned)(index) >= Actions.Size())
 				{
-					SetPointer(state, NULL);
+					SetPointer(state, nullptr);
 				}
 				else
 				{
@@ -1831,7 +1831,7 @@ static int PatchMisc (int dummy)
 		{ "IDKFA Armor",			static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,KFAArmor)) },
 		{ "IDKFA Armor Class",		static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,KFAAC)) },
 		{ "No Autofreeze",			static_cast<ptrdiff_t>(myoffsetof(struct DehInfo,NoAutofreeze)) },
-		{ NULL, 0 }
+		{ nullptr, 0 }
 	};
 	int result;
 
@@ -1879,7 +1879,7 @@ static int PatchMisc (int dummy)
 					"Wings of Wrath",
 					"Speed",
 					"Minotaur",
-					NULL
+					nullptr
 				};
 				static const PClass * const *types[] =
 				{
@@ -1894,14 +1894,14 @@ static int PatchMisc (int dummy)
 				};
 				int i;
 
-				for (i = 0; names[i] != NULL; ++i)
+				for (i = 0; names[i] != nullptr; ++i)
 				{
 					if (stricmp (Line1 + 14, names[i]) == 0)
 					{
 						break;
 					}
 				}
-				if (names[i] == NULL)
+				if (names[i] == nullptr)
 				{
 					Printf ("Unknown miscellaneous info %s.\n", Line1);
 				}
@@ -1940,13 +1940,13 @@ static int PatchMisc (int dummy)
 	ABasicArmorPickup *armor;
 
 	armor = static_cast<ABasicArmorPickup *> (GetDefaultByName ("GreenArmor"));
-	if (armor!=NULL)
+	if (armor!=nullptr)
 	{
 		armor->SaveAmount = 100 * deh.GreenAC;
 		armor->SavePercent = deh.GreenAC == 1 ? 0.33335 : 0.5;
 	}
 	armor = static_cast<ABasicArmorPickup *> (GetDefaultByName ("BlueArmor"));
-	if (armor!=NULL)
+	if (armor!=nullptr)
 	{
 		armor->SaveAmount = 100 * deh.BlueAC;
 		armor->SavePercent = deh.BlueAC == 1 ? 0.33335 : 0.5;
@@ -1954,39 +1954,39 @@ static int PatchMisc (int dummy)
 
 	ABasicArmorBonus *barmor;
 	barmor = static_cast<ABasicArmorBonus *> (GetDefaultByName ("ArmorBonus"));
-	if (barmor!=NULL)
+	if (barmor!=nullptr)
 	{
 		barmor->MaxSaveAmount = deh.MaxArmor;
 	}
 
 	AHealth *health;
 	health = static_cast<AHealth *> (GetDefaultByName ("HealthBonus"));
-	if (health!=NULL) 
+	if (health!=nullptr) 
 	{
 		health->MaxAmount = 2 * deh.MaxHealth;
 	}
 
 	health = static_cast<AHealth *> (GetDefaultByName ("Soulsphere"));
-	if (health!=NULL)
+	if (health!=nullptr)
 	{
 		health->Amount = deh.SoulsphereHealth;
 		health->MaxAmount = deh.MaxSoulsphere;
 	}
 
 	health = static_cast<AHealth *> (GetDefaultByName ("MegasphereHealth"));
-	if (health!=NULL)
+	if (health!=nullptr)
 	{
 		health->Amount = health->MaxAmount = deh.MegasphereHealth;
 	}
 
 	APlayerPawn *player = static_cast<APlayerPawn *> (GetDefaultByName ("DoomPlayer"));
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		player->health = deh.StartHealth;
 
 		// Hm... I'm not sure that this is the right way to change this info...
 		DDropItem *di = PClass::FindActor(NAME_DoomPlayer)->DropItems;
-		while (di != NULL)
+		while (di != nullptr)
 		{
 			if (di->Name == NAME_Clip)
 			{
@@ -2076,13 +2076,13 @@ static int PatchCodePtrs (int dummy)
 			FState *state = FindState (frame);
 
 			stripwhite (Line2);
-			if (state == NULL)
+			if (state == nullptr)
 			{
 				Printf ("Frame %d out of range\n", frame);
 			}
-			else if (!stricmp(Line2, "NULL"))
+			else if (!stricmp(Line2, "nullptr"))
 			{
-				SetPointer(state, NULL);
+				SetPointer(state, nullptr);
 			}
 			else
 			{
@@ -2107,7 +2107,7 @@ static int PatchCodePtrs (int dummy)
 				// This skips the action table and goes directly to the internal symbol table
 				// DEH compatible functions are easy to recognize.
 				PFunction *sym = dyn_cast<PFunction>(RUNTIME_CLASS(AInventory)->Symbols.FindSymbol(symname, true));
-				if (sym == NULL)
+				if (sym == nullptr)
 				{
 					Printf("Frame %d: Unknown code pointer '%s'\n", frame, Line2);
 				}
@@ -2117,7 +2117,7 @@ static int PatchCodePtrs (int dummy)
 					if ((sym->Flags & (VARF_Method | VARF_Action)) != (VARF_Method | VARF_Action) || (args.Size() > 3 && !(args[3] & VARF_Optional)))
 					{
 						Printf("Frame %d: Incompatible code pointer '%s'\n", frame, Line2);
-						sym = NULL;
+						sym = nullptr;
 					}
 				}
 				SetPointer(state, sym, frame);
@@ -2252,14 +2252,14 @@ static int PatchText (int oldSize)
 	do
 	{
 		str = EnglishStrings->MatchString(oldStr);
-		if (str != NULL)
+		if (str != nullptr)
 		{
 			GStrings.SetString(str, newStr);
 			EnglishStrings->SetString(str, "~~");	// set to something invalid so that it won't get found again by the next iteration or  by another replacement later
 			good = true;
 		}
 	} 
-	while (str != NULL);	// repeat search until the text can no longer be found
+	while (str != nullptr);	// repeat search until the text can no longer be found
 
 	if (!good)
 	{
@@ -2299,7 +2299,7 @@ static int PatchStrings (int dummy)
 			}
 			else
 			{
-				Line2 = NULL;
+				Line2 = nullptr;
 			}
 		} while (Line2 && *Line2);
 
@@ -2360,10 +2360,10 @@ static int DoInclude (int dummy)
 
 		// Try looking for the included file in the same directory
 		// as the patch before looking in the current file.
-		const char *lastSlash = savepatchname ? strrchr (savepatchname, '/') : NULL;
+		const char *lastSlash = savepatchname ? strrchr (savepatchname, '/') : nullptr;
 		char *path = data;
 
-		if (lastSlash != NULL)
+		if (lastSlash != nullptr)
 		{
 			size_t pathlen = lastSlash - savepatchname + strlen (data) + 2;
 			path = new char[pathlen];
@@ -2405,7 +2405,7 @@ static bool isDehFile(int lumpnum)
 	const char* const fullName  = Wads.GetLumpFullName(lumpnum);
 	const char* const extension = strrchr(fullName, '.');
 
-	return NULL != extension && strchr(fullName, '/') == NULL
+	return nullptr != extension && strchr(fullName, '/') == nullptr
 		&& (0 == stricmp(extension, ".deh") || 0 == stricmp(extension, ".bex"));
 }
 
@@ -2464,7 +2464,7 @@ bool D_LoadDehFile(const char *patchfile)
 	FILE *deh;
 
 	deh = fopen(patchfile, "rb");
-	if (deh != NULL)
+	if (deh != nullptr)
 	{
 		PatchSize = Q_filelength(deh);
 
@@ -2638,16 +2638,16 @@ static void UnloadDehSupp ()
 		AmmoNames.Clear();
 		AmmoNames.ShrinkToFit();
 
-		if (UnchangedSpriteNames != NULL)
+		if (UnchangedSpriteNames != nullptr)
 		{
 			delete[] UnchangedSpriteNames;
-			UnchangedSpriteNames = NULL;
+			UnchangedSpriteNames = nullptr;
 			NumUnchangedSprites = 0;
 		}
-		if (EnglishStrings != NULL)
+		if (EnglishStrings != nullptr)
 		{
 			delete EnglishStrings;
-			EnglishStrings = NULL;
+			EnglishStrings = nullptr;
 		}
 	}
 }
@@ -2679,13 +2679,13 @@ static bool LoadDehSupp ()
 			return true;
 		}
 
-		if (EnglishStrings == NULL)
+		if (EnglishStrings == nullptr)
 		{
 			EnglishStrings = new FStringTable;
 			EnglishStrings->LoadStrings (true);
 		}
 
-		if (UnchangedSpriteNames == NULL)
+		if (UnchangedSpriteNames == nullptr)
 		{
 			UnchangedSpriteNames = new char[sprites.Size()*4];
 			NumUnchangedSprites = sprites.Size();
@@ -2708,9 +2708,9 @@ static bool LoadDehSupp ()
 				while (!sc.CheckString("}"))
 				{
 					sc.MustGetString();
-					if (sc.Compare("NULL"))
+					if (sc.Compare("nullptr"))
 					{
-						Actions.Push(NULL);
+						Actions.Push(nullptr);
 					}
 					else
 					{
@@ -2719,7 +2719,7 @@ static bool LoadDehSupp ()
 						FString name = "A_";
 						name << sc.String;
 						PFunction *sym = dyn_cast<PFunction>(RUNTIME_CLASS(AInventory)->Symbols.FindSymbol(name, true));
-						if (sym == NULL)
+						if (sym == nullptr)
 						{
 							sc.ScriptError("Unknown code pointer '%s'", sc.String);
 						}
@@ -2796,7 +2796,7 @@ static bool LoadDehSupp ()
 					sc.MustGetString();
 
 					PClass *type = PClass::FindClass (sc.String);
-					if (type == NULL)
+					if (type == nullptr)
 					{
 						sc.ScriptError ("Can't find type %s", sc.String);
 					}
@@ -2809,14 +2809,14 @@ static bool LoadDehSupp ()
 					sc.MustGetString();
 					PClassActor *actortype = static_cast<PClassActor *>(type);
 					s.State = actortype->FindState(sc.String);
-					if (s.State == NULL)
+					if (s.State == nullptr)
 					{
 						sc.ScriptError("Invalid state '%s' in '%s'", sc.String, type->TypeName.GetChars());
 					}
 
 					sc.MustGetStringName(",");
 					sc.MustGetNumber();
-					if (s.State == NULL || s.State + sc.Number > actortype->OwnedStates + actortype->NumOwnedStates)
+					if (s.State == nullptr || s.State + sc.Number > actortype->OwnedStates + actortype->NumOwnedStates)
 					{
 						sc.ScriptError("Invalid state range in '%s'", type->TypeName.GetChars());
 					}
@@ -2824,7 +2824,7 @@ static bool LoadDehSupp ()
 					
 					s.StateSpan = sc.Number;
 					s.Owner = actortype;
-					s.OwnerIsPickup = def != NULL && (def->flags & MF_SPECIAL) != 0;
+					s.OwnerIsPickup = def != nullptr && (def->flags & MF_SPECIAL) != 0;
 					if (addit) StateMap.Push(s);
 
 					if (sc.CheckString("}")) break;
@@ -2849,7 +2849,7 @@ static bool LoadDehSupp ()
 				{
 					sc.MustGetString();
 					PClassActor *cls = PClass::FindActor(sc.String);
-					if (cls == NULL)
+					if (cls == nullptr)
 					{
 						sc.ScriptError("Unknown actor type '%s'", sc.String);
 					}
@@ -2909,14 +2909,14 @@ static bool LoadDehSupp ()
 				while (!sc.CheckString("}"))
 				{
 					sc.MustGetString();
-					if (sc.Compare("NULL"))
+					if (sc.Compare("nullptr"))
 					{
-						AmmoNames.Push(NULL);
+						AmmoNames.Push(nullptr);
 					}
 					else
 					{
 						PClassAmmo *cls = dyn_cast<PClassAmmo>(PClass::FindClass(sc.String));
-						if (cls == NULL)
+						if (cls == nullptr)
 						{
 							sc.ScriptError("Unknown ammo type '%s'", sc.String);
 						}
@@ -2934,7 +2934,7 @@ static bool LoadDehSupp ()
 				{
 					sc.MustGetString();
 					PClass *cls = PClass::FindClass(sc.String);
-					if (cls == NULL || !cls->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+					if (cls == nullptr || !cls->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
 					{
 						sc.ScriptError("Unknown weapon type '%s'", sc.String);
 					}
@@ -3021,7 +3021,7 @@ void FinishDehPatch ()
 		subclass->Replacee = type;
 		// If this actor was already replaced by another actor, copy that
 		// replacement over to this item.
-		if (old_replacement != NULL)
+		if (old_replacement != nullptr)
 		{
 			subclass->Replacement = old_replacement;
 		}
@@ -3057,15 +3057,15 @@ void FinishDehPatch ()
 			TMap<FState*, bool> StateVisited;
 
 			FState *state = WeaponNames[i]->FindState(NAME_Fire);
-			while (state != NULL)
+			while (state != nullptr)
 			{
 				bool *check = StateVisited.CheckKey(state);
-				if (check != NULL && *check)
+				if (check != nullptr && *check)
 				{
 					break;	// State has already been checked so we reached a loop
 				}
 				StateVisited[state] = true;
-				for(unsigned j = 0; AmmoPerAttacks[j].func != NULL; j++)
+				for(unsigned j = 0; AmmoPerAttacks[j].func != nullptr; j++)
 				{
 					if (state->ActionFunc == *AmmoPerAttacks[j].func)
 					{
@@ -3090,12 +3090,12 @@ void ModifyDropAmount(AInventory *inv, int dropamount);
 bool ADehackedPickup::TryPickup (AActor *&toucher)
 {
 	PClassActor *type = DetermineType ();
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		return false;
 	}
 	RealPickup = static_cast<AInventory *>(Spawn (type, Pos(), NO_REPLACE));
-	if (RealPickup != NULL)
+	if (RealPickup != nullptr)
 	{
 		// The internally spawned item should never count towards statistics.
 		RealPickup->ClearCounters();
@@ -3112,7 +3112,7 @@ bool ADehackedPickup::TryPickup (AActor *&toucher)
 		if (!RealPickup->CallTryPickup (toucher))
 		{
 			RealPickup->Destroy ();
-			RealPickup = NULL;
+			RealPickup = nullptr;
 			return false;
 		}
 		GoAwayAndDie ();
@@ -3150,15 +3150,15 @@ void ADehackedPickup::DoPickupSpecial (AActor *toucher)
 	{
 		RealPickup->Destroy ();
 	}
-	RealPickup = NULL;
+	RealPickup = nullptr;
 }
 
 void ADehackedPickup::Destroy ()
 {
-	if (RealPickup != NULL)
+	if (RealPickup != nullptr)
 	{
 		RealPickup->Destroy ();
-		RealPickup = NULL;
+		RealPickup = nullptr;
 	}
 	Super::Destroy ();
 }
@@ -3187,7 +3187,7 @@ PClassActor *ADehackedPickup::DetermineType ()
 			max = mid - 1;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ADehackedPickup::Serialize(FArchive &arc)

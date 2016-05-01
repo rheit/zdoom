@@ -110,6 +110,6 @@ enum ETraceStatus
 
 bool Trace(const DVector3 &start, sector_t *sector, const DVector3 &direction, double maxDist,
 	ActorFlags ActorMask, DWORD WallMask, AActor *ignore, FTraceResults &res, DWORD traceFlags = 0,
-	ETraceStatus(*callback)(FTraceResults &res, void *) = NULL, void *callbackdata = NULL);
+	ETraceStatus(*callback)(FTraceResults &res, void *) = nullptr, void *callbackdata = nullptr);
 
 #endif //__P_TRACE_H__

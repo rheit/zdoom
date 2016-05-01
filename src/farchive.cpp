@@ -66,7 +66,7 @@
 #define NEW_OBJ				((BYTE)1)	// Data for a new object follows
 #define NEW_CLS_OBJ			((BYTE)2)	// Data for a new class and object follows
 #define OLD_OBJ				((BYTE)3)	// Reference to an old object follows
-#define NULL_OBJ			((BYTE)4)	// Load as NULL
+#define NULL_OBJ			((BYTE)4)	// Load as nullptr
 #define M1_OBJ				((BYTE)44)	// Load as (DObject*)-1
 
 #define NEW_PLYR_OBJ		((BYTE)5)	// Data for a new player follows
@@ -74,7 +74,7 @@
 
 #define NEW_NAME			((BYTE)27)	// A new name follows
 #define OLD_NAME			((BYTE)28)	// Reference to an old name follows
-#define NIL_NAME			((BYTE)33)	// Load as NULL
+#define NIL_NAME			((BYTE)33)	// Load as nullptr
 
 #define NEW_SPRITE			((BYTE)11)	// A new sprite name follows
 #define OLD_SPRITE			((BYTE)12)	// Reference to an old sprite name follows
@@ -138,8 +138,8 @@ void FCompressedFile::BeEmpty ()
 	m_Pos = 0;
 	m_BufferSize = 0;
 	m_MaxBufferSize = 0;
-	m_Buffer = NULL;
-	m_File = NULL;
+	m_Buffer = nullptr;
+	m_File = nullptr;
 	m_NoCompress = false;
 	m_Mode = ENotOpen;
 }
@@ -179,7 +179,7 @@ FCompressedFile::~FCompressedFile ()
 bool FCompressedFile::Open (const char *name, EOpenMode mode)
 {
 	Close ();
-	if (name == NULL)
+	if (name == nullptr)
 		return false;
 	m_Mode = mode;
 	m_File = fopen (name, mode == EReading ? "rb" : "wb");
@@ -196,7 +196,7 @@ void FCompressedFile::PostOpen ()
 		if (sig[0] != ZSig[0] || sig[1] != ZSig[1] || sig[2] != ZSig[2] || sig[3] != ZSig[3])
 		{
 			fclose (m_File);
-			m_File = NULL;
+			m_File = nullptr;
 			if (sig[0] == LZOSig[0] && sig[1] == LZOSig[1] && sig[2] == LZOSig[2] && sig[3] == LZOSig[3])
 			{
 				Printf ("Compressed files from older ZDooms are not supported.\n");
@@ -232,12 +232,12 @@ void FCompressedFile::Close ()
 			fwrite (m_Buffer, m_BufferSize + 8, 1, m_File);
 		}
 		fclose (m_File);
-		m_File = NULL;
+		m_File = nullptr;
 	}
 	if (m_Buffer)
 	{
 		M_Free (m_Buffer);
-		m_Buffer = NULL;
+		m_Buffer = nullptr;
 	}
 	BeEmpty ();
 }
@@ -333,7 +333,7 @@ void FCompressedFile::Implode ()
 {
 	uLong outlen;
 	uLong len = m_BufferSize;
-	Byte *compressed = NULL;
+	Byte *compressed = nullptr;
 	BYTE *oldbuf = m_Buffer;
 	int r;
 
@@ -423,7 +423,7 @@ void FCompressedFile::Explode ()
 FCompressedMemFile::FCompressedMemFile ()
 {
 	m_SourceFromMem = false;
-	m_ImplodedBuffer = NULL;
+	m_ImplodedBuffer = nullptr;
 }
 
 /*
@@ -431,13 +431,13 @@ FCompressedMemFile::FCompressedMemFile (const char *name, EOpenMode mode)
 	: FCompressedFile (name, mode)
 {
 	m_SourceFromMem = false;
-	m_ImplodedBuffer = NULL;
+	m_ImplodedBuffer = nullptr;
 }
 */
 
 FCompressedMemFile::~FCompressedMemFile ()
 {
-	if (m_ImplodedBuffer != NULL)
+	if (m_ImplodedBuffer != nullptr)
 	{
 		M_Free (m_ImplodedBuffer);
 	}
@@ -462,7 +462,7 @@ bool FCompressedMemFile::Open (const char *name, EOpenMode mode)
 		if (res)
 		{
 			fclose (m_File);
-			m_File = NULL;
+			m_File = nullptr;
 		}
 		return res;
 	}
@@ -493,7 +493,7 @@ bool FCompressedMemFile::Open ()
 
 bool FCompressedMemFile::Reopen ()
 {
-	if (m_Buffer == NULL && m_ImplodedBuffer)
+	if (m_Buffer == nullptr && m_ImplodedBuffer)
 	{
 		m_Mode = EReading;
 		m_Buffer = m_ImplodedBuffer;
@@ -506,7 +506,7 @@ bool FCompressedMemFile::Reopen ()
 		{
 			// If we just leave things as they are, m_Buffer and m_ImplodedBuffer
 			// both point to the same memory block and both will try to free it.
-			m_Buffer = NULL;
+			m_Buffer = nullptr;
 			m_SourceFromMem = false;
 			throw;
 		}
@@ -522,7 +522,7 @@ void FCompressedMemFile::Close ()
 	{
 		Implode ();
 		m_ImplodedBuffer = m_Buffer;
-		m_Buffer = NULL;
+		m_Buffer = nullptr;
 	}
 }
 
@@ -530,7 +530,7 @@ void FCompressedMemFile::Serialize (FArchive &arc)
 {
 	if (arc.IsStoring ())
 	{
-		if (m_ImplodedBuffer == NULL)
+		if (m_ImplodedBuffer == nullptr)
 		{
 			I_Error ("FCompressedMemFile must be compressed before storing");
 		}
@@ -562,7 +562,7 @@ void FCompressedMemFile::Serialize (FArchive &arc)
 		((DWORD *)m_Buffer)[1] = SWAP_DWORD(sizes[1]);
 		arc.Read (m_Buffer+8, len);
 		m_ImplodedBuffer = m_Buffer;
-		m_Buffer = NULL;
+		m_Buffer = nullptr;
 		m_Mode = EWriting;
 	}
 }
@@ -574,7 +574,7 @@ bool FCompressedMemFile::IsOpen () const
 
 void FCompressedMemFile::GetSizes(unsigned int &compressed, unsigned int &uncompressed) const
 {
-	if (m_ImplodedBuffer != NULL)
+	if (m_ImplodedBuffer != nullptr)
 	{
 		compressed = BigLong(*(unsigned int *)m_ImplodedBuffer);
 		uncompressed = BigLong(*(unsigned int *)(m_ImplodedBuffer + 4));
@@ -621,7 +621,7 @@ void FPNGChunkFile::Close ()
 			crc = SWAP_DWORD (crc);
 			fwrite (&crc, 4, 1, m_File);
 		}
-		m_File = NULL;
+		m_File = nullptr;
 	}
 	FCompressedFile::Close ();
 }
@@ -716,7 +716,7 @@ void FArchive::Close ()
 	if (m_File)
 	{
 		m_File->Close ();
-		m_File = NULL;
+		m_File = nullptr;
 		DPrintf ("Processed %u objects\n", ArchiveToObject.Size());
 	}
 }
@@ -779,7 +779,7 @@ void FArchive::WriteName (const char *name)
 {
 	BYTE id;
 
-	if (name == NULL)
+	if (name == nullptr)
 	{
 		id = NIL_NAME;
 		Write (&id, 1);
@@ -810,7 +810,7 @@ const char *FArchive::ReadName ()
 	operator<< (id);
 	if (id == NIL_NAME)
 	{
-		return NULL;
+		return nullptr;
 	}
 	else if (id == OLD_NAME)
 	{
@@ -837,13 +837,13 @@ const char *FArchive::ReadName ()
 	else
 	{
 		I_Error ("Expected a name but got something else\n");
-		return NULL;
+		return nullptr;
 	}
 }
 
 void FArchive::WriteString (const char *str)
 {
-	if (str == NULL)
+	if (str == nullptr)
 	{
 		WriteCount (0);
 	}
@@ -876,7 +876,7 @@ FArchive &FArchive::operator<< (char *&str)
 
 		if (size == 0)
 		{
-			str2 = NULL;
+			str2 = nullptr;
 		}
 		else
 		{
@@ -1046,7 +1046,7 @@ FArchive &FArchive::SerializePointer (void *ptrbase, BYTE **ptr, DWORD elemSize)
 		}
 		else
 		{
-			*(void **)ptr = NULL;
+			*(void **)ptr = nullptr;
 		}
 	}
 	return *this;
@@ -1090,7 +1090,7 @@ FArchive &FArchive::WriteObject (DObject *obj)
 	player_t *player;
 	BYTE id[2];
 
-	if (obj == NULL)
+	if (obj == nullptr)
 	{
 		id[0] = NULL_OBJ;
 		Write (id, 1);
@@ -1119,7 +1119,7 @@ FArchive &FArchive::WriteObject (DObject *obj)
 			id[0] = NULL_OBJ;
 			Write (id, 1);
 		}
-		else if (NULL == (classarcid = ClassToArchive.CheckKey(type)))
+		else if (nullptr == (classarcid = ClassToArchive.CheckKey(type)))
 		{
 			// No instances of this class have been written out yet.
 			// Write out the class, then write out the object. If this
@@ -1154,7 +1154,7 @@ FArchive &FArchive::WriteObject (DObject *obj)
 			// controlled actor, remember that.
 			DWORD *objarcid = ObjectToArchive.CheckKey(obj);
 
-			if (objarcid == NULL)
+			if (objarcid == nullptr)
 			{
 
 				if (obj->IsKindOf (RUNTIME_CLASS (AActor)) &&
@@ -1200,7 +1200,7 @@ FArchive &FArchive::ReadObject (DObject* &obj, PClass *wanttype)
 	switch (objHead)
 	{
 	case NULL_OBJ:
-		obj = NULL;
+		obj = nullptr;
 		break;
 
 	case M1_OBJ:
@@ -1228,17 +1228,17 @@ FArchive &FArchive::ReadObject (DObject* &obj, PClass *wanttype)
 			// But also create a new one so that we can get past the one
 			// stored in the archive.
 			AActor *tempobj = static_cast<AActor *>(type->CreateNew ());
-			MapObject (obj != NULL ? obj : tempobj);
+			MapObject (obj != nullptr ? obj : tempobj);
 			tempobj->SerializeUserVars (*this);
 			tempobj->Serialize (*this);
 			tempobj->CheckIfSerialized ();
 			// If this player is not present anymore, keep the new body
 			// around just so that the load will succeed.
-			if (obj != NULL)
+			if (obj != nullptr)
 			{
 				// When the temporary player's inventory items were loaded,
 				// they became owned by the real player. Undo that now.
-				for (AInventory *item = tempobj->Inventory; item != NULL; item = item->Inventory)
+				for (AInventory *item = tempobj->Inventory; item != nullptr; item = item->Inventory)
 				{
 					item->Owner = tempobj;
 				}
@@ -1271,14 +1271,14 @@ FArchive &FArchive::ReadObject (DObject* &obj, PClass *wanttype)
 			obj = players[playerNum].mo;
 
 			AActor *tempobj = static_cast<AActor *>(type->CreateNew ());
-			MapObject (obj != NULL ? obj : tempobj);
+			MapObject (obj != nullptr ? obj : tempobj);
 			tempobj->SerializeUserVars (*this);
 			tempobj->Serialize (*this);
 			tempobj->CheckIfSerialized ();
-			if (obj != NULL)
+			if (obj != nullptr)
 			{
 				for (AInventory *item = tempobj->Inventory;
-					item != NULL; item = item->Inventory)
+					item != nullptr; item = item->Inventory)
 				{
 					item->Owner = tempobj;
 				}
@@ -1430,7 +1430,7 @@ DWORD FArchive::FindName (const char *name, unsigned int bucket) const
 
 DWORD FArchive::WriteClass (PClass *info)
 {
-	if (ClassToArchive.CheckKey(info) != NULL)
+	if (ClassToArchive.CheckKey(info) != nullptr)
 	{
 		I_Error ("Attempt to write '%s' twice.\n", info->TypeName.GetChars());
 	}
@@ -1443,7 +1443,7 @@ DWORD FArchive::WriteClass (PClass *info)
 PClass *FArchive::ReadClass ()
 {
 	struct String {
-		String() { val = NULL; }
+		String() { val = nullptr; }
 		~String() { if (val) delete[] val; }
 		char *val;
 	} typeName;
@@ -1453,14 +1453,14 @@ PClass *FArchive::ReadClass ()
 	if (zaname != NAME_None)
 	{
 		PClass *type = PClass::FindClass(zaname);
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			ClassToArchive[type] = ArchiveToClass.Push(type);
 			return type;
 		}
 	}
 	I_Error ("Unknown class '%s'\n", typeName.val);
-	return NULL;
+	return nullptr;
 }
 
 PClass *FArchive::ReadClass (const PClass *wanttype)
@@ -1499,7 +1499,7 @@ void FArchive::UserWriteClass (PClass *type)
 {
 	BYTE id;
 
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		id = 2;
 		Write (&id, 1);
@@ -1507,7 +1507,7 @@ void FArchive::UserWriteClass (PClass *type)
 	else
 	{
 		DWORD *arcid;
-		if (NULL == (arcid = ClassToArchive.CheckKey(type)))
+		if (nullptr == (arcid = ClassToArchive.CheckKey(type)))
 		{
 			id = 1;
 			Write (&id, 1);
@@ -1536,7 +1536,7 @@ void FArchive::UserReadClass (PClass *&type)
 		type = ReadClass ();
 		break;
 	case 2:
-		type = NULL;
+		type = nullptr;
 		break;
 	default:
 		I_Error ("Unknown class type %d in archive.\n", newclass);

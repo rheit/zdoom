@@ -108,9 +108,9 @@ FRemapTable::~FRemapTable()
 void FRemapTable::Alloc(int count)
 {
 	Remap = (BYTE *)M_Malloc(count*sizeof(*Remap) + count*sizeof(*Palette));
-	assert (Remap != NULL);
+	assert (Remap != nullptr);
 	Palette = (PalEntry *)(Remap + count*(sizeof(*Remap)));
-	Native = NULL;
+	Native = nullptr;
 	NumEntries = count;
 }
 
@@ -123,11 +123,11 @@ void FRemapTable::Alloc(int count)
 void FRemapTable::Free()
 {
 	KillNative();
-	if (Remap != NULL)
+	if (Remap != nullptr)
 	{
 		M_Free(Remap);
-		Remap = NULL;
-		Palette = NULL;
+		Remap = nullptr;
+		Palette = nullptr;
 		NumEntries = 0;
 	}
 }
@@ -140,8 +140,8 @@ void FRemapTable::Free()
 
 FRemapTable::FRemapTable(const FRemapTable &o)
 {
-	Remap = NULL;
-	Native = NULL;
+	Remap = nullptr;
+	Native = nullptr;
 	NumEntries = 0;
 	operator= (o);
 }
@@ -162,7 +162,7 @@ FRemapTable &FRemapTable::operator=(const FRemapTable &o)
 	{
 		Free();
 	}
-	if (Remap == NULL)
+	if (Remap == nullptr)
 	{
 		Alloc(o.NumEntries);
 	}
@@ -266,10 +266,10 @@ bool FRemapTable::IsIdentity() const
 
 void FRemapTable::KillNative()
 {
-	if (Native != NULL)
+	if (Native != nullptr)
 	{
 		delete Native;
-		Native = NULL;
+		Native = nullptr;
 	}
 }
 
@@ -281,7 +281,7 @@ void FRemapTable::KillNative()
 
 void FRemapTable::UpdateNative()
 {
-	if (Native != NULL)
+	if (Native != nullptr)
 	{
 		Native->Update();
 	}
@@ -295,7 +295,7 @@ void FRemapTable::UpdateNative()
 
 FNativePalette *FRemapTable::GetNative()
 {
-	if (Native == NULL)
+	if (Native == nullptr)
 	{
 		Native = screen->CreatePalette(this);
 	}
@@ -610,7 +610,7 @@ int CreateBloodTranslation(PalEntry color)
 	if (BloodTranslationColors.Size() == 0)
 	{
 		// Don't use the first slot.
-		translationtables[TRANSLATION_Blood].Push(NULL);
+		translationtables[TRANSLATION_Blood].Push(nullptr);
 		BloodTranslationColors.Push(0);
 	}
 
@@ -656,12 +656,12 @@ FRemapTable *TranslationToTable(int translation)
 
 	if (type <= 0 || type >= NUM_TRANSLATION_TABLES)
 	{
-		return NULL;
+		return nullptr;
 	}
 	slots = &translationtables[type];
 	if (index >= slots->Size())
 	{
-		return NULL;
+		return nullptr;
 	}
 	return slots->operator[](index);
 }
@@ -838,10 +838,10 @@ void R_DeinitTranslationTables()
 	{
 		for (unsigned int j = 0; j < translationtables[i].Size(); ++j)
 		{
-			if (translationtables[i][j] != NULL)
+			if (translationtables[i][j] != nullptr)
 			{
 				delete translationtables[i][j];
-				translationtables[i][j] = NULL;
+				translationtables[i][j] = nullptr;
 			}
 		}
 		translationtables[i].Clear();
@@ -969,12 +969,12 @@ static void R_CreatePlayerTranslation (float h, float s, float v, const FPlayerC
 	bases = s;
 	basev = v;
 
-	if (colorset != NULL && colorset->Lump >= 0 && Wads.LumpLength(colorset->Lump) < 256)
+	if (colorset != nullptr && colorset->Lump >= 0 && Wads.LumpLength(colorset->Lump) < 256)
 	{ // Bad table length. Ignore it.
-		colorset = NULL;
+		colorset = nullptr;
 	}
 
-	if (colorset != NULL)
+	if (colorset != nullptr)
 	{
 		bool identity = true;
 		// Use the pre-defined range instead of a custom one.
@@ -1083,14 +1083,14 @@ static void R_CreatePlayerTranslation (float h, float s, float v, const FPlayerC
 			}
 		}
 	}
-	if (gameinfo.gametype == GAME_Hexen && alttable != NULL)
+	if (gameinfo.gametype == GAME_Hexen && alttable != nullptr)
 	{
 		// Build Hexen's lifegem translation.
 		
 		// Is the player's translation range the same as the gem's and we are using a
 		// predefined translation? If so, then use the same one for the gem. Otherwise,
 		// build one as per usual.
-		if (colorset != NULL && start == 164 && end == 185)
+		if (colorset != nullptr && start == 164 && end == 185)
 		{
 			*alttable = *table;
 		}
@@ -1142,12 +1142,12 @@ void R_GetPlayerTranslation (int color, const FPlayerColorSet *colorset, FPlayer
 {
 	float h, s, v;
 
-	if (colorset != NULL)
+	if (colorset != nullptr)
 	{
 		color = colorset->RepresentativeColor;
 	}
 	RGBtoHSV (RPART(color)/255.f, GPART(color)/255.f, BPART(color)/255.f,
 		&h, &s, &v);
 
-	R_CreatePlayerTranslation (h, s, v, colorset, skin, table, NULL, NULL);
+	R_CreatePlayerTranslation (h, s, v, colorset, skin, table, nullptr, nullptr);
 }

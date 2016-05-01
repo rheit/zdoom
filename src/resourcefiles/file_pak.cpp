@@ -81,7 +81,7 @@ public:
 
 FPakFile::FPakFile(const char *filename, FileReader *file) : FUncompressedFile(filename, file)
 {
-	Lumps = NULL;
+	Lumps = nullptr;
 }
 
 //==========================================================================
@@ -140,10 +140,10 @@ FResourceFile *CheckPak(const char *filename, FileReader *file, bool quiet)
 			FResourceFile *rf = new FPakFile(filename, file);
 			if (rf->Open(quiet)) return rf;
 
-			rf->Reader = NULL; // to avoid destruction of reader
+			rf->Reader = nullptr; // to avoid destruction of reader
 			delete rf;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 

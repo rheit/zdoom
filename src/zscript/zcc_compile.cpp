@@ -22,7 +22,7 @@ ZCCCompiler::ZCCCompiler(ZCC_AST &ast, DObject *_outer, PSymbolTable &_symbols)
 : Outer(_outer), Symbols(&_symbols), AST(ast), ErrorCount(0), WarnCount(0)
 {
 	// Group top-level nodes by type
-	if (ast.TopNode != NULL)
+	if (ast.TopNode != nullptr)
 	{
 		ZCC_TreeNode *node = ast.TopNode;
 		do
@@ -70,7 +70,7 @@ bool ZCCCompiler::AddNamedNode(ZCC_NamedNode *node)
 {
 	FName name = node->NodeName;
 	PSymbol *check = Symbols->FindSymbol(name, false);
-	if (check != NULL)
+	if (check != nullptr)
 	{
 		assert(check->IsA(RUNTIME_CLASS(PSymbolTreeNode)));
 		Error(node, "Attempt to redefine '%s'", name.GetChars());
@@ -165,7 +165,7 @@ void ZCCCompiler::CompileConstants(const TArray<ZCC_ConstantDef *> &defs)
 	for (unsigned i = 0; i < defs.Size(); ++i)
 	{
 		ZCC_ConstantDef *def = defs[i];
-		if (def->Symbol == NULL)
+		if (def->Symbol == nullptr)
 		{
 			PSymbolConst *sym = CompileConstant(def);
 		}
@@ -184,12 +184,12 @@ void ZCCCompiler::CompileConstants(const TArray<ZCC_ConstantDef *> &defs)
 
 PSymbolConst *ZCCCompiler::CompileConstant(ZCC_ConstantDef *def)
 {
-	assert(def->Symbol == NULL);
+	assert(def->Symbol == nullptr);
 
 	def->Symbol = DEFINING_CONST;	// avoid recursion
 	ZCC_Expression *val = Simplify(def->Value);
 	def->Value = val;
-	PSymbolConst *sym = NULL;
+	PSymbolConst *sym = nullptr;
 	if (val->NodeType == AST_ExprConstant)
 	{
 		ZCC_ExprConstant *cval = static_cast<ZCC_ExprConstant *>(val);
@@ -214,7 +214,7 @@ PSymbolConst *ZCCCompiler::CompileConstant(ZCC_ConstantDef *def)
 	{
 		Error(def->Value, "Constant definition requires a constant value");
 	}
-	if (sym == NULL)
+	if (sym == nullptr)
 	{
 		// Create a dummy constant so we don't make any undefined value warnings.
 		sym = new PSymbolConstNumeric(def->NodeName, TypeError, 0);
@@ -273,7 +273,7 @@ ZCC_Expression *ZCCCompiler::SimplifyUnary(ZCC_ExprUnary *unary)
 {
 	unary->Operand = Simplify(unary->Operand);
 	ZCC_OpProto *op = PromoteUnary(unary->Operation, unary->Operand);
-	if (op == NULL)
+	if (op == nullptr)
 	{ // Oh, poo!
 		unary->Type = TypeError;
 	}
@@ -295,7 +295,7 @@ ZCC_Expression *ZCCCompiler::SimplifyBinary(ZCC_ExprBinary *binary)
 	binary->Left = Simplify(binary->Left);
 	binary->Right = Simplify(binary->Right);
 	ZCC_OpProto *op = PromoteBinary(binary->Operation, binary->Left, binary->Right);
-	if (op == NULL)
+	if (op == nullptr)
 	{
 		binary->Type = TypeError;
 	}
@@ -323,14 +323,14 @@ ZCC_Expression *ZCCCompiler::SimplifyMemberAccess(ZCC_ExprMemberAccess *dotop)
 		PType *ref = static_cast<ZCC_ExprTypeRef *>(dotop->Left)->RefType;
 		PSymbolTable *symtable;
 		PSymbol *sym = ref->Symbols.FindSymbolInTable(dotop->Right, symtable);
-		if (sym == NULL)
+		if (sym == nullptr)
 		{
 			Error(dotop, "'%s' is not a valid member", FName(dotop->Right).GetChars());
 		}
 		else
 		{
 			ZCC_Expression *expr = NodeFromSymbol(sym, dotop, symtable);
-			if (expr == NULL)
+			if (expr == nullptr)
 			{
 				Error(dotop, "Unhandled symbol type encountered");
 			}
@@ -359,7 +359,7 @@ ZCC_Expression *ZCCCompiler::SimplifyFunctionCall(ZCC_ExprFuncCall *callop)
 
 	callop->Function = Simplify(callop->Function);
 	parm = callop->Parameters;
-	if (parm != NULL)
+	if (parm != nullptr)
 	{
 		do
 		{
@@ -413,13 +413,13 @@ ZCC_OpProto *ZCCCompiler::PromoteUnary(EZCCExprType op, ZCC_Expression *&expr)
 {
 	if (expr->Type == TypeError)
 	{
-		return NULL;
+		return nullptr;
 	}
 	const PType::Conversion *route[CONVERSION_ROUTE_SIZE];
 	int routelen = countof(route);
 	ZCC_OpProto *proto = ZCC_OpInfo[op].FindBestProto(expr->Type, route, routelen);
 
-	if (proto != NULL)
+	if (proto != nullptr)
 	{
 		expr = ApplyConversion(expr, route, routelen);
 	}
@@ -440,12 +440,12 @@ ZCC_OpProto *ZCCCompiler::PromoteBinary(EZCCExprType op, ZCC_Expression *&left, 
 	// If either operand is of type 'error', the result is also 'error'
 	if (left->Type == TypeError || right->Type == TypeError)
 	{
-		return NULL;
+		return nullptr;
 	}
 	const PType::Conversion *route1[CONVERSION_ROUTE_SIZE], *route2[CONVERSION_ROUTE_SIZE];
 	int route1len = countof(route1), route2len = countof(route2);
 	ZCC_OpProto *proto = ZCC_OpInfo[op].FindBestProto(left->Type, route1, route1len, right->Type, route2, route2len);
-	if (proto != NULL)
+	if (proto != nullptr)
 	{
 		left = ApplyConversion(left, route1, route1len);
 		right = ApplyConversion(right, route2, route2len);
@@ -501,10 +501,10 @@ ZCC_Expression *ZCCCompiler::IdentifyIdentifier(ZCC_ExprID *idnode)
 	// Check the symbol table for the identifier.
 	PSymbolTable *table;
 	PSymbol *sym = Symbols->FindSymbolInTable(idnode->Identifier, table);
-	if (sym != NULL)
+	if (sym != nullptr)
 	{
 		ZCC_Expression *node = NodeFromSymbol(sym, idnode, table);
-		if (node != NULL)
+		if (node != nullptr)
 		{
 			return node;
 		}
@@ -526,7 +526,7 @@ ZCC_Expression *ZCCCompiler::IdentifyIdentifier(ZCC_ExprID *idnode)
 
 PSymbol *ZCCCompiler::CompileNode(ZCC_NamedNode *node)
 {
-	assert(node != NULL);
+	assert(node != nullptr);
 	if (node->NodeType == AST_ConstantDef)
 	{
 		ZCC_ConstantDef *def = static_cast<ZCC_ConstantDef *>(node);
@@ -535,11 +535,11 @@ PSymbol *ZCCCompiler::CompileNode(ZCC_NamedNode *node)
 		if (sym == DEFINING_CONST)
 		{
 			Error(node, "Definition of '%s' is infinitely recursive", FName(node->NodeName).GetChars());
-			sym = NULL;
+			sym = nullptr;
 		}
 		else
 		{
-			assert(sym == NULL);
+			assert(sym == nullptr);
 			sym = CompileConstant(def);
 		}
 		return sym;
@@ -548,7 +548,7 @@ PSymbol *ZCCCompiler::CompileNode(ZCC_NamedNode *node)
 	{
 
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -559,16 +559,16 @@ PSymbol *ZCCCompiler::CompileNode(ZCC_NamedNode *node)
 
 ZCC_Expression *ZCCCompiler::NodeFromSymbol(PSymbol *sym, ZCC_Expression *source, PSymbolTable *table)
 {
-	assert(sym != NULL);
+	assert(sym != nullptr);
 	if (sym->IsA(RUNTIME_CLASS(PSymbolTreeNode)))
 	{
 		PSymbolTable *prevtable = Symbols;
 		Symbols = table;
 		sym = CompileNode(static_cast<PSymbolTreeNode *>(sym)->Node);
 		Symbols = prevtable;
-		if (sym == NULL)
+		if (sym == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	if (sym->IsKindOf(RUNTIME_CLASS(PSymbolConst)))
@@ -579,7 +579,7 @@ ZCC_Expression *ZCCCompiler::NodeFromSymbol(PSymbol *sym, ZCC_Expression *source
 	{
 		return NodeFromSymbolType(static_cast<PSymbolType *>(sym), source);
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -594,7 +594,7 @@ ZCC_ExprConstant *ZCCCompiler::NodeFromSymbolConst(PSymbolConst *sym, ZCC_Expres
 {
 	ZCC_ExprConstant *val = static_cast<ZCC_ExprConstant *>(AST.InitNode(sizeof(*val), AST_ExprConstant, idnode));
 	val->Operation = PEX_ConstValue;
-	if (sym == NULL)
+	if (sym == nullptr)
 	{
 		val->Type = TypeError;
 		val->IntVal = 0;

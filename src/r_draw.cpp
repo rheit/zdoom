@@ -137,7 +137,7 @@ void R_InitShadeMaps()
 	{
 		ShadeFakeColormap[i].Color = ~0u;
 		ShadeFakeColormap[i].Desaturate = ~0u;
-		ShadeFakeColormap[i].Next = NULL;
+		ShadeFakeColormap[i].Next = nullptr;
 		ShadeFakeColormap[i].Maps = table;
 
 		for (j = 0; j < NUMCOLORMAPS; ++j)
@@ -2159,7 +2159,7 @@ const BYTE *R_GetColumn (FTexture *tex, int col)
 	{
 		col = width + (col % width);
 	}
-	return tex->GetColumn (col, NULL);
+	return tex->GetColumn (col, nullptr);
 }
 
 
@@ -2217,7 +2217,7 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 			hcolfunc_post1 = rt_copy1col;
 			hcolfunc_post4 = rt_copy4cols;
 		}
-		else if (dc_translation == NULL)
+		else if (dc_translation == nullptr)
 		{
 			colfunc = basecolfunc;
 			hcolfunc_post1 = rt_map1col;
@@ -2261,7 +2261,7 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 				hcolfunc_post1 = rt_add1col;
 				hcolfunc_post4 = rt_add4cols;
 			}
-			else if (dc_translation == NULL)
+			else if (dc_translation == nullptr)
 			{
 				colfunc = R_DrawAddColumnP_C;
 				hcolfunc_post1 = rt_add1col;
@@ -2282,7 +2282,7 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 				hcolfunc_post1 = rt_addclamp1col;
 				hcolfunc_post4 = rt_addclamp4cols;
 			}
-			else if (dc_translation == NULL)
+			else if (dc_translation == nullptr)
 			{
 				colfunc = R_DrawAddClampColumnP_C;
 				hcolfunc_post1 = rt_addclamp1col;
@@ -2304,7 +2304,7 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 			hcolfunc_post1 = rt_subclamp1col;
 			hcolfunc_post4 = rt_subclamp4cols;
 		}
-		else if (dc_translation == NULL)
+		else if (dc_translation == nullptr)
 		{
 			colfunc = R_DrawSubClampColumnP_C;
 			hcolfunc_post1 = rt_subclamp1col;
@@ -2329,7 +2329,7 @@ static bool R_SetBlendFunc (int op, fixed_t fglevel, fixed_t bglevel, int flags)
 			hcolfunc_post1 = rt_subclamp1col;
 			hcolfunc_post4 = rt_subclamp4cols;
 		}
-		else if (dc_translation == NULL)
+		else if (dc_translation == nullptr)
 		{
 			colfunc = R_DrawRevSubClampColumnP_C;
 			hcolfunc_post1 = rt_revsubclamp1col;
@@ -2386,11 +2386,11 @@ ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, 
 		alpha = clamp<fixed_t> (alpha, 0, OPAQUE);
 	}
 
-	dc_translation = NULL;
+	dc_translation = nullptr;
 	if (translation != 0)
 	{
 		FRemapTable *table = TranslationToTable(translation);
-		if (table != NULL && !table->Inactive)
+		if (table != nullptr && !table->Inactive)
 		{
 			dc_translation = table->Remap;
 		}
@@ -2414,7 +2414,7 @@ ESPSResult R_SetPatchStyle (FRenderStyle style, fixed_t alpha, int translation, 
 		hcolfunc_post4 = rt_shaded4cols;
 		dc_color = fixedcolormap ? fixedcolormap[APART(color)] : basecolormap->Maps[APART(color)];
 		dc_colormap = (basecolormap = &ShadeFakeColormap[16-alpha])->Maps;
-		if (fixedlightlev >= 0 && fixedcolormap == NULL)
+		if (fixedlightlev >= 0 && fixedcolormap == nullptr)
 		{
 			dc_colormap += fixedlightlev;
 		}

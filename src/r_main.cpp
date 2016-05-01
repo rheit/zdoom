@@ -419,17 +419,17 @@ static void R_ShutdownRenderer()
 	R_DeinitSprites();
 	R_DeinitPlanes();
 	// Free openings
-	if (openings != NULL)
+	if (openings != nullptr)
 	{
 		M_Free (openings);
-		openings = NULL;
+		openings = nullptr;
 	}
 
 	// Free drawsegs
-	if (drawsegs != NULL)
+	if (drawsegs != nullptr)
 	{
 		M_Free (drawsegs);
-		drawsegs = NULL;
+		drawsegs = nullptr;
 	}
 }
 
@@ -457,11 +457,11 @@ void R_CopyStackedViewParameters()
 
 void R_SetupColormap(player_t *player)
 {
-	realfixedcolormap = NULL;
-	fixedcolormap = NULL;
+	realfixedcolormap = nullptr;
+	fixedcolormap = nullptr;
 	fixedlightlev = -1;
 
-	if (player != NULL && camera == player->mo)
+	if (player != nullptr && camera == player->mo)
 	{
 		if (player->fixedcolormap >= 0 && player->fixedcolormap < (int)SpecialColormaps.Size())
 		{
@@ -484,7 +484,7 @@ void R_SetupColormap(player_t *player)
 		}
 	}
 	// [RH] Inverse light for shooting the Sigil
-	if (fixedcolormap == NULL && extralight == INT_MIN)
+	if (fixedcolormap == nullptr && extralight == INT_MIN)
 	{
 		fixedcolormap = SpecialColormaps[INVERSECOLORMAP].Colormap;
 		extralight = 0;
@@ -503,7 +503,7 @@ void R_SetupFreelook()
 {
 	double dy;
 		
-	if (camera != NULL)
+	if (camera != nullptr)
 	{
 		dy = FocalLengthY * (-ViewPitch).Tan();
 	}
@@ -738,7 +738,7 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 	memcpy (ceilingclip + pds->x1, &pds->ceilingclip[0], pds->len*sizeof(*ceilingclip));
 	memcpy (floorclip + pds->x1, &pds->floorclip[0], pds->len*sizeof(*floorclip));
 
-	InSubsector = NULL;
+	InSubsector = nullptr;
 	R_RenderBSPNode (nodes + numnodes - 1);
 	R_3D_ResetClip(); // reset clips (floor/ceiling)
 	if (!savedvisibility && camera) camera->renderflags &= ~RF_INVISIBLE;
@@ -793,7 +793,7 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 
 void R_SetupBuffer ()
 {
-	static BYTE *lastbuff = NULL;
+	static BYTE *lastbuff = nullptr;
 
 	int pitch = RenderTarget->GetPitch();
 	BYTE *lineptr = RenderTarget->GetBuffer() + viewwindowy*pitch + viewwindowx;
@@ -864,7 +864,7 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 	WindowLeft = 0;
 	WindowRight = viewwidth;
 	MirrorFlags = 0;
-	CurrentPortal = NULL;
+	CurrentPortal = nullptr;
 	CurrentPortalUniq = 0;
 
 	r_dontmaplines = dontmaplines;
@@ -884,7 +884,7 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 	}
 	// Link the polyobjects right before drawing the scene to reduce the amounts of calls to this function
 	PO_LinkToSubsectors();
-	InSubsector = NULL;
+	InSubsector = nullptr;
 	R_RenderBSPNode (nodes + numnodes - 1);	// The head node is the last node output.
 	R_3D_ResetClip(); // reset clips (floor/ceiling)
 	camera->renderflags = savedflags;
@@ -907,7 +907,7 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 			R_EnterPortal(&WallPortals[i], 0);
 		}
 
-		CurrentPortal = NULL;
+		CurrentPortal = nullptr;
 		CurrentPortalUniq = 0;
 
 		NetUpdate ();
@@ -922,11 +922,11 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 	interpolator.RestoreInterpolations ();
 	R_SetupBuffer ();
 
-	// If we don't want shadered colormaps, NULL it now so that the
+	// If we don't want shadered colormaps, nullptr it now so that the
 	// copy to the screen does not use a special colormap shader.
 	if (!r_shadercolormaps)
 	{
-		realfixedcolormap = NULL;
+		realfixedcolormap = nullptr;
 	}
 }
 

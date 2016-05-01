@@ -60,7 +60,7 @@
 //		key -			The key value to look for
 //
 // Returns:
-//		A pointer to the element with a matching key or NULL if none found.
+//		A pointer to the element with a matching key or nullptr if none found.
 //==========================================================================
 
 template<class ClassType, class KeyType>
@@ -89,7 +89,7 @@ const ClassType *BinarySearch (const ClassType *first, int max,
 			max = mid - 1;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================

@@ -50,7 +50,7 @@ int AWhirlwind::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 	}
 	if (!(level.time & 7))
 	{
-		P_DamageMobj (target, NULL, this->target, 3, NAME_Melee);
+		P_DamageMobj (target, nullptr, this->target, 3, NAME_Melee);
 	}
 	return -1;
 }
@@ -80,7 +80,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LichAttack)
 	// Distance threshold = 8 cells
 
 	target = self->target;
-	if (target == NULL)
+	if (target == nullptr)
 	{
 		return 0;
 	}
@@ -102,7 +102,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LichAttack)
 	else if (randAttack < atkResolve2[dist])
 	{ // Fire column
 		baseFire = P_SpawnMissile (self, target, PClass::FindActor("HeadFX3"));
-		if (baseFire != NULL)
+		if (baseFire != nullptr)
 		{
 			baseFire->SetState (baseFire->FindState("NoGrow"));
 			for (i = 0; i < 5; i++)
@@ -115,7 +115,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LichAttack)
 				fire->target = baseFire->target;
 				fire->Angles.Yaw = baseFire->Angles.Yaw;
 				fire->Vel = baseFire->Vel;
-				fire->Damage = NULL;
+				fire->Damage = nullptr;
 				fire->health = (i+1) * 2;
 				P_CheckMissileSpawn (fire, self->radius);
 			}
@@ -124,7 +124,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LichAttack)
 	else
 	{ // Whirlwind
 		mo = P_SpawnMissile (self, target, RUNTIME_CLASS(AWhirlwind));
-		if (mo != NULL)
+		if (mo != nullptr)
 		{
 			mo->AddZ(-32);
 			mo->tracer = target;

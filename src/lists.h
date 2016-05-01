@@ -68,7 +68,7 @@ struct List
 	const Node *const Tail;
 	Node *TailPred;
 
-	List () : Head ((Node *)&Tail), Tail (NULL), TailPred ((Node *)&Head)
+	List () : Head ((Node *)&Tail), Tail (nullptr), TailPred ((Node *)&Head)
 	{
 	}
 
@@ -102,9 +102,9 @@ struct List
 	Node *RemHead ()
 	{
 		Node *node = Head;
-		if (node->Succ == NULL)
+		if (node->Succ == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 		Head = node->Succ;
 		Head->Pred = (Node *)&Head;
@@ -122,9 +122,9 @@ struct List
 	Node *RemTail ()
 	{
 		Node *node = TailPred;
-		if (node->Pred == NULL)
+		if (node->Pred == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 		TailPred = node->Pred;
 		TailPred->Succ = (Node *)&Tail;

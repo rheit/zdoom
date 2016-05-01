@@ -62,7 +62,7 @@ FStringTable::FStringTable ()
 {
 	for (int i = 0; i < HASH_SIZE; ++i)
 	{
-		Buckets[i] = NULL;
+		Buckets[i] = nullptr;
 	}
 }
 
@@ -76,8 +76,8 @@ void FStringTable::FreeData ()
 	for (int i = 0; i < HASH_SIZE; ++i)
 	{
 		StringEntry *entry = Buckets[i], *next;
-		Buckets[i] = NULL;
-		while (entry != NULL)
+		Buckets[i] = nullptr;
+		while (entry != nullptr)
 		{
 			next = entry->Next;
 			M_Free (entry);
@@ -92,7 +92,7 @@ void FStringTable::FreeNonDehackedStrings ()
 	{
 		StringEntry *entry, *next, **pentry;
 
-		for (pentry = &Buckets[i], entry = *pentry; entry != NULL; )
+		for (pentry = &Buckets[i], entry = *pentry; entry != nullptr; )
 		{
 			next = entry->Next;
 			if (entry->PassNum != 0)
@@ -267,7 +267,7 @@ void FStringTable::LoadLanguage (int lumpnum, DWORD code, bool exactMatch, int p
 			pentry = &Buckets[bucket];
 			entry = *pentry;
 			cmpval = 1;
-			while (entry != NULL)
+			while (entry != nullptr)
 			{
 				cmpval = stricmp (entry->Name, strName.GetChars());
 				if (cmpval >= 0)
@@ -279,9 +279,9 @@ void FStringTable::LoadLanguage (int lumpnum, DWORD code, bool exactMatch, int p
 			{
 				*pentry = entry->Next;
 				M_Free (entry);
-				entry = NULL;
+				entry = nullptr;
 			}
-			if (entry == NULL || cmpval > 0)
+			if (entry == nullptr || cmpval > 0)
 			{
 				entry = (StringEntry *)M_Malloc (sizeof(*entry) + strText.Len() + strName.Len() + 2);
 				entry->Next = *pentry;
@@ -324,14 +324,14 @@ size_t FStringTable::ProcessEscapes (char *iptr)
 // Finds a string by name and returns its value
 const char *FStringTable::operator[] (const char *name) const
 {
-	if (name == NULL)
+	if (name == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	DWORD bucket = MakeKey (name) & (HASH_SIZE - 1);
 	StringEntry *entry = Buckets[bucket];
 
-	while (entry != NULL)
+	while (entry != nullptr)
 	{
 		int cmpval = stricmp (entry->Name, name);
 		if (cmpval == 0)
@@ -340,11 +340,11 @@ const char *FStringTable::operator[] (const char *name) const
 		}
 		if (cmpval == 1)
 		{
-			return NULL;
+			return nullptr;
 		}
 		entry = entry->Next;
 	}
-	return NULL;
+	return nullptr;
 }
 
 // Finds a string by name and returns its value. If the string does
@@ -356,13 +356,13 @@ const char *FStringTable::operator() (const char *name) const
 }
 
 // Find a string by name. pentry1 is a pointer to a pointer to it, and entry1 is a
-// pointer to it. Return NULL for entry1 if it wasn't found.
+// pointer to it. Return nullptr for entry1 if it wasn't found.
 void FStringTable::FindString (const char *name, StringEntry **&pentry1, StringEntry *&entry1)
 {
 	DWORD bucket = MakeKey (name) & (HASH_SIZE - 1);
 	StringEntry **pentry = &Buckets[bucket], *entry = *pentry;
 
-	while (entry != NULL)
+	while (entry != nullptr)
 	{
 		int cmpval = stricmp (entry->Name, name);
 		if (cmpval == 0)
@@ -374,7 +374,7 @@ void FStringTable::FindString (const char *name, StringEntry **&pentry1, StringE
 		if (cmpval == 1)
 		{
 			pentry1 = pentry;
-			entry1 = NULL;
+			entry1 = nullptr;
 			return;
 		}
 		pentry = &entry->Next;
@@ -389,7 +389,7 @@ const char *FStringTable::MatchString (const char *string) const
 {
 	for (int i = 0; i < HASH_SIZE; ++i)
 	{
-		for (StringEntry *entry = Buckets[i]; entry != NULL; entry = entry->Next)
+		for (StringEntry *entry = Buckets[i]; entry != nullptr; entry = entry->Next)
 		{
 			if (strcmp (entry->String, string) == 0)
 			{
@@ -397,7 +397,7 @@ const char *FStringTable::MatchString (const char *string) const
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void FStringTable::SetString (const char *name, const char *newString)
@@ -415,7 +415,7 @@ void FStringTable::SetString (const char *name, const char *newString)
 	entry->PassNum = 0;
 
 	// If this is a new string, insert it. Otherwise, replace the old one.
-	if (oentry == NULL)
+	if (oentry == nullptr)
 	{
 		entry->Next = *pentry;
 		*pentry = entry;
