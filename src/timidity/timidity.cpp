@@ -50,7 +50,7 @@ static int read_config_file(const char *name, bool ismain)
 {
 	FileReader *fp;
 	char tmp[1024], *cp;
-	ToneBank *bank = NULL;
+	ToneBank *bank = nullptr;
 	int i, j, k, line = 0, words;
 	static int rcf_count = 0;
 	int lumpnum;
@@ -328,7 +328,7 @@ static int read_config_file(const char *name, bool ismain)
 				delete fp;
 				return -2;
 			}
-			if (drumset[i] == NULL)
+			if (drumset[i] == nullptr)
 			{
 				drumset[i] = new ToneBank;
 			}
@@ -349,7 +349,7 @@ static int read_config_file(const char *name, bool ismain)
 				delete fp;
 				return -2;
 			}
-			if (tonebank[i] == NULL)
+			if (tonebank[i] == nullptr)
 			{
 				tonebank[i] = new ToneBank;
 			}
@@ -370,7 +370,7 @@ static int read_config_file(const char *name, bool ismain)
 				delete fp;
 				return -2;
 			}
-			if (bank == NULL)
+			if (bank == nullptr)
 			{
 				Printf("%s: line %d: Must specify tone bank or drum set before assignment\n", name, line);
 				delete fp;
@@ -502,15 +502,15 @@ void FreeAll()
 	font_freeall();
 	for (int i = 0; i < MAXBANK; ++i)
 	{
-		if (tonebank[i] != NULL)
+		if (tonebank[i] != nullptr)
 		{
 			delete tonebank[i];
-			tonebank[i] = NULL;
+			tonebank[i] = nullptr;
 		}
-		if (drumset[i] != NULL)
+		if (drumset[i] != nullptr)
 		{
 			delete drumset[i];
-			drumset[i] = NULL;
+			drumset[i] = nullptr;
 		}
 	}
 }
@@ -536,7 +536,7 @@ int LoadConfig(const char *filename)
 #endif
 
 	/* Some functions get aggravated if not even the standard banks are available. */
-	if (tonebank[0] == NULL)
+	if (tonebank[0] == nullptr)
 	{
 		tonebank[0] = new ToneBank;
 		drumset[0] = new ToneBank;
@@ -651,7 +651,7 @@ int LoadDMXGUS()
 		readbuffer[i-1] = 0;
 	}
 
-	if (tonebank[0] == NULL)
+	if (tonebank[0] == nullptr)
 	{
 		tonebank[0] = new ToneBank;
 		drumset[0] = new ToneBank;
@@ -685,10 +685,10 @@ Renderer::Renderer(float sample_rate, const char *args)
 {
 	// 'args' should be used to load a custom config or DMXGUS, but since setup currently requires a snd_reset call, this will need some refactoring first
 	rate = sample_rate;
-	patches = NULL;
+	patches = nullptr;
 	resample_buffer_size = 0;
-	resample_buffer = NULL;
-	voice = NULL;
+	resample_buffer = nullptr;
+	voice = nullptr;
 	adjust_panning_immediately = false;
 
 	control_ratio = clamp(int(rate / CONTROLS_PER_SECOND), 1, MAX_CONTROL_RATIO);
@@ -696,7 +696,7 @@ Renderer::Renderer(float sample_rate, const char *args)
 	lost_notes = 0;
 	cut_notes = 0;
 
-	default_instrument = NULL;
+	default_instrument = nullptr;
 	default_program = DEFAULT_PROGRAM;
 	if (def_instr_name.IsNotEmpty())
 		set_default_instrument(def_instr_name);
@@ -713,15 +713,15 @@ Renderer::Renderer(float sample_rate, const char *args)
 
 Renderer::~Renderer()
 {
-	if (resample_buffer != NULL)
+	if (resample_buffer != nullptr)
 	{
 		M_Free(resample_buffer);
 	}
-	if (voice != NULL)
+	if (voice != nullptr)
 	{
 		delete[] voice;
 	}
-	if (patches != NULL)
+	if (patches != nullptr)
 	{
 		FreeDLS(patches);
 	}
@@ -772,11 +772,11 @@ void Renderer::MarkInstrument(int banknum, int percussion, int instr)
 	{
 		bank = tonebank[banknum];
 	}
-	if (bank == NULL)
+	if (bank == nullptr)
 	{
 		return;
 	}
-	if (bank->instrument[instr] == NULL)
+	if (bank->instrument[instr] == nullptr)
 	{
 		bank->instrument[instr] = MAGIC_LOAD_INSTRUMENT;
 	}

@@ -89,7 +89,7 @@ public:
 	}
 	bool Lock(bool buffered) { DBGBREAK; return false; }
 	void Update() { DBGBREAK; }
-	PalEntry *GetPalette() { DBGBREAK; return NULL; }
+	PalEntry *GetPalette() { DBGBREAK; return nullptr; }
 	void GetFlashedPalette(PalEntry palette[256]) { DBGBREAK; }
 	void UpdatePalette() { DBGBREAK; }
 	bool SetGamma(float gamma) { Gamma = gamma; return true; }
@@ -159,7 +159,7 @@ CVAR (Int, vid_showpalette, 0, 0)
 
 CUSTOM_CVAR (Bool, vid_vsync, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetVSync (*self);
 	}
@@ -167,7 +167,7 @@ CUSTOM_CVAR (Bool, vid_vsync, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 
 CUSTOM_CVAR (Int, vid_refreshrate, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->NewRefreshRate();
 	}
@@ -199,7 +199,7 @@ void V_MarkRect (int x, int y, int width, int height)
 {
 }
 
-DCanvas *DCanvas::CanvasChain = NULL;
+DCanvas *DCanvas::CanvasChain = nullptr;
 
 //==========================================================================
 //
@@ -210,7 +210,7 @@ DCanvas *DCanvas::CanvasChain = NULL;
 DCanvas::DCanvas (int _width, int _height)
 {
 	// Init member vars
-	Buffer = NULL;
+	Buffer = nullptr;
 	LockCount = 0;
 	Width = _width;
 	Height = _height;
@@ -234,7 +234,7 @@ DCanvas::~DCanvas ()
 	prev = &CanvasChain;
 	probe = CanvasChain;
 
-	while (probe != NULL)
+	while (probe != nullptr)
 	{
 		if (probe == this)
 		{
@@ -430,7 +430,7 @@ void DCanvas::ReleaseScreenshotBuffer()
 // V_GetColorFromString
 //
 // Passed a string of the form "#RGB", "#RRGGBB", "R G B", or "RR GG BB",
-// returns a number representing that color. If palette is non-NULL, the
+// returns a number representing that color. If palette is non-nullptr, the
 // index of the best match in the palette is returned, otherwise the
 // RRGGBB value is returned directly.
 //
@@ -771,10 +771,10 @@ DSimpleCanvas::DSimpleCanvas (int width, int height)
 
 DSimpleCanvas::~DSimpleCanvas ()
 {
-	if (MemBuffer != NULL)
+	if (MemBuffer != nullptr)
 	{
 		delete[] MemBuffer;
-		MemBuffer = NULL;
+		MemBuffer = nullptr;
 	}
 }
 
@@ -786,7 +786,7 @@ DSimpleCanvas::~DSimpleCanvas ()
 
 bool DSimpleCanvas::IsValid ()
 {
-	return (MemBuffer != NULL);
+	return (MemBuffer != nullptr);
 }
 
 //==========================================================================
@@ -816,7 +816,7 @@ void DSimpleCanvas::Unlock ()
 	if (--LockCount <= 0)
 	{
 		LockCount = 0;
-		Buffer = NULL;	// Enforce buffer access only between Lock/Unlock
+		Buffer = nullptr;	// Enforce buffer access only between Lock/Unlock
 	}
 }
 
@@ -884,8 +884,8 @@ void DFrameBuffer::DrawRateStuff ()
 		LastTic = i;
 		if (tics > 20) tics = 20;
 
-		// Buffer can be NULL if we're doing hardware accelerated 2D
-		if (buffer != NULL)
+		// Buffer can be nullptr if we're doing hardware accelerated 2D
+		if (buffer != nullptr)
 		{
 			buffer += (GetHeight()-1) * GetPitch();
 			
@@ -985,7 +985,7 @@ const BYTE *FPaletteTester::GetColumn (unsigned int column, const Span **spans_o
 		MakeTexture();
 	}
 	column &= 15;
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpan;
 	}
@@ -1134,7 +1134,7 @@ void DFrameBuffer::DrawBlendingRect()
 
 FNativeTexture *DFrameBuffer::CreateTexture(FTexture *gametex, bool wrapping)
 {
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -1147,7 +1147,7 @@ FNativeTexture *DFrameBuffer::CreateTexture(FTexture *gametex, bool wrapping)
 
 FNativePalette *DFrameBuffer::CreatePalette(FRemapTable *remap)
 {
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -1326,7 +1326,7 @@ bool V_DoModeSetup (int width, int height, int bits)
 	DFrameBuffer *buff = I_SetMode (width, height, screen);
 	int cx1, cx2;
 
-	if (buff == NULL)
+	if (buff == nullptr)
 	{
 		return false;
 	}
@@ -1429,8 +1429,8 @@ void V_CalcCleanFacs (int designwidth, int designheight, int realwidth, int real
 	else
 		*cleanx = *cleany;
 
-	if (_cx1 != NULL)	*_cx1 = cx1;
-	if (_cx2 != NULL)	*_cx2 = cx2;
+	if (_cx1 != nullptr)	*_cx1 = cx1;
+	if (_cx2 != nullptr)	*_cx2 = cx2;
 }
 
 bool IVideo::SetResolution (int width, int height, int bits)
@@ -1585,7 +1585,7 @@ void V_Init2()
 
 	{
 		DFrameBuffer *s = screen;
-		screen = NULL;
+		screen = nullptr;
 		s->ObjectFlags |= OF_YesReallyDelete;
 		delete s;
 	}
@@ -1612,7 +1612,7 @@ void V_Shutdown()
 	if (screen)
 	{
 		DFrameBuffer *s = screen;
-		screen = NULL;
+		screen = nullptr;
 		s->ObjectFlags |= OF_YesReallyDelete;
 		delete s;
 	}
@@ -1623,7 +1623,7 @@ EXTERN_CVAR (Bool, vid_tft)
 CUSTOM_CVAR (Bool, vid_nowidescreen, false, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 {
 	setsizeneeded = true;
-	if (StatusBar != NULL)
+	if (StatusBar != nullptr)
 	{
 		StatusBar->ScreenSizeChanged();
 	}
@@ -1632,7 +1632,7 @@ CUSTOM_CVAR (Bool, vid_nowidescreen, false, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 CUSTOM_CVAR (Int, vid_aspect, 0, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 {
 	setsizeneeded = true;
-	if (StatusBar != NULL)
+	if (StatusBar != nullptr)
 	{
 		StatusBar->ScreenSizeChanged();
 	}
@@ -1715,7 +1715,7 @@ int CheckRatio (int width, int height, int *trueratio)
 		ratio = 0;
 	}
 
-	if (trueratio != NULL)
+	if (trueratio != nullptr)
 	{
 		*trueratio = ratio;
 	}
@@ -1749,6 +1749,6 @@ void IVideo::DumpAdapters ()
 
 CCMD(vid_listadapters)
 {
-	if (Video != NULL)
+	if (Video != nullptr)
 		Video->DumpAdapters();
 }

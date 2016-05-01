@@ -64,7 +64,7 @@ void *M_Malloc(size_t size)
 {
 	void *block = malloc(size);
 
-	if (block == NULL)
+	if (block == nullptr)
 		I_FatalError("Could not malloc %zu bytes", size);
 
 	GC::AllocBytes += _msize(block);
@@ -73,12 +73,12 @@ void *M_Malloc(size_t size)
 
 void *M_Realloc(void *memblock, size_t size)
 {
-	if (memblock != NULL)
+	if (memblock != nullptr)
 	{
 		GC::AllocBytes -= _msize(memblock);
 	}
 	void *block = realloc(memblock, size);
-	if (block == NULL)
+	if (block == nullptr)
 	{
 		I_FatalError("Could not realloc %zu bytes", size);
 	}
@@ -90,7 +90,7 @@ void *M_Malloc(size_t size)
 {
 	void *block = malloc(size+sizeof(size_t));
 
-	if (block == NULL)
+	if (block == nullptr)
 		I_FatalError("Could not malloc %zu bytes", size);
 
 	size_t *sizeStore = (size_t *) block;
@@ -103,15 +103,15 @@ void *M_Malloc(size_t size)
 
 void *M_Realloc(void *memblock, size_t size)
 {
-	if(memblock == NULL)
+	if(memblock == nullptr)
 		return M_Malloc(size);
 
-	if (memblock != NULL)
+	if (memblock != nullptr)
 	{
 		GC::AllocBytes -= _msize(memblock);
 	}
 	void *block = realloc(((size_t*) memblock)-1, size+sizeof(size_t));
-	if (block == NULL)
+	if (block == nullptr)
 	{
 		I_FatalError("Could not realloc %zu bytes", size);
 	}
@@ -134,7 +134,7 @@ void *M_Malloc_Dbg(size_t size, const char *file, int lineno)
 {
 	void *block = _malloc_dbg(size, _NORMAL_BLOCK, file, lineno);
 
-	if (block == NULL)
+	if (block == nullptr)
 		I_FatalError("Could not malloc %zu bytes", size);
 
 	GC::AllocBytes += _msize(block);
@@ -143,12 +143,12 @@ void *M_Malloc_Dbg(size_t size, const char *file, int lineno)
 
 void *M_Realloc_Dbg(void *memblock, size_t size, const char *file, int lineno)
 {
-	if (memblock != NULL)
+	if (memblock != nullptr)
 	{
 		GC::AllocBytes -= _msize(memblock);
 	}
 	void *block = _realloc_dbg(memblock, size, _NORMAL_BLOCK, file, lineno);
-	if (block == NULL)
+	if (block == nullptr)
 	{
 		I_FatalError("Could not realloc %zu bytes", size);
 	}
@@ -160,7 +160,7 @@ void *M_Malloc_Dbg(size_t size, const char *file, int lineno)
 {
 	void *block = _malloc_dbg(size+sizeof(size_t), _NORMAL_BLOCK, file, lineno);
 
-	if (block == NULL)
+	if (block == nullptr)
 		I_FatalError("Could not malloc %zu bytes", size);
 
 	size_t *sizeStore = (size_t *) block;
@@ -173,16 +173,16 @@ void *M_Malloc_Dbg(size_t size, const char *file, int lineno)
 
 void *M_Realloc_Dbg(void *memblock, size_t size, const char *file, int lineno)
 {
-	if(memblock == NULL)
+	if(memblock == nullptr)
 		return M_Malloc_Dbg(size, file, lineno);
 
-	if (memblock != NULL)
+	if (memblock != nullptr)
 	{
 		GC::AllocBytes -= _msize(memblock);
 	}
 	void *block = _realloc_dbg(((size_t*) memblock)-1, size+sizeof(size_t), _NORMAL_BLOCK, file, lineno);
 
-	if (block == NULL)
+	if (block == nullptr)
 	{
 		I_FatalError("Could not realloc %zu bytes", size);
 	}
@@ -200,7 +200,7 @@ void *M_Realloc_Dbg(void *memblock, size_t size, const char *file, int lineno)
 #if !defined(__sun)
 void M_Free (void *block)
 {
-	if (block != NULL)
+	if (block != nullptr)
 	{
 		GC::AllocBytes -= _msize(block);
 		free(block);
@@ -209,7 +209,7 @@ void M_Free (void *block)
 #else
 void M_Free (void *block)
 {
-	if(block != NULL)
+	if(block != nullptr)
 	{
 		GC::AllocBytes -= _msize(block);
 		free(((size_t*) block)-1);

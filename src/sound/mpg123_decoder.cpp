@@ -110,8 +110,8 @@ bool MPG123Decoder::open(FileReader *reader)
 
     if(frame_ok)
     {
-        MPG123 = mpg123_new(NULL, NULL);
-        if(mpg123_replace_reader_handle(MPG123, file_read, file_lseek, NULL) == MPG123_OK &&
+        MPG123 = mpg123_new(nullptr, nullptr);
+        if(mpg123_replace_reader_handle(MPG123, file_read, file_lseek, nullptr) == MPG123_OK &&
            mpg123_open_handle(MPG123, this) == MPG123_OK)
         {
             int enc, channels;

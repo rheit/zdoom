@@ -178,8 +178,8 @@ public:
 	// Returns the whole texture, stored in column-major order
 	virtual const BYTE *GetPixels () = 0;
 	
-	virtual int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate=0, FCopyInfo *inf = NULL);
-	int CopyTrueColorTranslated(FBitmap *bmp, int x, int y, int rotate, FRemapTable *remap, FCopyInfo *inf = NULL);
+	virtual int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate=0, FCopyInfo *inf = nullptr);
+	int CopyTrueColorTranslated(FBitmap *bmp, int x, int y, int rotate, FRemapTable *remap, FCopyInfo *inf = nullptr);
 	virtual bool UseBasePalette();
 	virtual int GetSourceLump() { return SourceLump; }
 	virtual FTexture *GetRedirect(bool wantwarped);
@@ -215,12 +215,12 @@ public:
 
 	virtual void SetFrontSkyLayer();
 
-	void CopyToBlock (BYTE *dest, int dwidth, int dheight, int x, int y, const BYTE *translation=NULL)
+	void CopyToBlock (BYTE *dest, int dwidth, int dheight, int x, int y, const BYTE *translation=nullptr)
 	{
 		CopyToBlock(dest, dwidth, dheight, x, y, 0, translation);
 	}
 
-	void CopyToBlock (BYTE *dest, int dwidth, int dheight, int x, int y, int rotate, const BYTE *translation=NULL);
+	void CopyToBlock (BYTE *dest, int dwidth, int dheight, int x, int y, int rotate, const BYTE *translation=nullptr);
 
 	// Returns true if the next call to GetPixels() will return an image different from the
 	// last call to GetPixels(). This should be considered valid only if a call to CheckModified()
@@ -250,7 +250,7 @@ protected:
 	static BYTE GrayMap[256];
 	FNativeTexture *Native;
 
-	FTexture (const char *name = NULL, int lumpnum = -1);
+	FTexture (const char *name = nullptr, int lumpnum = -1);
 
 	Span **CreateSpans (const BYTE *pixels) const;
 	void FreeSpans (Span **spans) const;
@@ -282,18 +282,18 @@ public:
 	// Get texture without translation
 	FTexture *operator[] (FTextureID texnum)
 	{
-		if ((unsigned)texnum.GetIndex() >= Textures.Size()) return NULL;
+		if ((unsigned)texnum.GetIndex() >= Textures.Size()) return nullptr;
 		return Textures[texnum.GetIndex()].Texture;
 	}
 	FTexture *operator[] (const char *texname)
 	{
 		FTextureID texnum = GetTexture (texname, FTexture::TEX_MiscPatch);
-		if (!texnum.Exists()) return NULL;
+		if (!texnum.Exists()) return nullptr;
 		return Textures[texnum.GetIndex()].Texture;
 	}
 	FTexture *ByIndex(int i)
 	{
-		if (unsigned(i) >= Textures.Size()) return NULL;
+		if (unsigned(i) >= Textures.Size()) return nullptr;
 		return Textures[i].Texture;
 	}
 	FTexture *FindTexture(const char *texname, int usetype = FTexture::TEX_MiscPatch, BITFIELD flags = TEXMAN_TryAny);
@@ -301,7 +301,7 @@ public:
 	// Get texture with translation
 	FTexture *operator() (FTextureID texnum, bool withpalcheck=false)
 	{
-		if ((size_t)texnum.texnum >= Textures.Size()) return NULL;
+		if ((size_t)texnum.texnum >= Textures.Size()) return nullptr;
 		int picnum = Translation[texnum.texnum];
 		if (withpalcheck)
 		{
@@ -312,13 +312,13 @@ public:
 	FTexture *operator() (const char *texname)
 	{
 		FTextureID texnum = GetTexture (texname, FTexture::TEX_MiscPatch);
-		if (texnum.texnum == -1) return NULL;
+		if (texnum.texnum == -1) return nullptr;
 		return Textures[Translation[texnum.texnum]].Texture;
 	}
 
 	FTexture *ByIndexTranslated(int i)
 	{
-		if (unsigned(i) >= Textures.Size()) return NULL;
+		if (unsigned(i) >= Textures.Size()) return nullptr;
 		return Textures[Translation[i]].Texture;
 	}
 
@@ -472,7 +472,7 @@ public:
 	FWarpTexture (FTexture *source, int warptype);
 	~FWarpTexture ();
 
-	virtual int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate=0, FCopyInfo *inf = NULL);
+	virtual int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate=0, FCopyInfo *inf = nullptr);
 	const BYTE *GetColumn (unsigned int column, const Span **spans_out);
 	const BYTE *GetPixels ();
 	void Unload ();

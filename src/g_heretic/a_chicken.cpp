@@ -50,7 +50,7 @@ void AChickenPlayer::MorphPlayerThink ()
 		Vel.Z += JumpZ;
 
 		FState * painstate = FindState(NAME_Pain);
-		if (painstate != NULL) SetState (painstate);
+		if (painstate != nullptr) SetState (painstate);
 	}
 	if (pr_chickenplayerthink () < 48)
 	{ // Just noise
@@ -123,7 +123,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Feathers)
 
 void P_UpdateBeak (AActor *self)
 {
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		self->player->psprites[ps_weapon].sy = WEAPONTOP + self->player->chickenPeck / 2;
 	}
@@ -141,7 +141,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BeakRaise)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -177,7 +177,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BeakAttackPL1)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -212,7 +212,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BeakAttackPL2)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}

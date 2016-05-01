@@ -162,7 +162,7 @@ public:
 	void Unload ();
 	virtual void SetFrontSkyLayer ();
 
-	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = NULL);
+	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = nullptr);
 	int GetSourceLump() { return DefinitionLump; }
 	FTexture *GetRedirect(bool wantwarped);
 	FTexture *GetRawTexture();
@@ -240,7 +240,7 @@ FMultiPatchTexture::FMultiPatchTexture (const void *texdef, FPatchLookup *patchl
 	}
 
 	UseType = FTexture::TEX_Wall;
-	Parts = NumParts > 0 ? new TexPart[NumParts] : NULL;
+	Parts = NumParts > 0 ? new TexPart[NumParts] : nullptr;
 	Width = SAFESHORT(mtexture.d->width);
 	Height = SAFESHORT(mtexture.d->height);
 	Name = (char *)mtexture.d->name;
@@ -273,7 +273,7 @@ FMultiPatchTexture::FMultiPatchTexture (const void *texdef, FPatchLookup *patchl
 		Parts[i].OriginX = LittleShort(mpatch.d->originx);
 		Parts[i].OriginY = LittleShort(mpatch.d->originy);
 		Parts[i].Texture = patchlookup[LittleShort(mpatch.d->patch)].Texture;
-		if (Parts[i].Texture == NULL)
+		if (Parts[i].Texture == nullptr)
 		{
 			Printf(TEXTCOLOR_RED "Unknown patch %s in texture %s\n", patchlookup[LittleShort(mpatch.d->patch)].Name.GetChars(), Name.GetChars());
 			NumParts--;
@@ -318,19 +318,19 @@ FMultiPatchTexture::FMultiPatchTexture (const void *texdef, FPatchLookup *patchl
 FMultiPatchTexture::~FMultiPatchTexture ()
 {
 	Unload ();
-	if (Parts != NULL)
+	if (Parts != nullptr)
 	{
 		for(int i=0; i<NumParts;i++)
 		{
-			if (Parts[i].Translation != NULL) delete Parts[i].Translation;
+			if (Parts[i].Translation != nullptr) delete Parts[i].Translation;
 		}
 		delete[] Parts;
-		Parts = NULL;
+		Parts = nullptr;
 	}
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 }
 
@@ -357,10 +357,10 @@ void FMultiPatchTexture::SetFrontSkyLayer ()
 
 void FMultiPatchTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -376,7 +376,7 @@ const BYTE *FMultiPatchTexture::GetPixels ()
 	{
 		return Parts->Texture->GetPixels ();
 	}
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -395,7 +395,7 @@ const BYTE *FMultiPatchTexture::GetColumn (unsigned int column, const Span **spa
 	{
 		return Parts->Texture->GetColumn (column, spans_out);
 	}
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -410,9 +410,9 @@ const BYTE *FMultiPatchTexture::GetColumn (unsigned int column, const Span **spa
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -474,7 +474,7 @@ BYTE *GetBlendMap(PalEntry blend, BYTE *blendwork)
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -508,7 +508,7 @@ void FMultiPatchTexture::MakeTexture ()
 		{
 			if (Parts[i].Texture->bHasCanvas) continue;	// cannot use camera textures as patch.
 		
-			BYTE *trans = Parts[i].Translation ? Parts[i].Translation->Remap : NULL;
+			BYTE *trans = Parts[i].Translation ? Parts[i].Translation->Remap : nullptr;
 			{
 				if (Parts[i].Blend != 0)
 				{
@@ -561,7 +561,7 @@ int FMultiPatchTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rota
 		return Parts[0].Texture->CopyTrueColorPixels(bmp, x, y, rotate, inf);
 	}
 
-	if (rotate != 0 || (inf != NULL && ((inf->op != OP_OVERWRITE && inf->op != OP_COPY) || inf->blend != BLEND_NONE)))
+	if (rotate != 0 || (inf != nullptr && ((inf->op != OP_OVERWRITE && inf->op != OP_COPY) || inf->blend != BLEND_NONE)))
 	{ // We are doing some sort of fancy stuff to the destination bitmap, so composite to
 	  // a temporary bitmap, and copy that.
 		FBitmap tbmp;
@@ -579,7 +579,7 @@ int FMultiPatchTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rota
 	FClipRect saved_cr = bmp->GetClipRect();
 	bmp->IntersectClipRect(x, y, Width, Height);
 
-	if (inf != NULL && inf->op == OP_OVERWRITE)
+	if (inf != nullptr && inf->op == OP_OVERWRITE)
 	{
 		bmp->Zero();
 	}
@@ -620,7 +620,7 @@ int FMultiPatchTexture::CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rota
 			}
 		}
 
-		if (Parts[i].Translation != NULL)
+		if (Parts[i].Translation != nullptr)
 		{ // Using a translation forces downconversion to the base palette
 			ret = Parts[i].Texture->CopyTrueColorTranslated(bmp, x+Parts[i].OriginX, y+Parts[i].OriginY, Parts[i].Rotate, Parts[i].Translation, &info);
 		}
@@ -808,8 +808,8 @@ FMultiPatchTexture::TexPart::TexPart()
 {
 	OriginX = OriginY = 0;
 	Rotate = 0;
-	Texture = NULL;
-	Translation = NULL;
+	Texture = nullptr;
+	Translation = nullptr;
 	Blend = 0;
 	Alpha = FRACUNIT;
 	op = OP_COPY;
@@ -823,7 +823,7 @@ FMultiPatchTexture::TexPart::TexPart()
 
 void FTextureManager::AddTexturesLump (const void *lumpdata, int lumpsize, int deflumpnum, int patcheslump, int firstdup, bool texture1)
 {
-	FPatchLookup *patchlookup = NULL;
+	FPatchLookup *patchlookup = nullptr;
 	int i;
 	DWORD numpatches;
 
@@ -874,7 +874,7 @@ void FTextureManager::AddTexturesLump (const void *lumpdata, int lumpsize, int d
 				// Doom, so printing warnings for patches that don't really
 				// exist isn't such a good idea.
 				//Printf ("Patch %s not found.\n", patchlookup[i].Name);
-				patchlookup[i].Texture = NULL;
+				patchlookup[i].Texture = nullptr;
 			}
 		}
 	}
@@ -1021,7 +1021,7 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent, i
 		part.Texture = TexMan[texno];
 		bComplex |= part.Texture->bComplex;
 	}
-	if (part.Texture == NULL)
+	if (part.Texture == nullptr)
 	{
 		if (!silent) sc.ScriptMessage(TEXTCOLOR_RED "Unknown patch '%s' in texture '%s'\n", sc.String, Name.GetChars());
 	}
@@ -1060,10 +1060,10 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent, i
 				int match;
 
 				bComplex = true;
-				if (part.Translation != NULL) delete part.Translation;
-				part.Translation = NULL;
+				if (part.Translation != nullptr) delete part.Translation;
+				part.Translation = nullptr;
 				part.Blend = 0;
-				static const char *maps[] = { "inverse", "gold", "red", "green", "blue", NULL };
+				static const char *maps[] = { "inverse", "gold", "red", "green", "blue", nullptr };
 				sc.MustGetString();
 
 				match = sc.MatchString(maps);
@@ -1128,14 +1128,14 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent, i
 			else if (sc.Compare("Blend"))
 			{
 				bComplex = true;
-				if (part.Translation != NULL) delete part.Translation;
-				part.Translation = NULL;
+				if (part.Translation != nullptr) delete part.Translation;
+				part.Translation = nullptr;
 				part.Blend = 0;
 
 				if (!sc.CheckNumber())
 				{
 					sc.MustGetString();
-					part.Blend = V_GetColor(NULL, sc.String);
+					part.Blend = V_GetColor(nullptr, sc.String);
 				}
 				else
 				{
@@ -1170,7 +1170,7 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent, i
 			}
 			else if (sc.Compare("style"))
 			{
-				static const char *styles[] = {"copy", "translucent", "add", "subtract", "reversesubtract", "modulate", "copyalpha", "copynewalpha", "overlay", NULL };
+				static const char *styles[] = {"copy", "translucent", "add", "subtract", "reversesubtract", "modulate", "copyalpha", "copynewalpha", "overlay", nullptr };
 				sc.MustGetString();
 				part.op = sc.MustMatchString(styles);
 				bComplex |= (part.op != OP_COPY);
@@ -1178,7 +1178,7 @@ void FMultiPatchTexture::ParsePatch(FScanner &sc, TexPart & part, bool silent, i
 			}
 			else if (sc.Compare("useoffsets"))
 			{
-				if (part.Texture != NULL)
+				if (part.Texture != nullptr)
 				{
 					part.OriginX -= part.Texture->LeftOffset;
 					part.OriginY -= part.Texture->TopOffset;
@@ -1212,7 +1212,7 @@ FMultiPatchTexture::FMultiPatchTexture (FScanner &sc, int usetype)
 	bMultiPatch = true;
 	sc.SetCMode(true);
 	sc.MustGetString();
-	const char* textureName = NULL;
+	const char* textureName = nullptr;
 	if (sc.Compare("optional"))
 	{
 		bSilent = true;
@@ -1268,17 +1268,17 @@ FMultiPatchTexture::FMultiPatchTexture (FScanner &sc, int usetype)
 			{
 				TexPart part;
 				ParsePatch(sc, part, bSilent, TEX_WallPatch);
-				if (part.Texture != NULL) parts.Push(part);
-				part.Texture = NULL;
-				part.Translation = NULL;
+				if (part.Texture != nullptr) parts.Push(part);
+				part.Texture = nullptr;
+				part.Translation = nullptr;
 			}
 			else if (sc.Compare("Graphic"))
 			{
 				TexPart part;
 				ParsePatch(sc, part, bSilent, TEX_MiscPatch);
-				if (part.Texture != NULL) parts.Push(part);
-				part.Texture = NULL;
-				part.Translation = NULL;
+				if (part.Texture != nullptr) parts.Push(part);
+				part.Texture = nullptr;
+				part.Translation = nullptr;
 			}
 			else if (sc.Compare("Offset"))
 			{

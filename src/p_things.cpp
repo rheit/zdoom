@@ -65,7 +65,7 @@ bool P_Thing_Spawn (int tid, AActor *source, int type, DAngle angle, bool fog, i
 
 	kind = P_GetSpawnableType(type);
 
-	if (kind == NULL)
+	if (kind == nullptr)
 		return false;
 
 	// Handle decorate replacements.
@@ -83,11 +83,11 @@ bool P_Thing_Spawn (int tid, AActor *source, int type, DAngle angle, bool fog, i
 	{
 		spot = iterator.Next();
 	}
-	while (spot != NULL)
+	while (spot != nullptr)
 	{
 		mobj = Spawn (kind, spot->Pos(), ALLOW_REPLACE);
 
-		if (mobj != NULL)
+		if (mobj != nullptr)
 		{
 			ActorFlags2 oldFlags2 = mobj->flags2;
 			mobj->flags2 |= MF2_PASSMOBJ;
@@ -160,7 +160,7 @@ bool P_Thing_Move (int tid, AActor *source, int mapspot, bool fog)
 	FActorIterator iterator2 (mapspot);
 	target = iterator2.Next ();
 
-	if (source != NULL && target != NULL)
+	if (source != nullptr && target != nullptr)
 	{
 		return P_MoveThing(source, target->Pos(), fog);
 	}
@@ -177,7 +177,7 @@ bool P_Thing_Projectile (int tid, AActor *source, int type, const char *type_nam
 	FActorIterator iterator (tid);
 	int defflags3;
 
-	if (type_name == NULL)
+	if (type_name == nullptr)
 	{
 		kind = P_GetSpawnableType(type);
 	}
@@ -185,7 +185,7 @@ bool P_Thing_Projectile (int tid, AActor *source, int type, const char *type_nam
 	{
 		kind = PClass::FindActor(type_name);
 	}
-	if (kind == NULL)
+	if (kind == nullptr)
 	{
 		return false;
 	}
@@ -206,7 +206,7 @@ bool P_Thing_Projectile (int tid, AActor *source, int type, const char *type_nam
 	{
 		spot = iterator.Next();
 	}
-	while (spot != NULL)
+	while (spot != nullptr)
 	{
 		FActorIterator tit (dest);
 
@@ -248,7 +248,7 @@ bool P_Thing_Projectile (int tid, AActor *source, int type, const char *type_nam
 					}
 					mobj->target = spot;
 
-					if (targ != NULL)
+					if (targ != nullptr)
 					{
 						DVector3 aim = mobj->Vec3To(targ);
 						aim.Z += targ->Height / 2;
@@ -363,12 +363,12 @@ int P_Thing_Damage (int tid, AActor *whofor0, int amount, FName type)
 	actor = (tid == 0 ? whofor0 : iterator.Next());
 	while (actor)
 	{
-		AActor *next = tid == 0 ? NULL : iterator.Next ();
+		AActor *next = tid == 0 ? nullptr : iterator.Next ();
 		if (actor->flags & MF_SHOOTABLE)
 		{
 			if (amount > 0)
 			{
-				P_DamageMobj (actor, NULL, whofor0, amount, type);
+				P_DamageMobj (actor, nullptr, whofor0, amount, type);
 			}
 			else if (actor->health < actor->SpawnHealth())
 			{
@@ -377,7 +377,7 @@ int P_Thing_Damage (int tid, AActor *whofor0, int amount, FName type)
 				{
 					actor->health = actor->SpawnHealth();
 				}
-				if (actor->player != NULL)
+				if (actor->player != nullptr)
 				{
 					actor->player->health = actor->health;
 				}
@@ -392,10 +392,10 @@ int P_Thing_Damage (int tid, AActor *whofor0, int amount, FName type)
 void P_RemoveThing(AActor * actor)
 {
 	// Don't remove live players.
-	if (actor->player == NULL || actor != actor->player->mo)
+	if (actor->player == nullptr || actor != actor->player->mo)
 	{
 		// Don't also remove owned inventory items
-		if (actor->IsKindOf(RUNTIME_CLASS(AInventory)) && static_cast<AInventory*>(actor)->Owner != NULL) return;
+		if (actor->IsKindOf(RUNTIME_CLASS(AInventory)) && static_cast<AInventory*>(actor)->Owner != nullptr) return;
 
 		// be friendly to the level statistics. ;)
 		actor->ClearCounters();
@@ -407,7 +407,7 @@ void P_RemoveThing(AActor * actor)
 bool P_Thing_Raise(AActor *thing, AActor *raiser)
 {
 	FState * RaiseState = thing->GetRaiseState();
-	if (RaiseState == NULL)
+	if (RaiseState == nullptr)
 	{
 		return true;	// monster doesn't have a raise state
 	}
@@ -437,7 +437,7 @@ bool P_Thing_Raise(AActor *thing, AActor *raiser)
 
 	thing->Revive();
 
-	if (raiser != NULL)
+	if (raiser != nullptr)
 	{
 		// Let's copy the friendliness of the one who raised it.
 		thing->CopyFriendliness(raiser, false);
@@ -450,7 +450,7 @@ bool P_Thing_Raise(AActor *thing, AActor *raiser)
 bool P_Thing_CanRaise(AActor *thing)
 {
 	FState * RaiseState = thing->GetRaiseState();
-	if (RaiseState == NULL)
+	if (RaiseState == nullptr)
 	{
 		return false;
 	}
@@ -483,15 +483,15 @@ bool P_Thing_CanRaise(AActor *thing)
 
 void P_Thing_SetVelocity(AActor *actor, const DVector3 &vec, bool add, bool setbob)
 {
-	if (actor != NULL)
+	if (actor != nullptr)
 	{
 		if (!add)
 		{
 			actor->Vel.Zero();
-			if (actor->player != NULL) actor->player->Vel.Zero();
+			if (actor->player != nullptr) actor->player->Vel.Zero();
 		}
 		actor->Vel += vec;
-		if (setbob && actor->player != NULL)
+		if (setbob && actor->player != nullptr)
 		{
 			actor->player->Vel += vec.XY();
 		}
@@ -511,12 +511,12 @@ PClassActor *P_GetSpawnableType(int spawnnum)
 	else
 	{ // A numbered arg from a Hexen or UDMF map
 		PClassActor **type = SpawnableThings.CheckKey(spawnnum);
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			return *type;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 struct MapinfoSpawnItem
@@ -588,7 +588,7 @@ static void ParseSpawnMap(FScanner &sc, SpawnMap & themap, const char *descript)
 			sc.MustGetString();
 
 			bool *def = defined.CheckKey(ednum);
-			if (def != NULL)
+			if (def != nullptr)
 			{
 				sc.ScriptMessage("%s %d defined more than once", descript, ednum);
 				error++;
@@ -636,11 +636,11 @@ void InitClassMap(FClassMap &themap, SpawnMap &thedata)
 
 	while (it.NextPair(pair))
 	{
-		PClassActor *cls = NULL;
+		PClassActor *cls = nullptr;
 		if (pair->Value.classname != NAME_None)
 		{
 			cls = PClass::FindActor(pair->Value.classname);
-			if (cls == NULL)
+			if (cls == nullptr)
 			{
 				Printf(TEXTCOLOR_RED "Script error, \"%s\" line %d:\nUnknown actor class %s\n",
 					pair->Value.filename.GetChars(), pair->Value.linenum, pair->Value.classname.GetChars());

@@ -66,7 +66,7 @@ CVAR(Bool, r_np2, true, 0)
 
 extern double globaluclip, globaldclip;
 
-PortalDrawseg* CurrentPortal = NULL;
+PortalDrawseg* CurrentPortal = nullptr;
 int CurrentPortalUniq = 0;
 bool CurrentPortalInSkybox = false;
 
@@ -152,7 +152,7 @@ CVAR(Bool, r_fogboundary, true, 0)
 
 inline bool IsFogBoundary (sector_t *front, sector_t *back)
 {
-	return r_fogboundary && fixedcolormap == NULL && front->ColorMap->Fade &&
+	return r_fogboundary && fixedcolormap == nullptr && front->ColorMap->Fade &&
 		front->ColorMap->Fade != back->ColorMap->Fade &&
 		(front->GetTexture(sector_t::ceiling) != skyflatnum || back->GetTexture(sector_t::ceiling) != skyflatnum);
 }
@@ -175,7 +175,7 @@ float MaskedScaleY;
 static void BlastMaskedColumn (void (*blastfunc)(const BYTE *pixels, const FTexture::Span *spans), FTexture *tex)
 {
 	// calculate lighting
-	if (fixedcolormap == NULL && fixedlightlev < 0)
+	if (fixedcolormap == nullptr && fixedlightlev < 0)
 	{
 		dc_colormap = basecolormap->Maps + (GETPALOOKUP (rw_light, wallshade) << COLORMAPSHIFT);
 	}
@@ -263,7 +263,7 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 	}
 
 	// killough 4/13/98: get correct lightlevel for 2s normal textures
-	sec = R_FakeFlat (frontsector, &tempsec, NULL, NULL, false);
+	sec = R_FakeFlat (frontsector, &tempsec, nullptr, nullptr, false);
 
 	basecolormap = sec->ColorMap;	// [RH] Set basecolormap
 
@@ -283,7 +283,7 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 			{
 				lightlist_t *lit = &frontsector->e->XFloor.lightlist[i];
 				basecolormap = lit->extra_colormap;
-				wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != NULL) + r_actualextralight);
+				wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != nullptr) + r_actualextralight);
 				break;
 			}
 		}
@@ -314,7 +314,7 @@ void R_RenderMaskedSegRange (drawseg_t *ds, int x1, int x2)
 
 	if (fixedlightlev >= 0)
 		dc_colormap = basecolormap->Maps + fixedlightlev;
-	else if (fixedcolormap != NULL)
+	else if (fixedcolormap != nullptr)
 		dc_colormap = fixedcolormap;
 
 	// find positioning
@@ -631,7 +631,7 @@ void R_RenderFakeWall(drawseg_t *ds, int x1, int x2, F3DFloor *rover)
 
 	if (fixedlightlev >= 0)
 		dc_colormap = basecolormap->Maps + fixedlightlev;
-	else if (fixedcolormap != NULL)
+	else if (fixedcolormap != nullptr)
 		dc_colormap = fixedcolormap;
 
 	WallC.sz1 = ds->sz1;
@@ -668,7 +668,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 {
 	FTexture *const DONT_DRAW = ((FTexture*)(intptr_t)-1);
 	int i,j;
-	F3DFloor *rover, *fover = NULL;
+	F3DFloor *rover, *fover = nullptr;
 	int passed, last;
 	double floorHeight;
 	double ceilingHeight;
@@ -679,7 +679,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 	frontsector = curline->frontsector;
 	backsector = curline->backsector;
 
-	if (backsector == NULL)
+	if (backsector == nullptr)
 	{
 		return;
 	}
@@ -726,7 +726,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 				}
 			}
 
-			rw_pic = NULL;
+			rw_pic = nullptr;
 			if (rover->bottom.plane->Zat0() >= sclipTop || passed) 
 			{
 				if (last)
@@ -734,13 +734,13 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					break;
 				}
 				// maybe wall from inside rendering?
-				fover = NULL;
+				fover = nullptr;
 				for (j = frontsector->e->XFloor.ffloors.Size() - 1; j >= 0; j--)
 				{
 					fover = frontsector->e->XFloor.ffloors[j];
 					if (fover->model == rover->model)
 					{ // never
-						fover = NULL;
+						fover = nullptr;
 						break;
 					}
 					if (!(fover->flags & FF_EXISTS)) continue;
@@ -752,13 +752,13 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					if (fover->top.plane->Zat0() <= sclipBottom) continue; // no
 					if (fover->bottom.plane->Zat0() >= sclipTop)
 					{ // no, last possible
- 						fover = NULL;
+ 						fover = nullptr;
 						break;
 					}
 					// it is, render inside?
 					if (!(fover->flags & (FF_BOTHPLANES|FF_INVERTPLANES)))
 					{ // no
-						fover = NULL;
+						fover = nullptr;
 					}
 					break;
 				}
@@ -788,7 +788,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 			else if (frontsector->e->XFloor.ffloors.Size()) 
 			{
 				// maybe not visible?
-				fover = NULL;
+				fover = nullptr;
 				for (j = frontsector->e->XFloor.ffloors.Size() - 1; j >= 0; j--)
 				{
 					fover = frontsector->e->XFloor.ffloors[j];
@@ -805,7 +805,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					if (fover->top.plane->Zat0() <= sclipBottom) continue; // no
 					if (fover->bottom.plane->Zat0() >= sclipTop)
 					{ // visible, last possible
- 						fover = NULL;
+ 						fover = nullptr;
 						break;
 					}
 					if ((fover->flags & FF_SOLID) == (rover->flags & FF_SOLID) &&
@@ -818,19 +818,19 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					{ // don't ever draw (but treat as something has been found)
 						rw_pic = DONT_DRAW;
 					}
-					fover = NULL; // visible
+					fover = nullptr; // visible
 					break;
 				}
 				if (fover && j != -1)
 				{
-					fover = NULL;
+					fover = nullptr;
 					last = 1;
 					continue; // not visible
 				}
 			}
 			if (!rw_pic) 
 			{
-				fover = NULL;
+				fover = nullptr;
 				if (rover->flags & FF_UPPERTEXTURE)
 				{
 					rw_pic = TexMan(curline->sidedef->GetTexture(side_t::top), true);
@@ -857,7 +857,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 						{
 							lightlist_t *lit = &backsector->e->XFloor.lightlist[j];
 							basecolormap = lit->extra_colormap;
-							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != NULL) + r_actualextralight);
+							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != nullptr) + r_actualextralight);
 							break;
 						}
 					}
@@ -870,7 +870,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 						{
 							lightlist_t *lit = &frontsector->e->XFloor.lightlist[j];
 							basecolormap = lit->extra_colormap;
-							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != NULL) + r_actualextralight);
+							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != nullptr) + r_actualextralight);
 							break;
 						}
 					}
@@ -880,7 +880,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 			{
 				R_RenderFakeWall(ds, x1, x2, fover ? fover : rover);
 			}
-			else rw_pic = NULL;
+			else rw_pic = nullptr;
 			break;
 		}
 	}
@@ -908,16 +908,16 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					continue;
 				}
 			}
-			rw_pic = NULL;
+			rw_pic = nullptr;
 			if (rover->top.plane->Zat0() <= sclipBottom || passed)
 			{ // maybe wall from inside rendering?
-				fover = NULL;
+				fover = nullptr;
 				for (j = 0; j < (int)frontsector->e->XFloor.ffloors.Size(); j++)
 				{
 					fover = frontsector->e->XFloor.ffloors[j];
 					if (fover->model == rover->model)
 					{ // never
-						fover = NULL;
+						fover = nullptr;
 						break;
 					}
 					if (!(fover->flags & FF_EXISTS)) continue;
@@ -929,13 +929,13 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					if (fover->bottom.plane->Zat0() >= sclipTop) continue; // no
 					if (fover->top.plane->Zat0() <= sclipBottom)
 					{ // no, last possible
- 						fover = NULL;
+ 						fover = nullptr;
 						break;
 					}
 					// it is, render inside?
 					if (!(fover->flags & (FF_BOTHPLANES|FF_INVERTPLANES)))
 					{ // no
-						fover = NULL;
+						fover = nullptr;
 					}
 					break;
 				}
@@ -964,7 +964,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 			}
 			else if (frontsector->e->XFloor.ffloors.Size())
 			{ // maybe not visible?
-				fover = NULL;
+				fover = nullptr;
 				for (j = 0; j < (int)frontsector->e->XFloor.ffloors.Size(); j++)
 				{
 					fover = frontsector->e->XFloor.ffloors[j];
@@ -981,7 +981,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					if (fover->bottom.plane->Zat0() >= sclipTop) continue; // no
 					if (fover->top.plane->Zat0() <= sclipBottom)
 					{ // visible, last possible
- 						fover = NULL;
+ 						fover = nullptr;
 						break;
 					}
 					if ((fover->flags & FF_SOLID) == (rover->flags & FF_SOLID) &&
@@ -994,7 +994,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					{ // don't ever draw (but treat as something has been found)
 						rw_pic = DONT_DRAW;
 					}
-					fover = NULL; // visible
+					fover = nullptr; // visible
 					break;
 				}
 				if (fover && (unsigned)j != frontsector->e->XFloor.ffloors.Size())
@@ -1002,9 +1002,9 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 					break;
 				}
 			}
-			if (rw_pic == NULL)
+			if (rw_pic == nullptr)
 			{
-				fover = NULL;
+				fover = nullptr;
 				if (rover->flags & FF_UPPERTEXTURE)
 				{
 					rw_pic = TexMan(curline->sidedef->GetTexture(side_t::top), true);
@@ -1031,7 +1031,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 						{
 							lightlist_t *lit = &backsector->e->XFloor.lightlist[j];
 							basecolormap = lit->extra_colormap;
-							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != NULL) + r_actualextralight);
+							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != nullptr) + r_actualextralight);
 							break;
 						}
 					}
@@ -1044,7 +1044,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 						{
 							lightlist_t *lit = &frontsector->e->XFloor.lightlist[j];
 							basecolormap = lit->extra_colormap;
-							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != NULL) + r_actualextralight);
+							wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, *lit->p_lightlevel, lit->lightsource != nullptr) + r_actualextralight);
 							break;
 						}
 					}
@@ -1057,7 +1057,7 @@ void R_RenderFakeWallRange (drawseg_t *ds, int x1, int x2)
 			}
 			else
 			{
-				rw_pic = NULL;
+				rw_pic = nullptr;
 			}
 			break;
 		}
@@ -1110,7 +1110,7 @@ void wallscan (int x1, int x2, short *uwal, short *dwal, float *swal, fixed_t *l
 	x = x1;
 	//while ((umost[x] > dmost[x]) && (x < x2)) x++;
 
-	bool fixed = (fixedcolormap != NULL || fixedlightlev >= 0);
+	bool fixed = (fixedcolormap != nullptr || fixedlightlev >= 0);
 	if (fixed)
 	{
 		palookupoffse[0] = dc_colormap;
@@ -1276,7 +1276,7 @@ void wallscan_striped (int x1, int x2, short *uwal, short *dwal, float *swal, fi
 		lightlist_t *lit = &frontsector->e->XFloor.lightlist[i];
 		basecolormap = lit->extra_colormap;
 		wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(fogginess,
-			*lit->p_lightlevel, lit->lightsource != NULL) + r_actualextralight);
+			*lit->p_lightlevel, lit->lightsource != nullptr) + r_actualextralight);
  	}
 
 	wallscan (x1, x2, up, dwal, swal, lwal, yrepeat);
@@ -1299,7 +1299,7 @@ static void call_wallscan(int x1, int x2, short *uwal, short *dwal, float *swal,
 	}
 	else
 	{
-		if (fixedcolormap != NULL || fixedlightlev >= 0 || !(frontsector->e && frontsector->e->XFloor.lightlist.Size()))
+		if (fixedcolormap != nullptr || fixedlightlev >= 0 || !(frontsector->e && frontsector->e->XFloor.lightlist.Size()))
 		{
 			wallscan(x1, x2, uwal, dwal, swal, lwal, yrepeat);
 		}
@@ -1462,7 +1462,7 @@ void maskwallscan (int x1, int x2, short *uwal, short *dwal, float *swal, fixed_
 	x = startx = x1;
 	p = x + dc_destorg;
 
-	bool fixed = (fixedcolormap != NULL || fixedlightlev >= 0);
+	bool fixed = (fixedcolormap != nullptr || fixedlightlev >= 0);
 	if (fixed)
 	{
 		palookupoffse[0] = dc_colormap;
@@ -1638,7 +1638,7 @@ void transmaskwallscan (int x1, int x2, short *uwal, short *dwal, float *swal, f
 	x = startx = x1;
 	p = x + dc_destorg;
 
-	bool fixed = (fixedcolormap != NULL || fixedlightlev >= 0);
+	bool fixed = (fixedcolormap != nullptr || fixedlightlev >= 0);
 	if (fixed)
 	{
 		palookupoffse[0] = dc_colormap;
@@ -1789,7 +1789,7 @@ void R_RenderSegLoop ()
 
 	if (fixedlightlev >= 0)
 		dc_colormap = basecolormap->Maps + fixedlightlev;
-	else if (fixedcolormap != NULL)
+	else if (fixedcolormap != nullptr)
 		dc_colormap = fixedcolormap;
 
 	// clip wall to the floor and ceiling
@@ -1906,7 +1906,7 @@ void R_RenderSegLoop ()
 	}
 	else
 	{ // two sided line
-		if (toptexture != NULL && toptexture->UseType != FTexture::TEX_Null)
+		if (toptexture != nullptr && toptexture->UseType != FTexture::TEX_Null)
 		{ // top wall
 			for (x = x1; x < x2; ++x)
 			{
@@ -1952,7 +1952,7 @@ void R_RenderSegLoop ()
 		}
 
 		
-		if (bottomtexture != NULL && bottomtexture->UseType != FTexture::TEX_Null)
+		if (bottomtexture != nullptr && bottomtexture->UseType != FTexture::TEX_Null)
 		{ // bottom wall
 			for (x = x1; x < x2; ++x)
 			{
@@ -2021,7 +2021,7 @@ void R_NewWall (bool needlights)
 		markfloor = markceiling = true; // act like a one-sided wall here (todo: check how does this work with transparency)
 		rw_markportal = true;
 	}
-	else if (backsector == NULL)
+	else if (backsector == nullptr)
 	{
 		// single sided line
 		// a single sided line is terminal, so it must mark ends
@@ -2048,7 +2048,7 @@ void R_NewWall (bool needlights)
 				else
 				{ // top of texture at top
 					rw_midtexturemid = (frontsector->GetPlaneTexZ(sector_t::ceiling) - ViewPos.Z) * yrepeat;
-					if (rowoffset < 0 && midtexture != NULL)
+					if (rowoffset < 0 && midtexture != nullptr)
 					{
 						rowoffset += midtexture->GetHeight();
 					}
@@ -2192,7 +2192,7 @@ void R_NewWall (bool needlights)
 				if (linedef->flags & ML_DONTPEGTOP)
 				{ // top of texture at top
 					rw_toptexturemid = (frontsector->GetPlaneTexZ(sector_t::ceiling) - ViewPos.Z) * yrepeat;
-					if (rowoffset < 0 && toptexture != NULL)
+					if (rowoffset < 0 && toptexture != nullptr)
 					{
 						rowoffset += toptexture->GetHeight();
 					}
@@ -2241,7 +2241,7 @@ void R_NewWall (bool needlights)
 				else
 				{ // top of texture at top
 					rw_bottomtexturemid = (backsector->GetPlaneTexZ(sector_t::floor) - ViewPos.Z) * yrepeat;
-					if (rowoffset < 0 && bottomtexture != NULL)
+					if (rowoffset < 0 && bottomtexture != nullptr)
 					{
 						rowoffset += bottomtexture->GetHeight();
 					}
@@ -2275,7 +2275,7 @@ void R_NewWall (bool needlights)
 	// it is definitely invisible and doesn't need to be marked.
 
 	// killough 3/7/98: add deep water check
-	if (frontsector->GetHeightSec() == NULL)
+	if (frontsector->GetHeightSec() == nullptr)
 	{
 		int planeside;
 
@@ -2297,7 +2297,7 @@ void R_NewWall (bool needlights)
 
 	FTexture *midtex = TexMan(sidedef->GetTexture(side_t::mid), true);
 
-	segtextured = midtex != NULL || toptexture != NULL || bottomtexture != NULL;
+	segtextured = midtex != nullptr || toptexture != nullptr || bottomtexture != nullptr;
 
 	// calculate light table
 	if (needlights && (segtextured || (backsector && IsFogBoundary(frontsector, backsector))))
@@ -2310,7 +2310,7 @@ void R_NewWall (bool needlights)
 
 		PrepWall (swall, lwall, sidedef->TexelLength * lwallscale, WallC.sx1, WallC.sx2);
 
-		if (fixedcolormap == NULL && fixedlightlev < 0)
+		if (fixedcolormap == nullptr && fixedlightlev < 0)
 		{
 			wallshade = LIGHT2SHADE(curline->sidedef->GetLightLevel(foggy, frontsector->lightlevel)
 				+ r_actualextralight);
@@ -2420,7 +2420,7 @@ void R_StoreWallRange (int start, int stop)
 	{
 		ds_p->silhouette = SIL_BOTH;
 	}
-	else if (backsector == NULL)
+	else if (backsector == nullptr)
 	{
 		ds_p->sprtopclip = R_NewOpening (stop - start);
 		ds_p->sprbottomclip = R_NewOpening (stop - start);
@@ -2584,7 +2584,7 @@ void R_StoreWallRange (int start, int stop)
 	if (markceiling)
 	{
 		if (ceilingplane)
-		{	// killough 4/11/98: add NULL ptr checks
+		{	// killough 4/11/98: add nullptr ptr checks
 			ceilingplane = R_CheckPlane (ceilingplane, start, stop);
 		}
 		else
@@ -2596,7 +2596,7 @@ void R_StoreWallRange (int start, int stop)
 	if (markfloor)
 	{
 		if (floorplane)
-		{	// killough 4/11/98: add NULL ptr checks
+		{	// killough 4/11/98: add nullptr ptr checks
 			floorplane = R_CheckPlane (floorplane, start, stop);
 		}
 		else
@@ -2634,7 +2634,7 @@ void R_StoreWallRange (int start, int stop)
 	// [ZZ] Only if not an active mirror
 	if (!rw_markportal)
 	{
-		for (DBaseDecal *decal = curline->sidedef->AttachedDecals; decal != NULL; decal = decal->WallNext)
+		for (DBaseDecal *decal = curline->sidedef->AttachedDecals; decal != nullptr; decal = decal->WallNext)
 		{
 			R_RenderDecal (curline->sidedef, decal, ds_p, 0);
 		}
@@ -3017,7 +3017,7 @@ static void R_RenderDecal (side_t *wall, DBaseDecal *decal, drawseg_t *clipper, 
 	// Determine actor z
 	zpos = decal->Z;
 	front = curline->frontsector;
-	back = (curline->backsector != NULL) ? curline->backsector : curline->frontsector;
+	back = (curline->backsector != nullptr) ? curline->backsector : curline->frontsector;
 	switch (decal->RenderFlags & RF_RELMASK)
 	{
 	default:
@@ -3057,7 +3057,7 @@ static void R_RenderDecal (side_t *wall, DBaseDecal *decal, drawseg_t *clipper, 
 	WallSpriteTile = TexMan(decal->PicNum, true);
 	flipx = (BYTE)(decal->RenderFlags & RF_XFLIP);
 
-	if (WallSpriteTile == NULL || WallSpriteTile->UseType == FTexture::TEX_Null)
+	if (WallSpriteTile == nullptr || WallSpriteTile->UseType == FTexture::TEX_Null)
 	{
 		return;
 	}
@@ -3097,7 +3097,7 @@ static void R_RenderDecal (side_t *wall, DBaseDecal *decal, drawseg_t *clipper, 
 	switch (decal->RenderFlags & RF_CLIPMASK)
 	{
 	case RF_CLIPFULL:
-		if (curline->backsector == NULL)
+		if (curline->backsector == nullptr)
 		{
 			if (pass != 0)
 			{
@@ -3129,7 +3129,7 @@ static void R_RenderDecal (side_t *wall, DBaseDecal *decal, drawseg_t *clipper, 
 		break;
 
 	case RF_CLIPMID:
-		if (curline->backsector != NULL && pass != 2)
+		if (curline->backsector != nullptr && pass != 2)
 		{
 			goto done;
 		}
@@ -3186,7 +3186,7 @@ static void R_RenderDecal (side_t *wall, DBaseDecal *decal, drawseg_t *clipper, 
 	rw_light = rw_lightleft + (x1 - WallC.sx1) * rw_lightstep;
 	if (fixedlightlev >= 0)
 		dc_colormap = usecolormap->Maps + fixedlightlev;
-	else if (fixedcolormap != NULL)
+	else if (fixedcolormap != nullptr)
 		dc_colormap = fixedcolormap;
 	else if (!foggy && (decal->RenderFlags & RF_FULLBRIGHT))
 		dc_colormap = usecolormap->Maps;

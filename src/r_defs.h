@@ -210,8 +210,8 @@ struct FUDMFKey
 	FUDMFKey& operator =(const FString &val)
 	{
 		Type = UDMF_String;
-		IntVal = strtol(val.GetChars(), NULL, 0);
-		FloatVal = strtod(val.GetChars(), NULL);
+		IntVal = strtol(val.GetChars(), nullptr, 0);
+		FloatVal = strtod(val.GetChars(), nullptr);
 		StringVal = val;
 		return *this;
 	}
@@ -639,7 +639,7 @@ public:
 	int GetFloorLight () const;
 	int GetCeilingLight () const;
 	sector_t *GetHeightSec() const;
-	double GetFriction(int plane = sector_t::floor, double *movefac = NULL) const;
+	double GetFriction(int plane = sector_t::floor, double *movefac = nullptr) const;
 
 	DInterpolation *SetInterpolation(int position, bool attach);
 
@@ -924,22 +924,22 @@ public:
 	bool PlaneMoving(int pos);
 
 	// Portal-aware height calculation
-	double HighestCeilingAt(const DVector2 &a, sector_t **resultsec = NULL);
-	double LowestFloorAt(const DVector2 &a, sector_t **resultsec = NULL);
+	double HighestCeilingAt(const DVector2 &a, sector_t **resultsec = nullptr);
+	double LowestFloorAt(const DVector2 &a, sector_t **resultsec = nullptr);
 
 
-	double HighestCeilingAt(AActor *a, sector_t **resultsec = NULL)
+	double HighestCeilingAt(AActor *a, sector_t **resultsec = nullptr)
 	{
 		return HighestCeilingAt(a->Pos(), resultsec);
 	}
 
-	double LowestFloorAt(AActor *a, sector_t **resultsec = NULL)
+	double LowestFloorAt(AActor *a, sector_t **resultsec = nullptr)
 	{
 		return LowestFloorAt(a->Pos(), resultsec);
 	}
 
-	double NextHighestCeilingAt(double x, double y, double bottomz, double topz, int flags = 0, sector_t **resultsec = NULL, F3DFloor **resultffloor = NULL);
-	double NextLowestFloorAt(double x, double y, double z, int flags = 0, double steph = 0, sector_t **resultsec = NULL, F3DFloor **resultffloor = NULL);
+	double NextHighestCeilingAt(double x, double y, double bottomz, double topz, int flags = 0, sector_t **resultsec = nullptr, F3DFloor **resultffloor = nullptr);
+	double NextLowestFloorAt(double x, double y, double z, int flags = 0, double steph = 0, sector_t **resultsec = nullptr, F3DFloor **resultffloor = nullptr);
 
 	// Member variables
 	double		CenterFloor() const { return floorplane.ZatPoint(centerspot); }
@@ -996,7 +996,7 @@ public:
 	struct line_t **lines;		// [linecount] size
 
 	// killough 3/7/98: support flat heights drawn at another sector's heights
-	sector_t *heightsec;		// other sector, or NULL if no other sector
+	sector_t *heightsec;		// other sector, or nullptr if no other sector
 
 	DWORD bottommap, midmap, topmap;	// killough 4/4/98: dynamic colormaps
 										// [RH] these can also be blend values if
@@ -1090,7 +1090,7 @@ struct side_t
 	BYTE		Flags;
 	int			Index;		// needed to access custom UDMF fields which are stored in loading order.
 
-	int GetLightLevel (bool foggy, int baselight, bool is3dlight=false, int *pfakecontrast_usedbygzdoom=NULL) const;
+	int GetLightLevel (bool foggy, int baselight, bool is3dlight=false, int *pfakecontrast_usedbygzdoom=nullptr) const;
 
 	void SetLight(SWORD l)
 	{
@@ -1234,7 +1234,7 @@ public:
 
 	FLinePortal *getPortal() const
 	{
-		return portalindex >= linePortals.Size() ? (FLinePortal*)NULL : &linePortals[portalindex];
+		return portalindex >= linePortals.Size() ? (FLinePortal*)nullptr : &linePortals[portalindex];
 	}
 
 	// returns true if the portal is crossable by actors
@@ -1251,7 +1251,7 @@ public:
 
 	line_t *getPortalDestination() const
 	{
-		return portalindex >= linePortals.Size() ? (line_t*)NULL : linePortals[portalindex].mDestination;
+		return portalindex >= linePortals.Size() ? (line_t*)nullptr : linePortals[portalindex].mDestination;
 	}
 
 	int getPortalAlignment() const
@@ -1274,7 +1274,7 @@ public:
 // As an mobj moves through the world, these nodes are created and
 // destroyed, with the links changed appropriately.
 //
-// For the links, NULL means top or end of list.
+// For the links, nullptr means top or end of list.
 
 struct msecnode_t
 {
@@ -1315,7 +1315,7 @@ struct seg_t
 
 	// Sector references. Could be retrieved from linedef, too.
 	sector_t*		frontsector;
-	sector_t*		backsector;		// NULL for one-sided lines
+	sector_t*		backsector;		// nullptr for one-sided lines
 };
 
 struct glsegextra_t
@@ -1445,7 +1445,7 @@ inline DVector3 AActor::PosRelative(line_t *line) const
 	return Pos() + Displacements.getOffset(Sector->PortalGroup, line->frontsector->PortalGroup);
 }
 
-inline DVector3 PosRelative(const DVector3 &pos, line_t *line, sector_t *refsec = NULL)
+inline DVector3 PosRelative(const DVector3 &pos, line_t *line, sector_t *refsec = nullptr)
 {
 	return pos + Displacements.getOffset(refsec->PortalGroup, line->frontsector->PortalGroup);
 }

@@ -269,7 +269,7 @@ CCMD (md5sum)
 	for (int i = 1; i < argv.argc(); ++i)
 	{
 		FILE *file = fopen(argv[i], "rb");
-		if (file == NULL)
+		if (file == nullptr)
 		{
 			Printf("%s: %s\n", argv[i], strerror(errno));
 		}

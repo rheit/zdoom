@@ -109,30 +109,30 @@ void FTextureManager::DeleteAll()
 
 	for (unsigned i = 0; i < mAnimations.Size(); i++)
 	{
-		if (mAnimations[i] != NULL)
+		if (mAnimations[i] != nullptr)
 		{
 			M_Free (mAnimations[i]);
-			mAnimations[i] = NULL;
+			mAnimations[i] = nullptr;
 		}
 	}
 	mAnimations.Clear();
 
 	for (unsigned i = 0; i < mSwitchDefs.Size(); i++)
 	{
-		if (mSwitchDefs[i] != NULL)
+		if (mSwitchDefs[i] != nullptr)
 		{
 			M_Free (mSwitchDefs[i]);
-			mSwitchDefs[i] = NULL;
+			mSwitchDefs[i] = nullptr;
 		}
 	}
 	mSwitchDefs.Clear();
 
 	for (unsigned i = 0; i < mAnimatedDoors.Size(); i++)
 	{
-		if (mAnimatedDoors[i].TextureFrames != NULL)
+		if (mAnimatedDoors[i].TextureFrames != nullptr)
 		{
 			delete[] mAnimatedDoors[i].TextureFrames;
-			mAnimatedDoors[i].TextureFrames = NULL;
+			mAnimatedDoors[i].TextureFrames = nullptr;
 		}
 	}
 	mAnimatedDoors.Clear();
@@ -156,7 +156,7 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 	int firstfound = -1;
 	int firsttype = FTexture::TEX_Null;
 
-	if (name == NULL || name[0] == '\0')
+	if (name == nullptr || name[0] == '\0')
 	{
 		return FTextureID(-1);
 	}
@@ -178,7 +178,7 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 			// The name matches, so check the texture type
 			if (usetype == FTexture::TEX_Any)
 			{
-				// All NULL textures should actually return 0
+				// All nullptr textures should actually return 0
 				if (tex->UseType == FTexture::TEX_FirstDefined && !(flags & TEXMAN_ReturnFirst)) return 0;
 				if (tex->UseType == FTexture::TEX_SkinGraphic && !(flags & TEXMAN_AllowSkins)) return 0;
 				return FTextureID(tex->UseType==FTexture::TEX_Null ? 0 : i);
@@ -198,7 +198,7 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 			}
 			else if (tex->UseType == FTexture::TEX_Null && usetype == FTexture::TEX_Wall)
 			{
-				// We found a NULL texture on a wall -> return 0
+				// We found a nullptr texture on a wall -> return 0
 				return FTextureID(0);
 			}
 			else
@@ -219,7 +219,7 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 
 	if ((flags & TEXMAN_TryAny) && usetype != FTexture::TEX_Any)
 	{
-		// Never return the index of NULL textures.
+		// Never return the index of nullptr textures.
 		if (firstfound != -1)
 		{
 			if (firsttype == FTexture::TEX_Null) return FTextureID(0);
@@ -241,10 +241,10 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 			{
 				FTexture *tex = Wads.GetLinkedTexture(lump);
 				if (tex == NO_TEXTURE) return FTextureID(-1);
-				if (tex != NULL) return tex->id;
+				if (tex != nullptr) return tex->id;
 				if (flags & TEXMAN_DontCreate) return FTextureID(-1);	// we only want to check, there's no need to create a texture if we don't have one yet.
 				tex = FTexture::CreateTexture("", lump, FTexture::TEX_Override);
-				if (tex != NULL)
+				if (tex != nullptr)
 				{
 					Wads.SetLinkedTexture(lump, tex);
 					return AddTexture(tex);
@@ -271,7 +271,7 @@ int FTextureManager::ListTextures (const char *name, TArray<FTextureID> &list)
 {
 	int i;
 
-	if (name == NULL || name[0] == '\0')
+	if (name == nullptr || name[0] == '\0')
 	{
 		return 0;
 	}
@@ -290,7 +290,7 @@ int FTextureManager::ListTextures (const char *name, TArray<FTextureID> &list)
 
 		if (stricmp (tex->Name, name) == 0)
 		{
-			// NULL textures must be ignored.
+			// nullptr textures must be ignored.
 			if (tex->UseType!=FTexture::TEX_Null) 
 			{
 				unsigned int j;
@@ -317,7 +317,7 @@ FTextureID FTextureManager::GetTexture (const char *name, int usetype, BITFIELD 
 {
 	FTextureID i;
 
-	if (name == NULL || name[0] == 0)
+	if (name == nullptr || name[0] == 0)
 	{
 		return FTextureID(0);
 	}
@@ -344,7 +344,7 @@ FTextureID FTextureManager::GetTexture (const char *name, int usetype, BITFIELD 
 FTexture *FTextureManager::FindTexture(const char *texname, int usetype, BITFIELD flags)
 {
 	FTextureID texnum = CheckForTexture (texname, usetype, flags);
-	return !texnum.isValid()? NULL : Textures[texnum.GetIndex()].Texture;
+	return !texnum.isValid()? nullptr : Textures[texnum.GetIndex()].Texture;
 }
 
 //==========================================================================
@@ -372,7 +372,7 @@ FTextureID FTextureManager::AddTexture (FTexture *texture)
 	int bucket;
 	int hash;
 
-	if (texture == NULL) return FTextureID(-1);
+	if (texture == nullptr) return FTextureID(-1);
 
 	// Later textures take precedence over earlier ones
 
@@ -409,7 +409,7 @@ FTextureID FTextureManager::CreateTexture (int lumpnum, int usetype)
 	{
 		FTexture *out = FTexture::CreateTexture(lumpnum, usetype);
 
-		if (out != NULL) return AddTexture (out);
+		if (out != nullptr) return AddTexture (out);
 		else
 		{
 			Printf (TEXTCOLOR_ORANGE "Invalid data encountered for texture %s\n", Wads.GetLumpFullPath(lumpnum).GetChars());
@@ -467,7 +467,7 @@ bool FTextureManager::AreTexturesCompatible (FTextureID picnum1, FTextureID picn
 	FTexture *texture2 = Textures[index2].Texture;
 
 	// both textures must be the same type.
-	if (texture1 == NULL || texture2 == NULL || texture1->UseType != texture2->UseType)
+	if (texture1 == nullptr || texture2 == nullptr || texture1->UseType != texture2->UseType)
 		return false;
 
 	// both textures must be from the same file
@@ -555,7 +555,7 @@ void FTextureManager::AddHiresTextures (int wadnum)
 				{
 					// A texture with this name does not yet exist
 					FTexture * newtex = FTexture::CreateTexture (firsttx, FTexture::TEX_Any);
-					if (newtex != NULL)
+					if (newtex != nullptr)
 					{
 						newtex->UseType=FTexture::TEX_Override;
 						AddTexture(newtex);
@@ -566,7 +566,7 @@ void FTextureManager::AddHiresTextures (int wadnum)
 					for(unsigned int i = 0; i < tlist.Size(); i++)
 					{
 						FTexture * newtex = FTexture::CreateTexture (firsttx, FTexture::TEX_Any);
-						if (newtex != NULL)
+						if (newtex != nullptr)
 						{
 							FTexture * oldtex = Textures[tlist[i].GetIndex()].Texture;
 
@@ -657,7 +657,7 @@ void FTextureManager::LoadTextureDefs(int wadnum, const char *lumpname)
 								)
 							{
 								FTexture * newtex = FTexture::CreateTexture (lumpnum, FTexture::TEX_Any);
-								if (newtex != NULL)
+								if (newtex != nullptr)
 								{
 									// Replace the entire texture and adjust the scaling and offset factors.
 									newtex->bWorldPanning = true;
@@ -695,7 +695,7 @@ void FTextureManager::LoadTextureDefs(int wadnum, const char *lumpname)
 						{
 							FTexture *newtex = FTexture::CreateTexture(lumpnum, FTexture::TEX_Override);
 
-							if (newtex != NULL)
+							if (newtex != nullptr)
 							{
 								// Replace the entire texture and adjust the scaling and offset factors.
 								newtex->bWorldPanning = true;
@@ -887,7 +887,7 @@ void FTextureManager::AddTexturesForWad(int wadnum)
 		// Unfortunately we have to look at everything that comes through here...
 		FTexture *out = FTexture::CreateTexture(i, skin ? FTexture::TEX_SkinGraphic : FTexture::TEX_MiscPatch);
 
-		if (out != NULL) 
+		if (out != nullptr) 
 		{
 			AddTexture (out);
 		}
@@ -941,17 +941,17 @@ void FTextureManager::SortTexturesByType(int start, int end)
 	{
 		for(unsigned j = 0; j<newtextures.Size(); j++)
 		{
-			if (newtextures[j] != NULL && newtextures[j]->UseType == texturetypes[i])
+			if (newtextures[j] != nullptr && newtextures[j]->UseType == texturetypes[i])
 			{
 				AddTexture(newtextures[j]);
-				newtextures[j] = NULL;
+				newtextures[j] = nullptr;
 			}
 		}
 	}
 	// This should never happen. All other UseTypes are only used outside
 	for(unsigned j = 0; j<newtextures.Size(); j++)
 	{
-		if (newtextures[j] != NULL)
+		if (newtextures[j] != nullptr)
 		{
 			Printf("Texture %s has unknown type!\n", newtextures[j]->Name.GetChars());
 			AddTexture(newtextures[j]);
@@ -1070,7 +1070,7 @@ FTextureID FTextureManager::PalCheck(FTextureID tex)
 {
 	if (vid_nopalsubstitutions) return tex;
 	int *newtex = PalettedVersions.CheckKey(tex.GetIndex());
-	if (newtex == NULL || *newtex == 0) return tex;
+	if (newtex == nullptr || *newtex == 0) return tex;
 	return *newtex;
 }
 
@@ -1086,7 +1086,7 @@ void FTextureManager::WriteTexture (FArchive &arc, int picnum)
 
 	if (picnum < 0)
 	{
-		arc.WriteName(NULL);
+		arc.WriteName(nullptr);
 		return;
 	}
 	else if ((size_t)picnum >= Textures.Size())
@@ -1121,7 +1121,7 @@ int FTextureManager::ReadTexture (FArchive &arc)
 	const char *name;
 
 	name = arc.ReadName ();
-	if (name != NULL)
+	if (name != nullptr)
 	{
 		usetype = arc.ReadCount ();
 		return GetTexture (name, usetype).GetIndex();

@@ -120,10 +120,10 @@ FStartupScreen *FStartupScreen::CreateInstance(int max_progress)
 
 void DeleteStartupScreen()
 {
-	if (StartScreen != NULL)
+	if (StartScreen != nullptr)
 	{
 		delete StartScreen;
-		StartScreen = NULL;
+		StartScreen = nullptr;
 	}
 }
 
@@ -141,7 +141,7 @@ FTTYStartupScreen::FTTYStartupScreen(int max_progress)
 	DidNetInit = false;
 	NetMaxPos = 0;
 	NetCurPos = 0;
-	TheNetMessage = NULL;
+	TheNetMessage = nullptr;
 }
 
 //===========================================================================
@@ -321,7 +321,7 @@ bool FTTYStartupScreen::NetLoop(bool (*timer_callback)(void *), void *userdata)
 		FD_ZERO (&rfds);
 		FD_SET (STDIN_FILENO, &rfds);
 
-		retval = select (1, &rfds, NULL, NULL, &tv);
+		retval = select (1, &rfds, nullptr, nullptr, &tv);
 
 		if (retval == -1)
 		{

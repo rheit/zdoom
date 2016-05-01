@@ -32,7 +32,7 @@ public:
 	const SavedPos SavePos();
 	void RestorePos(const SavedPos &pos);
 
-	static FString TokenName(int token, const char *string=NULL);
+	static FString TokenName(int token, const char *string=nullptr);
 
 	bool GetString();
 	void MustGetString();

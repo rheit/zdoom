@@ -77,7 +77,7 @@ public:
 	void ResetFilePtr ();
 
 	FILE *GetFile () const { return File; }
-	virtual const char *GetBuffer() const { return NULL; }
+	virtual const char *GetBuffer() const { return nullptr; }
 
 	FileReader &operator>> (BYTE &v)
 	{

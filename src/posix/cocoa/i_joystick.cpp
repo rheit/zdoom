@@ -54,7 +54,7 @@ namespace
 
 FString ToFString(const CFStringRef string)
 {
-	if (NULL == string)
+	if (nullptr == string)
 	{
 		return FString();
 	}
@@ -199,13 +199,13 @@ const float IOKitJoystick::DEFAULT_SENSITIVITY = 1.0f;
 
 IOHIDDeviceInterface** CreateDeviceInterface(const io_object_t device)
 {
-	IOCFPlugInInterface** plugInInterface = NULL;
+	IOCFPlugInInterface** plugInInterface = nullptr;
 	SInt32 score = 0;
 
 	const kern_return_t pluginResult = IOCreatePlugInInterfaceForService(device,
 		kIOHIDDeviceUserClientTypeID, kIOCFPlugInInterfaceID, &plugInInterface, &score);
 
-	IOHIDDeviceInterface** interface = NULL;
+	IOHIDDeviceInterface** interface = nullptr;
 
 	if (KERN_SUCCESS == pluginResult)
 	{
@@ -225,20 +225,20 @@ IOHIDDeviceInterface** CreateDeviceInterface(const io_object_t device)
 				(*interface)->Release(interface);
 
 				Printf(TEXTCOLOR_RED "IOHIDDeviceInterface::open() failed with code 0x%08X\n", openResult);
-				return NULL;
+				return nullptr;
 			}
 		}
 		else
 		{
 			Printf(TEXTCOLOR_RED "IOCFPlugInInterface::QueryInterface() failed with code 0x%08X\n",
 				static_cast<int>(queryResult));
-			return NULL;
+			return nullptr;
 		}
 	}
 	else
 	{
 		Printf(TEXTCOLOR_RED "IOCreatePlugInInterfaceForService() failed with code %i\n", pluginResult);
-		return NULL;
+		return nullptr;
 	}
 
 	return interface;
@@ -246,17 +246,17 @@ IOHIDDeviceInterface** CreateDeviceInterface(const io_object_t device)
 
 IOHIDQueueInterface** CreateDeviceQueue(IOHIDDeviceInterface** const interface)
 {
-	if (NULL == interface)
+	if (nullptr == interface)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	IOHIDQueueInterface** queue = (*interface)->allocQueue(interface);
 
-	if (NULL == queue)
+	if (nullptr == queue)
 	{
 		Printf(TEXTCOLOR_RED "IOHIDDeviceInterface::allocQueue() failed\n");
-		return NULL;
+		return nullptr;
 	}
 
 	static const uint32_t QUEUE_FLAGS = 0;
@@ -269,7 +269,7 @@ IOHIDQueueInterface** CreateDeviceQueue(IOHIDDeviceInterface** const interface)
 		(*queue)->Release(queue);
 
 		Printf(TEXTCOLOR_RED "IOHIDQueueInterface::create() failed with code 0x%08X\n", queueResult);
-		return NULL;
+		return nullptr;
 	}
 
 	return queue;
@@ -283,16 +283,16 @@ IOKitJoystick::IOKitJoystick(const io_object_t device)
 , m_useAxesPolling(true)
 , m_notification(0)
 {
-	if (NULL == m_interface || NULL == m_queue)
+	if (nullptr == m_interface || nullptr == m_queue)
 	{
 		return;
 	}
 
-	CFMutableDictionaryRef properties = NULL;
+	CFMutableDictionaryRef properties = nullptr;
 	const kern_return_t propertiesResult =
 		IORegistryEntryCreateCFProperties(device, &properties, kCFAllocatorDefault, kNilOptions);
 
-	if (KERN_SUCCESS != propertiesResult || NULL == properties)
+	if (KERN_SUCCESS != propertiesResult || nullptr == properties)
 	{
 		Printf(TEXTCOLOR_RED "IORegistryEntryCreateCFProperties() failed with code %i\n", propertiesResult);
 		return;
@@ -319,14 +319,14 @@ IOKitJoystick::~IOKitJoystick()
 		IOObjectRelease(m_notification);
 	}
 
-	if (NULL != m_queue)
+	if (nullptr != m_queue)
 	{
 		(*m_queue)->stop(m_queue);
 		(*m_queue)->dispose(m_queue);
 		(*m_queue)->Release(m_queue);
 	}
 
-	if (NULL != m_interface)
+	if (nullptr != m_interface)
 	{
 		(*m_interface)->close(m_interface);
 		(*m_interface)->Release(m_interface);
@@ -536,7 +536,7 @@ void IOKitJoystick::UseAxesPolling(const bool axesPolling)
 
 void IOKitJoystick::Update()
 {
-	if (NULL == m_queue)
+	if (nullptr == m_queue)
 	{
 		return;
 	}
@@ -564,7 +564,7 @@ void IOKitJoystick::Update()
 
 void IOKitJoystick::ProcessAxes()
 {
-	if (NULL == m_interface || !m_useAxesPolling)
+	if (nullptr == m_interface || !m_useAxesPolling)
 	{
 		return;
 	}
@@ -582,7 +582,7 @@ void IOKitJoystick::ProcessAxes()
 		{
 			const double scaledValue = scaledMin +
 				(event.value - axis.minValue) * (scaledMax - scaledMin) / (axis.maxValue - axis.minValue);
-			const double filteredValue = Joy_RemoveDeadZone(scaledValue, axis.deadZone, NULL);
+			const double filteredValue = Joy_RemoveDeadZone(scaledValue, axis.deadZone, nullptr);
 
 			axis.value = static_cast<float>(filteredValue * m_sensitivity * axis.sensitivity);
 		}
@@ -615,7 +615,7 @@ bool IOKitJoystick::ProcessAxis(const IOHIDEventStruct& event)
 
 		const double scaledValue = scaledMin +
 			(event.value - axis.minValue) * (scaledMax - scaledMin) / (axis.maxValue - axis.minValue);
-		const double filteredValue = Joy_RemoveDeadZone(scaledValue, axis.deadZone, NULL);
+		const double filteredValue = Joy_RemoveDeadZone(scaledValue, axis.deadZone, nullptr);
 
 		axis.value = static_cast<float>(filteredValue * m_sensitivity * axis.sensitivity);
 
@@ -675,7 +675,7 @@ bool IOKitJoystick::ProcessPOV(const IOHIDEventStruct& event)
 
 void IOKitJoystick::GatherDeviceInfo(const io_object_t device, const CFDictionaryRef properties)
 {
-	assert(NULL != properties);
+	assert(nullptr != properties);
 
 	CFStringRef vendorRef = static_cast<CFStringRef>(
 		CFDictionaryGetValue(properties, CFSTR(kIOHIDManufacturerKey)));
@@ -686,10 +686,10 @@ void IOKitJoystick::GatherDeviceInfo(const io_object_t device, const CFDictionar
 	CFNumberRef productIDRef = static_cast<CFNumberRef>(
 		CFDictionaryGetValue(properties, CFSTR(kIOHIDProductIDKey)));
 
-	CFMutableDictionaryRef usbProperties = NULL;
+	CFMutableDictionaryRef usbProperties = nullptr;
 
-	if (   NULL ==   vendorRef || NULL ==   productRef
-		|| NULL == vendorIDRef || NULL == productIDRef)
+	if (   nullptr ==   vendorRef || nullptr ==   productRef
+		|| nullptr == vendorIDRef || nullptr == productIDRef)
 	{
 		// OS X is not mirroring all USB properties to HID page, so need to look at USB device page also
 		// Step up two levels and get dictionary of USB properties
@@ -726,27 +726,27 @@ void IOKitJoystick::GatherDeviceInfo(const io_object_t device, const CFDictionar
 		}
 	}
 
-	if (NULL != usbProperties)
+	if (nullptr != usbProperties)
 	{
-		if (NULL == vendorRef)
+		if (nullptr == vendorRef)
 		{
 			vendorRef = static_cast<CFStringRef>(
 				CFDictionaryGetValue(usbProperties, CFSTR("USB Vendor Name")));
 		}
 
-		if (NULL == productRef)
+		if (nullptr == productRef)
 		{
 			productRef = static_cast<CFStringRef>(
 				CFDictionaryGetValue(usbProperties, CFSTR("USB Product Name")));
 		}
 
-		if (NULL == vendorIDRef)
+		if (nullptr == vendorIDRef)
 		{
 			vendorIDRef = static_cast<CFNumberRef>(
 				CFDictionaryGetValue(usbProperties, CFSTR("idVendor")));
 		}
 
-		if (NULL == productIDRef)
+		if (nullptr == productIDRef)
 		{
 			productIDRef = static_cast<CFNumberRef>(
 				CFDictionaryGetValue(usbProperties, CFSTR("idProduct")));
@@ -759,19 +759,19 @@ void IOKitJoystick::GatherDeviceInfo(const io_object_t device, const CFDictionar
 
 	int vendorID = 0, productID = 0;
 
-	if (NULL != vendorIDRef)
+	if (nullptr != vendorIDRef)
 	{
 		CFNumberGetValue(vendorIDRef, kCFNumberIntType, &vendorID);
 	}
 
-	if (NULL != productIDRef)
+	if (nullptr != productIDRef)
 	{
 		CFNumberGetValue(productIDRef, kCFNumberIntType, &productID);
 	}
 
 	m_identifier.AppendFormat("VID_%04x_PID_%04x", vendorID, productID);
 
-	if (NULL != usbProperties)
+	if (nullptr != usbProperties)
 	{
 		CFRelease(usbProperties);
 	}
@@ -784,7 +784,7 @@ long GetElementValue(const CFDictionaryRef element, const CFStringRef key)
 		static_cast<CFNumberRef>(CFDictionaryGetValue(element, key));
 	long result = 0;
 
-	if (NULL != number && CFGetTypeID(number) == CFNumberGetTypeID())
+	if (nullptr != number && CFGetTypeID(number) == CFNumberGetTypeID())
 	{
 		CFNumberGetValue(number, kCFNumberLongType, &result);
 	}
@@ -794,8 +794,8 @@ long GetElementValue(const CFDictionaryRef element, const CFStringRef key)
 
 void IOKitJoystick::GatherElementsHandler(const void* value, void* parameter)
 {
-	assert(NULL != value);
-	assert(NULL != parameter);
+	assert(nullptr != value);
+	assert(nullptr != parameter);
 
 	const CFDictionaryRef element = static_cast<CFDictionaryRef>(value);
 	IOKitJoystick* thisPtr = static_cast<IOKitJoystick*>(parameter);
@@ -843,7 +843,7 @@ void IOKitJoystick::GatherCollectionElements(const CFDictionaryRef properties)
 	const CFArrayRef topElement = static_cast<CFArrayRef>(
 		CFDictionaryGetValue(properties, CFSTR(kIOHIDElementKey)));
 
-	if (NULL == topElement || CFGetTypeID(topElement) != CFArrayGetTypeID())
+	if (nullptr == topElement || CFGetTypeID(topElement) != CFArrayGetTypeID())
 	{
 		Printf(TEXTCOLOR_RED "GatherCollectionElements: invalid properties dictionary\n");
 		return;
@@ -872,7 +872,7 @@ void IOKitJoystick::AddAxis(const CFDictionaryRef element)
 	const CFStringRef nameRef = static_cast<CFStringRef>(
 		CFDictionaryGetValue(element, CFSTR(kIOHIDElementNameKey)));
 
-	if (NULL != nameRef && CFStringGetTypeID() == CFGetTypeID(nameRef))
+	if (nullptr != nameRef && CFStringGetTypeID() == CFGetTypeID(nameRef))
 	{
 		CFStringGetCString(nameRef, axis.name, sizeof(axis.name) - 1, kCFStringEncodingUTF8);
 	}
@@ -905,7 +905,7 @@ void IOKitJoystick::AddPOV(CFDictionaryRef element)
 
 void IOKitJoystick::AddToQueue(const IOHIDElementCookie cookie)
 {
-	if (NULL == m_queue)
+	if (nullptr == m_queue)
 	{
 		return;
 	}
@@ -918,7 +918,7 @@ void IOKitJoystick::AddToQueue(const IOHIDElementCookie cookie)
 
 void IOKitJoystick::RemoveFromQueue(const IOHIDElementCookie cookie)
 {
-	if (NULL == m_queue)
+	if (nullptr == m_queue)
 	{
 		return;
 	}
@@ -984,7 +984,7 @@ IOKitJoystickManager::IOKitJoystickManager()
 	{
 		m_notificationPorts[i] = IONotificationPortCreate(kIOMasterPortDefault);
 
-		if (NULL == m_notificationPorts[i])
+		if (nullptr == m_notificationPorts[i])
 		{
 			Printf(TEXTCOLOR_RED "IONotificationPortCreate(%zu) failed\n", i);
 			return;
@@ -1004,13 +1004,13 @@ IOKitJoystickManager::~IOKitJoystickManager()
 	{
 		IONotificationPortRef& port = m_notificationPorts[i];
 
-		if (NULL != port)
+		if (nullptr != port)
 		{
 			CFRunLoopRemoveSource(CFRunLoopGetCurrent(),
 				IONotificationPortGetRunLoopSource(port), kCFRunLoopDefaultMode);
 
 			IONotificationPortDestroy(port);
-			port = NULL;
+			port = nullptr;
 		}
 
 		io_iterator_t& notification = m_notifications[i];
@@ -1018,7 +1018,7 @@ IOKitJoystickManager::~IOKitJoystickManager()
 		if (0 != notification)
 		{
 			IOObjectRelease(notification);
-			notification = NULL;
+			notification = nullptr;
 		}
 	}
 }
@@ -1076,9 +1076,9 @@ void IOKitJoystickManager::Rescan(const int usagePage, const int usage, const si
 {
 	CFMutableDictionaryRef deviceMatching = IOServiceMatching(kIOHIDDeviceKey);
 
-	if (NULL == deviceMatching)
+	if (nullptr == deviceMatching)
 	{
-		Printf(TEXTCOLOR_RED "IOServiceMatching() returned NULL\n");
+		Printf(TEXTCOLOR_RED "IOServiceMatching() returned nullptr\n");
 		return;
 	}
 
@@ -1094,7 +1094,7 @@ void IOKitJoystickManager::Rescan(const int usagePage, const int usage, const si
 	io_iterator_t* iteratorPtr = &m_notifications[notificationPortIndex];
 
 	const IONotificationPortRef notificationPort = m_notificationPorts[notificationPortIndex];
-	assert(NULL != notificationPort);
+	assert(nullptr != notificationPort);
 
 	const kern_return_t notificationResult = IOServiceAddMatchingNotification(notificationPort,
 		kIOFirstMatchNotification, deviceMatching, OnDeviceAttached, notificationPort, iteratorPtr);
@@ -1136,10 +1136,10 @@ void IOKitJoystickManager::AddDevices(const IONotificationPortRef notificationPo
 
 void IOKitJoystickManager::OnDeviceAttached(void* const refcon, const io_iterator_t iterator)
 {
-	assert(NULL != refcon);
+	assert(nullptr != refcon);
 	const IONotificationPortRef notificationPort = static_cast<IONotificationPortRef>(refcon);
 
-	assert(NULL != s_joystickManager);
+	assert(nullptr != s_joystickManager);
 	s_joystickManager->AddDevices(notificationPort, iterator);
 }
 
@@ -1150,10 +1150,10 @@ void IOKitJoystickManager::OnDeviceRemoved(void* const refcon, io_service_t, con
 		return;
 	}
 
-	assert(NULL != refcon);
+	assert(nullptr != refcon);
 	IOKitJoystick* const joystick = static_cast<IOKitJoystick*>(refcon);
 
-	assert(NULL != s_joystickManager);
+	assert(nullptr != s_joystickManager);
 	JoystickList& joysticks = s_joystickManager->m_joysticks;
 
 	for (unsigned int i = 0, count = joysticks.Size(); i < count; ++i)
@@ -1185,7 +1185,7 @@ void I_ShutdownJoysticks()
 static void ShutdownJoysticks()
 {
 	delete s_joystickManager;
-	s_joystickManager = NULL;
+	s_joystickManager = nullptr;
 }
 
 void I_GetJoysticks(TArray<IJoystickConfig*>& sticks)
@@ -1196,13 +1196,13 @@ void I_GetJoysticks(TArray<IJoystickConfig*>& sticks)
 	// As M_LoadDefaults() was already called at this moment,
 	// the order of atterm's functions will be correct
 
-	if (NULL == s_joystickManager && !Args->CheckParm("-nojoy"))
+	if (nullptr == s_joystickManager && !Args->CheckParm("-nojoy"))
 	{
 		s_joystickManager = new IOKitJoystickManager;
 		atterm(ShutdownJoysticks);
 	}
 
-	if (NULL != s_joystickManager)
+	if (nullptr != s_joystickManager)
 	{
 		s_joystickManager->GetJoysticks(sticks);
 	}
@@ -1215,7 +1215,7 @@ void I_GetAxes(float axes[NUM_JOYAXIS])
 		axes[i] = 0.0f;
 	}
 
-	if (use_joystick && NULL != s_joystickManager)
+	if (use_joystick && nullptr != s_joystickManager)
 	{
 		s_joystickManager->AddAxes(axes);
 	}
@@ -1225,7 +1225,7 @@ IJoystickConfig* I_UpdateDeviceList()
 {
 	// Does nothing, device list is always kept up-to-date
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -1234,7 +1234,7 @@ IJoystickConfig* I_UpdateDeviceList()
 
 void I_ProcessJoysticks()
 {
-	if (NULL != s_joystickManager)
+	if (nullptr != s_joystickManager)
 	{
 		s_joystickManager->Update();
 	}
@@ -1246,7 +1246,7 @@ void I_ProcessJoysticks()
 
 CUSTOM_CVAR(Bool, joy_axespolling, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
 {
-	if (NULL != s_joystickManager)
+	if (nullptr != s_joystickManager)
 	{
 		s_joystickManager->UseAxesPolling(self);
 	}

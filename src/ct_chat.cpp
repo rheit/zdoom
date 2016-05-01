@@ -196,7 +196,7 @@ bool CT_Responder (event_t *ev)
 
 void CT_PasteChat(const char *clip)
 {
-	if (clip != NULL && *clip != '\0')
+	if (clip != nullptr && *clip != '\0')
 	{
 		// Only paste the first line.
 		while (*clip != '\0')
@@ -279,7 +279,7 @@ void CT_Drawer (void)
 		BorderTopRefresh = screen->GetPageCount ();
 	}
 
-	if (players[consoleplayer].camera != NULL &&
+	if (players[consoleplayer].camera != nullptr &&
 		(Button_ShowScores.bDown ||
 		 players[consoleplayer].camera->health <= 0 ||
 		 SB_ForceActive) &&
@@ -344,7 +344,7 @@ static void CT_ClearChatMessage ()
 static void ShoveChatStr (const char *str, BYTE who)
 {
 	// Don't send empty messages
-	if (str == NULL || str[0] == '\0')
+	if (str == nullptr || str[0] == '\0')
 		return;
 
 	FString substBuff;
@@ -407,7 +407,7 @@ static bool DoSubstitution (FString &out, const char *in)
 			}
 			else if (strnicmp(a, "weapon", 6) == 0)
 			{
-				if (weapon == NULL)
+				if (weapon == nullptr)
 				{
 					out += "no weapon";
 				}
@@ -422,21 +422,21 @@ static bool DoSubstitution (FString &out, const char *in)
 			if (strnicmp(a, "armor", 5) == 0)
 			{
 				AInventory *armor = player->mo->FindInventory<ABasicArmor>();
-				out.AppendFormat("%d", armor != NULL ? armor->Amount : 0);
+				out.AppendFormat("%d", armor != nullptr ? armor->Amount : 0);
 			}
 		}
 		else if (len == 9)
 		{
 			if (strnicmp(a, "ammocount", 9) == 0)
 			{
-				if (weapon == NULL)
+				if (weapon == nullptr)
 				{
 					out += '0';
 				}
 				else
 				{
-					out.AppendFormat("%d", weapon->Ammo1 != NULL ? weapon->Ammo1->Amount : 0);
-					if (weapon->Ammo2 != NULL)
+					out.AppendFormat("%d", weapon->Ammo1 != nullptr ? weapon->Ammo1->Amount : 0);
+					if (weapon->Ammo2 != nullptr)
 					{
 						out.AppendFormat("/%d", weapon->Ammo2->Amount);
 					}
@@ -447,14 +447,14 @@ static bool DoSubstitution (FString &out, const char *in)
 		{
 			if (strnicmp(a, "ammo", 4) == 0)
 			{
-				if (weapon == NULL || weapon->Ammo1 == NULL)
+				if (weapon == nullptr || weapon->Ammo1 == nullptr)
 				{
 					out += "no ammo";
 				}
 				else
 				{
 					out.AppendFormat("%s", weapon->Ammo1->GetClass()->TypeName.GetChars());
-					if (weapon->Ammo2 != NULL)
+					if (weapon->Ammo2 != nullptr)
 					{
 						out.AppendFormat("/%s", weapon->Ammo2->GetClass()->TypeName.GetChars());
 					}

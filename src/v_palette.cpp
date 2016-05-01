@@ -80,7 +80,7 @@ CUSTOM_CVAR (Float, Gamma, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 		return;
 	}
 
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		screen->SetGamma (self);
 	}
@@ -252,7 +252,7 @@ void FPalette::MakeRemap (const DWORD *colors, BYTE *remap, const BYTE *useful, 
 	}
 	for (i = k = 0, j = 255; i < numcolors; ++i)
 	{
-		if (useful == NULL || useful[i] != 0)
+		if (useful == nullptr || useful[i] != 0)
 		{
 			workspace[j].Color = colors[i] & 0xFFFFFF;
 			workspace[j].Foreign = 1;
@@ -492,11 +492,11 @@ CCMD (testblend)
 	{
 		if ( !(colorstring = V_GetColorStringByName (argv[1])).IsEmpty() )
 		{
-			color = V_GetColorFromString (NULL, colorstring);
+			color = V_GetColorFromString (nullptr, colorstring);
 		}
 		else
 		{
-			color = V_GetColorFromString (NULL, argv[1]);
+			color = V_GetColorFromString (nullptr, argv[1]);
 		}
 		amt = (float)atof (argv[2]);
 		if (amt > 1.0f)
@@ -523,11 +523,11 @@ CCMD (testfade)
 	{
 		if ( !(colorstring = V_GetColorStringByName (argv[1])).IsEmpty() )
 		{
-			color = V_GetColorFromString (NULL, colorstring);
+			color = V_GetColorFromString (nullptr, colorstring);
 		}
 		else
 		{
-			color = V_GetColorFromString (NULL, argv[1]);
+			color = V_GetColorFromString (nullptr, argv[1]);
 		}
 		level.fadeto = color;
 		NormalLight.ChangeFade (color);
@@ -623,11 +623,11 @@ CCMD (testcolor)
 	{
 		if ( !(colorstring = V_GetColorStringByName (argv[1])).IsEmpty() )
 		{
-			color = V_GetColorFromString (NULL, colorstring);
+			color = V_GetColorFromString (nullptr, colorstring);
 		}
 		else
 		{
-			color = V_GetColorFromString (NULL, argv[1]);
+			color = V_GetColorFromString (nullptr, argv[1]);
 		}
 		if (argv.argc() > 2)
 		{

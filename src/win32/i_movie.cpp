@@ -128,9 +128,9 @@ LRESULT CALLBACK MovieWndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		break;
 
 	case WM_SIZE:
-		if (vidwin == NULL)
+		if (vidwin == nullptr)
 		{
-			InvalidateRect (Window, NULL, FALSE);
+			InvalidateRect (Window, nullptr, FALSE);
 		}
 		else if ((wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED) && !FullVideo)
 		{
@@ -140,9 +140,9 @@ LRESULT CALLBACK MovieWndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		break;
 
 	case WM_PAINT:
-		if (vidwin == NULL)
+		if (vidwin == nullptr)
 		{
-			if (screen != NULL)
+			if (screen != nullptr)
 			{
 				static_cast<BaseWinFB *> (screen)->PaintToWindow ();
 			}
@@ -157,7 +157,7 @@ LRESULT CALLBACK MovieWndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			if (S_OK == vidwin->GetWindowPosition (&left, &top, &width, &height))
 			{
 				dc = BeginPaint (Window, &ps);
-				if (dc != NULL)
+				if (dc != nullptr)
 				{
 					RECT rect = { left, top, left+width, top+height };
 					ScreenToClient (hWnd, (LPPOINT)&rect.left);
@@ -248,19 +248,19 @@ int I_PlayMovie (const char *name)
 			uniname[i] = L'\\';
 	}
 
-	if (FAILED(hr = CoCreateInstance (CLSID_FilterGraph, NULL, CLSCTX_INPROC_SERVER,
+	if (FAILED(hr = CoCreateInstance (CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER,
 		IID_IGraphBuilder, (void **)&graph)))
 	{
 		goto bomb1;
 	}
 
-	control = NULL;
-	event = NULL;
-	vidwin = NULL;
-	audio = NULL;
-	video = NULL;
+	control = nullptr;
+	event = nullptr;
+	vidwin = nullptr;
+	audio = nullptr;
+	video = nullptr;
 
-	if (FAILED(hr = graph->RenderFile (uniname, NULL)))
+	if (FAILED(hr = graph->RenderFile (uniname, nullptr)))
 	{
 		goto bomb2;
 	}
@@ -271,7 +271,7 @@ int I_PlayMovie (const char *name)
 	graph->QueryInterface (IID_IBasicAudio, (void **)&audio);
 	graph->QueryInterface (IID_IBasicVideo, (void **)&video);
 
-	if (control == NULL || event == NULL)
+	if (control == nullptr || event == nullptr)
 	{
 		goto bomb3;
 	}
@@ -284,7 +284,7 @@ int I_PlayMovie (const char *name)
 
 	FullVideo = false;
 
-	if (vidwin != NULL)
+	if (vidwin != nullptr)
 	{
 		FullVideo = runningFull = screen->IsFullscreen ();
 
@@ -336,7 +336,7 @@ int I_PlayMovie (const char *name)
 	MovieInterrupted = false;
 	MovieDestroyed = false;
 
-	while (MovieNotDone && GetMessage (&msg, NULL, 0, 0))
+	while (MovieNotDone && GetMessage (&msg, nullptr, 0, 0))
 	{
 		TranslateMessage (&msg);
 		DispatchMessage (&msg);
@@ -355,28 +355,28 @@ bomb3:
 	{
 		UnregisterHotKey (Window, 0);
 	}
-	if (vidwin != NULL)
+	if (vidwin != nullptr)
 	{
 		if (!FullVideo)
 		{
 			vidwin->put_Visible (OAFALSE);
-			vidwin->put_Owner (NULL);
+			vidwin->put_Owner (nullptr);
 		}
 		vidwin->Release ();
 	}
-	if (video != NULL)
+	if (video != nullptr)
 	{
 		video->Release ();
 	}
-	if (audio != NULL)
+	if (audio != nullptr)
 	{
 		audio->Release ();
 	}
-	if (event != NULL)
+	if (event != nullptr)
 	{
 		event->Release ();
 	}
-	if (control != NULL)
+	if (control != nullptr)
 	{
 		control->Release ();
 	}
@@ -412,7 +412,7 @@ static void CheckIfVideo ()
 {
     long visible;
 
-    if (vidwin == NULL || video == NULL)
+    if (vidwin == nullptr || video == nullptr)
     {
 		NoVideo = true;
         return;
@@ -428,10 +428,10 @@ static void CheckIfVideo ()
 
 	if (NoVideo)
 	{
-		if (vidwin != NULL)
+		if (vidwin != nullptr)
 		{
 			vidwin->Release ();
-			vidwin = NULL;
+			vidwin = nullptr;
 		}
 
 		DHUDMessage *message = new DHUDMessage (
@@ -450,7 +450,7 @@ static void CheckIfVideo ()
 
 static void SetTheVolume ()
 {
-	if (audio != NULL)
+	if (audio != nullptr)
 	{
 		// Convert snd_movievolume from a linear range to 1/100th
 		// decibels and pass that to the IBasicAudio interface.
@@ -472,10 +472,10 @@ static void SizeWindowForVideo ()
 {
 	LONG width, height;
 
-	if (video == NULL || FAILED (video->GetVideoSize (&width, &height)))
+	if (video == nullptr || FAILED (video->GetVideoSize (&width, &height)))
 		return;
 
-	SetWindowPos (Window, NULL, 0, 0,
+	SetWindowPos (Window, nullptr, 0, 0,
 		width + 2*GetSystemMetrics(SM_CXBORDER),
 		height + GetSystemMetrics(SM_CYCAPTION) + 2*GetSystemMetrics(SM_CYBORDER),
 		SWP_NOMOVE|SWP_NOOWNERZORDER);
@@ -517,7 +517,7 @@ static void SetMovieSize ()
 	// And use it
 	vidwin->SetWindowPosition (left, top, width, height);
 
-	InvalidateRect (Window, NULL, FALSE);
+	InvalidateRect (Window, nullptr, FALSE);
 }
 
 #endif		// I_DO_NOT_LIKE_BIG_DOWNLOADS

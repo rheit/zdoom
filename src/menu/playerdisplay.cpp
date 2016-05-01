@@ -229,7 +229,7 @@ const BYTE *FBackdropTexture::GetColumn(unsigned int column, const Span **spans_
 		Render();
 	}
 	column = clamp(column, 0u, 143u);
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpan;
 	}
@@ -369,8 +369,8 @@ FListMenuItemPlayerDisplay::FListMenuItemPlayerDisplay(FListMenuDescriptor *menu
 		mRemap.Palette[i] = PalEntry(255, r, g, b);
 	}
 	mBackdrop = new FBackdropTexture;
-	mPlayerClass = NULL;
-	mPlayerState = NULL;
+	mPlayerClass = nullptr;
+	mPlayerState = nullptr;
 	mNoportrait = np;
 	mMode = 0;
 	mRotation = 0;
@@ -406,11 +406,11 @@ void FListMenuItemPlayerDisplay::UpdateRandomClass()
 		if (++mRandomClass >= (int)PlayerClasses.Size ()) mRandomClass = 0;
 		mPlayerClass = &PlayerClasses[mRandomClass];
 		mPlayerState = GetDefaultByType (mPlayerClass->Type)->SeeState;
-		if (mPlayerState == NULL)
+		if (mPlayerState == nullptr)
 		{ // No see state, so try spawn state.
 			mPlayerState = GetDefaultByType (mPlayerClass->Type)->SpawnState;
 		}
-		mPlayerTics = mPlayerState != NULL ? mPlayerState->GetTics() : -1;
+		mPlayerTics = mPlayerState != nullptr ? mPlayerState->GetTics() : -1;
 		mRandomTimer = 6;
 
 		// Since the newly displayed class may used a different translation
@@ -431,7 +431,7 @@ void FListMenuItemPlayerDisplay::UpdateTranslation()
 	int	PlayerSkin = players[consoleplayer].userinfo.GetSkin();
 	int PlayerColorset = players[consoleplayer].userinfo.GetColorSet();
 
-	if (mPlayerClass != NULL)
+	if (mPlayerClass != nullptr)
 	{
 		PlayerSkin = R_FindSkin (skins[PlayerSkin].name, int(mPlayerClass - &PlayerClasses[0]));
 		R_GetPlayerTranslation(PlayerColor, mPlayerClass->Type->GetColorSet(PlayerColorset),
@@ -460,11 +460,11 @@ void FListMenuItemPlayerDisplay::SetPlayerClass(int classnum, bool force)
 	{
 		mPlayerClass = &PlayerClasses[classnum];
 		mPlayerState = GetDefaultByType (mPlayerClass->Type)->SeeState;
-		if (mPlayerState == NULL)
+		if (mPlayerState == nullptr)
 		{ // No see state, so try spawn state.
 			mPlayerState = GetDefaultByType (mPlayerClass->Type)->SpawnState;
 		}
-		mPlayerTics = mPlayerState != NULL ? mPlayerState->GetTics() : -1;
+		mPlayerTics = mPlayerState != nullptr ? mPlayerState->GetTics() : -1;
 		mClassNum = classnum;
 	}
 }
@@ -533,7 +533,7 @@ void FListMenuItemPlayerDisplay::Ticker()
 {
 	if (mClassNum < 0) UpdateRandomClass();
 
-	if (mPlayerState != NULL && mPlayerState->GetTics () != -1 && mPlayerState->GetNextState () != NULL)
+	if (mPlayerState != nullptr && mPlayerState->GetTics () != -1 && mPlayerState->GetNextState () != nullptr)
 	{
 		if (--mPlayerTics <= 0)
 		{
@@ -564,7 +564,7 @@ void FListMenuItemPlayerDisplay::Drawer(bool selected)
 		if (texid.isValid())
 		{
 			FTexture *tex = TexMan(texid);
-			if (tex != NULL)
+			if (tex != nullptr)
 			{
 				screen->DrawTexture (tex, mXpos, mYpos, DTA_Clean, true, TAG_DONE);
 				return;
@@ -583,10 +583,10 @@ void FListMenuItemPlayerDisplay::Drawer(bool selected)
 
 	V_DrawFrame (x, y, 72*CleanXfac, 80*CleanYfac-1);
 
-	spriteframe_t *sprframe = NULL;
+	spriteframe_t *sprframe = nullptr;
 	DVector2 Scale;
 
-	if (mPlayerState != NULL)
+	if (mPlayerState != nullptr)
 	{
 		if (mSkin == 0)
 		{
@@ -600,12 +600,12 @@ void FListMenuItemPlayerDisplay::Drawer(bool selected)
 		}
 	}
 
-	if (sprframe != NULL)
+	if (sprframe != nullptr)
 	{
 		FTexture *tex = TexMan(sprframe->Texture[mRotation]);
-		if (tex != NULL && tex->UseType != FTexture::TEX_Null)
+		if (tex != nullptr && tex->UseType != FTexture::TEX_Null)
 		{
-			FRemapTable *trans = NULL;
+			FRemapTable *trans = nullptr;
 			if (mTranslate) trans = translationtables[TRANSLATION_Players](MAXPLAYERS);
 			screen->DrawTexture (tex,
 				x + 36*CleanXfac, y + 71*CleanYfac,

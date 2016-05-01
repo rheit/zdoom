@@ -30,13 +30,13 @@ struct FResourceLump
 
 	FResourceLump()
 	{
-		Cache = NULL;
-		Owner = NULL;
+		Cache = nullptr;
+		Owner = nullptr;
 		Flags = 0;
 		RefCount = 0;
 		Namespace = 0;	// ns_global
 		*Name = 0;
-		LinkedTexture = NULL;
+		LinkedTexture = nullptr;
 	}
 
 	virtual ~FResourceLump();
@@ -110,7 +110,7 @@ protected:
 
 	FUncompressedFile(const char *filename, FileReader *r);
 	virtual ~FUncompressedFile();
-	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : NULL; }
+	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : nullptr; }
 
 public:
 };

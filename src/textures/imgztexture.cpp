@@ -90,8 +90,8 @@ FTexture *IMGZTexture_TryCreate(FileReader & file, int lumpnum)
 	SWORD l, t;
 
 	file.Seek(0, SEEK_SET);
-	if (file.Read(&magic, 4) != 4) return NULL;
-	if (magic != MAKE_ID('I','M','G','Z')) return NULL;
+	if (file.Read(&magic, 4) != 4) return nullptr;
+	if (magic != MAKE_ID('I','M','G','Z')) return nullptr;
 	file >> w >> h >> l >> t;
 	return new FIMGZTexture(lumpnum, w, h, l, t);
 }
@@ -103,7 +103,7 @@ FTexture *IMGZTexture_TryCreate(FileReader & file, int lumpnum)
 //==========================================================================
 
 FIMGZTexture::FIMGZTexture (int lumpnum, WORD w, WORD h, SWORD l, SWORD t)
-	: FTexture(NULL, lumpnum), Pixels(0), Spans(0)
+	: FTexture(nullptr, lumpnum), Pixels(0), Spans(0)
 {
 	Wads.GetLumpName (Name, lumpnum);
 	Width = w;
@@ -122,10 +122,10 @@ FIMGZTexture::FIMGZTexture (int lumpnum, WORD w, WORD h, SWORD l, SWORD t)
 FIMGZTexture::~FIMGZTexture ()
 {
 	Unload ();
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
 }
 
@@ -137,10 +137,10 @@ FIMGZTexture::~FIMGZTexture ()
 
 void FIMGZTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -152,7 +152,7 @@ void FIMGZTexture::Unload ()
 
 const BYTE *FIMGZTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -167,9 +167,9 @@ const BYTE *FIMGZTexture::GetColumn (unsigned int column, const Span **spans_out
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -186,7 +186,7 @@ const BYTE *FIMGZTexture::GetColumn (unsigned int column, const Span **spans_out
 
 const BYTE *FIMGZTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}

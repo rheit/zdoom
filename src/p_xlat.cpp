@@ -119,9 +119,9 @@ void P_TranslateLineDef (line_t *ld, maplinedef_t *mld, int lineindexforid)
 		return;
 	}
 
-	FLineTrans *linetrans = NULL;
+	FLineTrans *linetrans = nullptr;
 	if (special < SimpleLineTranslations.Size()) linetrans = &SimpleLineTranslations[special];
-	if (linetrans != NULL && linetrans->special != 0)
+	if (linetrans != nullptr && linetrans->special != 0)
 	{
 		ld->special = linetrans->special;
 

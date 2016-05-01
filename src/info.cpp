@@ -71,34 +71,34 @@ void FState::SetAction(const char *name)
 
 bool FState::CallAction(AActor *self, AActor *stateowner, FState **stateret)
 {
-	if (ActionFunc != NULL)
+	if (ActionFunc != nullptr)
 	{
 		ActionCycles.Clock();
 
 		static VMFrameStack stack;
 		VMValue params[3] = { self, stateowner, VMValue(this, ATAG_STATE) };
 		// If the function returns a state, store it at *stateret.
-		// If it doesn't return a state but stateret is non-NULL, we need
-		// to set *stateret to NULL.
-		if (stateret != NULL)
+		// If it doesn't return a state but stateret is non-nullptr, we need
+		// to set *stateret to nullptr.
+		if (stateret != nullptr)
 		{
-			*stateret = NULL;
-			if (ActionFunc->Proto == NULL ||
+			*stateret = nullptr;
+			if (ActionFunc->Proto == nullptr ||
 				ActionFunc->Proto->ReturnTypes.Size() == 0 ||
 				ActionFunc->Proto->ReturnTypes[0] != TypeState)
 			{
-				stateret = NULL;
+				stateret = nullptr;
 			}
 		}
-		if (stateret == NULL)
+		if (stateret == nullptr)
 		{
-			stack.Call(ActionFunc, params, countof(params), NULL, 0, NULL);
+			stack.Call(ActionFunc, params, countof(params), nullptr, 0, nullptr);
 		}
 		else
 		{
 			VMReturn ret;
 			ret.PointerAt((void **)stateret);
-			stack.Call(ActionFunc, params, countof(params), &ret, 1, NULL);
+			stack.Call(ActionFunc, params, countof(params), &ret, 1, nullptr);
 		}
 		ActionCycles.Unclock();
 		return true;
@@ -216,13 +216,13 @@ PClassActor::PClassActor()
 	GameFilter = GAME_Any;
 	SpawnID = 0;
 	DoomEdNum = -1;
-	OwnedStates = NULL;
+	OwnedStates = nullptr;
 	NumOwnedStates = 0;
-	Replacement = NULL;
-	Replacee = NULL;
-	StateList = NULL;
-	DamageFactors = NULL;
-	PainChances = NULL;
+	Replacement = nullptr;
+	Replacee = nullptr;
+	StateList = nullptr;
+	DamageFactors = nullptr;
+	PainChances = nullptr;
 
 	DeathHeight = -1;
 	BurnHeight = -1;
@@ -233,7 +233,7 @@ PClassActor::PClassActor()
 	RDFactor = 1.;
 	CameraHeight = INT_MIN;
 
-	DropItems = NULL;
+	DropItems = nullptr;
 
 	DontHurtShooter = false;
 	ExplosionRadius = -1;
@@ -251,19 +251,19 @@ PClassActor::PClassActor()
 
 PClassActor::~PClassActor()
 {
-	if (OwnedStates != NULL)
+	if (OwnedStates != nullptr)
 	{
 		delete[] OwnedStates;
 	}
-	if (DamageFactors != NULL)
+	if (DamageFactors != nullptr)
 	{
 		delete DamageFactors;
 	}
-	if (PainChances != NULL)
+	if (PainChances != nullptr)
 	{
 		delete PainChances;
 	}
-	if (StateList != NULL)
+	if (StateList != nullptr)
 	{
 		StateList->Destroy();
 		M_Free(StateList);
@@ -310,13 +310,13 @@ void PClassActor::DeriveData(PClass *newclass)
 
 	newa->VisibleToPlayerClass = VisibleToPlayerClass;
 
-	if (DamageFactors != NULL)
+	if (DamageFactors != nullptr)
 	{
 		// copy damage factors from parent
 		newa->DamageFactors = new DmgFactors;
 		*newa->DamageFactors = *DamageFactors;
 	}
-	if (PainChances != NULL)
+	if (PainChances != nullptr)
 	{
 		// copy pain chances from parent
 		newa->PainChances = new PainChanceList;
@@ -336,13 +336,13 @@ size_t PClassActor::PropagateMark()
 	// Mark state functions
 	for (int i = 0; i < NumOwnedStates; ++i)
 	{
-		if (OwnedStates[i].ActionFunc != NULL)
+		if (OwnedStates[i].ActionFunc != nullptr)
 		{
 			GC::Mark(OwnedStates[i].ActionFunc);
 		}
 	}
 	// Mark damage function
-	if (Defaults != NULL)
+	if (Defaults != nullptr)
 	{
 		GC::Mark(((AActor *)Defaults)->Damage);
 	}
@@ -362,9 +362,9 @@ size_t PClassActor::PropagateMark()
 void PClassActor::InitializeNativeDefaults()
 {
 	Symbols.SetParentTable(&ParentClass->Symbols);
-	assert(Defaults == NULL);
+	assert(Defaults == nullptr);
 	Defaults = (BYTE *)M_Malloc(Size);
-	if (ParentClass->Defaults != NULL) 
+	if (ParentClass->Defaults != nullptr) 
 	{
 		memcpy(Defaults, ParentClass->Defaults, ParentClass->Size);
 		if (Size > ParentClass->Size)
@@ -390,7 +390,7 @@ void PClassActor::RegisterIDs()
 {
 	PClassActor *cls = PClass::FindActor(TypeName);
 
-	if (cls == NULL)
+	if (cls == nullptr)
 	{
 		Printf(TEXTCOLOR_RED"The actor '%s' has been hidden by a non-actor of the same name\n", TypeName.GetChars());
 		return;
@@ -418,7 +418,7 @@ void PClassActor::RegisterIDs()
 		if (DoomEdNum != -1)
 		{
 			FDoomEdEntry *oldent = DoomEdMap.CheckKey(DoomEdNum);
-			if (oldent != NULL && oldent->Special == -2)
+			if (oldent != nullptr && oldent->Special == -2)
 			{
 				Printf(TEXTCOLOR_RED"Editor number %d defined twice for classes '%s' and '%s'\n", DoomEdNum, cls->TypeName.GetChars(), oldent->Type->TypeName.GetChars());
 			}
@@ -448,7 +448,7 @@ PClassActor *PClassActor::GetReplacement(bool lookskill)
 	if (lookskill && AllSkills.Size() > (unsigned)gameskill)
 	{
 		skillrepname = AllSkills[gameskill].GetReplacement(TypeName);
-		if (skillrepname != NAME_None && PClass::FindClass(skillrepname) == NULL)
+		if (skillrepname != NAME_None && PClass::FindClass(skillrepname) == nullptr)
 		{
 			Printf("Warning: incorrect actor name in definition of skill %s: \n"
 				   "class %s is replaced by non-existent class %s\n"
@@ -460,14 +460,14 @@ PClassActor *PClassActor::GetReplacement(bool lookskill)
 			lookskill = false; skillrepname = NAME_None;
 		}
 	}
-	if (Replacement == NULL && (!lookskill || skillrepname == NAME_None))
+	if (Replacement == nullptr && (!lookskill || skillrepname == NAME_None))
 	{
 		return this;
 	}
 	// The Replacement field is temporarily NULLed to prevent
 	// potential infinite recursion.
 	PClassActor *savedrep = Replacement;
-	Replacement = NULL;
+	Replacement = nullptr;
 	PClassActor *rep = savedrep;
 	// Handle skill-based replacement here. It has precedence on DECORATE replacement
 	// in that the skill replacement is applied first, followed by DECORATE replacement
@@ -497,7 +497,7 @@ PClassActor *PClassActor::GetReplacee(bool lookskill)
 	if (lookskill && AllSkills.Size() > (unsigned)gameskill)
 	{
 		skillrepname = AllSkills[gameskill].GetReplacedBy(TypeName);
-		if (skillrepname != NAME_None && PClass::FindClass(skillrepname) == NULL)
+		if (skillrepname != NAME_None && PClass::FindClass(skillrepname) == nullptr)
 		{
 			Printf("Warning: incorrect actor name in definition of skill %s: \n"
 				   "non-existent class %s is replaced by class %s\n"
@@ -509,16 +509,16 @@ PClassActor *PClassActor::GetReplacee(bool lookskill)
 			lookskill = false; 
 		}
 	}
-	if (Replacee == NULL && (!lookskill || skillrepname == NAME_None))
+	if (Replacee == nullptr && (!lookskill || skillrepname == NAME_None))
 	{
 		return this;
 	}
 	// The Replacee field is temporarily NULLed to prevent
 	// potential infinite recursion.
 	PClassActor *savedrep = Replacee;
-	Replacee = NULL;
+	Replacee = nullptr;
 	PClassActor *rep = savedrep;
-	if (lookskill && (skillrepname != NAME_None) && (PClass::FindClass(skillrepname) != NULL))
+	if (lookskill && (skillrepname != NAME_None) && (PClass::FindClass(skillrepname) != nullptr))
 	{
 		rep = PClass::FindActor(skillrepname);
 	}
@@ -535,7 +535,7 @@ PClassActor *PClassActor::GetReplacee(bool lookskill)
 
 void PClassActor::SetDamageFactor(FName type, double factor)
 {
-	if (DamageFactors == NULL)
+	if (DamageFactors == nullptr)
 	{
 		DamageFactors = new DmgFactors;
 	}
@@ -552,13 +552,13 @@ void PClassActor::SetPainChance(FName type, int chance)
 {
 	if (chance >= 0) 
 	{
-		if (PainChances == NULL)
+		if (PainChances == nullptr)
 		{
 			PainChances = new PainChanceList;
 		}
 		PainChances->Insert(type, MIN(chance, 256));
 	}
-	else if (PainChances != NULL)
+	else if (PainChances != nullptr)
 	{
 		PainChances->Remove(type);
 	}
@@ -578,7 +578,7 @@ void PClassActor::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 			VisibleToPlayerClass[i] = static_cast<PClassPlayerPawn*>(newclass);
 	}
 	AActor *def = (AActor*)Defaults;
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		if (def->TeleFogSourceType == oldclass) def->TeleFogSourceType = static_cast<PClassActor *>(newclass);
 		if (def->TeleFogDestType == oldclass) def->TeleFogDestType = static_cast<PClassActor *>(newclass);
@@ -597,7 +597,7 @@ void PClassActor::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 int DmgFactors::Apply(FName type, int damage)
 {
 	auto pdf = CheckKey(type);
-	if (pdf == NULL && type != NAME_None)
+	if (pdf == nullptr && type != NAME_None)
 	{
 		pdf = CheckKey(NAME_None);
 	}
@@ -614,7 +614,7 @@ static void SummonActor (int command, int command2, FCommandLine argv)
 	if (argv.argc() > 1)
 	{
 		PClassActor *type = PClass::FindActor(argv[1]);
-		if (type == NULL)
+		if (type == nullptr)
 		{
 			Printf ("Unknown actor '%s'\n", argv[1]);
 			return;

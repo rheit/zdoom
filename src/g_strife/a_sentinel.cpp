@@ -55,13 +55,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_SentinelAttack)
 
 	missile = P_SpawnMissileZAimed (self, self->Z() + 32, self->target, PClass::FindActor("SentinelFX2"));
 
-	if (missile != NULL && (missile->Vel.X != 0 || missile->Vel.Y != 0))
+	if (missile != nullptr && (missile->Vel.X != 0 || missile->Vel.Y != 0))
 	{
 		for (int i = 8; i > 1; --i)
 		{
 			trail = Spawn("SentinelFX1",
 				self->Vec3Angle(missile->radius*i, missile->Angles.Yaw, missile->Vel.Z / 4 * i), ALLOW_REPLACE);
-			if (trail != NULL)
+			if (trail != nullptr)
 			{
 				trail->target = self;
 				trail->Vel = missile->Vel;
@@ -81,11 +81,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_SentinelRefire)
 
 	if (pr_sentinelrefire() >= 30)
 	{
-		if (self->target == NULL ||
+		if (self->target == nullptr ||
 			self->target->health <= 0 ||
 			!P_CheckSight (self, self->target, SF_SEEPASTBLOCKEVERYTHING|SF_SEEPASTSHOOTABLELINES) ||
 			P_HitFriend(self) ||
-			(self->MissileState == NULL && !self->CheckMeleeRange()) ||
+			(self->MissileState == nullptr && !self->CheckMeleeRange()) ||
 			pr_sentinelrefire() < 40)
 		{
 			self->SetState (self->SeeState);

@@ -228,7 +228,7 @@ boom_declaration ::= LBRACKET expr(special) RBRACKET LPAREN expr(firsttype) COMM
 	{
 		MoreLines *probe = stores;
 
-		while (probe != NULL)
+		while (probe != nullptr)
 		{
 			MoreLines *next = probe->next;
 			delete probe;
@@ -242,7 +242,7 @@ boom_declaration ::= LBRACKET expr(special) RBRACKET LPAREN expr(firsttype) COMM
 		Boomish[NumBoomish].LastLinetype = lasttype;
 		Boomish[NumBoomish].NewSpecial = special;
 		
-		for (i = 0, probe = stores; probe != NULL; i++)
+		for (i = 0, probe = stores; probe != nullptr; i++)
 		{
 			MoreLines *next = probe->next;
 			Boomish[NumBoomish].Args.Push(probe->arg);
@@ -255,7 +255,7 @@ boom_declaration ::= LBRACKET expr(special) RBRACKET LPAREN expr(firsttype) COMM
 
 boom_body(A) ::= . /* empty */
 {
-	A = NULL;
+	A = nullptr;
 }
 boom_body(A) ::= boom_line(B) boom_body(C).
 {
@@ -267,17 +267,17 @@ boom_body(A) ::= boom_line(B) boom_body(C).
 boom_line(A) ::= boom_selector(sel) boom_op(op) boom_args(args).
 {
 	A.bOrExisting = (op == OR_EQUAL);
-	A.bUseConstant = (args.filters == NULL);
+	A.bUseConstant = (args.filters == nullptr);
 	A.ArgNum = sel;
 	A.ConstantValue = args.constant;
 	A.AndValue = args.mask;
 
-	if (args.filters != NULL)
+	if (args.filters != nullptr)
 	{
 		int i;
 		MoreFilters *probe;
 
-		for (i = 0, probe = args.filters; probe != NULL; i++)
+		for (i = 0, probe = args.filters; probe != nullptr; i++)
 		{
 			MoreFilters *next = probe->next;
 			if (i < 15)
@@ -308,7 +308,7 @@ boom_op(A) ::= OR_EQUAL.		{ A = OR_EQUAL; }
 boom_args(A) ::= expr(B).
 {
 	A.constant = B;
-	A.filters = NULL;
+	A.filters = nullptr;
 }
 boom_args(A) ::= expr(B) LBRACKET arg_list(C) RBRACKET.
 {
@@ -319,7 +319,7 @@ boom_args(A) ::= expr(B) LBRACKET arg_list(C) RBRACKET.
 arg_list(A) ::= list_val(B).
 {
 	A = new MoreFilters;
-	A->next = NULL;
+	A->next = nullptr;
 	A->filter = B;
 }
 arg_list(A) ::= list_val(B) COMMA arg_list(C).

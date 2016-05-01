@@ -36,7 +36,7 @@ public:
 		}
 		else
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -163,7 +163,7 @@ public:
 	virtual bool ShouldRespawn ();
 	virtual bool ShouldStay ();
 	virtual void Hide ();
-	bool CallTryPickup (AActor *toucher, AActor **toucher_return = NULL);
+	bool CallTryPickup (AActor *toucher, AActor **toucher_return = nullptr);
 	virtual void DoPickupSpecial (AActor *toucher);
 	virtual bool SpecialDropAction (AActor *dropper);
 	virtual bool DrawPowerup (int x, int y);
@@ -178,7 +178,7 @@ public:
 	AInventory *PrevInv();		// Returns the previous item with IF_INVBAR set.
 	AInventory *NextInv();		// Returns the next item with IF_INVBAR set.
 
-	TObjPtr<AActor> Owner;		// Who owns this item? NULL if it's still a pickup.
+	TObjPtr<AActor> Owner;		// Who owns this item? nullptr if it's still a pickup.
 	int Amount;					// Amount of item this instance has
 	int MaxAmount;				// Max amount of item this instance can have
 	int InterHubAmount;			// Amount of item that can be kept between hubs or levels

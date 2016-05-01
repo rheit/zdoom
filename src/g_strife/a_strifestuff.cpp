@@ -75,7 +75,7 @@ IMPLEMENT_CLASS (AForceFieldGuard)
 
 int AForceFieldGuard::TakeSpecialDamage (AActor *inflictor, AActor *source, int damage, FName damagetype)
 {
-	if (inflictor == NULL || !inflictor->IsKindOf (RUNTIME_CLASS(ADegninOre)))
+	if (inflictor == nullptr || !inflictor->IsKindOf (RUNTIME_CLASS(ADegninOre)))
 	{
 		return -1;
 	}
@@ -136,7 +136,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_TurretLook)
 
 	self->threshold = 0;
 	target = self->LastHeard;
-	if (target != NULL &&
+	if (target != nullptr &&
 		target->health > 0 &&
 		target->flags & MF_SHOOTABLE &&
 		(self->flags & MF_FRIENDLY) != (target->flags & MF_FRIENDLY))
@@ -150,7 +150,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_TurretLook)
 		{
 			S_Sound (self, CHAN_VOICE, self->SeeSound, 1, ATTN_NORM);
 		}
-		self->LastHeard = NULL;
+		self->LastHeard = nullptr;
 		self->threshold = 10;
 		self->SetState (self->SeeState);
 	}
@@ -163,10 +163,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_KlaxonBlare)
 
 	if (--self->reactiontime < 0)
 	{
-		self->target = NULL;
+		self->target = nullptr;
 		self->reactiontime = self->GetDefault()->reactiontime;
 		CALL_ACTION(A_TurretLook, self);
-		if (self->target == NULL)
+		if (self->target == nullptr)
 		{
 			self->SetIdle();
 		}
@@ -178,7 +178,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KlaxonBlare)
 	if (self->reactiontime == 2)
 	{
 		// [RH] Unalert monsters near the alarm and not just those in the same sector as it.
-		P_NoiseAlert (NULL, self, false);
+		P_NoiseAlert (nullptr, self, false);
 	}
 	else if (self->reactiontime > 50)
 	{
@@ -216,8 +216,8 @@ void APowerCoupling::Die (AActor *source, AActor *inflictor, int dmgflags)
 	{
 		P_NoiseAlert (source, this);
 	}
-	EV_DoDoor (DDoor::doorClose, NULL, players[i].mo, 225, 2., 0, 0, 0);
-	EV_DoFloor (DFloor::floorLowerToHighest, NULL, 44, 1., 0., -1, 0, false);
+	EV_DoDoor (DDoor::doorClose, nullptr, players[i].mo, 225, 2., 0, 0, 0);
+	EV_DoFloor (DFloor::floorLowerToHighest, nullptr, 44, 1., 0., -1, 0, false);
 	players[i].mo->GiveInventoryType (QuestItemClasses[5]);
 	S_Sound (CHAN_VOICE, "svox/voc13", 1, ATTN_NORM);
 	players[i].SetLogNumber (13);
@@ -253,7 +253,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_TossGib)
 	const char *gibtype = (self->flags & MF_NOBLOOD) ? "Junk" : "Meat";
 	AActor *gib = Spawn (gibtype, self->PosPlusZ(24.), ALLOW_REPLACE);
 
-	if (gib == NULL)
+	if (gib == nullptr)
 	{
 		return 0;
 	}
@@ -283,7 +283,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Countdown)
 
 	if (--self->reactiontime <= 0)
 	{
-		P_ExplodeMissile (self, NULL, NULL);
+		P_ExplodeMissile (self, nullptr, nullptr);
 		self->flags &= ~MF_SKULLFLY;
 	}
 	return 0;
@@ -310,7 +310,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CheckTerrain)
 	{
 		if (sec->special == Damage_InstantDeath)
 		{
-			P_DamageMobj (self, NULL, NULL, 999, NAME_InstantDeath);
+			P_DamageMobj (self, nullptr, nullptr, 999, NAME_InstantDeath);
 		}
 		else if (sec->special == Scroll_StrifeCurrent)
 		{
@@ -335,10 +335,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_ClearSoundTarget)
 
 	AActor *actor;
 
-	self->Sector->SoundTarget = NULL;
-	for (actor = self->Sector->thinglist; actor != NULL; actor = actor->snext)
+	self->Sector->SoundTarget = nullptr;
+	for (actor = self->Sector->thinglist; actor != nullptr; actor = actor->snext)
 	{
-		actor->LastHeard = NULL;
+		actor->LastHeard = nullptr;
 	}
 	return 0;
 }
@@ -350,11 +350,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_ItBurnsItBurns)
 
 	S_Sound (self, CHAN_VOICE, "human/imonfire", 1, ATTN_NORM);
 
-	if (self->player != NULL && self->player->mo == self)
+	if (self->player != nullptr && self->player->mo == self)
 	{
 		P_SetPsprite (self->player, ps_weapon, self->FindState("FireHands"));
-		P_SetPsprite (self->player, ps_flash, NULL);
-		self->player->ReadyWeapon = NULL;
+		P_SetPsprite (self->player, ps_flash, nullptr);
+		self->player->ReadyWeapon = nullptr;
 		self->player->PendingWeapon = WP_NOCHANGE;
 		self->player->playerstate = PST_LIVE;
 		self->player->extralight = 3;
@@ -376,7 +376,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CrispyPlayer)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->player != NULL && self->player->mo == self)
+	if (self->player != nullptr && self->player->mo == self)
 	{
 		self->player->playerstate = PST_DEAD;
 		P_SetPsprite (self->player, ps_weapon,
@@ -390,13 +390,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_HandLower)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		pspdef_t *psp = &self->player->psprites[ps_weapon];
 		psp->sy += 9;
 		if (psp->sy > WEAPONBOTTOM*2)
 		{
-			P_SetPsprite (self->player, ps_weapon, NULL);
+			P_SetPsprite (self->player, ps_weapon, nullptr);
 		}
 		if (self->player->extralight > 0) self->player->extralight--;
 	}

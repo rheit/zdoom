@@ -53,8 +53,8 @@ IMPLEMENT_CLASS(DListMenu)
 DListMenu::DListMenu(DMenu *parent, FListMenuDescriptor *desc)
 : DMenu(parent)
 {
-	mDesc = NULL;
-	if (desc != NULL) Init(parent, desc);
+	mDesc = nullptr;
+	if (desc != nullptr) Init(parent, desc);
 }
 
 //=============================================================================
@@ -105,10 +105,10 @@ FListMenuItem *DListMenu::GetItem(FName name)
 {
 	for(unsigned i=0;i<mDesc->mItems.Size(); i++)
 	{
-		FName nm = mDesc->mItems[i]->GetAction(NULL);
+		FName nm = mDesc->mItems[i]->GetAction(nullptr);
 		if (nm == name) return mDesc->mItems[i];
 	}
-	return NULL;
+	return nullptr;
 }
 
 //=============================================================================
@@ -208,7 +208,7 @@ bool DListMenu::MouseEvent(int type, int x, int y)
 	x = ((x - (screen->GetWidth() / 2)) / CleanXfac) + 160;
 	y = ((y - (screen->GetHeight() / 2)) / CleanYfac) + 100;
 
-	if (mFocusControl != NULL)
+	if (mFocusControl != nullptr)
 	{
 		mFocusControl->MouseEvent(type, x, y);
 		return true;
@@ -427,7 +427,7 @@ FListMenuItemStaticText::FListMenuItemStaticText(int x, int y, const char *text,
 void FListMenuItemStaticText::Drawer(bool selected)
 {
 	const char *text = mText;
-	if (text != NULL)
+	if (text != nullptr)
 	{
 		if (*text == '$') text = GStrings(text+1);
 		if (mYpos >= 0)
@@ -447,7 +447,7 @@ void FListMenuItemStaticText::Drawer(bool selected)
 
 FListMenuItemStaticText::~FListMenuItemStaticText()
 {
-	if (mText != NULL) delete [] mText;
+	if (mText != nullptr) delete [] mText;
 }
 
 //=============================================================================
@@ -482,7 +482,7 @@ bool FListMenuItemSelectable::Activate()
 
 FName FListMenuItemSelectable::GetAction(int *pparam)
 {
-	if (pparam != NULL) *pparam = mParam;
+	if (pparam != nullptr) *pparam = mParam;
 	return mAction;
 }
 
@@ -495,7 +495,7 @@ bool FListMenuItemSelectable::MouseEvent(int type, int x, int y)
 {
 	if (type == DMenu::MOUSE_Release)
 	{
-		if (NULL != DMenu::CurrentMenu && DMenu::CurrentMenu->MenuEvent(MKEY_Enter, true))
+		if (nullptr != DMenu::CurrentMenu && DMenu::CurrentMenu->MenuEvent(MKEY_Enter, true))
 		{
 			return true;
 		}
@@ -521,7 +521,7 @@ FListMenuItemText::FListMenuItemText(int x, int y, int height, int hotkey, const
 
 FListMenuItemText::~FListMenuItemText()
 {
-	if (mText != NULL)
+	if (mText != nullptr)
 	{
 		delete [] mText;
 	}
@@ -530,7 +530,7 @@ FListMenuItemText::~FListMenuItemText()
 void FListMenuItemText::Drawer(bool selected)
 {
 	const char *text = mText;
-	if (text != NULL)
+	if (text != nullptr)
 	{
 		if (*text == '$') text = GStrings(text+1);
 		screen->DrawText(mFont, selected ? mColorSelected : mColor, mXpos, mYpos, text, DTA_Clean, true, TAG_DONE);
@@ -540,7 +540,7 @@ void FListMenuItemText::Drawer(bool selected)
 int FListMenuItemText::GetWidth() 
 { 
 	const char *text = mText;
-	if (text != NULL)
+	if (text != nullptr)
 	{
 		if (*text == '$') text = GStrings(text+1);
 		return mFont->StringWidth(text); 

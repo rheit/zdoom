@@ -321,7 +321,7 @@ unsigned int M_NextPNGChunk (PNGHandle *png, DWORD id)
 // M_GetPNGText
 //
 // Finds a PNG text chunk with the given signature and returns a pointer
-// to a NULL-terminated string if present. Returns NULL on failure.
+// to a nullptr-terminated string if present. Returns nullptr on failure.
 //
 //==========================================================================
 
@@ -342,7 +342,7 @@ char *M_GetPNGText (PNGHandle *png, const char *keyword)
 			return str;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 // This version copies it to a supplied buffer instead of allocating a new one.
@@ -369,7 +369,7 @@ bool M_GetPNGText (PNGHandle *png, const char *keyword, char *buffer, size_t buf
 //
 // M_VerifyPNG
 //
-// Returns a PNGHandle if the file is a PNG or NULL if not. CRC checking of
+// Returns a PNGHandle if the file is a PNG or nullptr if not. CRC checking of
 // chunks is not done in order to save time.
 //
 //==========================================================================
@@ -384,19 +384,19 @@ PNGHandle *M_VerifyPNG (FILE *file)
 
 	if (fread (&data, 1, 8, file) != 8)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (data[0] != MAKE_ID(137,'P','N','G') || data[1] != MAKE_ID(13,10,26,10))
 	{ // Does not have PNG signature
-		return NULL;
+		return nullptr;
 	}
 	if (fread (&data, 1, 8, file) != 8)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (data[1] != MAKE_ID('I','H','D','R'))
 	{ // IHDR must be the first chunk
-		return NULL;
+		return nullptr;
 	}
 
 	// It looks like a PNG so far, so start creating a PNGHandle for it
@@ -451,7 +451,7 @@ PNGHandle *M_VerifyPNG (FILE *file)
 	}
 
 	delete png;
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================

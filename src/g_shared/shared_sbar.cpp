@@ -126,7 +126,7 @@ CVAR (Bool, idmypos, false, 0);
 void ST_FormatMapName(FString &mapname, const char *mapnamecolor)
 {
 	cluster_info_t *cluster = FindClusterInfo (level.cluster);
-	bool ishub = (cluster != NULL && (cluster->flags & CLUSTER_HUB));
+	bool ishub = (cluster != nullptr && (cluster->flags & CLUSTER_HUB));
 
 	if (am_showmaplabel == 1 || (am_showmaplabel == 2 && !ishub))
 	{
@@ -147,9 +147,9 @@ void ST_LoadCrosshair(bool alwaysload)
 	char name[16], size;
 
 	if (!crosshairforce &&
-		players[consoleplayer].camera != NULL &&
-		players[consoleplayer].camera->player != NULL &&
-		players[consoleplayer].camera->player->ReadyWeapon != NULL)
+		players[consoleplayer].camera != nullptr &&
+		players[consoleplayer].camera->player != nullptr &&
+		players[consoleplayer].camera->player->ReadyWeapon != nullptr)
 	{
 		num = players[consoleplayer].camera->player->ReadyWeapon->Crosshair;
 	}
@@ -157,19 +157,19 @@ void ST_LoadCrosshair(bool alwaysload)
 	{
 		num = crosshair;
 	}
-	if (!alwaysload && CrosshairNum == num && CrosshairImage != NULL)
+	if (!alwaysload && CrosshairNum == num && CrosshairImage != nullptr)
 	{ // No change.
 		return;
 	}
 
-	if (CrosshairImage != NULL)
+	if (CrosshairImage != nullptr)
 	{
 		CrosshairImage->Unload ();
 	}
 	if (num == 0)
 	{
 		CrosshairNum = 0;
-		CrosshairImage = NULL;
+		CrosshairImage = nullptr;
 		return;
 	}
 	if (num < 0)
@@ -201,12 +201,12 @@ void ST_LoadCrosshair(bool alwaysload)
 
 void ST_Clear()
 {
-	if (StatusBar != NULL)
+	if (StatusBar != nullptr)
 	{
 		StatusBar->Destroy();
-		StatusBar = NULL;
+		StatusBar = nullptr;
 	}
-	CrosshairImage = NULL;
+	CrosshairImage = nullptr;
 	CrosshairNum = 0;
 }
 
@@ -218,7 +218,7 @@ void ST_Clear()
 
 void ST_SetNeedRefresh()
 {
-	SB_state = (StatusBar == NULL || screen == NULL) ? 0 : screen->GetPageCount();
+	SB_state = (StatusBar == nullptr || screen == nullptr) ? 0 : screen->GetPageCount();
 }
 
 //---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ DBaseStatusBar::DBaseStatusBar (int reltop, int hres, int vres)
 	RelTop = reltop;
 	memset(Messages, 0, sizeof(Messages));
 	Displacement = 0;
-	CPlayer = NULL;
+	CPlayer = nullptr;
 	ShowLog = false;
 	HorizontalResolution = hres;
 	VirticalResolution = vres;
@@ -261,7 +261,7 @@ void DBaseStatusBar::Destroy ()
 			msg->Destroy();
 			msg = next;
 		}
-		Messages[i] = NULL;
+		Messages[i] = nullptr;
 	}
 	Super::Destroy();
 }
@@ -395,12 +395,12 @@ void DBaseStatusBar::Tick ()
 
 void DBaseStatusBar::AttachMessage (DHUDMessage *msg, DWORD id, int layer)
 {
-	DHUDMessage *old = NULL;
+	DHUDMessage *old = nullptr;
 	DHUDMessage **prev;
 	DObject *container = this;
 
-	old = (id == 0 || id == 0xFFFFFFFF) ? NULL : DetachMessage (id);
-	if (old != NULL)
+	old = (id == 0 || id == 0xFFFFFFFF) ? nullptr : DetachMessage (id);
+	if (old != nullptr)
 	{
 		old->Destroy();
 	}
@@ -416,7 +416,7 @@ void DBaseStatusBar::AttachMessage (DHUDMessage *msg, DWORD id, int layer)
 	// The ID serves as a priority, where lower numbers appear in front of
 	// higher numbers. (i.e. The list is sorted in descending order, since
 	// it gets drawn back to front.)
-	while (*prev != NULL && (*prev)->SBarID > id)
+	while (*prev != nullptr && (*prev)->SBarID > id)
 	{
 		container = *prev;
 		prev = &(*prev)->Next;
@@ -446,19 +446,19 @@ DHUDMessage *DBaseStatusBar::DetachMessage (DHUDMessage *msg)
 			prev = &probe->Next;
 			probe = probe->Next;
 		}
-		if (probe != NULL)
+		if (probe != nullptr)
 		{
 			*prev = probe->Next;
-			probe->Next = NULL;
+			probe->Next = nullptr;
 			// Redraw the status bar in case it was covered
-			if (screen != NULL)
+			if (screen != nullptr)
 			{
 				ST_SetNeedRefresh();
 			}
 			return probe;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 DHUDMessage *DBaseStatusBar::DetachMessage (DWORD id)
@@ -473,19 +473,19 @@ DHUDMessage *DBaseStatusBar::DetachMessage (DWORD id)
 			prev = &probe->Next;
 			probe = probe->Next;
 		}
-		if (probe != NULL)
+		if (probe != nullptr)
 		{
 			*prev = probe->Next;
-			probe->Next = NULL;
+			probe->Next = nullptr;
 			// Redraw the status bar in case it was covered
-			if (screen != NULL)
+			if (screen != nullptr)
 			{
 				ST_SetNeedRefresh();
 			}
 			return probe;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //---------------------------------------------------------------------------
@@ -500,8 +500,8 @@ void DBaseStatusBar::DetachAllMessages ()
 	{
 		DHUDMessage *probe = Messages[i];
 
-		Messages[i] = NULL;
-		while (probe != NULL)
+		Messages[i] = nullptr;
+		while (probe != nullptr)
 		{
 			DHUDMessage *next = probe->Next;
 			probe->Destroy();
@@ -536,7 +536,7 @@ void DBaseStatusBar::ShowPlayerName ()
 void DBaseStatusBar::DrawImage (FTexture *img,
 	int x, int y, FRemapTable *translation) const
 {
-	if (img != NULL)
+	if (img != nullptr)
 	{
 		screen->DrawTexture (img, x + ST_X, y + ST_Y,
 			DTA_Translation, translation,
@@ -557,7 +557,7 @@ void DBaseStatusBar::DrawImage (FTexture *img,
 void DBaseStatusBar::DrawDimImage (FTexture *img,
 	int x, int y, bool dimmed) const
 {
-	if (img != NULL)
+	if (img != nullptr)
 	{
 		screen->DrawTexture (img, x + ST_X, y + ST_Y,
 			DTA_ColorOverlay, dimmed ? DIM_OVERLAY : 0,
@@ -578,7 +578,7 @@ void DBaseStatusBar::DrawDimImage (FTexture *img,
 
 void DBaseStatusBar::DrawPartialImage (FTexture *img, int wx, int ww) const
 {
-	if (img != NULL)
+	if (img != nullptr)
 	{
 		screen->DrawTexture (img, ST_X, ST_Y,
 			DTA_WindowLeft, wx,
@@ -644,11 +644,11 @@ void DBaseStatusBar::DrBNumber (signed int val, int x, int y, int size) const
 	FTexture *pic;
 
 	pic = Images[imgBNumbers];
-	w = (pic != NULL) ? pic->GetWidth() : 0;
+	w = (pic != nullptr) ? pic->GetWidth() : 0;
 
 	if (val == 0)
 	{
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			DrawImage (pic, x - w, y);
 		}
@@ -673,7 +673,7 @@ void DBaseStatusBar::DrBNumber (signed int val, int x, int y, int size) const
 		x -= w;
 		pic = Images[imgBNumbers + val % 10];
 		val /= 10;
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			DrawImage (pic, x, y);
 		}
@@ -681,7 +681,7 @@ void DBaseStatusBar::DrBNumber (signed int val, int x, int y, int size) const
 	if (neg)
 	{
 		pic = Images[imgBNEGATIVE];
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			DrawImage (pic, x - w, y);
 		}
@@ -799,7 +799,7 @@ void DBaseStatusBar::DrBNumberOuter (signed int val, int x, int y, int size) con
 	FTexture *pic;
 
 	pic = Images[imgBNumbers+3];
-	if (pic != NULL)
+	if (pic != nullptr)
 	{
 		w = pic->GetWidth();
 	}
@@ -813,7 +813,7 @@ void DBaseStatusBar::DrBNumberOuter (signed int val, int x, int y, int size) con
 	if (val == 0)
 	{
 		pic = Images[imgBNumbers];
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - pic->GetWidth()/2 + 2, y + 2,
 				DTA_HUDRules, HUD_Normal,
@@ -839,7 +839,7 @@ void DBaseStatusBar::DrBNumberOuter (signed int val, int x, int y, int size) con
 	while (val != 0)
 	{
 		pic = Images[val % 10 + imgBNumbers];
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - pic->GetWidth()/2 + 2, y + 2,
 				DTA_HUDRules, HUD_Normal,
@@ -853,7 +853,7 @@ void DBaseStatusBar::DrBNumberOuter (signed int val, int x, int y, int size) con
 	if (negative)
 	{
 		pic = Images[imgBNEGATIVE];
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - pic->GetWidth()/2 + 2, y + 2,
 				DTA_HUDRules, HUD_Normal,
@@ -869,7 +869,7 @@ void DBaseStatusBar::DrBNumberOuter (signed int val, int x, int y, int size) con
 	while (val != 0)
 	{
 		pic = Images[val % 10 + imgBNumbers];
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - pic->GetWidth()/2, y,
 				DTA_HUDRules, HUD_Normal,
@@ -881,7 +881,7 @@ void DBaseStatusBar::DrBNumberOuter (signed int val, int x, int y, int size) con
 	if (negative)
 	{
 		pic = Images[imgBNEGATIVE];
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - pic->GetWidth()/2, y,
 				DTA_HUDRules, HUD_Normal,
@@ -954,7 +954,7 @@ void DBaseStatusBar::DrBNumberOuterFont (signed int val, int x, int y, int size)
 	if (negative)
 	{
 		pic = BigFont->GetChar ('-', &v);
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - v/2 + 2, y + 2,
 				DTA_HUDRules, HUD_Normal,
@@ -981,7 +981,7 @@ void DBaseStatusBar::DrBNumberOuterFont (signed int val, int x, int y, int size)
 	if (negative)
 	{
 		pic = BigFont->GetChar ('-', &v);
-		if (pic != NULL)
+		if (pic != nullptr)
 		{
 			screen->DrawTexture (pic, xpos - v/2, y,
 				DTA_HUDRules, HUD_Normal,
@@ -1070,7 +1070,7 @@ void DBaseStatusBar::RefreshBackground () const
 		if (setblocks >= 10)
 		{
 			FTexture *p = TexMan[gameinfo.Border.b];
-			if (p != NULL)
+			if (p != nullptr)
 			{
 				screen->FlatFill(0, y, x, y + p->GetHeight(), p, true);
 				screen->FlatFill(x2, y, SCREENWIDTH, y + p->GetHeight(), p, true);
@@ -1101,7 +1101,7 @@ void DBaseStatusBar::DrawCrosshair ()
 	ST_LoadCrosshair();
 
 	// Don't draw the crosshair if there is none
-	if (CrosshairImage == NULL || gamestate == GS_TITLELEVEL || camera->health <= 0)
+	if (CrosshairImage == nullptr || gamestate == GS_TITLELEVEL || camera->health <= 0)
 	{
 		return;
 	}
@@ -1516,7 +1516,7 @@ void DBaseStatusBar::DrawPowerups ()
 	y = 17 
 		+ (ST_IsTimeVisible()    ? yshift : 0)
 		+ (ST_IsLatencyVisible() ? yshift : 0);
-	for (item = CPlayer->mo->Inventory; item != NULL; item = item->Inventory)
+	for (item = CPlayer->mo->Inventory; item != nullptr; item = item->Inventory)
 	{
 		if (item->DrawPowerup (x, y))
 		{
@@ -1541,9 +1541,9 @@ void DBaseStatusBar::BlendView (float blend[4])
 	V_AddBlend (BaseBlendR / 255.f, BaseBlendG / 255.f, BaseBlendB / 255.f, BaseBlendA, blend);
 	V_AddPlayerBlend(CPlayer, blend, 1.0f, 228);
 
-	if (screen->Accel2D || (CPlayer->camera != NULL && menuactive == MENU_Off && ConsoleState == c_up))
+	if (screen->Accel2D || (CPlayer->camera != nullptr && menuactive == MENU_Off && ConsoleState == c_up))
 	{
-		player_t *player = (CPlayer->camera != NULL && CPlayer->camera->player != NULL) ? CPlayer->camera->player : CPlayer;
+		player_t *player = (CPlayer->camera != nullptr && CPlayer->camera->player != nullptr) ? CPlayer->camera->player : CPlayer;
 		V_AddBlend (player->BlendR, player->BlendG, player->BlendB, player->BlendA, blend);
 	}
 
@@ -1560,12 +1560,12 @@ void DBaseStatusBar::DrawConsistancy () const
 	if (!netgame)
 		return;
 
-	buff_p = NULL;
+	buff_p = nullptr;
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
 		if (playeringame[i] && players[i].inconsistant)
 		{
-			if (buff_p == NULL)
+			if (buff_p == nullptr)
 			{
 				strcpy (conbuff, "Out of sync with:");
 				buff_p = conbuff + 17;
@@ -1576,7 +1576,7 @@ void DBaseStatusBar::DrawConsistancy () const
 		}
 	}
 
-	if (buff_p != NULL)
+	if (buff_p != nullptr)
 	{
 		if (firsttime)
 		{
@@ -1603,12 +1603,12 @@ void DBaseStatusBar::DrawWaiting () const
 	if (!netgame)
 		return;
 
-	buff_p = NULL;
+	buff_p = nullptr;
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
 		if (playeringame[i] && players[i].waiting)
 		{
-			if (buff_p == NULL)
+			if (buff_p == nullptr)
 			{
 				strcpy (conbuff, "Waiting for:");
 				buff_p = conbuff + 12;
@@ -1619,7 +1619,7 @@ void DBaseStatusBar::DrawWaiting () const
 		}
 	}
 
-	if (buff_p != NULL)
+	if (buff_p != nullptr)
 	{
 		screen->DrawText (SmallFont, CR_ORANGE, 
 			(screen->GetWidth() - SmallFont->StringWidth (conbuff)*CleanXfac) / 2,
@@ -1665,7 +1665,7 @@ void DBaseStatusBar::ScreenSizeChanged ()
 	for (size_t i = 0; i < countof(Messages); ++i)
 	{
 		DHUDMessage *message = Messages[i];
-		while (message != NULL)
+		while (message != nullptr)
 		{
 			message->ScreenSizeChanged ();
 			message = message->Next;
@@ -1687,12 +1687,12 @@ AInventory *DBaseStatusBar::ValidateInvFirst (int numVisible) const
 	AInventory *item;
 	int i;
 
-	if (CPlayer->mo->InvFirst == NULL)
+	if (CPlayer->mo->InvFirst == nullptr)
 	{
 		CPlayer->mo->InvFirst = CPlayer->mo->FirstInv();
-		if (CPlayer->mo->InvFirst == NULL)
+		if (CPlayer->mo->InvFirst == nullptr)
 		{ // Nothing to show
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -1700,13 +1700,13 @@ AInventory *DBaseStatusBar::ValidateInvFirst (int numVisible) const
 
 	// If there are fewer than numVisible items shown, see if we can shift the
 	// view left to show more.
-	for (i = 0, item = CPlayer->mo->InvFirst; item != NULL && i < numVisible; ++i, item = item->NextInv())
+	for (i = 0, item = CPlayer->mo->InvFirst; item != nullptr && i < numVisible; ++i, item = item->NextInv())
 	{ }
 
 	while (i < numVisible)
 	{
 		item = CPlayer->mo->InvFirst->PrevInv ();
-		if (item == NULL)
+		if (item == nullptr)
 		{
 			break;
 		}
@@ -1717,16 +1717,16 @@ AInventory *DBaseStatusBar::ValidateInvFirst (int numVisible) const
 		}
 	}
 
-	if (CPlayer->mo->InvSel == NULL)
+	if (CPlayer->mo->InvSel == nullptr)
 	{
 		// Nothing selected, so don't move the view.
-		return CPlayer->mo->InvFirst == NULL ? CPlayer->mo->Inventory : CPlayer->mo->InvFirst;
+		return CPlayer->mo->InvFirst == nullptr ? CPlayer->mo->Inventory : CPlayer->mo->InvFirst;
 	}
 	else
 	{
 		// Check if InvSel is already visible
 		for (item = CPlayer->mo->InvFirst, i = numVisible;
-			 item != NULL && i != 0;
+			 item != nullptr && i != 0;
 			 item = item->NextInv(), --i)
 		{
 			if (item == CPlayer->mo->InvSel)
@@ -1735,7 +1735,7 @@ AInventory *DBaseStatusBar::ValidateInvFirst (int numVisible) const
 			}
 		}
 		// Check if InvSel is to the right of the visible range
-		for (i = 1; item != NULL; item = item->NextInv(), ++i)
+		for (i = 1; item != nullptr; item = item->NextInv(), ++i)
 		{
 			if (item == CPlayer->mo->InvSel)
 			{
@@ -1752,14 +1752,14 @@ AInventory *DBaseStatusBar::ValidateInvFirst (int numVisible) const
 			item != CPlayer->mo->InvSel;
 			item = item->NextInv())
 		{ }
-		if (item != NULL)
+		if (item != nullptr)
 		{
 			// Found it, so let it become the first item shown
 			return item;
 		}
 		// Didn't find the selected item, so don't move the view.
 		// This should never happen, so let debug builds assert.
-		assert (item != NULL);
+		assert (item != nullptr);
 		return CPlayer->mo->InvFirst;
 	}
 }
@@ -1775,22 +1775,22 @@ AInventory *DBaseStatusBar::ValidateInvFirst (int numVisible) const
 
 void DBaseStatusBar::GetCurrentAmmo (AAmmo *&ammo1, AAmmo *&ammo2, int &ammocount1, int &ammocount2) const
 {
-	if (CPlayer->ReadyWeapon != NULL)
+	if (CPlayer->ReadyWeapon != nullptr)
 	{
 		ammo1 = CPlayer->ReadyWeapon->Ammo1;
 		ammo2 = CPlayer->ReadyWeapon->Ammo2;
-		if (ammo1 == NULL)
+		if (ammo1 == nullptr)
 		{
 			ammo1 = ammo2;
-			ammo2 = NULL;
+			ammo2 = nullptr;
 		}
 	}
 	else
 	{
-		ammo1 = ammo2 = NULL;
+		ammo1 = ammo2 = nullptr;
 	}
-	ammocount1 = ammo1 != NULL ? ammo1->Amount : 0;
-	ammocount2 = ammo2 != NULL ? ammo2->Amount : 0;
+	ammocount1 = ammo1 != nullptr ? ammo1->Amount : 0;
+	ammocount2 = ammo2 != nullptr ? ammo2->Amount : 0;
 }
 
 //============================================================================
@@ -1807,7 +1807,7 @@ CCMD (showpop)
 	{
 		Printf ("Usage: showpop <popnumber>\n");
 	}
-	else if (StatusBar != NULL)
+	else if (StatusBar != nullptr)
 	{
 		int popnum = atoi (argv[1]);
 		if (popnum < 0)

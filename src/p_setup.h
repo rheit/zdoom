@@ -45,8 +45,8 @@ struct MapData
 	MapData()
 	{
 		memset(MapLumps, 0, sizeof(MapLumps));
-		file = NULL;
-		resource = NULL;
+		file = nullptr;
+		resource = nullptr;
 		lumpnum = -1;
 		HasBehavior = false;
 		Encrypted = false;
@@ -60,7 +60,7 @@ struct MapData
 			delete MapLumps[i].Reader;
 
 		delete resource;
-		resource = NULL;
+		resource = nullptr;
 	}
 
 	void Seek(unsigned int lumpindex)

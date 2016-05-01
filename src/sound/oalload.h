@@ -19,7 +19,7 @@ static oalloadentry oalfuncs[] = {
 #define DEFINE_ENTRY(type, name) { #name, (FARPROC*)&p_##name },
 #include "oaldef.h"
 #undef DEFINE_ENTRY
-{ NULL, 0 }
+{ nullptr, 0 }
 };
 
 

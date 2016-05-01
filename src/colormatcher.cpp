@@ -47,7 +47,7 @@
 
 FColorMatcher::FColorMatcher ()
 {
-	Pal = NULL;
+	Pal = nullptr;
 }
 
 FColorMatcher::FColorMatcher (const DWORD *palette)
@@ -73,7 +73,7 @@ void FColorMatcher::SetPalette (const DWORD *palette)
 
 BYTE FColorMatcher::Pick (int r, int g, int b)
 {
-	if (Pal == NULL)
+	if (Pal == nullptr)
 		return 1;
 
 	return (BYTE)BestColor ((uint32 *)Pal, r, g, b);

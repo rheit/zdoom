@@ -268,7 +268,7 @@ FVoxel *R_LoadKVX(int lumpnum)
 					if (unsigned(xoff + yoff) > unsigned(voxdatasize))
 					{
 						delete voxel;
-						return NULL;
+						return nullptr;
 					}
 				}
 			}
@@ -286,13 +286,13 @@ FVoxel *R_LoadKVX(int lumpnum)
 	if (mip == 0 || rawmip != rawvoxel + voxelsize - 768)
 	{
 		delete voxel;
-		return NULL;
+		return nullptr;
 	}
 
 	// Do not count empty mips at the end.
 	for (; mip > 0; --mip)
 	{
-		if (voxel->Mips[mip - 1].SlabData != NULL)
+		if (voxel->Mips[mip - 1].SlabData != nullptr)
 			break;
 	}
 	voxel->NumMips = mip;
@@ -308,7 +308,7 @@ FVoxel *R_LoadKVX(int lumpnum)
 		if (!CopyVoxelSlabs((kvxslab_t *)voxel->Mips[i].SlabData, slabs[i], voxel->Mips[i].OffsetX[voxel->Mips[i].SizeX]))
 		{ // Invalid slabs encountered. Reject this voxel.
 			delete voxel;
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -328,10 +328,10 @@ FVoxel *R_LoadKVX(int lumpnum)
 FVoxelDef *R_LoadVoxelDef(int lumpnum, int spin)
 {
 	FVoxel *vox = R_LoadKVX(lumpnum);
-	if (vox == NULL)
+	if (vox == nullptr)
 	{
 		Printf("%s is not a valid voxel file\n", Wads.GetLumpFullName(lumpnum));
-		return NULL;
+		return nullptr;
 	}
 	else
 	{
@@ -357,9 +357,9 @@ FVoxelMipLevel::FVoxelMipLevel()
 {
 	SizeZ = SizeY = SizeX = 0;
 	Pivot.Zero();
-	OffsetX = NULL;
-	OffsetXY = NULL;
-	SlabData = NULL;
+	OffsetX = nullptr;
+	OffsetXY = nullptr;
+	SlabData = nullptr;
 }
 
 //==========================================================================
@@ -370,7 +370,7 @@ FVoxelMipLevel::FVoxelMipLevel()
 
 FVoxelMipLevel::~FVoxelMipLevel()
 {
-	if (OffsetX != NULL)
+	if (OffsetX != nullptr)
 	{
 		delete[] OffsetX;
 	}
@@ -384,12 +384,12 @@ FVoxelMipLevel::~FVoxelMipLevel()
 
 FVoxel::FVoxel()
 {
-	Palette = NULL;
+	Palette = nullptr;
 }
 
 FVoxel::~FVoxel()
 {
-	if (Palette != NULL) delete [] Palette;
+	if (Palette != nullptr) delete [] Palette;
 }
 
 //==========================================================================
@@ -400,7 +400,7 @@ FVoxel::~FVoxel()
 
 void FVoxel::Remap()
 {
-	if (Palette != NULL)
+	if (Palette != nullptr)
 	{
 		BYTE *remap = GetVoxelRemap(Palette);
 		for (int i = 0; i < NumMips; ++i)
@@ -419,10 +419,10 @@ void FVoxel::Remap()
 
 void FVoxel::RemovePalette()
 {
-	if (Palette != NULL)
+	if (Palette != nullptr)
 	{
 		delete [] Palette;
-		Palette = NULL;
+		Palette = nullptr;
 	}
 }
 
@@ -559,7 +559,7 @@ static void VOX_ReadOptions(FScanner &sc, VoxelOptions &opts)
 //
 // VOX_GetVoxel
 //
-// Returns a voxel object for the given lump or NULL if it is not a valid
+// Returns a voxel object for the given lump or nullptr if it is not a valid
 // voxel. If the voxel has already been loaded, it will be reused.
 //
 //==========================================================================
@@ -575,7 +575,7 @@ static FVoxel *VOX_GetVoxel(int lumpnum)
 		}
 	}
 	FVoxel *vox = R_LoadKVX(lumpnum);
-	if (vox != NULL)
+	if (vox != nullptr)
 	{
 		Voxels.Push(vox);
 	}
@@ -602,7 +602,7 @@ void R_InitVoxels()
 
 		while (VOX_ReadSpriteNames(sc, vsprites))
 		{
-			FVoxel *voxeldata = NULL;
+			FVoxel *voxeldata = nullptr;
 			int voxelfile;
 			VoxelOptions opts;
 
@@ -616,7 +616,7 @@ void R_InitVoxels()
 			else
 			{
 				voxeldata = VOX_GetVoxel(voxelfile);
-				if (voxeldata == NULL)
+				if (voxeldata == nullptr)
 				{
 					sc.ScriptMessage("\"%s\" is not a valid voxel file.\n", sc.String);
 				}
@@ -626,7 +626,7 @@ void R_InitVoxels()
 				VOX_ReadOptions(sc, opts);
 			}
 			sc.SetCMode(false);
-			if (voxeldata != NULL && vsprites.Size() != 0)
+			if (voxeldata != nullptr && vsprites.Size() != 0)
 			{
 				if (opts.OverridePalette)
 				{

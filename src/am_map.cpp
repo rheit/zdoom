@@ -210,7 +210,7 @@ static const char *ColorNames[] = {
 		"SecretSectorColor",
 		"PortalColor",
 		"AlmostBackgroundColor",
-		NULL
+		nullptr
 };
 
 struct AMColorset
@@ -530,7 +530,7 @@ void FMapInfoParser::ParseAMColors(bool overlay)
 		else
 		{
 			int i;
-			for (i = 0; ColorNames[i] != NULL; i++)
+			for (i = 0; ColorNames[i] != nullptr; i++)
 			{
 				if (nextKey.CompareNoCase(ColorNames[i]) == 0)
 				{
@@ -538,13 +538,13 @@ void FMapInfoParser::ParseAMColors(bool overlay)
 					FString color = sc.String;
 					FString colorName = V_GetColorStringByName(color);
 					if(!colorName.IsEmpty()) color = colorName;
-					int colorval = V_GetColorFromString(NULL, color);
+					int colorval = V_GetColorFromString(nullptr, color);
 					cset.c[i].FromRGB(RPART(colorval), GPART(colorval), BPART(colorval)); 
 					colorset = true;
 					break;
 				}
 			}
-			if (ColorNames[i]== NULL)
+			if (ColorNames[i]== nullptr)
 			{
 				sc.ScriptError("Unknown key '%s'", nextKey.GetChars());
 			}
@@ -1150,7 +1150,7 @@ static void AM_ScrollParchment (double dmapx, double dmapy)
 	{
 		FTexture *backtex = TexMan[mapback];
 
-		if (backtex != NULL)
+		if (backtex != nullptr)
 		{
 			int pwidth = backtex->GetWidth();
 			int pheight = backtex->GetHeight();
@@ -1485,7 +1485,7 @@ bool AM_Responder (event_t *ev, bool last)
 			if (!strnicmp(defbind, "+am_pan", 7)) return false;
 		}
 
-		bool res = C_DoKey(ev, &AutomapBindings, NULL);
+		bool res = C_DoKey(ev, &AutomapBindings, nullptr);
 		if (res && ev->type == EV_KeyUp && !last)
 		{
 			// If this is a release event we also need to check if it released a button in the main Bindings
@@ -1559,7 +1559,7 @@ void AM_doFollowPlayer ()
 {
 	double sx, sy;
 
-    if (players[consoleplayer].camera != NULL &&
+    if (players[consoleplayer].camera != nullptr &&
 		(f_oldloc.x != players[consoleplayer].camera->X() ||
 		 f_oldloc.y != players[consoleplayer].camera->Y()))
 	{
@@ -1643,7 +1643,7 @@ void AM_clearFB (const AMColor &color)
 	else
 	{
 		FTexture *backtex = TexMan[mapback];
-		if (backtex != NULL)
+		if (backtex != nullptr)
 		{
 			int pwidth = backtex->GetWidth();
 			int pheight = backtex->GetHeight();
@@ -2036,7 +2036,7 @@ void AM_drawSubsectors()
 
 		// Draw the polygon.
 		FTexture *pic = TexMan(maptex);
-		if (pic != NULL && pic->UseType != FTexture::TEX_Null)
+		if (pic != nullptr && pic->UseType != FTexture::TEX_Null)
 		{
 			screen->FillSimplePoly(TexMan(maptex),
 				&points[0], points.Size(),
@@ -2061,7 +2061,7 @@ static bool AM_CheckSecret(line_t *line)
 {
 	if (AMColors.isValid(AMColors.SecretSectorColor))
 	{
-		if (line->frontsector != NULL)
+		if (line->frontsector != nullptr)
 		{
 			if (line->frontsector->wasSecret())
 			{
@@ -2069,7 +2069,7 @@ static bool AM_CheckSecret(line_t *line)
 				if (am_map_secrets==2 && !(line->flags & ML_SECRET)) return true;
 			}
 		}
-		if (line->backsector != NULL)
+		if (line->backsector != nullptr)
 		{
 			if (line->backsector->wasSecret())
 			{
@@ -2141,7 +2141,7 @@ void AM_showSS()
 			FPolyObj *po = &polyobjs[i];
 			FPolyNode *pnode = po->subsectorlinks;
 
-			while (pnode != NULL)
+			while (pnode != nullptr)
 			{
 				if (pnode->subsector == sub)
 				{
@@ -2239,15 +2239,15 @@ bool AM_checkSectorActions (sector_t *sector, bool (*function)(int, int *), int 
 // [TP] Check whether there's a boundary on the provided line for a special that satisfies the provided function.
 // It's a boundary if the line can activate the special or the line's bordering sectors can activate it.
 // If found, specialptr and argsptr will be filled with special and args if given.
-bool AM_checkSpecialBoundary (line_t &line, bool (*function)(int, int *), int *specialptr = NULL, int **argsptr = NULL)
+bool AM_checkSpecialBoundary (line_t &line, bool (*function)(int, int *), int *specialptr = nullptr, int **argsptr = nullptr)
 {
-	if (specialptr == NULL)
+	if (specialptr == nullptr)
 	{
 		static int sink;
 		specialptr = &sink;
 	}
 
-	if (argsptr == NULL)
+	if (argsptr == nullptr)
 	{
 		static int *sink;
 		argsptr = &sink;
@@ -2264,7 +2264,7 @@ bool AM_checkSpecialBoundary (line_t &line, bool (*function)(int, int *), int *s
 	// Check sector actions in the line's front sector -- the action has to be use-activated in order to
 	// show up if this is a one-sided line, because the player cannot trigger sector actions by crossing
 	// a one-sided line (since that's impossible, duh).
-	if (AM_checkSectorActions(line.frontsector, function, specialptr, argsptr, line.backsector == NULL))
+	if (AM_checkSectorActions(line.frontsector, function, specialptr, argsptr, line.backsector == nullptr))
 		return true;
 
 	// If it has a back sector, check sector actions in that.
@@ -2300,7 +2300,7 @@ bool AM_isExitBoundary (line_t& line)
 bool AM_isTriggerSpecial (int special, int *)
 {
 	FLineSpecial *spec = P_GetLineSpecialInfo(special);
-	return spec != NULL
+	return spec != nullptr
 		&& spec->max_args >= 0
 		&& special != Door_Open
 		&& special != Door_Close
@@ -2325,9 +2325,9 @@ bool AM_isLockSpecial (int special, int* args)
 		 || (special == FS_Execute && args[2] != 0);
 }
 
-bool AM_isLockBoundary (line_t &line, int *lockptr = NULL)
+bool AM_isLockBoundary (line_t &line, int *lockptr = nullptr)
 {
-	if (lockptr == NULL)
+	if (lockptr == nullptr)
 	{
 		static int sink;
 		lockptr = &sink;
@@ -2442,7 +2442,7 @@ void AM_drawWalls (bool allmap)
 				}
 				else if (lines[i].flags & ML_SECRET)
 				{ // secret door
-					if (am_cheat != 0 && lines[i].backsector != NULL)
+					if (am_cheat != 0 && lines[i].backsector != nullptr)
 						AM_drawMline(&l, AMColors.SecretWallColor);
 					else
 						AM_drawMline(&l, AMColors.WallColor);
@@ -2479,7 +2479,7 @@ void AM_drawWalls (bool allmap)
 				{
 					AM_drawMline(&l, AMColors.SpecialWallColor);	// wall with special non-door action the player can do
 				}
-				else if (lines[i].backsector == NULL)
+				else if (lines[i].backsector == nullptr)
 				{
 					AM_drawMline(&l, AMColors.WallColor);	// one-sided wall
 				}
@@ -2672,7 +2672,7 @@ void AM_drawPlayers ()
 		player_t *p = &players[i];
 		AMColor color;
 
-		if (!playeringame[i] || p->mo == NULL)
+		if (!playeringame[i] || p->mo == nullptr)
 		{
 			continue;
 		}
@@ -2696,13 +2696,13 @@ void AM_drawPlayers ()
 		{
 			float h, s, v, r, g, b;
 
-			D_GetPlayerColor (i, &h, &s, &v, NULL);
+			D_GetPlayerColor (i, &h, &s, &v, nullptr);
 			HSVtoRGB (&r, &g, &b, h, s, v);
 
 			color.FromRGB(clamp (int(r*255.f),0,255), clamp (int(g*255.f),0,255), clamp (int(b*255.f),0,255));
 		}
 
-		if (p->mo != NULL)
+		if (p->mo != nullptr)
 		{
 			DVector3 pos = p->mo->PosRelative(MapPortalGroup);
 			pt.x = pos.X;
@@ -2736,7 +2736,7 @@ void AM_drawKeys ()
 	TThinkerIterator<AKey> it;
 	AKey *key;
 
-	while ((key = it.Next()) != NULL)
+	while ((key = it.Next()) != nullptr)
 	{
 		DVector3 pos = key->PosRelative(MapPortalGroup);
 		p.x = pos.X;
@@ -2791,12 +2791,12 @@ void AM_drawThings ()
 
 				if (am_showthingsprites > 0 && t->sprite > 0)
 				{
-					FTexture *texture = NULL;
+					FTexture *texture = nullptr;
 					spriteframe_t *frame;
 					int rotation = 0;
 
 					// try all modes backwards until a valid texture has been found.	
-					for(int show = am_showthingsprites; show > 0 && texture == NULL; show--)
+					for(int show = am_showthingsprites; show > 0 && texture == nullptr; show--)
 					{
 						const spritedef_t& sprite = sprites[t->sprite];
 						const size_t spriteIndex = sprite.spriteframes + (show > 1 ? t->frame : 0);
@@ -2814,7 +2814,7 @@ void AM_drawThings ()
 						texture = TexMan(textureID);
 					}
 
-					if (texture == NULL) goto drawTriangle;	// fall back to standard display if no sprite can be found.
+					if (texture == nullptr) goto drawTriangle;	// fall back to standard display if no sprite can be found.
 
 					const double spriteXScale = (t->Scale.X * 10 * scale_mtof);
 					const double spriteYScale = (t->Scale.Y * 10 * scale_mtof);
@@ -2908,7 +2908,7 @@ void AM_drawThings ()
 static void DrawMarker (FTexture *tex, double x, double y, int yadjust,
 	INTBOOL flip, double xscale, double yscale, int translation, double alpha, DWORD fillcolor, FRenderStyle renderstyle)
 {
-	if (tex == NULL || tex->UseType == FTexture::TEX_Null)
+	if (tex == nullptr || tex->UseType == FTexture::TEX_Null)
 	{
 		return;
 	}
@@ -2963,7 +2963,7 @@ void AM_drawAuthorMarkers ()
 	TThinkerIterator<AMapMarker> it (STAT_MAPMARKER);
 	AMapMarker *mark;
 
-	while ((mark = it.Next()) != NULL)
+	while ((mark = it.Next()) != nullptr)
 	{
 		if (mark->flags2 & MF2_DORMANT)
 		{
@@ -3003,7 +3003,7 @@ void AM_drawAuthorMarkers ()
 		FActorIterator it (mark->args[0]);
 		AActor *marked = mark->args[0] == 0 ? mark : it.Next();
 
-		while (marked != NULL)
+		while (marked != nullptr)
 		{
 			// Use more correct info if we have GL nodes available
 			if (mark->args[1] == 0 ||
@@ -3014,7 +3014,7 @@ void AM_drawAuthorMarkers ()
 				DrawMarker (tex, marked->X(), marked->Y(), 0, flip, mark->Scale.X*16, mark->Scale.Y*16, mark->Translation,
 					mark->Alpha, mark->fillcolor, mark->RenderStyle);
 			}
-			marked = mark->args[0] != 0 ? it.Next() : NULL;
+			marked = mark->args[0] != 0 ? it.Next() : nullptr;
 		}
 	}
 }
@@ -3042,7 +3042,7 @@ void AM_Drawer ()
 		return;
 
 	bool allmap = (level.flags2 & LEVEL2_ALLMAP) != 0;
-	bool allthings = allmap && players[consoleplayer].mo->FindInventory(RUNTIME_CLASS(APowerScanner), true) != NULL;
+	bool allthings = allmap && players[consoleplayer].mo->FindInventory(RUNTIME_CLASS(APowerScanner), true) != nullptr;
 
 	if (am_portaloverlay)
 	{

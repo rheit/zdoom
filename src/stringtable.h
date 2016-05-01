@@ -56,8 +56,8 @@ public:
 
 	void LoadStrings (bool enuOnly);
 
-	const char *operator() (const char *name) const;	// Never returns NULL
-	const char *operator[] (const char *name) const;	// Can return NULL
+	const char *operator() (const char *name) const;	// Never returns nullptr
+	const char *operator[] (const char *name) const;	// Can return nullptr
 
 	const char *MatchString (const char *string) const;
 	void SetString (const char *name, const char *newString);

@@ -135,7 +135,7 @@ struct FParseContext
 	FParseContext(void *parser, ParseFunc parse, int *tt)
 	{
 		SourceLine = 0;
-		SourceFile = NULL;
+		SourceFile = nullptr;
 		pParser = parser;
 		Parse = parse;
 		TokenTrans = tt;

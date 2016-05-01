@@ -102,7 +102,7 @@ FxVMFunctionCall *DoActionSpecials(FScanner &sc, FState & state, Baggage &bag)
 		}
 		return new FxVMFunctionCall(FindGlobalActionFunction("A_CallSpecial"), args, sc);
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -141,8 +141,8 @@ void ParseStates(FScanner &sc, PClassActor * actor, AActor * defaults, Baggage &
 	FString statestring;
 	FState state;
 	char lastsprite[5] = "";
-	FStateTempCall *tcall = NULL;
-	FArgumentList *args = NULL;
+	FStateTempCall *tcall = nullptr;
+	FArgumentList *args = nullptr;
 
 	sc.MustGetStringName ("{");
 	sc.SetEscape(false);	// disable escape sequences in the state parser
@@ -224,7 +224,7 @@ do_stop:
 			sc.MustGetString();
 			statestring = sc.String;
 
-			if (tcall == NULL)
+			if (tcall == nullptr)
 			{
 				tcall = new FStateTempCall;
 			}
@@ -330,21 +330,21 @@ endofstate:
 				sc.ScriptError ("Invalid frame character string '%s'", statestring.GetChars());
 				count = -count;
 			}
-			if (tcall->Code != NULL)
+			if (tcall->Code != nullptr)
 			{
 				tcall->ActorClass = actor;
 				tcall->FirstState = bag.statedef.GetStateCount() - count;
 				tcall->NumStates = count;
 				StateTempCalls.Push(tcall);
-				tcall = NULL;
+				tcall = nullptr;
 			}
 		}
 	}
-	if (tcall != NULL)
+	if (tcall != nullptr)
 	{
 		delete tcall;
 	}
-	if (args != NULL)
+	if (args != nullptr)
 	{
 		delete args;
 	}
@@ -361,13 +361,13 @@ endofstate:
 
 void AddImplicitReturn(FxSequence *code, const PPrototype *proto, FScanner &sc)
 {
-	if (code == NULL)
+	if (code == nullptr)
 	{
 		return;
 	}
-	if (proto == NULL || proto->ReturnTypes.Size() == 0)
+	if (proto == nullptr || proto->ReturnTypes.Size() == 0)
 	{ // Returns nothing. Good. We can safely add an implied return.
-		code->Add(new FxReturnStatement(NULL, sc));
+		code->Add(new FxReturnStatement(nullptr, sc));
 	}
 	else
 	{ // Something was returned earlier in the sequence. Make it an error
@@ -380,7 +380,7 @@ void AddImplicitReturn(FxSequence *code, const PPrototype *proto, FScanner &sc)
 //
 // ReturnCheck
 //
-// If proto1 is NULL, returns proto2. If proto2 is NULL, returns proto1.
+// If proto1 is nullptr, returns proto2. If proto2 is nullptr, returns proto1.
 // If neither is null, checks if both prototypes define the same return
 // types. If not, an error is flagged.
 //
@@ -388,11 +388,11 @@ void AddImplicitReturn(FxSequence *code, const PPrototype *proto, FScanner &sc)
 
 static PPrototype *ReturnCheck(PPrototype *proto1, PPrototype *proto2, FScanner &sc)
 {
-	if (proto1 == NULL)
+	if (proto1 == nullptr)
 	{
 		return proto2;
 	}
-	if (proto2 == NULL)
+	if (proto2 == nullptr)
 	{
 		return proto1;
 	}
@@ -410,7 +410,7 @@ static PPrototype *ReturnCheck(PPrototype *proto1, PPrototype *proto2, FScanner 
 		{
 			return proto1;
 		}
-		proto1 = NULL;
+		proto1 = nullptr;
 	}
 	else
 	{
@@ -418,12 +418,12 @@ static PPrototype *ReturnCheck(PPrototype *proto1, PPrototype *proto2, FScanner 
 		{
 			if (proto1->ReturnTypes[i] != proto2->ReturnTypes[i])
 			{ // Incompatible
-				proto1 = NULL;
+				proto1 = nullptr;
 				break;
 			}
 		}
 	}
-	if (proto1 == NULL)
+	if (proto1 == nullptr)
 	{
 		sc.ScriptError("Return types are incompatible");
 	}
@@ -445,8 +445,8 @@ static FxExpression *ParseIf(FScanner &sc, FState state, FString statestring, Ba
 	PPrototype *&retproto, bool &lastwasret)
 {
 	FxExpression *add, *cond;
-	FxExpression *true_part, *false_part = NULL;
-	PPrototype *true_proto, *false_proto = NULL;
+	FxExpression *true_part, *false_part = nullptr;
+	PPrototype *true_proto, *false_proto = nullptr;
 	bool true_ret, false_ret = false;
 	sc.MustGetStringName("(");
 	cond = ParseExpression(sc, bag.Info);
@@ -495,8 +495,8 @@ FxExpression *ParseActions(FScanner &sc, FState state, FString statestring, Bagg
 
 	const FScriptPosition pos(sc);
 
-	FxSequence *seq = NULL;
-	PPrototype *proto = NULL;
+	FxSequence *seq = nullptr;
+	PPrototype *proto = nullptr;
 	bool lastwasret = false;
 
 	sc.MustGetString();
@@ -511,7 +511,7 @@ FxExpression *ParseActions(FScanner &sc, FState state, FString statestring, Bagg
 		else if (sc.Compare("return"))
 		{ // Handle a return statement
 			lastwasret = true;
-			FxVMFunctionCall *retexp = NULL;
+			FxVMFunctionCall *retexp = nullptr;
 			PPrototype *retproto;
 			sc.MustGetString();
 			if (!sc.Compare(";"))
@@ -536,9 +536,9 @@ FxExpression *ParseActions(FScanner &sc, FState state, FString statestring, Bagg
 			sc.MustGetString();
 		}
 		// Only return a sequence if it has actual content.
-		if (add != NULL)
+		if (add != nullptr)
 		{
-			if (seq == NULL)
+			if (seq == nullptr)
 			{
 				seq = new FxSequence(pos);
 			}
@@ -564,7 +564,7 @@ FxVMFunctionCall *ParseAction(FScanner &sc, FState state, FString statestring, B
 	strlwr (sc.String);
 
 	call = DoActionSpecials(sc, state, bag);
-	if (call != NULL)
+	if (call != nullptr)
 	{
 		return call;
 	}
@@ -572,11 +572,11 @@ FxVMFunctionCall *ParseAction(FScanner &sc, FState state, FString statestring, B
 	FName symname = FName(sc.String, true);
 	symname = CheckCastKludges(symname);
 	PFunction *afd = dyn_cast<PFunction>(bag.Info->Symbols.FindSymbol(symname, true));
-	if (afd != NULL)
+	if (afd != nullptr)
 	{
 		FArgumentList *args = new FArgumentList;
 		ParseFunctionParameters(sc, bag.Info, *args, afd, statestring, &bag.statedef);
-		call = new FxVMFunctionCall(afd, args->Size() > 0 ? args : NULL, sc);
+		call = new FxVMFunctionCall(afd, args->Size() > 0 ? args : nullptr, sc);
 		if (args->Size() == 0)
 		{
 			delete args;
@@ -584,7 +584,7 @@ FxVMFunctionCall *ParseAction(FScanner &sc, FState state, FString statestring, B
 		return call;
 	}
 	sc.ScriptError("Invalid parameter '%s'\n", sc.String);
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -633,7 +633,7 @@ void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression
 	while (numparams > 0)
 	{
 		FxExpression *x;
-		if (statedef != NULL && params[pnum] == TypeState && sc.CheckNumber())
+		if (statedef != nullptr && params[pnum] == TypeState && sc.CheckNumber())
 		{
 			// Special case: State label as an offset
 			if (sc.Number > 0 && statestring.Len() > 1)
@@ -653,7 +653,7 @@ void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression
 			}
 			else
 			{
-				x = new FxConstant((FState*)NULL, sc);
+				x = new FxConstant((FState*)nullptr, sc);
 			}
 		}
 		else
@@ -666,7 +666,7 @@ void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression
 		numparams--;
 		if (numparams > 0)
 		{
-			if (params[pnum] == NULL)
+			if (params[pnum] == nullptr)
 			{ // varargs function
 				if (sc.CheckString(")"))
 				{

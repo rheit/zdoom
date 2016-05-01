@@ -64,7 +64,7 @@ static void P_SlopeLineToPoint (int lineid, const DVector3 &pos, bool slopeCeil)
 		{
 			sec = line->backsector;
 		}
-		if (sec == NULL)
+		if (sec == nullptr)
 		{
 			continue;
 		}
@@ -255,7 +255,7 @@ static void P_SetSlopesFromVertexHeights(FMapThing *firstmt, FMapThing *lastmt, 
 
 	for (mt = firstmt; mt < lastmt; ++mt)
 	{
-		if (mt->info != NULL && mt->info->Type == NULL)
+		if (mt->info != nullptr && mt->info->Type == nullptr)
 		{
 			if (mt->info->Special == SMT_VertexFloorZ || mt->info->Special == SMT_VertexCeilingZ)
 			{
@@ -281,7 +281,7 @@ static void P_SetSlopesFromVertexHeights(FMapThing *firstmt, FMapThing *lastmt, 
 
 	for(int i = 0; i < numvertexdatas; i++)
 	{
-		int ii = oldvertextable == NULL ? i : oldvertextable[i];
+		int ii = oldvertextable == nullptr ? i : oldvertextable[i];
 
 		if (vertexdatas[i].flags & VERTEXFLAG_ZCeilingEnabled)
 		{
@@ -298,7 +298,7 @@ static void P_SetSlopesFromVertexHeights(FMapThing *firstmt, FMapThing *lastmt, 
 
 	// If vertexdata_t is ever extended for non-slope usage, this will obviously have to be deferred or removed.
 	delete[] vertexdatas;
-	vertexdatas = NULL;
+	vertexdatas = nullptr;
 	numvertexdatas = 0;
 
 	if (vt_found)
@@ -326,7 +326,7 @@ static void P_SetSlopesFromVertexHeights(FMapThing *firstmt, FMapThing *lastmt, 
 				double *h1 = vt_heights[j].CheckKey(vi1);
 				double *h2 = vt_heights[j].CheckKey(vi2);
 				double *h3 = vt_heights[j].CheckKey(vi3);
-				if (h1 == NULL && h2 == NULL && h3 == NULL) continue;
+				if (h1 == nullptr && h2 == nullptr && h3 == nullptr) continue;
 
 				vt1.Z = h1? *h1 : j==0? sec->GetPlaneTexZ(sector_t::floor) : sec->GetPlaneTexZ(sector_t::ceiling);
 				vt2.Z = h2? *h2 : j==0? sec->GetPlaneTexZ(sector_t::floor) : sec->GetPlaneTexZ(sector_t::ceiling);
@@ -381,7 +381,7 @@ void P_SpawnSlopeMakers (FMapThing *firstmt, FMapThing *lastmt, const int *oldve
 
 	for (mt = firstmt; mt < lastmt; ++mt)
 	{
-		if (mt->info != NULL && mt->info->Type == NULL &&
+		if (mt->info != nullptr && mt->info->Type == nullptr &&
 		   (mt->info->Special >= SMT_SlopeFloorPointLine && mt->info->Special <= SMT_VavoomCeiling))
 		{
 			DVector3 pos = mt->pos;
@@ -420,7 +420,7 @@ void P_SpawnSlopeMakers (FMapThing *firstmt, FMapThing *lastmt, const int *oldve
 
 	for (mt = firstmt; mt < lastmt; ++mt)
 	{
-		if (mt->info != NULL && mt->info->Type == NULL &&
+		if (mt->info != nullptr && mt->info->Type == nullptr &&
 			(mt->info->Special == SMT_CopyFloorPlane || mt->info->Special == SMT_CopyCeilingPlane))
 		{
 			P_CopyPlane (mt->args[0], mt->pos, mt->info->Special == SMT_CopyCeilingPlane);
@@ -455,7 +455,7 @@ static void P_AlignPlane(sector_t *sec, line_t *line, int which)
 	int i;
 	line_t **probe;
 
-	if (line->backsector == NULL)
+	if (line->backsector == nullptr)
 		return;
 
 	// Find furthest vertex from the reference line. It, along with the two ends
@@ -528,7 +528,7 @@ void P_SetSlopes ()
 		if (lines[i].special == Plane_Align)
 		{
 			lines[i].special = 0;
-			if (lines[i].backsector != NULL)
+			if (lines[i].backsector != nullptr)
 			{
 				// args[0] is for floor, args[1] is for ceiling
 				//
@@ -577,7 +577,7 @@ void P_CopySlopes()
 					(s & 2 ? lines[i].backsector : lines[i].frontsector), s & 1);
 			}
 
-			if (lines[i].backsector != NULL)
+			if (lines[i].backsector != nullptr)
 			{
 				if ((lines[i].args[4] & 3) == 1)
 				{

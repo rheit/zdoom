@@ -41,7 +41,7 @@ bool ACoin::HandlePickup (AInventory *item)
 		}
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -73,9 +73,9 @@ AInventory *ACoin::CreateTossable ()
 {
 	ACoin *tossed;
 
-	if ((ItemFlags & IF_UNDROPPABLE) || Owner == NULL || Amount <= 0)
+	if ((ItemFlags & IF_UNDROPPABLE) || Owner == nullptr || Amount <= 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (Amount >= 50)
 	{

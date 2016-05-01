@@ -184,7 +184,7 @@ void M_FindResponseFile (void)
 		else
 		{
 			char	**argv;
-			char	*file = NULL;
+			char	*file = nullptr;
 			int		argc = 0;
 			FILE	*handle;
 			int 	size;
@@ -212,7 +212,7 @@ void M_FindResponseFile (void)
 					file[size] = 0;
 					fclose (handle);
 
-					argsize = ParseCommandLine (file, &argc, NULL);
+					argsize = ParseCommandLine (file, &argc, nullptr);
 				}
 			}
 			else
@@ -224,7 +224,7 @@ void M_FindResponseFile (void)
 			{
 				argv = (char **)M_Malloc (argc*sizeof(char *) + argsize);
 				argv[0] = (char *)argv + argc*sizeof(char *);
-				ParseCommandLine (file, NULL, argv);
+				ParseCommandLine (file, nullptr, argv);
 
 				// Create a new argument vector
 				DArgs *newargs = new DArgs;
@@ -253,7 +253,7 @@ void M_FindResponseFile (void)
 				// Remove the response file from the Args object
 				Args->RemoveArg(i);
 			}
-			if (file != NULL)
+			if (file != nullptr)
 			{
 				delete[] file;
 			}
@@ -280,8 +280,8 @@ static long ParseCommandLine (const char *args, int *argc, char **argv)
 	char *buffplace;
 
 	count = 0;
-	buffplace = NULL;
-	if (argv != NULL)
+	buffplace = nullptr;
+	if (argv != nullptr)
 	{
 		buffplace = argv[0];
 	}
@@ -299,7 +299,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv)
 		else if (*args == '\"')
 		{ // read quoted string
 			char stuff;
-			if (argv != NULL)
+			if (argv != nullptr)
 			{
 				argv[count] = buffplace;
 			}
@@ -320,7 +320,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv)
 				{
 					args--;
 				}
-				if (argv != NULL)
+				if (argv != nullptr)
 				{
 					*buffplace = stuff;
 				}
@@ -334,7 +334,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv)
 			while (*args && *args > ' ' && *args != '\"')
 				args++;
 			end = args;
-			if (argv != NULL)
+			if (argv != nullptr)
 			{
 				argv[count] = buffplace;
 				while (start < end)
@@ -348,7 +348,7 @@ static long ParseCommandLine (const char *args, int *argc, char **argv)
 			count++;
 		}
 	}
-	if (argc != NULL)
+	if (argc != nullptr)
 	{
 		*argc = count;
 	}
@@ -365,7 +365,7 @@ bool M_SaveDefaults (const char *filename)
 	FString oldpath;
 	bool success;
 
-	if (filename != NULL)
+	if (filename != nullptr)
 	{
 		oldpath = GameConfig->GetPathName();
 		GameConfig->ChangePathName (filename);
@@ -376,7 +376,7 @@ bool M_SaveDefaults (const char *filename)
 		GameConfig->ArchiveGameData (gameinfo.ConfigName);
 	}
 	success = GameConfig->WriteConfigFile ();
-	if (filename != NULL)
+	if (filename != nullptr)
 	{
 		GameConfig->ChangePathName (filename);
 	}
@@ -385,17 +385,17 @@ bool M_SaveDefaults (const char *filename)
 
 void M_SaveDefaultsFinal ()
 {
-	while (!M_SaveDefaults (NULL) && I_WriteIniFailed ())
+	while (!M_SaveDefaults (nullptr) && I_WriteIniFailed ())
 	{
 		/* Loop until the config saves or I_WriteIniFailed() returns false */
 	}
 	delete GameConfig;
-	GameConfig = NULL;
+	GameConfig = nullptr;
 }
 
 CCMD (writeini)
 {
-	const char *filename = (argv.argc() == 1) ? NULL : argv[1];
+	const char *filename = (argv.argc() == 1) ? nullptr : argv[1];
 	if (!M_SaveDefaults (filename))
 	{
 		Printf ("Writing config failed: %s\n", strerror(errno));
@@ -625,7 +625,7 @@ static bool FindFreeName (FString &fullname, const char *extension)
 		time(&now);
 		tm = localtime(&now);
 
-		if (tm == NULL)
+		if (tm == nullptr)
 		{
 			lbmname.Format ("%sScreenshot_%s_%04d.%s", fullname.GetChars(), gamename, i, extension);
 		}
@@ -660,7 +660,7 @@ void M_ScreenShot (const char *filename)
 	bool writepcx = (stricmp (screenshot_type, "pcx") == 0);	// PNG is the default
 
 	// find a file name to save it to
-	if (filename == NULL || filename[0] == '\0')
+	if (filename == nullptr || filename[0] == '\0')
 	{
 		size_t dirlen;
 		autoname = Args->CheckValue("-shotdir");
@@ -701,7 +701,7 @@ void M_ScreenShot (const char *filename)
 	ESSType color_type;
 
 	screen->GetScreenshotBuffer(buffer, pitch, color_type);
-	if (buffer != NULL)
+	if (buffer != nullptr)
 	{
 		PalEntry palette[256];
 
@@ -710,7 +710,7 @@ void M_ScreenShot (const char *filename)
 			screen->GetFlashedPalette(palette);
 		}
 		file = fopen (autoname, "wb");
-		if (file == NULL)
+		if (file == nullptr)
 		{
 			Printf ("Could not open %s\n", autoname.GetChars());
 			screen->ReleaseScreenshotBuffer();
@@ -748,7 +748,7 @@ void M_ScreenShot (const char *filename)
 CCMD (screenshot)
 {
 	if (argv.argc() == 1)
-		G_ScreenShot (NULL);
+		G_ScreenShot (nullptr);
 	else
 		G_ScreenShot (argv[1]);
 }

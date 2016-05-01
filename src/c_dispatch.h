@@ -64,7 +64,7 @@ struct FExecList
 	TArray<FString> Commands;
 	TArray<FString> Pullins;
 
-	void AddCommand(const char *cmd, const char *file = NULL);
+	void AddCommand(const char *cmd, const char *file = nullptr);
 	void ExecCommands() const;
 	void AddPullins(TArray<FString> &wads) const;
 };

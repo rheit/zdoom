@@ -23,7 +23,7 @@ static int Exec(VMFrameStack *stack, const VMOP *pc, VMReturn *ret, int numret)
 	const FVoidObj *konsta;
 	const VM_ATAG *konstatag;
 
-	if (f->Func != NULL && !f->Func->Native)
+	if (f->Func != nullptr && !f->Func->Native)
 	{
 		sfunc = static_cast<VMScriptFunction *>(f->Func);
 		konstd = sfunc->KonstD;
@@ -34,12 +34,12 @@ static int Exec(VMFrameStack *stack, const VMOP *pc, VMReturn *ret, int numret)
 	}
 	else
 	{
-		sfunc = NULL;
-		konstd = NULL;
-		konstf = NULL;
-		konsts = NULL;
-		konsta = NULL;
-		konstatag = NULL;
+		sfunc = nullptr;
+		konstd = nullptr;
+		konstf = nullptr;
+		konsts = nullptr;
+		konsta = nullptr;
+		konstatag = nullptr;
 	}
 
 	void *ptr;
@@ -79,7 +79,7 @@ begin:
 		reg.atag[a] = konstatag[BC];
 		NEXTOP;
 	OP(LFP):
-		ASSERTA(a); assert(sfunc != NULL); assert(sfunc->ExtraSpace > 0);
+		ASSERTA(a); assert(sfunc != nullptr); assert(sfunc->ExtraSpace > 0);
 		reg.a[a] = f->GetExtra();
 		reg.atag[a] = ATAG_FRAMEPOINTER;
 		NEXTOP;
@@ -563,7 +563,7 @@ begin:
 		{ // No return values
 			return 0;
 		}
-		assert(ret != NULL || numret == 0);
+		assert(ret != nullptr || numret == 0);
 		{
 			int retnum = a & ~RET_FINAL;
 			if (retnum < numret)
@@ -577,7 +577,7 @@ begin:
 		}
 		NEXTOP;
 	OP(RETI):
-		assert(ret != NULL || numret == 0);
+		assert(ret != nullptr || numret == 0);
 		{
 			int retnum = a & ~RET_FINAL;
 			if (retnum < numret)
@@ -1261,7 +1261,7 @@ begin:
 		ASSERTA(a); ASSERTA(B); ASSERTD(C);
 		c = reg.d[C];
 	Do_ADDA:
-		if (reg.a[B] == NULL)	// Leave NULL pointers as NULL pointers
+		if (reg.a[B] == nullptr)	// Leave nullptr pointers as nullptr pointers
 		{
 			c = 0;
 		}
@@ -1491,7 +1491,7 @@ static void SetReturn(const VMRegisters &reg, VMFrame *frame, VMReturn *ret, VM_
 	const void *src;
 	VMScriptFunction *func = static_cast<VMScriptFunction *>(frame->Func);
 
-	assert(func != NULL && !func->Native);
+	assert(func != nullptr && !func->Native);
 	assert((regtype & ~REGT_KONST) == ret->RegType);
 
 	switch (regtype & REGT_TYPE)

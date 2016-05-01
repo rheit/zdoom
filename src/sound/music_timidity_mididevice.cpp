@@ -88,7 +88,7 @@ struct FmtChunk
 
 TimidityMIDIDevice::TimidityMIDIDevice(const char *args)
 {
-	Renderer = NULL;
+	Renderer = nullptr;
 	Renderer = new Timidity::Renderer((float)SampleRate, args);
 }
 
@@ -101,7 +101,7 @@ TimidityMIDIDevice::TimidityMIDIDevice(const char *args)
 TimidityMIDIDevice::~TimidityMIDIDevice()
 {
 	Close();
-	if (Renderer != NULL)
+	if (Renderer != nullptr)
 	{
 		delete Renderer;
 	}
@@ -245,10 +245,10 @@ FString TimidityMIDIDevice::GetStats()
 //==========================================================================
 
 TimidityWaveWriterMIDIDevice::TimidityWaveWriterMIDIDevice(const char *filename, int rate)
-	:TimidityMIDIDevice(NULL)
+	:TimidityMIDIDevice(nullptr)
 {
 	File = fopen(filename, "wb");
-	if (File != NULL)
+	if (File != nullptr)
 	{ // Write wave header
 		DWORD work[3];
 		FmtChunk fmt;
@@ -290,7 +290,7 @@ TimidityWaveWriterMIDIDevice::TimidityWaveWriterMIDIDevice(const char *filename,
 fail:
 		Printf("Failed to write %s: %s\n", filename, strerror(errno));
 		fclose(File);
-		File = NULL;
+		File = nullptr;
 	}
 }
 
@@ -302,7 +302,7 @@ fail:
 
 TimidityWaveWriterMIDIDevice::~TimidityWaveWriterMIDIDevice()
 {
-	if (File != NULL)
+	if (File != nullptr)
 	{
 		long pos = ftell(File);
 		DWORD size;

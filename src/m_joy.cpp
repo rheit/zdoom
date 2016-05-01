@@ -83,7 +83,7 @@ bool M_LoadJoystickConfig(IJoystickConfig *joy)
 		return false;
 	}
 	value = GameConfig->GetValueForKey("Sensitivity");
-	if (value != NULL)
+	if (value != nullptr)
 	{
 		joy->SetSensitivity((float)atof(value));
 	}
@@ -94,21 +94,21 @@ bool M_LoadJoystickConfig(IJoystickConfig *joy)
 
 		mysnprintf(key + axislen, countof(key) - axislen, "deadzone");
 		value = GameConfig->GetValueForKey(key);
-		if (value != NULL)
+		if (value != nullptr)
 		{
 			joy->SetAxisDeadZone(i, (float)atof(value));
 		}
 
 		mysnprintf(key + axislen, countof(key) - axislen, "scale");
 		value = GameConfig->GetValueForKey(key);
-		if (value != NULL)
+		if (value != nullptr)
 		{
 			joy->SetAxisScale(i, (float)atof(value));
 		}
 
 		mysnprintf(key + axislen, countof(key) - axislen, "map");
 		value = GameConfig->GetValueForKey(key);
-		if (value != NULL)
+		if (value != nullptr)
 		{
 			EJoyAxis gameaxis = (EJoyAxis)atoi(value);
 			if (gameaxis < JOYAXIS_None || gameaxis >= NUM_JOYAXIS)
@@ -203,7 +203,7 @@ double Joy_RemoveDeadZone(double axisval, double deadzone, BYTE *buttons)
 		axisval = (axisval - deadzone) / (1.0 - deadzone);
 		butt = 1;	// button plus
 	}
-	if (buttons != NULL)
+	if (buttons != nullptr)
 	{
 		*buttons = butt;
 	}

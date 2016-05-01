@@ -112,7 +112,7 @@ void P_LineOpening (FLineOpening &open, AActor *actor, const line_t *linedef, co
 		sector_t *front, *back;
 		double fc = 0, ff = 0, bc = 0, bf = 0;
 
-		if (linedef->backsector == NULL)
+		if (linedef->backsector == nullptr)
 		{
 			// single sided line
 			open.range = 0;
@@ -149,7 +149,7 @@ void P_LineOpening (FLineOpening &open, AActor *actor, const line_t *linedef, co
 		// that imprecisions in the plane equation mean there is a
 		// good chance that even if a slope and non-slope look like
 		// they line up, they won't be perfectly aligned.
-		if (ff == -FLT_MIN || bf == -FLT_MIN || ref == NULL || fabs (ff-bf) > 1./256)
+		if (ff == -FLT_MIN || bf == -FLT_MIN || ref == nullptr || fabs (ff-bf) > 1./256)
 		{
 			usefront = (ff > bf);
 		}
@@ -196,10 +196,10 @@ void P_LineOpening (FLineOpening &open, AActor *actor, const line_t *linedef, co
 	}
 	else
 	{ // Dummy stuff to have some sort of opening for the 3D checks to modify
-		open.topsec = NULL;
+		open.topsec = nullptr;
 		open.ceilingpic.SetInvalid();
 		open.top = LINEOPEN_MAX;
-		open.bottomsec = NULL;
+		open.bottomsec = nullptr;
 		open.floorpic.SetInvalid();
 		open.floorterrain = -1;
 		open.bottom = LINEOPEN_MIN;
@@ -209,12 +209,12 @@ void P_LineOpening (FLineOpening &open, AActor *actor, const line_t *linedef, co
 	}
 
 	// Check 3D floors
-	if (actor != NULL)
+	if (actor != nullptr)
 	{
 		P_LineOpening_XFloors(open, actor, linedef, pos.X, pos.Y, !!(flags & FFCF_3DRESTRICT));
 	}
 
-	if (actor != NULL && linedef->frontsector != NULL && linedef->backsector != NULL && 
+	if (actor != nullptr && linedef->frontsector != nullptr && linedef->backsector != nullptr && 
 		linedef->flags & ML_3DMIDTEX)
 	{
 		open.touchmidtex = P_LineOpening_3dMidtex(actor, linedef, open, !!(flags & FFCF_3DRESTRICT));
@@ -245,7 +245,7 @@ void P_LineOpening (FLineOpening &open, AActor *actor, const line_t *linedef, co
 
 void AActor::UnlinkFromWorld ()
 {
-	sector_list = NULL;
+	sector_list = nullptr;
 	if (!(flags & MF_NOSECTOR))
 	{
 		// invisible things don't need to be in sector list
@@ -256,11 +256,11 @@ void AActor::UnlinkFromWorld ()
 		AActor **prev = sprev;
 		AActor  *next = snext;
 
-		if (prev != NULL)	// prev will be NULL if this actor gets deleted due to cleaning up from a broken savegame
+		if (prev != nullptr)	// prev will be nullptr if this actor gets deleted due to cleaning up from a broken savegame
 		{
 			if ((*prev = next))  // unlink from sector list
 				next->sprev = prev;
-			snext = NULL;
+			snext = nullptr;
 			sprev = (AActor **)(size_t)0xBeefCafe;	// Woo! Bug-catching value!
 
 			// phares 3/14/98
@@ -277,7 +277,7 @@ void AActor::UnlinkFromWorld ()
 			// routine will clear out the nodes in sector_list.
 
 			sector_list = touching_sectorlist;
-			touching_sectorlist = NULL; //to be restored by P_SetThingPosition
+			touching_sectorlist = nullptr; //to be restored by P_SetThingPosition
 		}
 	}
 		
@@ -286,9 +286,9 @@ void AActor::UnlinkFromWorld ()
 		// [RH] Unlink from all blocks this actor uses
 		FBlockNode *block = this->BlockNode;
 
-		while (block != NULL)
+		while (block != nullptr)
 		{
-			if (block->NextActor != NULL)
+			if (block->NextActor != nullptr)
 			{
 				block->NextActor->PrevActor = block->PrevActor;
 			}
@@ -297,7 +297,7 @@ void AActor::UnlinkFromWorld ()
 			block->Release ();
 			block = next;
 		}
-		BlockNode = NULL;
+		BlockNode = nullptr;
 	}
 }
 
@@ -330,7 +330,7 @@ bool AActor::FixMapthingPos()
 			{ // Skip two-sided lines inside a single sector
 				continue;
 			}
-			if (ldef->backsector != NULL)
+			if (ldef->backsector != nullptr)
 			{
 				if (ldef->frontsector->floorplane == ldef->backsector->floorplane &&
 					ldef->frontsector->ceilingplane == ldef->backsector->ceilingplane)
@@ -366,7 +366,7 @@ bool AActor::FixMapthingPos()
 					ldef->Delta().X == 0 ? "vertical" : ldef->Delta().Y == 0 ? "horizontal" : "diagonal",
 					ldef - lines, distance);
 				DAngle ang = ldef->Delta().Angle();
-				if (ldef->backsector != NULL && ldef->backsector == secstart)
+				if (ldef->backsector != nullptr && ldef->backsector == secstart)
 				{
 					ang += 90.;
 				}
@@ -400,13 +400,13 @@ void AActor::LinkToWorld(bool spawningmapthing, sector_t *sector)
 
 	if (spawning)
 	{
-		if ((flags4 & MF4_FIXMAPTHINGPOS) && sector == NULL)
+		if ((flags4 & MF4_FIXMAPTHINGPOS) && sector == nullptr)
 		{
 			if (FixMapthingPos()) spawning = false;
 		}
 	}
 
-	if (sector == NULL)
+	if (sector == nullptr)
 	{
 		if (!spawning || numgamenodes == 0)
 		{
@@ -436,7 +436,7 @@ void AActor::LinkToWorld(bool spawningmapthing, sector_t *sector)
 
 		// phares 3/16/98
 		//
-		// If sector_list isn't NULL, it has a collection of sector
+		// If sector_list isn't nullptr, it has a collection of sector
 		// nodes that were just removed from this Thing.
 
 		// Collect the sectors the object will live in by looking at
@@ -448,7 +448,7 @@ void AActor::LinkToWorld(bool spawningmapthing, sector_t *sector)
 		// added, new sector links are created.
 		P_CreateSecNodeList(this);
 		touching_sectorlist = sector_list;	// Attach to thing
-		sector_list = NULL;		// clear for next time
+		sector_list = nullptr;		// clear for next time
 	}
 
 
@@ -470,7 +470,7 @@ void AActor::LinkToWorld(bool spawningmapthing, sector_t *sector)
 
 			if (x1 >= bmapwidth || x2 < 0 || y1 >= bmapheight || y2 < 0)
 			{ // thing is off the map
-				BlockNode = NULL;
+				BlockNode = nullptr;
 			}
 			else
 			{ // [RH] Link into every block this actor touches, not just the center one
@@ -487,7 +487,7 @@ void AActor::LinkToWorld(bool spawningmapthing, sector_t *sector)
 						FBlockNode *node = FBlockNode::Create(this, x, y, this->Sector->PortalGroup);
 
 						// Link in to block
-						if ((node->NextActor = *link) != NULL)
+						if ((node->NextActor = *link) != nullptr)
 						{
 							(*link)->PrevActor = &node->NextActor;
 						}
@@ -496,7 +496,7 @@ void AActor::LinkToWorld(bool spawningmapthing, sector_t *sector)
 
 						// Link in to actor
 						node->PrevBlock = alink;
-						node->NextBlock = NULL;
+						node->NextBlock = nullptr;
 						(*alink) = node;
 						alink = &node->NextBlock;
 					}
@@ -523,13 +523,13 @@ void AActor::SetOrigin(double x, double y, double z, bool moving)
 //
 //===========================================================================
 
-FBlockNode *FBlockNode::FreeBlocks = NULL;
+FBlockNode *FBlockNode::FreeBlocks = nullptr;
 
 FBlockNode *FBlockNode::Create (AActor *who, int x, int y, int group)
 {
 	FBlockNode *block;
 
-	if (FreeBlocks != NULL)
+	if (FreeBlocks != nullptr)
 	{
 		block = FreeBlocks;
 		FreeBlocks = block->NextBlock;
@@ -540,10 +540,10 @@ FBlockNode *FBlockNode::Create (AActor *who, int x, int y, int group)
 	}
 	block->BlockIndex = x + y*bmapwidth;
 	block->Me = who;
-	block->NextActor = NULL;
-	block->PrevActor = NULL;
-	block->PrevBlock = NULL;
-	block->NextBlock = NULL;
+	block->NextActor = nullptr;
+	block->PrevActor = nullptr;
+	block->PrevBlock = nullptr;
+	block->NextBlock = nullptr;
 	return block;
 }
 
@@ -607,7 +607,7 @@ void FBlockLinesIterator::StartBlock(int x, int y)
 	if (x >= 0 && y >= 0 && x < bmapwidth && y <bmapheight)
 	{
 		int offset = y*bmapwidth + x;
-		polyLink = PolyBlockMap? PolyBlockMap[offset] : NULL;
+		polyLink = PolyBlockMap? PolyBlockMap[offset] : nullptr;
 		polyIndex = 0;
 
 		// There is an extra entry at the beginning of every block.
@@ -618,8 +618,8 @@ void FBlockLinesIterator::StartBlock(int x, int y)
 	else
 	{
 		// invalid block
-		list = NULL;
-		polyLink = NULL;
+		list = nullptr;
+		polyLink = nullptr;
 	}
 }
 
@@ -633,7 +633,7 @@ line_t *FBlockLinesIterator::Next()
 {
 	while (true)
 	{
-		while (polyLink != NULL)
+		while (polyLink != nullptr)
 		{
 			if (polyLink->polyobj)
 			{
@@ -668,7 +668,7 @@ line_t *FBlockLinesIterator::Next()
 			else polyLink = polyLink->next;
 		}
 
-		if (list != NULL)
+		if (list != nullptr)
 		{
 			while (*list != -1)
 			{
@@ -686,7 +686,7 @@ line_t *FBlockLinesIterator::Next()
 		if (++curx > maxx)
 		{
 			curx = minx;
-			if (++cury > maxy) return NULL;
+			if (++cury > maxy) return nullptr;
 		}
 		StartBlock(curx, cury);
 	}
@@ -715,7 +715,7 @@ FMultiBlockLinesIterator::FMultiBlockLinesIterator(FPortalGroupArray &check, dou
 	: checklist(check)
 {
 	checkpoint = { checkx, checky, checkz };
-	if (newsec == NULL)	newsec = P_PointInSector(checkx, checky);
+	if (newsec == nullptr)	newsec = P_PointInSector(checkx, checky);
 	startsector = newsec;
 	basegroup = newsec->PortalGroup;
 	if (!check.inited) P_CollectConnectedGroups(basegroup, checkpoint, checkz + checkh, checkradius, checklist);
@@ -774,7 +774,7 @@ bool FMultiBlockLinesIterator::GoDown(double x, double y)
 bool FMultiBlockLinesIterator::Next(FMultiBlockLinesIterator::CheckResult *item)
 {
 	line_t *line = blockIterator.Next();
-	if (line != NULL)
+	if (line != nullptr)
 	{
 		item->line = line;
 		item->Position.X = offset.X;
@@ -868,7 +868,7 @@ FBlockThingsIterator::FBlockThingsIterator()
 	minx = maxx = 0;
 	miny = maxy = 0;
 	ClearHash();
-	block = NULL;
+	block = nullptr;
 }
 
 FBlockThingsIterator::FBlockThingsIterator(int _minx, int _miny, int _maxx, int _maxy)
@@ -922,7 +922,7 @@ void FBlockThingsIterator::StartBlock(int x, int y)
 	else
 	{
 		// invalid block
-		block = NULL;
+		block = nullptr;
 	}
 }
 
@@ -949,7 +949,7 @@ AActor *FBlockThingsIterator::Next(bool centeronly)
 {
 	for (;;)
 	{
-		while (block != NULL)
+		while (block != nullptr)
 		{
 			AActor *me = block->Me;
 			FBlockNode *mynode = block;
@@ -958,7 +958,7 @@ AActor *FBlockThingsIterator::Next(bool centeronly)
 
 			block = block->NextActor;
 			// Don't recheck things that were already checked
-			if (mynode->NextBlock == NULL && mynode->PrevBlock == &me->BlockNode)
+			if (mynode->NextBlock == nullptr && mynode->PrevBlock == &me->BlockNode)
 			{ // This actor doesn't span blocks, so we know it can only ever be checked once.
 				return me;
 			}
@@ -1017,7 +1017,7 @@ AActor *FBlockThingsIterator::Next(bool centeronly)
 		if (++curx > maxx)
 		{
 			curx = minx;
-			if (++cury > maxy) return NULL;
+			if (++cury > maxy) return nullptr;
 		}
 		StartBlock(curx, cury);
 	}
@@ -1049,7 +1049,7 @@ FMultiBlockThingsIterator::FMultiBlockThingsIterator(FPortalGroupArray &check, d
 	checkpoint.X = checkx;
 	checkpoint.Y = checky;
 	checkpoint.Z = checkz;
-	if (newsec == NULL) newsec = P_PointInSector(checkx, checky);
+	if (newsec == nullptr) newsec = P_PointInSector(checkx, checky);
 	basegroup = newsec->PortalGroup;
 	if (!check.inited) P_CollectConnectedGroups(basegroup, checkpoint, checkz + checkh, checkradius, checklist);
 	checkpoint.Z = checkradius;
@@ -1065,7 +1065,7 @@ FMultiBlockThingsIterator::FMultiBlockThingsIterator(FPortalGroupArray &check, d
 bool FMultiBlockThingsIterator::Next(FMultiBlockThingsIterator::CheckResult *item)
 {
 	AActor *thing = blockIterator.Next();
-	if (thing != NULL)
+	if (thing != nullptr)
 	{
 		item->thing = thing;
 		item->Position = checkpoint + Displacements.getOffset(basegroup, thing->Sector->PortalGroup);
@@ -1366,7 +1366,7 @@ void FPathTraverse::AddThingIntercepts (int bx, int by, FBlockThingsIterator &it
 
 intercept_t *FPathTraverse::Next()
 {
-	intercept_t *in = NULL;
+	intercept_t *in = nullptr;
 
 	double dist = FLT_MAX;
 	for (unsigned scanpos = intercept_index; scanpos < intercepts.Size (); scanpos++)
@@ -1379,7 +1379,7 @@ intercept_t *FPathTraverse::Next()
 		}
 	}
 	
-	if (dist > 1. || in == NULL) return NULL;	// checked everything in range			
+	if (dist > 1. || in == nullptr) return nullptr;	// checked everything in range			
 	in->done = true;
 	return in;
 }
@@ -1618,7 +1618,7 @@ int FPathTraverse::PortalRelocate(intercept_t *in, int flags, DVector3 *optpos)
 	
 	P_TranslatePortalXY(in->d.line, hitx, hity);
 	P_TranslatePortalXY(in->d.line, endx, endy);
-	if (optpos != NULL)
+	if (optpos != nullptr)
 	{
 		P_TranslatePortalXY(in->d.line, optpos->X, optpos->Y);
 		P_TranslatePortalZ(in->d.line, optpos->Z);
@@ -1750,7 +1750,7 @@ AActor *P_BlockmapSearch (AActor *mo, int distance, AActor *(*check)(AActor*, in
 			}
 		}
 	}
-	return NULL;	
+	return nullptr;	
 }
 
 //===========================================================================
@@ -1761,10 +1761,10 @@ AActor *P_BlockmapSearch (AActor *mo, int distance, AActor *(*check)(AActor*, in
 
 static AActor *RoughBlockCheck (AActor *mo, int index, void *param)
 {
-	bool onlyseekable = param != NULL;
+	bool onlyseekable = param != nullptr;
 	FBlockNode *link;
 
-	for (link = blocklinks[index]; link != NULL; link = link->NextActor)
+	for (link = blocklinks[index]; link != nullptr; link = link->NextActor)
 	{
 		if (link->Me != mo)
 		{
@@ -1778,7 +1778,7 @@ static AActor *RoughBlockCheck (AActor *mo, int index, void *param)
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================

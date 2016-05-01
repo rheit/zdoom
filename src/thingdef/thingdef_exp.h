@@ -44,9 +44,9 @@
 
 
 #define CHECKRESOLVED() if (isresolved) return this; isresolved=true;
-#define SAFE_DELETE(p) if (p!=NULL) { delete p; p=NULL; }
-#define RESOLVE(p,c) if (p!=NULL) p = p->Resolve(c)
-#define ABORT(p) if (!(p)) { delete this; return NULL; }
+#define SAFE_DELETE(p) if (p!=nullptr) { delete p; p=nullptr; }
+#define RESOLVE(p,c) if (p!=nullptr) p = p->Resolve(c)
+#define ABORT(p) if (!(p)) { delete this; return nullptr; }
 #define SAFE_RESOLVE(p,c) RESOLVE(p,c); ABORT(p) 
 
 class VMFunctionBuilder;
@@ -61,14 +61,14 @@ struct FCompileContext
 {
 	PClassActor *cls;
 
-	FCompileContext(PClassActor *_cls = NULL)
+	FCompileContext(PClassActor *_cls = nullptr)
 	{
 		cls = _cls;
 	}
 
 	PSymbol *FindInClass(FName identifier)
 	{
-		return cls ? cls->Symbols.FindSymbol(identifier, true) : NULL;
+		return cls ? cls->Symbols.FindSymbol(identifier, true) : nullptr;
 	}
 	PSymbol *FindGlobal(FName identifier)
 	{
@@ -198,7 +198,7 @@ protected:
 	{
 		isresolved = false;
 		ScriptPosition = pos;
-		ValueType = NULL;
+		ValueType = nullptr;
 	}
 public:
 	virtual ~FxExpression() {}
@@ -880,7 +880,7 @@ public:
 	ExpEmit Emit(VMFunctionBuilder *build);
 	ExpEmit Emit(VMFunctionBuilder *build, bool tailcall);
 	bool CheckEmitCast(VMFunctionBuilder *build, bool returnit, ExpEmit &reg);
-	unsigned GetArgCount() const { return ArgList == NULL ? 0 : ArgList->Size(); }
+	unsigned GetArgCount() const { return ArgList == nullptr ? 0 : ArgList->Size(); }
 	PFunction *GetFunction() const { return Function; }
 	VMFunction *GetVMFunction() const { return Function->Variants[0].Implementation; }
 	bool IsDirectFunction();
@@ -900,7 +900,7 @@ public:
 	FxSequence(const FScriptPosition &pos) : FxExpression(pos) {}
 	FxExpression *Resolve(FCompileContext&);
 	ExpEmit Emit(VMFunctionBuilder *build);
-	void Add(FxExpression *expr) { if (expr != NULL) Expressions.Push(expr); }
+	void Add(FxExpression *expr) { if (expr != nullptr) Expressions.Push(expr); }
 	VMFunction *GetDirectFunction();
 };
 

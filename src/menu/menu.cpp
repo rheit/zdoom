@@ -158,7 +158,7 @@ bool DMenu::MenuEvent (int mkey, bool fromcontroller)
 	{
 		Close();
 		S_Sound (CHAN_VOICE | CHAN_UI, 
-			DMenu::CurrentMenu != NULL? "menu/backup" : "menu/clear", snd_menuvolume, ATTN_NONE);
+			DMenu::CurrentMenu != nullptr? "menu/backup" : "menu/clear", snd_menuvolume, ATTN_NONE);
 		return true;
 	}
 	}
@@ -176,7 +176,7 @@ void DMenu::Close ()
 	assert(DMenu::CurrentMenu == this);
 	DMenu::CurrentMenu = mParentMenu;
 	Destroy();
-	if (DMenu::CurrentMenu != NULL)
+	if (DMenu::CurrentMenu != nullptr)
 	{
 		GC::WriteBarrier(DMenu::CurrentMenu);
 	}
@@ -208,7 +208,7 @@ bool DMenu::MouseEventBack(int type, int x, int y)
 	if (m_show_backbutton >= 0)
 	{
 		FTexture *tex = TexMan(gameinfo.mBackButton);
-		if (tex != NULL)
+		if (tex != nullptr)
 		{
 			if (m_show_backbutton&1) x -= screen->GetWidth() - tex->GetScaledWidth() * CleanXfac;
 			if (m_show_backbutton&2) y -= screen->GetHeight() - tex->GetScaledHeight() * CleanYfac;
@@ -298,7 +298,7 @@ bool DMenu::TranslateKeyboardEvents()
 void M_StartControlPanel (bool makeSound)
 {
 	// intro might call this repeatedly
-	if (DMenu::CurrentMenu != NULL)
+	if (DMenu::CurrentMenu != nullptr)
 		return;
 
 	ResetButtonStates ();
@@ -330,7 +330,7 @@ void M_StartControlPanel (bool makeSound)
 void M_ActivateMenu(DMenu *menu)
 {
 	if (menuactive == MENU_Off) menuactive = MENU_On;
-	if (DMenu::CurrentMenu != NULL) DMenu::CurrentMenu->ReleaseCapture();
+	if (DMenu::CurrentMenu != nullptr) DMenu::CurrentMenu->ReleaseCapture();
 	DMenu::CurrentMenu = menu;
 	GC::WriteBarrier(DMenu::CurrentMenu);
 }
@@ -351,7 +351,7 @@ void M_SetMenu(FName menu, int param)
 		GameStartupInfo.Skill = -1;
 		GameStartupInfo.Episode = -1;
 		GameStartupInfo.PlayerClass = 
-			param == -1000? NULL :
+			param == -1000? nullptr :
 			param == -1? "Random" : GetPrintableDisplayName(PlayerClasses[param].Type).GetChars();
 		break;
 
@@ -407,7 +407,7 @@ void M_SetMenu(FName menu, int param)
 	// End of special checks
 
 	FMenuDescriptor **desc = MenuDescriptors.CheckKey(menu);
-	if (desc != NULL)
+	if (desc != nullptr)
 	{
 		if ((*desc)->mNetgameMessage.IsNotEmpty() && netgame && !demoplayback)
 		{
@@ -425,7 +425,7 @@ void M_SetMenu(FName menu, int param)
 			}
 			else
 			{
-				const PClass *cls = ld->mClass == NULL? RUNTIME_CLASS(DListMenu) : ld->mClass;
+				const PClass *cls = ld->mClass == nullptr? RUNTIME_CLASS(DListMenu) : ld->mClass;
 
 				DListMenu *newmenu = (DListMenu *)cls->CreateNew();
 				newmenu->Init(DMenu::CurrentMenu, ld);
@@ -435,7 +435,7 @@ void M_SetMenu(FName menu, int param)
 		else if ((*desc)->mType == MDESC_OptionsMenu)
 		{
 			FOptionMenuDescriptor *ld = static_cast<FOptionMenuDescriptor*>(*desc);
-			const PClass *cls = ld->mClass == NULL? RUNTIME_CLASS(DOptionMenu) : ld->mClass;
+			const PClass *cls = ld->mClass == nullptr? RUNTIME_CLASS(DOptionMenu) : ld->mClass;
 
 			DOptionMenu *newmenu = (DOptionMenu *)cls->CreateNew();
 			newmenu->Init(DMenu::CurrentMenu, ld);
@@ -446,7 +446,7 @@ void M_SetMenu(FName menu, int param)
 	else
 	{
 		const PClass *menuclass = PClass::FindClass(menu);
-		if (menuclass != NULL)
+		if (menuclass != nullptr)
 		{
 			if (menuclass->IsDescendantOf(RUNTIME_CLASS(DMenu)))
 			{
@@ -478,7 +478,7 @@ bool M_Responder (event_t *ev)
 		return false;
 	}
 
-	if (DMenu::CurrentMenu != NULL && menuactive != MENU_Off) 
+	if (DMenu::CurrentMenu != nullptr && menuactive != MENU_Off) 
 	{
 		// There are a few input sources we are interested in:
 		//
@@ -638,7 +638,7 @@ bool M_Responder (event_t *ev)
 			// what it's bound to. (for those who don't bother to read the docs)
 			if (devparm && ev->data1 == KEY_F1)
 			{
-				G_ScreenShot(NULL);
+				G_ScreenShot(nullptr);
 				return true;
 			}
 			return false;
@@ -663,7 +663,7 @@ bool M_Responder (event_t *ev)
 void M_Ticker (void) 
 {
 	DMenu::MenuTime++;
-	if (DMenu::CurrentMenu != NULL && menuactive != MENU_Off) 
+	if (DMenu::CurrentMenu != nullptr && menuactive != MENU_Off) 
 	{
 		DMenu::CurrentMenu->Ticker();
 
@@ -704,9 +704,9 @@ void M_Drawer (void)
 	AActor *camera = player->camera;
 	PalEntry fade = 0;
 
-	if (!screen->Accel2D && camera != NULL && (gamestate == GS_LEVEL || gamestate == GS_TITLELEVEL))
+	if (!screen->Accel2D && camera != nullptr && (gamestate == GS_LEVEL || gamestate == GS_TITLELEVEL))
 	{
-		if (camera->player != NULL)
+		if (camera->player != nullptr)
 		{
 			player = camera->player;
 		}
@@ -714,7 +714,7 @@ void M_Drawer (void)
 	}
 
 
-	if (DMenu::CurrentMenu != NULL && menuactive != MENU_Off) 
+	if (DMenu::CurrentMenu != nullptr && menuactive != MENU_Off) 
 	{
 		if (DMenu::CurrentMenu->DimAllowed()) screen->Dim(fade);
 		DMenu::CurrentMenu->Drawer();
@@ -730,10 +730,10 @@ void M_Drawer (void)
 void M_ClearMenus ()
 {
 	M_DemoNoPlay = false;
-	if (DMenu::CurrentMenu != NULL)
+	if (DMenu::CurrentMenu != nullptr)
 	{
 		DMenu::CurrentMenu->Destroy();
-		DMenu::CurrentMenu = NULL;
+		DMenu::CurrentMenu = nullptr;
 	}
 	V_SetBorderNeedRefresh();
 	menuactive = MENU_Off;

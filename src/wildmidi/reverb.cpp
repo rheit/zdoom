@@ -189,8 +189,8 @@ _WM_init_reverb(int rate, float room_x, float room_y, float listen_x,
 	if (SPR_LSN_DST > MAXR_DST)
 		MAXR_DST = SPR_LSN_DST;
 
-	if (rtn_rvb == NULL) {
-		return NULL;
+	if (rtn_rvb == nullptr) {
+		return nullptr;
 	}
 
 	for (j = 0; j < 8; j++) {

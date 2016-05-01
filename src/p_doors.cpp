@@ -153,7 +153,7 @@ void DDoor::Tick ()
 			{
 			case doorRaise:
 			case doorClose:
-				m_Sector->ceilingdata = NULL;	//jff 2/22/98
+				m_Sector->ceilingdata = nullptr;	//jff 2/22/98
 				Destroy ();						// unlink and free
 				break;
 				
@@ -204,7 +204,7 @@ void DDoor::Tick ()
 				
 			case doorCloseWaitOpen:
 			case doorOpen:
-				m_Sector->ceilingdata = NULL;	//jff 2/22/98
+				m_Sector->ceilingdata = nullptr;	//jff 2/22/98
 				Destroy ();						// unlink and free
 				break;
 				
@@ -234,7 +234,7 @@ void DDoor::Tick ()
 //
 // [RH] DoorSound: Plays door sound depending on direction and speed
 //
-// If curseq is non-NULL, then it will check if the desired sound sequence
+// If curseq is non-nullptr, then it will check if the desired sound sequence
 // will result in a different command stream than the current one. If not,
 // then it does nothing.
 //
@@ -261,14 +261,14 @@ void DDoor::DoorSound(bool raise, DSeqNode *curseq) const
 
 	if (m_Sector->seqType >= 0)
 	{
-		if (curseq == NULL || !SN_AreModesSame(m_Sector->seqType, SEQ_DOOR, choice, curseq->GetModeNum()))
+		if (curseq == nullptr || !SN_AreModesSame(m_Sector->seqType, SEQ_DOOR, choice, curseq->GetModeNum()))
 		{
 			SN_StartSequence(m_Sector, CHAN_CEILING, m_Sector->seqType, SEQ_DOOR, choice);
 		}
 	}
 	else if (m_Sector->SeqName != NAME_None)
 	{
-		if (curseq == NULL || !SN_AreModesSame(m_Sector->SeqName, choice, curseq->GetModeNum()))
+		if (curseq == nullptr || !SN_AreModesSame(m_Sector->SeqName, choice, curseq->GetModeNum()))
 		{
 			SN_StartSequence(m_Sector, CHAN_CEILING, m_Sector->SeqName, choice);
 		}
@@ -297,12 +297,12 @@ void DDoor::DoorSound(bool raise, DSeqNode *curseq) const
 				const char *texname;
 				line_t *line = m_Sector->lines[i];
 
-				if (line->backsector == NULL)
+				if (line->backsector == nullptr)
 					continue;
 
 				FTexture *tex = TexMan[line->sidedef[0]->GetTexture(side_t::top)];
-				texname = tex ? tex->Name.GetChars() : NULL;
-				if (texname != NULL && texname[0] == 'D' && texname[1] == 'O' && texname[2] == 'R')
+				texname = tex ? tex->Name.GetChars() : nullptr;
+				if (texname != nullptr && texname[0] == 'D' && texname[1] == 'O' && texname[2] == 'R')
 				{
 					switch (texname[3])
 					{
@@ -332,7 +332,7 @@ void DDoor::DoorSound(bool raise, DSeqNode *curseq) const
 			}
 			break;
 		}
-		if (curseq == NULL || !SN_AreModesSame(snd, choice, curseq->GetModeNum()))
+		if (curseq == nullptr || !SN_AreModesSame(snd, choice, curseq->GetModeNum()))
 		{
 			SN_StartSequence(m_Sector, CHAN_CEILING, snd, choice);
 		}
@@ -440,7 +440,7 @@ bool EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
 			return false;
 
 		// if the wrong side of door is pushed, give oof sound
-		if (line->sidedef[1] == NULL)			// killough
+		if (line->sidedef[1] == nullptr)			// killough
 		{
 			S_Sound (thing, CHAN_VOICE, "*usefail", 1, ATTN_NORM);
 			return false;
@@ -473,7 +473,7 @@ bool EV_DoDoor (DDoor::EVlDoor type, line_t *line, AActor *thing,
 						//		run into them (otherwise opening them would be
 						//		a real pain).
 					{
-						if (!thing->player || thing->player->Bot != NULL)
+						if (!thing->player || thing->player->Bot != nullptr)
 							return false;	// JDC: bad guys never close doors
 											//Added by MC: Neither do bots.
 
@@ -554,7 +554,7 @@ void DAnimatedDoor::Serialize (FArchive &arc)
 bool DAnimatedDoor::StartClosing ()
 {
 	// CAN DOOR CLOSE?
-	if (m_Sector->touching_thinglist != NULL)
+	if (m_Sector->touching_thinglist != nullptr)
 	{
 		return false;
 	}
@@ -587,7 +587,7 @@ bool DAnimatedDoor::StartClosing ()
 
 void DAnimatedDoor::Tick ()
 {
-	if (m_DoorAnim == NULL)
+	if (m_DoorAnim == nullptr)
 	{
 		// can only happen when a bad savegame is loaded.
 		Destroy();
@@ -597,7 +597,7 @@ void DAnimatedDoor::Tick ()
 	switch (m_Status)
 	{
 	case Dead:
-		m_Sector->ceilingdata = NULL;
+		m_Sector->ceilingdata = nullptr;
 		Destroy ();
 		break;
 
@@ -612,7 +612,7 @@ void DAnimatedDoor::Tick ()
 
 				if (m_Delay == 0)
 				{
-					m_Sector->ceilingdata = NULL;
+					m_Sector->ceilingdata = nullptr;
 					Destroy ();
 					break;
 				}
@@ -651,7 +651,7 @@ void DAnimatedDoor::Tick ()
 			{
 				// IF DOOR IS DONE CLOSING...
 				m_Sector->MoveCeiling (2048., m_BotDist, -1);
-				m_Sector->ceilingdata = NULL;
+				m_Sector->ceilingdata = nullptr;
 				Destroy ();
 				// Unset blocking flags on lines that didn't start with them. Since the
 				// ceiling is down now, we shouldn't need this flag anymore to keep things
@@ -763,9 +763,9 @@ bool EV_SlidingDoor (line_t *line, AActor *actor, int tag, int speed, int delay)
 		sec = line->backsector;
 
 		// Make sure door isn't already being animated
-		if (sec->ceilingdata != NULL)
+		if (sec->ceilingdata != nullptr)
 		{
-			if (actor->player == NULL)
+			if (actor->player == nullptr)
 				return false;
 
 			if (sec->ceilingdata->IsA (RUNTIME_CLASS(DAnimatedDoor)))
@@ -779,7 +779,7 @@ bool EV_SlidingDoor (line_t *line, AActor *actor, int tag, int speed, int delay)
 			return false;
 		}
 		FDoorAnimation *anim = TexMan.FindAnimatedDoor (line->sidedef[0]->GetTexture(side_t::top));
-		if (anim != NULL)
+		if (anim != nullptr)
 		{
 			new DAnimatedDoor (sec, line, speed, delay, anim);
 			return true;
@@ -791,7 +791,7 @@ bool EV_SlidingDoor (line_t *line, AActor *actor, int tag, int speed, int delay)
 	while ((secnum = it.Next()) >= 0)
 	{
 		sec = &sectors[secnum];
-		if (sec->ceilingdata != NULL)
+		if (sec->ceilingdata != nullptr)
 		{
 			continue;
 		}
@@ -799,12 +799,12 @@ bool EV_SlidingDoor (line_t *line, AActor *actor, int tag, int speed, int delay)
 		for (int i = 0; tag != 0 && i < sec->linecount; ++i)
 		{
 			line = sec->lines[i];
-			if (line->backsector == NULL)
+			if (line->backsector == nullptr)
 			{
 				continue;
 			}
 			FDoorAnimation *anim = TexMan.FindAnimatedDoor (line->sidedef[0]->GetTexture(side_t::top));
-			if (anim != NULL)
+			if (anim != nullptr)
 			{
 				rtn = true;
 				new DAnimatedDoor (sec, line, speed, delay, anim);

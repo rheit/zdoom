@@ -104,7 +104,7 @@ bool AHolySpirit::Slam(AActor *thing)
 		}
 		if (thing->health <= 0)
 		{
-			tracer = NULL;
+			tracer = nullptr;
 		}
 	}
 	return true;
@@ -199,7 +199,7 @@ void SpawnSpiritTail (AActor *spirit)
 		tail->tracer = next;
 		tail = next;
 	}
-	tail->tracer = NULL; // last tail bit
+	tail->tracer = nullptr; // last tail bit
 }
 
 //============================================================================
@@ -215,18 +215,18 @@ DEFINE_ACTION_FUNCTION(AActor, A_CHolyAttack)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	ACWeapWraithverge *weapon = static_cast<ACWeapWraithverge *> (self->player->ReadyWeapon);
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
 	}
 	AActor *missile = P_SpawnPlayerMissile (self, 0,0,0, PClass::FindActor("HolyMissile"), self->Angles.Yaw, &t);
-	if (missile != NULL && !t.unlinked)
+	if (missile != nullptr && !t.unlinked)
 	{
 		missile->tracer = t.linetarget;
 	}
@@ -246,10 +246,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_CHolyPalette)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		ACWeapWraithverge *weapon = static_cast<ACWeapWraithverge *> (self->player->ReadyWeapon);
-		if (weapon != NULL && weapon->CHolyCount != 0)
+		if (weapon != nullptr && weapon->CHolyCount != 0)
 		{
 			weapon->CHolyCount--;
 		}
@@ -333,7 +333,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_CHolyTail)
 
 	parent = self->target;
 
-	if (parent == NULL || parent->health <= 0)	// better check for health than current state - it's safer!
+	if (parent == nullptr || parent->health <= 0)	// better check for health than current state - it's safer!
 	{ // Ghost removed, so remove all tail parts
 		CHolyTailRemove (self);
 		return 0;
@@ -383,14 +383,14 @@ static void CHolySeekerMissile (AActor *actor, DAngle thresh, DAngle turnMax)
 	double deltaZ;
 
 	target = actor->tracer;
-	if (target == NULL)
+	if (target == nullptr)
 	{
 		return;
 	}
 	if (!(target->flags&MF_SHOOTABLE)
 		|| (!(target->flags3&MF3_ISMONSTER) && !target->player))
 	{ // Target died/target isn't a player or creature
-		actor->tracer = NULL;
+		actor->tracer = nullptr;
 		actor->flags &= ~(MF_NOCLIP | MF_SKULLFLY);
 		actor->flags |= MF_MISSILE;
 		CHolyFindTarget(actor);
@@ -508,7 +508,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ClericAttack)
 	if (!self->target) return 0;
 
 	AActor * missile = P_SpawnMissileZ (self, self->Z() + 40., self->target, PClass::FindActor ("HolyMissile"));
-	if (missile != NULL) missile->tracer = NULL;	// No initial target
+	if (missile != nullptr) missile->tracer = nullptr;	// No initial target
 	S_Sound (self, CHAN_WEAPON, "HolySymbolFire", 1, ATTN_NORM);
 	return 0;
 }

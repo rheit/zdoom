@@ -48,7 +48,7 @@
 
 #include "hardware.h"
 
-#define SAFE_RELEASE(x)		{ if (x != NULL) { x->Release(); x = NULL; } }
+#define SAFE_RELEASE(x)		{ if (x != nullptr) { x->Release(); x = nullptr; } }
 
 EXTERN_CVAR (Bool, vid_vsync)
 
@@ -84,7 +84,7 @@ class Win32Video : public IVideo
 	struct ModeInfo
 	{
 		ModeInfo (int inX, int inY, int inBits, int inRealY, int inDoubling)
-			: next (NULL),
+			: next (nullptr),
 			  width (inX),
 			  height (inY),
 			  bits (inBits),
@@ -507,7 +507,7 @@ enum
 
 #if 0
 #define STARTLOG		do { if (!dbg) dbg = fopen ("e:/vid.log", "w"); } while(0)
-#define STOPLOG			do { if (dbg) { fclose (dbg); dbg=NULL; } } while(0)
+#define STOPLOG			do { if (dbg) { fclose (dbg); dbg=nullptr; } } while(0)
 #define LOG(x)			do { if (dbg) { fprintf (dbg, x); fflush (dbg); } } while(0)
 #define LOG1(x,y)		do { if (dbg) { fprintf (dbg, x, y); fflush (dbg); } } while(0)
 #define LOG2(x,y,z)		do { if (dbg) { fprintf (dbg, x, y, z); fflush (dbg); } } while(0)

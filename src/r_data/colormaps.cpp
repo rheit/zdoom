@@ -188,7 +188,7 @@ FDynamicColormap *GetSpecialLights (PalEntry color, PalEntry fade, int desaturat
 	FDynamicColormap *colormap;
 
 	// If this colormap has already been created, just return it
-	for (colormap = &NormalLight; colormap != NULL; colormap = colormap->Next)
+	for (colormap = &NormalLight; colormap != nullptr; colormap = colormap->Next)
 	{
 		if (color == colormap->Color &&
 			fade == colormap->Fade &&
@@ -211,7 +211,7 @@ FDynamicColormap *GetSpecialLights (PalEntry color, PalEntry fade, int desaturat
 		colormap->Maps = new BYTE[NUMCOLORMAPS*256];
 		colormap->BuildLights ();
 	}
-	else colormap->Maps = NULL;
+	else colormap->Maps = nullptr;
 
 	return colormap;
 }
@@ -226,13 +226,13 @@ static void FreeSpecialLights()
 {
 	FDynamicColormap *colormap, *next;
 
-	for (colormap = NormalLight.Next; colormap != NULL; colormap = next)
+	for (colormap = NormalLight.Next; colormap != nullptr; colormap = next)
 	{
 		next = colormap->Next;
 		delete[] colormap->Maps;
 		delete colormap;
 	}
-	NormalLight.Next = NULL;
+	NormalLight.Next = nullptr;
 }
 
 //==========================================================================
@@ -248,7 +248,7 @@ void FDynamicColormap::BuildLights ()
 	PalEntry colors[256], basecolors[256];
 	BYTE *shade;
 
-	if (Maps == NULL)
+	if (Maps == nullptr)
 		return;
 
 	// Scale light to the range 0-256, so we can avoid
@@ -370,9 +370,9 @@ void FDynamicColormap::RebuildAllLights()
 	{
 		FDynamicColormap *cm;
 
-		for (cm = &NormalLight; cm != NULL; cm = cm->Next)
+		for (cm = &NormalLight; cm != nullptr; cm = cm->Next)
 		{
-			if (cm->Maps == NULL)
+			if (cm->Maps == nullptr)
 			{
 				cm->Maps = new BYTE[NUMCOLORMAPS*256];
 				cm->BuildLights ();
@@ -410,7 +410,7 @@ void R_SetDefaultColormap (const char *name)
 			foo.Fade = 0;
 			foo.Maps = realcolormaps;
 			foo.Desaturate = 0;
-			foo.Next = NULL;
+			foo.Next = nullptr;
 			foo.BuildLights ();
 		}
 		else
@@ -454,10 +454,10 @@ void R_DeinitColormaps ()
 {
 	SpecialColormaps.Clear();
 	fakecmaps.Clear();
-	if (realcolormaps != NULL)
+	if (realcolormaps != nullptr)
 	{
 		delete[] realcolormaps;
-		realcolormaps = NULL;
+		realcolormaps = nullptr;
 	}
 	FreeSpecialLights();
 }

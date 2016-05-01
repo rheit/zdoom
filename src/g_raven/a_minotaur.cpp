@@ -95,20 +95,20 @@ void AMinotaurFriend::Die (AActor *source, AActor *inflictor, int dmgflags)
 		TThinkerIterator<AMinotaurFriend> iterator;
 		AMinotaurFriend *mo;
 
-		while ((mo = iterator.Next()) != NULL)
+		while ((mo = iterator.Next()) != nullptr)
 		{
 			if (mo->health <= 0) continue;
 			// [RH] Minotaurs can't be morphed, so this isn't needed
 			//if (!(mo->flags&MF_COUNTKILL)) continue;		// for morphed minotaurs
 			if (mo->flags&MF_CORPSE) continue;
 			if (mo->StartTime >= 0 && (level.maptime - StartTime) >= MAULATORTICS) continue;
-			if (mo->tracer != NULL && mo->tracer->player == tracer->player) break;
+			if (mo->tracer != nullptr && mo->tracer->player == tracer->player) break;
 		}
 
-		if (mo == NULL)
+		if (mo == nullptr)
 		{
 			AInventory *power = tracer->FindInventory(PClass::FindActor("PowerMinotaur"));
-			if (power != NULL)
+			if (power != nullptr)
 			{
 				power->Destroy ();
 			}
@@ -158,7 +158,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurAtk1)
 		int damage = pr_minotauratk1.HitDice (4);
 		int newdam = P_DamageMobj (self->target, self, self, damage, NAME_Melee);
 		P_TraceBleed (newdam > 0 ? newdam : damage, self->target, self);
-		if ((player = self->target->player) != NULL &&
+		if ((player = self->target->player) != nullptr &&
 			player->mo == self->target)
 		{ // Squish the player
 			player->deltaviewheight = -16;
@@ -240,7 +240,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurCharge)
 
 	AActor *puff;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 	{
 		return 0;
 	}
@@ -287,7 +287,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurAtk2)
 	double z;
 	bool friendly = !!(self->flags5 & MF5_SUMMONEDMONSTER);
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 	{
 		return 0;
 	}
@@ -305,7 +305,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurAtk2)
 	if (fx)
 	{
 		mo = P_SpawnMissileZ (self, z, self->target, fx);
-		if (mo != NULL)
+		if (mo != nullptr)
 		{
 //			S_Sound (mo, CHAN_WEAPON, "minotaur/attack2", 1, ATTN_NORM);
 			vz = mo->Vel.Z;
@@ -347,7 +347,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurAtk3)
 		damage = pr_minotauratk3.HitDice (friendly ? 3 : 5);
 		int newdam = P_DamageMobj (self->target, self, self, damage, NAME_Melee);
 		P_TraceBleed (newdam > 0 ? newdam : damage, self->target, self);
-		if ((player = self->target->player) != NULL &&
+		if ((player = self->target->player) != nullptr &&
 			player->mo == self->target)
 		{ // Squish the player
 			player->deltaviewheight = -16;
@@ -363,7 +363,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurAtk3)
 		else
 		{
 			mo = P_SpawnMissile (self, self->target, PClass::FindActor("MinotaurFX2"));
-			if (mo != NULL)
+			if (mo != nullptr)
 			{
 				S_Sound (mo, CHAN_WEAPON, "minotaur/attack1", 1, ATTN_NORM);
 			}
@@ -416,7 +416,7 @@ void P_MinotaurSlam (AActor *source, AActor *target)
 	thrust = 16 + pr_minotaurslam() / 64.;
 	target->VelFromAngle(angle, thrust);
 	damage = pr_minotaurslam.HitDice (static_cast<AMinotaur *>(source) ? 4 : 6);
-	int newdam = P_DamageMobj (target, NULL, NULL, damage, NAME_Melee);
+	int newdam = P_DamageMobj (target, nullptr, nullptr, damage, NAME_Melee);
 	P_TraceBleed (newdam > 0 ? newdam : damage, target, angle, 0.);
 	if (target->player)
 	{
@@ -453,7 +453,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurRoam)
 
 		if (self1->StartTime >= 0 && (level.maptime - self1->StartTime) >= MAULATORTICS)
 		{
-			P_DamageMobj (self1, NULL, NULL, TELEFRAG_DAMAGE, NAME_None);
+			P_DamageMobj (self1, nullptr, nullptr, TELEFRAG_DAMAGE, NAME_None);
 			return 0;
 		}
 	}
@@ -498,13 +498,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurLook)
 		return 0;
 	}
 
-	AActor *mo = NULL;
+	AActor *mo = nullptr;
 	player_t *player;
 	double dist;
 	int i;
 	AActor *master = self->tracer;
 
-	self->target = NULL;
+	self->target = nullptr;
 	if (deathmatch)					// Quick search for players
 	{
     	for (i = 0; i < MAXPLAYERS; i++)
@@ -534,7 +534,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurLook)
 	{
 		FActorIterator iterator (0);
 
-		while ((mo = iterator.Next()) != NULL)
+		while ((mo = iterator.Next()) != nullptr)
 		{
 			if (!(mo->flags3 & MF3_ISMONSTER)) continue;
 			if (mo->health <= 0) continue;
@@ -576,7 +576,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_MinotaurChase)
 
 	if (self1->StartTime >= 0 && (level.maptime - self1->StartTime) >= MAULATORTICS)
 	{
-		P_DamageMobj (self1, NULL, NULL, TELEFRAG_DAMAGE, NAME_None);
+		P_DamageMobj (self1, nullptr, nullptr, TELEFRAG_DAMAGE, NAME_None);
 		return 0;
 	}
 

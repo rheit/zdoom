@@ -137,14 +137,14 @@ void ASoundSequence::PostBeginPlay ()
 		ASoundSequenceSlot *master;
 		TThinkerIterator<ASoundSequenceSlot> locator;
 
-		while (NULL != (master = locator.Next ()))
+		while (nullptr != (master = locator.Next ()))
 		{
 			if (master->Sequence->GetSequenceName() == slot)
 			{
 				break;
 			}
 		}
-		if (master == NULL)
+		if (master == nullptr)
 		{
 			master = Spawn<ASoundSequenceSlot> ();
 			master->Sequence = SN_StartSequence (master, slot, 0);

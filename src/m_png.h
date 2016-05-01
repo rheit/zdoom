@@ -100,7 +100,7 @@ unsigned int M_FindPNGChunk (PNGHandle *png, DWORD chunkID);
 unsigned int M_NextPNGChunk (PNGHandle *png, DWORD chunkID);
 
 // Finds a PNG text chunk with the given signature and returns a pointer
-// to a NULL-terminated string if present. Returns NULL on failure.
+// to a nullptr-terminated string if present. Returns nullptr on failure.
 // (Note: tEXt, not zTXt.)
 char *M_GetPNGText (PNGHandle *png, const char *keyword);
 bool M_GetPNGText (PNGHandle *png, const char *keyword, char *buffer, size_t buffsize);

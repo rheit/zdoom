@@ -127,7 +127,7 @@ struct FState
 		Frame = frame - 'A';
 	}
 	void SetAction(VMFunction *func) { ActionFunc = func; }
-	void ClearAction() { ActionFunc = NULL; }
+	void ClearAction() { ActionFunc = nullptr; }
 	void SetAction(const char *name);
 	bool CallAction(AActor *self, AActor *stateowner, FState **stateret);
 	static PClassActor *StaticFindStateOwner (const FState *state);
@@ -338,7 +338,7 @@ void AddStateLight(FState *state, const char *lname);
 	PARAM_PROLOGUE; \
 	PARAM_OBJECT	 (self, type); \
 	PARAM_OBJECT_OPT (stateowner, AActor) { stateowner = self; } \
-	PARAM_STATE_OPT  (callingstate) { callingstate = NULL; } \
+	PARAM_STATE_OPT  (callingstate) { callingstate = nullptr; } \
 
 #define PARAM_ACTION_PROLOGUE	PARAM_ACTION_PROLOGUE_TYPE(AActor)
 

@@ -44,7 +44,7 @@ IMPLEMENT_CLASS (APottery1)
 void APottery1::HitFloor ()
 {
 	Super::HitFloor ();
-	P_DamageMobj (this, NULL, NULL, 25, NAME_None);
+	P_DamageMobj (this, nullptr, nullptr, 25, NAME_None);
 }
 
 //============================================================================
@@ -57,7 +57,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PotteryExplode)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	AActor *mo = NULL;
+	AActor *mo = nullptr;
 	int i;
 
 	for(i = (pr_pottery()&3)+3; i; i--)
@@ -74,7 +74,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PotteryExplode)
 	S_Sound (mo, CHAN_BODY, "PotteryExplode", 1, ATTN_NORM);
 	// Spawn an item?
 	PClassActor *type = P_GetSpawnableType(self->args[0]);
-	if (type != NULL)
+	if (type != nullptr)
 	{
 		if (!((level.flags2 & LEVEL2_NOMONSTERS) || (dmflags & DF_NO_MONSTERS))
 		|| !(GetDefaultByType (type)->flags3 & MF3_ISMONSTER))
@@ -260,7 +260,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LeafCheck)
 	self->special1++;
 	if (self->special1 >= 20)
 	{
-		self->SetState (NULL);
+		self->SetState (nullptr);
 		return 0;
 	}
 	DAngle ang = self->target ? self->target->Angles.Yaw : self->Angles.Yaw;
@@ -322,7 +322,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SoAExplode)
 	}
 	// Spawn an item?
 	PClassActor *type = P_GetSpawnableType(self->args[0]);
-	if (type != NULL)
+	if (type != nullptr)
 	{
 		if (!((level.flags2 & LEVEL2_NOMONSTERS) || (dmflags & DF_NO_MONSTERS))
 		|| !(GetDefaultByType (type)->flags3 & MF3_ISMONSTER))
@@ -368,7 +368,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_BellReset1)
 	self->Height *= 4;
 	if (self->special)
 	{ // Initiate death action
-		P_ExecuteSpecial(self->special, NULL, NULL, false, self->args[0],
+		P_ExecuteSpecial(self->special, nullptr, nullptr, false, self->args[0],
 			self->args[1], self->args[2], self->args[3], self->args[4]);
 		self->special = 0;
 	}

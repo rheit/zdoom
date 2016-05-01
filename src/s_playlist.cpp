@@ -61,7 +61,7 @@ bool FPlayList::ChangeList (const char *path)
 	Songs.Clear();
 	Position = 0;
 
-	if ( (file = fopen (path, "rb")) == NULL)
+	if ( (file = fopen (path, "rb")) == nullptr)
 	{
 		Printf ("Could not open " TEXTCOLOR_BOLD "%s" TEXTCOLOR_NORMAL ": %s\n", path, strerror(errno));
 		return false;
@@ -141,7 +141,7 @@ FString FPlayList::NextLine (FILE *file)
 
 	do
 	{
-		if (NULL == fgets (buffer, countof(buffer), file))
+		if (nullptr == fgets (buffer, countof(buffer), file))
 			return "";
 
 		for (skipper = buffer; *skipper != 0 && *skipper <= ' '; skipper++)
@@ -214,7 +214,7 @@ int FPlayList::Backup ()
 const char *FPlayList::GetSong (int position) const
 {
 	if ((unsigned)position >= Songs.Size())
-		return NULL;
+		return nullptr;
 
 	return Songs[position];
 }

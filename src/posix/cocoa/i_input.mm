@@ -116,12 +116,12 @@ void CenterCursor()
 
 	CGEventSourceRef eventSource = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
 
-	if (NULL != eventSource)
+	if (nullptr != eventSource)
 	{
 		CGEventRef mouseMoveEvent = CGEventCreateMouseEvent(eventSource,
 			kCGEventMouseMoved, centerPoint, kCGMouseButtonLeft);
 
-		if (NULL != mouseMoveEvent)
+		if (nullptr != mouseMoveEvent)
 		{
 			CGEventPost(kCGHIDEventTap, mouseMoveEvent);
 			CFRelease(mouseMoveEvent);
@@ -155,7 +155,7 @@ bool IsInGame()
 
 void CheckNativeMouse()
 {
-	const bool windowed = (NULL == screen) || !screen->IsFullscreen();
+	const bool windowed = (nullptr == screen) || !screen->IsFullscreen();
 	bool wantNative;
 
 	if (windowed)

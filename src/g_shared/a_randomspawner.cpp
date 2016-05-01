@@ -26,7 +26,7 @@ static bool IsMonster(DDropItem *di)
 {
 	const PClass *pclass = PClass::FindClass(di->Name);
 
-	if (NULL == pclass)
+	if (nullptr == pclass)
 	{
 		return false;
 	}
@@ -50,9 +50,9 @@ class ARandomSpawner : public AActor
 
 		Super::BeginPlay();
 		drop = di = GetDropItems();
-		if (di != NULL)
+		if (di != nullptr)
 		{
-			while (di != NULL)
+			while (di != nullptr)
 			{
 				if (di->Name != NAME_None)
 				{
@@ -74,13 +74,13 @@ class ARandomSpawner : public AActor
 			// Take a random number...
 			n = pr_randomspawn(n);
 			// And iterate in the array up to the random number chosen.
-			while (n > -1 && di != NULL)
+			while (n > -1 && di != nullptr)
 			{
 				if (di->Name != NAME_None &&
 					(!nomonsters || !IsMonster(di)))
 				{
 					n -= di->Amount;
-					if ((di->Next != NULL) && (n > -1))
+					if ((di->Next != nullptr) && (n > -1))
 						di = di->Next;
 					else
 						n = -1;
@@ -91,7 +91,7 @@ class ARandomSpawner : public AActor
 				}
 			}
 			// So now we can spawn the dropped item.
-			if (di == NULL || bouncecount >= MAX_RANDOMSPAWNERS_RECURSION)	// Prevents infinite recursions
+			if (di == nullptr || bouncecount >= MAX_RANDOMSPAWNERS_RECURSION)	// Prevents infinite recursions
 			{
 				Spawn("Unknown", Pos(), NO_REPLACE);		// Show that there's a problem.
 				Destroy();
@@ -102,15 +102,15 @@ class ARandomSpawner : public AActor
 				// Handle replacement here so as to get the proper speed and flags for missiles
 				PClassActor *cls;
 				cls = PClass::FindActor(di->Name);
-				if (cls != NULL)
+				if (cls != nullptr)
 				{
 					PClassActor *rep = cls->GetReplacement();
-					if (rep != NULL)
+					if (rep != nullptr)
 					{
 						cls = rep;
 					}
 				}
-				if (cls != NULL)
+				if (cls != nullptr)
 				{
 					Species = cls->TypeName;
 					AActor *defmobj = GetDefaultByType(cls);
@@ -136,7 +136,7 @@ class ARandomSpawner : public AActor
 	{
 		Super::PostBeginPlay();
 
-		AActor *newmobj = NULL;
+		AActor *newmobj = nullptr;
 		bool boss = false;
 
 		if (Species == NAME_None)
@@ -147,7 +147,7 @@ class ARandomSpawner : public AActor
 		PClassActor *cls = PClass::FindActor(Species);
 		if (this->flags & MF_MISSILE && target && target->target) // Attempting to spawn a missile.
 		{
-			if ((tracer == NULL) && (flags2 & MF2_SEEKERMISSILE))
+			if ((tracer == nullptr) && (flags2 & MF2_SEEKERMISSILE))
 			{
 				tracer = target->target;
 			}
@@ -157,7 +157,7 @@ class ARandomSpawner : public AActor
 		{		
 			newmobj = Spawn(cls, Pos(), NO_REPLACE);
 		}
-		if (newmobj != NULL)
+		if (newmobj != nullptr)
 		{
 			// copy everything relevant
 			newmobj->SpawnAngle = SpawnAngle;
@@ -222,7 +222,7 @@ class ARandomSpawner : public AActor
 	void Tick()	// This function is needed for handling boss replacers
 	{
 		Super::Tick();
-		if (tracer == NULL || tracer->health <= 0)
+		if (tracer == nullptr || tracer->health <= 0)
 		{
 			A_BossDeath(this);
 			Destroy();

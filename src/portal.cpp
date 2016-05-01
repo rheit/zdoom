@@ -256,7 +256,7 @@ static line_t *FindDestination(line_t *src, int tag)
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -268,7 +268,7 @@ static line_t *FindDestination(line_t *src, int tag)
 
 static void SetRotation(FLinePortal *port)
 {
-	if (port != NULL && port->mDestination != NULL)
+	if (port != nullptr && port->mDestination != nullptr)
 	{
 	line_t *dst = port->mDestination;
 	line_t *line = port->mOrigin;
@@ -288,7 +288,7 @@ static void SetRotation(FLinePortal *port)
 void P_SpawnLinePortal(line_t* line)
 {
 	// portal destination is special argument #0
-	line_t* dst = NULL;
+	line_t* dst = nullptr;
 
 	if (line->args[2] >= PORTT_VISUAL && line->args[2] <= PORTT_LINKED)
 	{
@@ -317,7 +317,7 @@ void P_SpawnLinePortal(line_t* line)
 				port->mType = PORTT_TELEPORT;
 			}
 		}
-		if (port->mDestination != NULL)
+		if (port->mDestination != nullptr)
 		{
 			port->mDefFlags = port->mType == PORTT_VISUAL ? PORTF_VISIBLE : port->mType == PORTT_TELEPORT ? PORTF_TYPETELEPORT : PORTF_TYPEINTERACTIVE;
 		}
@@ -378,7 +378,7 @@ void P_SpawnLinePortal(line_t* line)
 
 void P_UpdatePortal(FLinePortal *port)
 {
-	if (port->mDestination == NULL)
+	if (port->mDestination == nullptr)
 	{
 		// Portal has no destination: switch it off
 		port->mFlags = 0;
@@ -460,16 +460,16 @@ static bool ChangePortalLine(line_t *line, int destid)
 	if (line->portalindex >= linePortals.Size()) return false;
 	FLinePortal *port = &linePortals[line->portalindex];
 	if (port->mType == PORTT_LINKED) return false;	// linked portals cannot be changed.
-	if (destid == 0) port->mDestination = NULL;
+	if (destid == 0) port->mDestination = nullptr;
 	port->mDestination = FindDestination(line, destid);
-	if (port->mDestination == NULL)
+	if (port->mDestination == nullptr)
 	{
 		port->mFlags = 0;
 	}
 	else if (port->mType == PORTT_INTERACTIVE)
 	{
 		FLinePortal *portd = &linePortals[port->mDestination->portalindex];
-		if (portd != NULL && portd->mType == PORTT_INTERACTIVE && portd->mDestination == line)
+		if (portd != nullptr && portd->mType == PORTT_INTERACTIVE && portd->mDestination == line)
 		{
 			// this is a 2-way interactive portal
 			port->mFlags = port->mDefFlags | PORTF_INTERACTIVE;
@@ -677,7 +677,7 @@ void P_TranslatePortalZ(line_t* src, double& z)
 
 unsigned P_GetSkyboxPortal(ASkyViewpoint *actor)
 {
-	if (actor == NULL) return 1;	// this means a regular sky.
+	if (actor == nullptr) return 1;	// this means a regular sky.
 	for (unsigned i = 0;i<sectorPortals.Size();i++)
 	{
 		if (sectorPortals[i].mSkybox == actor) return i;
@@ -830,7 +830,7 @@ static bool CollectSectors(int groupid, sector_t *origin)
 		{
 			line_t *line = sec->lines[j];
 			sector_t *other = line->frontsector == sec ? line->backsector : line->frontsector;
-			if (other != NULL && other != sec && other->PortalGroup != groupid)
+			if (other != nullptr && other != sec && other->PortalGroup != groupid)
 			{
 				other->PortalGroup = groupid;
 				list.Push(other);
@@ -1084,7 +1084,7 @@ void P_CreateLinkedPortals()
 			// mark everything that connects to a one-sided line
 			for (int i = 0; i < numlines; i++)
 			{
-				if (lines[i].backsector == NULL && lines[i].frontsector->PortalGroup == 0)
+				if (lines[i].backsector == nullptr && lines[i].frontsector->PortalGroup == 0)
 				{
 					CollectSectors(-1, lines[i].frontsector);
 				}
@@ -1107,10 +1107,10 @@ void P_CreateLinkedPortals()
 	}
 
 	// reject would just get in the way when checking sight through portals.
-	if (rejectmatrix != NULL)
+	if (rejectmatrix != nullptr)
 	{
 		delete[] rejectmatrix;
-		rejectmatrix = NULL;
+		rejectmatrix = nullptr;
 	}
 	// finally we must flag all planes which are obstructed by the sector's own ceiling or floor.
 	for (int i = 0; i < numsectors; i++)

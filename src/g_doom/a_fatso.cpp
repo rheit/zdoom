@@ -29,14 +29,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_FatRaise)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack1)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, AActor)	{ spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, AActor)	{ spawntype = nullptr; }
 
 	AActor *missile;
 
 	if (!self->target)
 		return 0;
 
-	if (spawntype == NULL) spawntype = PClass::FindActor("FatShot");
+	if (spawntype == nullptr) spawntype = PClass::FindActor("FatShot");
 
 	A_FaceTarget (self);
 	// Change direction  to ...
@@ -44,7 +44,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack1)
 	P_SpawnMissile (self, self->target, spawntype);
 
 	missile = P_SpawnMissile (self, self->target, spawntype);
-	if (missile != NULL)
+	if (missile != nullptr)
 	{
 		missile->Angles.Yaw += FATSPREAD;
 		missile->VelFromAngle();
@@ -55,14 +55,14 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack1)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack2)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, AActor)	{ spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, AActor)	{ spawntype = nullptr; }
 
 	AActor *missile;
 
 	if (!self->target)
 		return 0;
 
-	if (spawntype == NULL) spawntype = PClass::FindActor("FatShot");
+	if (spawntype == nullptr) spawntype = PClass::FindActor("FatShot");
 
 	A_FaceTarget (self);
 	// Now here choose opposite deviation.
@@ -70,7 +70,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack2)
 	P_SpawnMissile (self, self->target, spawntype);
 
 	missile = P_SpawnMissile (self, self->target, spawntype);
-	if (missile != NULL)
+	if (missile != nullptr)
 	{
 		missile->Angles.Yaw -= FATSPREAD*2;
 		missile->VelFromAngle();
@@ -81,26 +81,26 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack2)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FatAttack3)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, AActor)	{ spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, AActor)	{ spawntype = nullptr; }
 
 	AActor *missile;
 
 	if (!self->target)
 		return 0;
 
-	if (spawntype == NULL) spawntype = PClass::FindActor("FatShot");
+	if (spawntype == nullptr) spawntype = PClass::FindActor("FatShot");
 
 	A_FaceTarget (self);
 	
 	missile = P_SpawnMissile (self, self->target, spawntype);
-	if (missile != NULL)
+	if (missile != nullptr)
 	{
 		missile->Angles.Yaw -= FATSPREAD/2;
 		missile->VelFromAngle();
 	}
 
 	missile = P_SpawnMissile (self, self->target, spawntype);
-	if (missile != NULL)
+	if (missile != nullptr)
 	{
 		missile->Angles.Yaw += FATSPREAD/2;
 		missile->VelFromAngle();
@@ -123,7 +123,7 @@ enum
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Mushroom)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT	(spawntype, AActor)		{ spawntype = NULL; }
+	PARAM_CLASS_OPT	(spawntype, AActor)		{ spawntype = nullptr; }
 	PARAM_INT_OPT	(n)						{ n = 0; }
 	PARAM_INT_OPT	(flags)					{ flags = 0; }
 	PARAM_FLOAT_OPT	(vrange)				{ vrange = 4; }
@@ -135,7 +135,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Mushroom)
 	{
 		n = self->GetMissileDamage(0, 1);
 	}
-	if (spawntype == NULL)
+	if (spawntype == nullptr)
 	{
 		spawntype = PClass::FindActor("FatShot");
 	}
@@ -165,7 +165,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Mushroom)
 			{
 				mo = P_SpawnMissile(self, target, spawntype, master);
 			}
-			if (mo != NULL)
+			if (mo != nullptr)
 			{	// Slow it down a bit
 				mo->Vel *= hrange;
 				mo->flags &= ~MF_NOGRAVITY;   // Make debris fall under gravity

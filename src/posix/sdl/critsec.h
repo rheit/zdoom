@@ -15,14 +15,14 @@ public:
 	FCriticalSection()
 	{
 		CritSec = SDL_CreateMutex();
-		if (CritSec == NULL)
+		if (CritSec == nullptr)
 		{
 			I_FatalError("Failed to create a critical section mutex.");
 		}
 	}
 	~FCriticalSection()
 	{
-		if (CritSec != NULL)
+		if (CritSec != nullptr)
 		{
 			SDL_DestroyMutex(CritSec);
 		}

@@ -96,7 +96,7 @@ protected:
 	bool mEntering;
 	char savegamestring[SAVESTRINGSIZE];
 
-	DLoadSaveMenu(DMenu *parent = NULL, FListMenuDescriptor *desc = NULL);
+	DLoadSaveMenu(DMenu *parent = nullptr, FListMenuDescriptor *desc = nullptr);
 	void Destroy();
 
 	int RemoveSaveSlot (int index);
@@ -149,7 +149,7 @@ int DLoadSaveMenu::RemoveSaveSlot (int index)
 
 	if (quickSaveSlot == SaveGames[index])
 	{
-		quickSaveSlot = NULL;
+		quickSaveSlot = nullptr;
 	}
 	if (Selected == index)
 	{
@@ -212,7 +212,7 @@ void DLoadSaveMenu::ReadSaveStrings ()
 		FString filter;
 
 		LastSaved = LastAccessed = -1;
-		quickSaveSlot = NULL;
+		quickSaveSlot = nullptr;
 		filter = G_BuildSaveName ("*.zds", -1);
 		filefirst = I_FindFirst (filter.GetChars(), &c_file);
 		if (filefirst != ((void *)(-1)))
@@ -223,7 +223,7 @@ void DLoadSaveMenu::ReadSaveStrings ()
 				FString filepath = G_BuildSaveName (I_FindName(&c_file), -1);
 				FILE *file = fopen (filepath, "rb");
 
-				if (file != NULL)
+				if (file != nullptr)
 				{
 					PNGHandle *png;
 					char sig[16];
@@ -241,11 +241,11 @@ void DLoadSaveMenu::ReadSaveStrings ()
 
 					title[SAVESTRINGSIZE] = 0;
 
-					if (NULL != (png = M_VerifyPNG (file)))
+					if (nullptr != (png = M_VerifyPNG (file)))
 					{
 						char *ver = M_GetPNGText (png, "ZDoom Save Version");
 						char *engine = M_GetPNGText (png, "Engine");
-						if (ver != NULL)
+						if (ver != nullptr)
 						{
 							if (!M_GetPNGText (png, "Title", title, SAVESTRINGSIZE))
 							{
@@ -253,13 +253,13 @@ void DLoadSaveMenu::ReadSaveStrings ()
 							}
 							if (strncmp (ver, SAVESIG, 9) == 0 &&
 								atoi (ver+9) >= MINSAVEVER &&
-								engine != NULL)
+								engine != nullptr)
 							{
 								// Was saved with a compatible ZDoom version,
 								// so check if it's for the current game.
 								// If it is, add it. Otherwise, ignore it.
 								char *iwad = M_GetPNGText (png, "Game WAD");
-								if (iwad != NULL)
+								if (iwad != nullptr)
 								{
 									if (stricmp (iwad, Wads.GetWadName (FWadCollection::IWAD_FILENUM)) == 0)
 									{
@@ -276,7 +276,7 @@ void DLoadSaveMenu::ReadSaveStrings ()
 							}
 							delete[] ver;
 						}
-						if (engine != NULL)
+						if (engine != nullptr)
 						{
 							delete[] engine;
 						}
@@ -336,7 +336,7 @@ void DLoadSaveMenu::NotifyNewSave (const char *file, const char *title, bool okF
 {
 	FSaveGameNode *node;
 
-	if (file == NULL)
+	if (file == nullptr)
 		return;
 
 	ReadSaveStrings ();
@@ -356,7 +356,7 @@ void DLoadSaveMenu::NotifyNewSave (const char *file, const char *title, bool okF
 			node->bMissingWads = false;
 			if (okForQuicksave)
 			{
-				if (quickSaveSlot == NULL) quickSaveSlot = node;
+				if (quickSaveSlot == nullptr) quickSaveSlot = node;
 				LastAccessed = LastSaved = i;
 			}
 			return;
@@ -372,7 +372,7 @@ void DLoadSaveMenu::NotifyNewSave (const char *file, const char *title, bool okF
 
 	if (okForQuicksave)
 	{
-		if (quickSaveSlot == NULL) quickSaveSlot = node;
+		if (quickSaveSlot == nullptr) quickSaveSlot = node;
 		LastAccessed = LastSaved = index;
 	}
 }
@@ -429,17 +429,17 @@ void DLoadSaveMenu::Destroy()
 
 void DLoadSaveMenu::UnloadSaveData ()
 {
-	if (SavePic != NULL)
+	if (SavePic != nullptr)
 	{
 		delete SavePic;
 	}
-	if (SaveComment != NULL)
+	if (SaveComment != nullptr)
 	{
 		V_FreeBrokenLines (SaveComment);
 	}
 
-	SavePic = NULL;
-	SaveComment = NULL;
+	SavePic = nullptr;
+	SaveComment = nullptr;
 }
 
 //=============================================================================
@@ -453,7 +453,7 @@ void DLoadSaveMenu::ClearSaveStuff ()
 	UnloadSaveData();
 	if (quickSaveSlot == (FSaveGameNode*)1)
 	{
-		quickSaveSlot = NULL;
+		quickSaveSlot = nullptr;
 	}
 }
 
@@ -475,9 +475,9 @@ void DLoadSaveMenu::ExtractSaveData (int index)
 		(node = SaveGames[index]) &&
 		!node->Filename.IsEmpty() &&
 		!node->bOldVersion &&
-		(file = fopen (node->Filename.GetChars(), "rb")) != NULL)
+		(file = fopen (node->Filename.GetChars(), "rb")) != nullptr)
 	{
-		if (NULL != (png = M_VerifyPNG (file)))
+		if (nullptr != (png = M_VerifyPNG (file)))
 		{
 			char *time, *pcomment, *comment;
 			size_t commentlen, totallen, timelen;
@@ -485,7 +485,7 @@ void DLoadSaveMenu::ExtractSaveData (int index)
 			// Extract comment
 			time = M_GetPNGText (png, "Creation Time");
 			pcomment = M_GetPNGText (png, "Comment");
-			if (pcomment != NULL)
+			if (pcomment != nullptr)
 			{
 				commentlen = strlen (pcomment);
 			}
@@ -493,7 +493,7 @@ void DLoadSaveMenu::ExtractSaveData (int index)
 			{
 				commentlen = 0;
 			}
-			if (time != NULL)
+			if (time != nullptr)
 			{
 				timelen = strlen (time);
 				totallen = timelen + commentlen + 3;
@@ -531,7 +531,7 @@ void DLoadSaveMenu::ExtractSaveData (int index)
 			if (SavePic->GetWidth() == 1 && SavePic->GetHeight() == 1)
 			{
 				delete SavePic;
-				SavePic = NULL;
+				SavePic = nullptr;
 			}
 		}
 		fclose (file);
@@ -560,7 +560,7 @@ void DLoadSaveMenu::Drawer ()
 	}
 
 	V_DrawFrame (savepicLeft, savepicTop, savepicWidth, savepicHeight);
-	if (SavePic != NULL)
+	if (SavePic != nullptr)
 	{
 		screen->DrawTexture(SavePic, savepicLeft, savepicTop,
 			DTA_DestWidth, savepicWidth,
@@ -589,12 +589,12 @@ void DLoadSaveMenu::Drawer ()
 	// Draw comment area
 	V_DrawFrame (commentLeft, commentTop, commentWidth, commentHeight);
 	screen->Clear (commentLeft, commentTop, commentRight, commentBottom, 0, 0);
-	if (SaveComment != NULL)
+	if (SaveComment != nullptr)
 	{
-		// I'm not sure why SaveComment would go NULL in this loop, but I got
-		// a crash report where it was NULL when i reached 1, so now I check
+		// I'm not sure why SaveComment would go nullptr in this loop, but I got
+		// a crash report where it was nullptr when i reached 1, so now I check
 		// for that.
-		for (i = 0; SaveComment != NULL && SaveComment[i].Width >= 0 && i < 6; ++i)
+		for (i = 0; SaveComment != nullptr && SaveComment[i].Width >= 0 && i < 6; ++i)
 		{
 			screen->DrawText (SmallFont, CR_GOLD, commentLeft, commentTop
 				+ SmallFont->GetHeight()*i*CleanYfac, SaveComment[i].Text,
@@ -830,7 +830,7 @@ bool DLoadSaveMenu::Responder (event_t *ev)
 						char workbuf[512];
 
 						mysnprintf (workbuf, countof(workbuf), "File on disk:\n%s", SaveGames[Selected]->Filename.GetChars());
-						if (SaveComment != NULL)
+						if (SaveComment != nullptr)
 						{
 							V_FreeBrokenLines (SaveComment);
 						}
@@ -879,7 +879,7 @@ class DSaveMenu : public DLoadSaveMenu
 
 public:
 
-	DSaveMenu(DMenu *parent = NULL, FListMenuDescriptor *desc = NULL);
+	DSaveMenu(DMenu *parent = nullptr, FListMenuDescriptor *desc = nullptr);
 	void Destroy();
 	void DoSave (FSaveGameNode *node);
 	bool Responder (event_t *ev);
@@ -953,7 +953,7 @@ void DSaveMenu::DoSave (FSaveGameNode *node)
 		{
 			filename = G_BuildSaveName ("save", i);
 			test = fopen (filename, "rb");
-			if (test == NULL)
+			if (test == nullptr)
 			{
 				break;
 			}
@@ -1050,7 +1050,7 @@ class DLoadMenu : public DLoadSaveMenu
 
 public:
 
-	DLoadMenu(DMenu *parent = NULL, FListMenuDescriptor *desc = NULL);
+	DLoadMenu(DMenu *parent = nullptr, FListMenuDescriptor *desc = nullptr);
 
 	bool MenuEvent (int mkey, bool fromcontroller);
 };

@@ -55,7 +55,7 @@ CUSTOM_CVAR (String, language, "auto", CVAR_ARCHIVE)
 {
 	SetLanguageIDs ();
 	GStrings.LoadStrings (false);
-	if (level.info != NULL) level.LevelName = level.info->LookupLevelName();
+	if (level.info != nullptr) level.LevelName = level.info->LookupLevelName();
 }
 
 // [RH] Network arbitrator

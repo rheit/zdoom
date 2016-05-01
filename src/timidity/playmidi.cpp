@@ -343,7 +343,7 @@ void Renderer::start_note(int chan, int note, int vel)
 	note &= 0x7f;
 	if (ISDRUMCHANNEL(chan))
 	{
-		if (NULL == drumset[bank] || NULL == (ip = drumset[bank]->instrument[note]))
+		if (nullptr == drumset[bank] || nullptr == (ip = drumset[bank]->instrument[note]))
 		{
 			if (!(ip = drumset[0]->instrument[note]))
 				return; /* No instrument? Then we can't play. */
@@ -365,9 +365,9 @@ void Renderer::start_note(int chan, int note, int vel)
 		{
 			ip = default_instrument;
 		}
-		else if (NULL == tonebank[bank] || NULL == (ip = tonebank[bank]->instrument[prog]))
+		else if (nullptr == tonebank[bank] || nullptr == (ip = tonebank[bank]->instrument[prog]))
 		{
-			if (NULL == (ip = tonebank[0]->instrument[prog]))
+			if (nullptr == (ip = tonebank[0]->instrument[prog]))
 				return; /* No instrument? Then we can't play. */
 		}
 		assert(ip != MAGIC_LOAD_INSTRUMENT);
@@ -377,7 +377,7 @@ void Renderer::start_note(int chan, int note, int vel)
 		}
 	}
 
-	if (NULL == ip->sample || ip->samples == 0)
+	if (nullptr == ip->sample || ip->samples == 0)
 		return;	/* No samples? Then nothing to play. */
 
 	// For GF1 patches, scaling is based solely on the first

@@ -68,7 +68,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_StaffAttack)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -77,12 +77,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_StaffAttack)
 	PARAM_CLASS	(puff, AActor);
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
 	}
-	if (puff == NULL)
+	if (puff == nullptr)
 	{
 		puff = PClass::FindActor(NAME_BulletPuff);	// just to be sure
 	}
@@ -113,13 +113,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireGoldWandPL1)
 	int damage;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo(weapon->bAltFire))
 			return 0;
@@ -152,13 +152,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireGoldWandPL2)
 	double vz;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -191,13 +191,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireCrossbowPL1)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -220,13 +220,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireCrossbowPL2)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -259,7 +259,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GauntletAttack)
 	FTranslatedLineTarget t;
 	int actualdamage = 0;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -267,7 +267,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_GauntletAttack)
 	PARAM_INT(power);
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -390,13 +390,13 @@ void FireMacePL1B (AActor *actor)
 	AActor *ball;
 	player_t *player;
 
-	if (NULL == (player = actor->player))
+	if (nullptr == (player = actor->player))
 	{
 		return;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return;
@@ -425,7 +425,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMacePL1)
 	AActor *ball;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -436,7 +436,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMacePL1)
 		return 0;
 	}
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo(weapon->bAltFire))
 			return 0;
@@ -583,13 +583,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMacePL2)
 	player_t *player;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -643,7 +643,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_DeathBallImpact)
 		{
 			if (!(target->flags&MF_SHOOTABLE))
 			{ // Target died
-				self->tracer = NULL;
+				self->tracer = nullptr;
 			}
 			else
 			{ // Seek
@@ -656,7 +656,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_DeathBallImpact)
 			angle = 0.;
 			for (i = 0; i < 16; i++)
 			{
-				P_AimLineAttack (self, angle, 640., &t, 0., ALF_NOFRIENDS|ALF_PORTALRESTRICT, NULL, self->target);
+				P_AimLineAttack (self, angle, 640., &t, 0., ALF_NOFRIENDS|ALF_PORTALRESTRICT, nullptr, self->target);
 				if (t.linetarget && self->target != t.linetarget)
 				{
 					self->tracer = t.linetarget;
@@ -765,13 +765,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireBlasterPL1)
 	int damage;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -889,13 +889,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireSkullRodPL1)
 	AActor *mo;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -926,12 +926,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireSkullRodPL2)
 	AActor *MissileActor;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -940,7 +940,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireSkullRodPL2)
 	// Use MissileActor instead of the return value from
 	// P_SpawnPlayerMissile because we need to give info to the mobj
 	// even if it exploded immediately.
-	if (MissileActor != NULL)
+	if (MissileActor != nullptr)
 	{
 		MissileActor->special2 = (int)(player - players);
 		if (t.linetarget && !t.unlinked)
@@ -964,7 +964,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AddPlayerRain)
 
 	ARainTracker *tracker;
 
-	if (self->target == NULL || self->target->health <= 0)
+	if (self->target == nullptr || self->target->health <= 0)
 	{ // Shooter is dead or nonexistant
 		return 0;
 	}
@@ -973,7 +973,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AddPlayerRain)
 
 	// They player is only allowed two rainstorms at a time. Shooting more
 	// than that will cause the oldest one to terminate.
-	if (tracker != NULL)
+	if (tracker != nullptr)
 	{
 		if (tracker->Rain1 && tracker->Rain2)
 		{ // Terminate an active rain
@@ -983,7 +983,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AddPlayerRain)
 				{
 					tracker->Rain1->health = 16;
 				}
-				tracker->Rain1 = NULL;
+				tracker->Rain1 = nullptr;
 			}
 			else
 			{
@@ -991,7 +991,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AddPlayerRain)
 				{
 					tracker->Rain2->health = 16;
 				}
-				tracker->Rain2 = NULL;
+				tracker->Rain2 = nullptr;
 			}
 		}
 	}
@@ -1028,21 +1028,21 @@ DEFINE_ACTION_FUNCTION(AActor, A_SkullRodStorm)
 	if (self->health-- == 0)
 	{
 		S_StopSound (self, CHAN_BODY);
-		if (self->target == NULL)
+		if (self->target == nullptr)
 		{ // Player left the game
 			self->Destroy ();
 			return 0;
 		}
 		tracker = self->target->FindInventory<ARainTracker> ();
-		if (tracker != NULL)
+		if (tracker != nullptr)
 		{
 			if (tracker->Rain1 == self)
 			{
-				tracker->Rain1 = NULL;
+				tracker->Rain1 = nullptr;
 			}
 			else if (tracker->Rain2 == self)
 			{
-				tracker->Rain2 = NULL;
+				tracker->Rain2 = nullptr;
 			}
 		}
 		self->Destroy ();
@@ -1068,7 +1068,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SkullRodStorm)
 		pos.Z = self->Sector->e->XFloor.ffloors[self->bouncecount]->bottom.plane->ZatPoint(mo);
 	else
 		pos.Z = self->Sector->ceilingplane.ZatPoint(mo);
-	int moceiling = P_Find3DFloor(NULL, pos, false, false, pos.Z);
+	int moceiling = P_Find3DFloor(nullptr, pos, false, false, pos.Z);
 	if (moceiling >= 0) mo->SetZ(pos.Z - mo->Height);
 	mo->Translation = multiplayer ?	TRANSLATION(TRANSLATION_RainPillar,self->special2) : 0;
 	mo->target = self->target;
@@ -1217,13 +1217,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePhoenixPL1)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -1268,10 +1268,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_InitPhoenixPL2)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		APhoenixRod *flamethrower = static_cast<APhoenixRod *> (self->player->ReadyWeapon);
-		if (flamethrower != NULL)
+		if (flamethrower != nullptr)
 		{
 			flamethrower->FlameCount = FLAME_THROWER_TICS;
 		}
@@ -1298,7 +1298,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePhoenixPL2)
 	player_t *player;
 	APhoenixRod *flamethrower;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -1306,7 +1306,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePhoenixPL2)
 	soundid = "weapons/phoenixpowshoot";
 
 	flamethrower = static_cast<APhoenixRod *> (player->ReadyWeapon);
-	if (flamethrower == NULL || --flamethrower->FlameCount == 0)
+	if (flamethrower == nullptr || --flamethrower->FlameCount == 0)
 	{ // Out of flame
 		P_SetPsprite (player, ps_weapon, flamethrower->FindState("Powerdown"));
 		player->refire = 0;
@@ -1346,13 +1346,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_ShutdownPhoenixPL2)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	S_StopSound (self, CHAN_WEAPON);
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;

@@ -58,7 +58,7 @@ public:
 	const BYTE *GetPixels ();
 	void Unload ();
 	FTextureFormat GetFormat ();
-	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = NULL);
+	int CopyTrueColorPixels(FBitmap *bmp, int x, int y, int rotate, FCopyInfo *inf = nullptr);
 	bool UseBasePalette();
 
 protected:
@@ -106,14 +106,14 @@ FTexture *PNGTexture_TryCreate(FileReader & data, int lumpnum)
 	// a corrupt PNG.)
 
 	data.Seek(0, SEEK_SET);
-	if (data.Read (first4bytes.b, 4) != 4) return NULL;
-	if (first4bytes.dw != MAKE_ID(137,'P','N','G'))	return NULL;
-	if (data.Read (first4bytes.b, 4) != 4) return NULL;
-	if (first4bytes.dw != MAKE_ID(13,10,26,10))		return NULL;
-	if (data.Read (first4bytes.b, 4) != 4) return NULL;
-	if (first4bytes.dw != MAKE_ID(0,0,0,13))		return NULL;
-	if (data.Read (first4bytes.b, 4) != 4) return NULL;
-	if (first4bytes.dw != MAKE_ID('I','H','D','R'))	return NULL;
+	if (data.Read (first4bytes.b, 4) != 4) return nullptr;
+	if (first4bytes.dw != MAKE_ID(137,'P','N','G'))	return nullptr;
+	if (data.Read (first4bytes.b, 4) != 4) return nullptr;
+	if (first4bytes.dw != MAKE_ID(13,10,26,10))		return nullptr;
+	if (data.Read (first4bytes.b, 4) != 4) return nullptr;
+	if (first4bytes.dw != MAKE_ID(0,0,0,13))		return nullptr;
+	if (data.Read (first4bytes.b, 4) != 4) return nullptr;
+	if (first4bytes.dw != MAKE_ID('I','H','D','R'))	return nullptr;
 
 	// The PNG looks valid so far. Check the IHDR to make sure it's a
 	// type of PNG we support.
@@ -123,15 +123,15 @@ FTexture *PNGTexture_TryCreate(FileReader & data, int lumpnum)
 
 	if (compression != 0 || filter != 0 || interlace > 1)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (!((1 << colortype) & 0x5D))
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (!((1 << bitdepth) & 0x116))
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Just for completeness, make sure the PNG has something more than an IHDR.
@@ -142,7 +142,7 @@ FTexture *PNGTexture_TryCreate(FileReader & data, int lumpnum)
 		data.Read (first4bytes.b, 4);
 		if (first4bytes.dw == MAKE_ID('I','E','N','D'))
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -163,7 +163,7 @@ FTexture *PNGTexture_CreateFromFile(PNGHandle *png, const FString &filename)
 
 	if (M_FindPNGChunk(png, MAKE_ID('I','H','D','R')) == 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Check the IHDR to make sure it's a type of PNG we support.
@@ -173,15 +173,15 @@ FTexture *PNGTexture_CreateFromFile(PNGHandle *png, const FString &filename)
 
 	if (compression != 0 || filter != 0 || interlace > 1)
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (!((1 << colortype) & 0x5D))
 	{
-		return NULL;
+		return nullptr;
 	}
 	if (!((1 << bitdepth) & 0x116))
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	return new FPNGTexture (*png->File, -1, filename, BigLong((int)width), BigLong((int)height),
@@ -196,7 +196,7 @@ FTexture *PNGTexture_CreateFromFile(PNGHandle *png, const FString &filename)
 
 FPNGTexture::FPNGTexture (FileReader &lump, int lumpnum, const FString &filename, int width, int height,
 						  BYTE depth, BYTE colortype, BYTE interlace)
-: FTexture(NULL, lumpnum), SourceFile(filename), Pixels(0), Spans(0),
+: FTexture(nullptr, lumpnum), SourceFile(filename), Pixels(0), Spans(0),
   BitDepth(depth), ColorType(colortype), Interlace(interlace), HaveTrans(false),
   PaletteMap(0), PaletteSize(0), StartOfIDAT(0)
 {
@@ -349,15 +349,15 @@ FPNGTexture::FPNGTexture (FileReader &lump, int lumpnum, const FString &filename
 FPNGTexture::~FPNGTexture ()
 {
 	Unload ();
-	if (Spans != NULL)
+	if (Spans != nullptr)
 	{
 		FreeSpans (Spans);
-		Spans = NULL;
+		Spans = nullptr;
 	}
-	if (PaletteMap != NULL && PaletteMap != GrayMap)
+	if (PaletteMap != nullptr && PaletteMap != GrayMap)
 	{
 		delete[] PaletteMap;
-		PaletteMap = NULL;
+		PaletteMap = nullptr;
 	}
 }
 
@@ -369,10 +369,10 @@ FPNGTexture::~FPNGTexture ()
 
 void FPNGTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -405,7 +405,7 @@ FTextureFormat FPNGTexture::GetFormat()
 
 const BYTE *FPNGTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -420,9 +420,9 @@ const BYTE *FPNGTexture::GetColumn (unsigned int column, const Span **spans_out)
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
-		if (Spans == NULL)
+		if (Spans == nullptr)
 		{
 			Spans = CreateSpans (Pixels);
 		}
@@ -439,7 +439,7 @@ const BYTE *FPNGTexture::GetColumn (unsigned int column, const Span **spans_out)
 
 const BYTE *FPNGTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -483,7 +483,7 @@ void FPNGTexture::MakeTexture ()
 
 			if (Width == Height)
 			{
-				if (PaletteMap != NULL)
+				if (PaletteMap != nullptr)
 				{
 					FlipSquareBlockRemap (Pixels, Width, Height, PaletteMap);
 				}
@@ -495,7 +495,7 @@ void FPNGTexture::MakeTexture ()
 			else
 			{
 				BYTE *newpix = new BYTE[Width*Height];
-				if (PaletteMap != NULL)
+				if (PaletteMap != nullptr)
 				{
 					FlipNonSquareBlockRemap (newpix, Pixels, Width, Height, Width, PaletteMap);
 				}
@@ -556,7 +556,7 @@ void FPNGTexture::MakeTexture ()
 			case 4:		// Grayscale + Alpha
 				pitch = Width * 2;
 				backstep = Height * pitch - 2;
-				if (PaletteMap != NULL)
+				if (PaletteMap != nullptr)
 				{
 					for (x = Width; x > 0; --x)
 					{

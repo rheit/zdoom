@@ -26,7 +26,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ShootGun)
 
 	DAngle pitch;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	S_Sound (self, CHAN_WEAPON, "monsters/rifle", 1, ATTN_NORM);
@@ -59,7 +59,7 @@ bool ATeleporterBeacon::Use (bool pickup)
 	// Amount again and disposing of this item if there are no more.
 	Amount++;
 	drop = Owner->DropInventory (this);
-	if (drop == NULL)
+	if (drop == nullptr)
 	{
 		Amount--;
 		return false;
@@ -90,14 +90,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_Beacon)
 	static_cast<AInventory *>(self)->DropTime = 0;
 	// Set up the new rebel.
 	rebel->threshold = rebel->DefThreshold;
-	rebel->target = NULL;
+	rebel->target = nullptr;
 	rebel->flags4 |= MF4_INCOMBAT;
 	rebel->LastHeard = owner;	// Make sure the rebels look for targets
 	if (deathmatch)
 	{
 		rebel->health *= 2;
 	}
-	if (owner != NULL)
+	if (owner != nullptr)
 	{
 		// Rebels are the same color as their owner (but only in multiplayer)
 		if (multiplayer)
@@ -107,7 +107,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Beacon)
 		rebel->SetFriendPlayer(owner->player);
 		// Set the rebel's target to whatever last hurt the player, so long as it's not
 		// one of the player's other rebels.
-		if (owner->target != NULL && !rebel->IsFriend (owner->target))
+		if (owner->target != nullptr && !rebel->IsFriend (owner->target))
 		{
 			rebel->target = owner->target;
 		}

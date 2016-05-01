@@ -161,7 +161,7 @@ class FOptionMenuItemJoyMap : public FOptionMenuItemOptionBase
 public:
 
 	FOptionMenuItemJoyMap(const char *label, int axis, const char *values, int center)
-		: FOptionMenuItemOptionBase(label, "none", values, NULL, center)
+		: FOptionMenuItemOptionBase(label, "none", values, nullptr, center)
 	{
 		mAxis = axis;
 	}
@@ -170,7 +170,7 @@ public:
 	{
 		double f = SELECTED_JOYSTICK->GetAxisMap(mAxis);
 		FOptionValues **opt = OptionValues.CheckKey(mValues);
-		if (opt != NULL && *opt != NULL)
+		if (opt != nullptr && *opt != nullptr)
 		{
 			// Map from joystick axis to menu selection.
 			for(unsigned i = 0; i < (*opt)->mValues.Size(); i++)
@@ -188,7 +188,7 @@ public:
 	{
 		FOptionValues **opt = OptionValues.CheckKey(mValues);
 		// Map from menu selection to joystick axis.
-		if (opt == NULL || *opt == NULL || (unsigned)selection >= (*opt)->mValues.Size())
+		if (opt == nullptr || *opt == nullptr || (unsigned)selection >= (*opt)->mValues.Size())
 		{
 			selection = JOYAXIS_None;
 		}
@@ -212,7 +212,7 @@ class FOptionMenuItemInverter : public FOptionMenuItemOptionBase
 public:
 
 	FOptionMenuItemInverter(const char *label, int axis, int center)
-		: FOptionMenuItemOptionBase(label, "none", "YesNo", NULL, center)
+		: FOptionMenuItemOptionBase(label, "none", "YesNo", nullptr, center)
 	{
 		mAxis = axis;
 	}
@@ -271,7 +271,7 @@ public:
 FOptionMenuDescriptor *UpdateJoystickConfigMenu(IJoystickConfig *joy)
 {
 	FMenuDescriptor **desc = MenuDescriptors.CheckKey(NAME_JoystickConfigMenu);
-	if (desc != NULL && (*desc)->mType == MDESC_OptionsMenu)
+	if (desc != nullptr && (*desc)->mType == MDESC_OptionsMenu)
 	{
 		FOptionMenuDescriptor *opt = (FOptionMenuDescriptor *)*desc;
 		FOptionMenuItem *it;
@@ -280,7 +280,7 @@ FOptionMenuDescriptor *UpdateJoystickConfigMenu(IJoystickConfig *joy)
 			delete opt->mItems[i];
 			opt->mItems.Clear();
 		}
-		if (joy == NULL)
+		if (joy == nullptr)
 		{
 			opt->mTitle = "Configure Controller";
 			it = new FOptionMenuItemStaticText("Invalid controller specified for menu", false);
@@ -330,7 +330,7 @@ FOptionMenuDescriptor *UpdateJoystickConfigMenu(IJoystickConfig *joy)
 		opt->CalcIndent();
 		return opt;
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -338,7 +338,7 @@ FOptionMenuDescriptor *UpdateJoystickConfigMenu(IJoystickConfig *joy)
 void UpdateJoystickMenu(IJoystickConfig *selected)
 {
 	FMenuDescriptor **desc = MenuDescriptors.CheckKey(NAME_JoystickOptions);
-	if (desc != NULL && (*desc)->mType == MDESC_OptionsMenu)
+	if (desc != nullptr && (*desc)->mType == MDESC_OptionsMenu)
 	{
 		FOptionMenuDescriptor *opt = (FOptionMenuDescriptor *)*desc;
 		FOptionMenuItem *it;
@@ -356,7 +356,7 @@ void UpdateJoystickMenu(IJoystickConfig *selected)
 		{
 			itemnum = Joysticks.Size() - 1;
 		}
-		if (selected != NULL)
+		if (selected != nullptr)
 		{
 			for (i = 0; (unsigned)i < Joysticks.Size(); ++i)
 			{
@@ -369,14 +369,14 @@ void UpdateJoystickMenu(IJoystickConfig *selected)
 		}
 
 		// Todo: Block joystick for changing this one.
-		it = new FOptionMenuItemOption("Enable controller support", "use_joystick", "YesNo", NULL, false);
+		it = new FOptionMenuItemOption("Enable controller support", "use_joystick", "YesNo", nullptr, false);
 		opt->mItems.Push(it);
 		#ifdef _WIN32
-			it = new FOptionMenuItemOption("Enable DirectInput controllers", "joy_dinput", "YesNo", NULL, false);
+			it = new FOptionMenuItemOption("Enable DirectInput controllers", "joy_dinput", "YesNo", nullptr, false);
 			opt->mItems.Push(it);
-			it = new FOptionMenuItemOption("Enable XInput controllers", "joy_xinput", "YesNo", NULL, false);
+			it = new FOptionMenuItemOption("Enable XInput controllers", "joy_xinput", "YesNo", nullptr, false);
 			opt->mItems.Push(it);
-			it = new FOptionMenuItemOption("Enable raw PlayStation 2 adapters", "joy_ps2raw", "YesNo", NULL, false);
+			it = new FOptionMenuItemOption("Enable raw PlayStation 2 adapters", "joy_ps2raw", "YesNo", nullptr, false);
 			opt->mItems.Push(it);
 		#endif
 
@@ -425,8 +425,8 @@ void UpdateJoystickMenu(IJoystickConfig *selected)
 		}
 		if (i == (int)Joysticks.Size())
 		{
-			SELECTED_JOYSTICK = NULL;
-			if (DMenu::CurrentMenu != NULL && DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DJoystickConfigMenu)))
+			SELECTED_JOYSTICK = nullptr;
+			if (DMenu::CurrentMenu != nullptr && DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DJoystickConfigMenu)))
 			{
 				DMenu::CurrentMenu->Close();
 			}

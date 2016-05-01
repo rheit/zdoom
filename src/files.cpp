@@ -53,7 +53,7 @@
 //==========================================================================
 
 FileReader::FileReader ()
-: File(NULL), Length(0), StartPos(0), FilePos(0), CloseOnDestruct(false)
+: File(nullptr), Length(0), StartPos(0), FilePos(0), CloseOnDestruct(false)
 {
 }
 
@@ -64,7 +64,7 @@ FileReader::FileReader (const FileReader &other, long length)
 }
 
 FileReader::FileReader (const char *filename)
-: File(NULL), Length(0), StartPos(0), FilePos(0), CloseOnDestruct(false)
+: File(nullptr), Length(0), StartPos(0), FilePos(0), CloseOnDestruct(false)
 {
 	if (!Open(filename))
 	{
@@ -86,17 +86,17 @@ FileReader::FileReader (FILE *file, long length)
 
 FileReader::~FileReader ()
 {
-	if (CloseOnDestruct && File != NULL)
+	if (CloseOnDestruct && File != nullptr)
 	{
 		fclose (File);
-		File = NULL;
+		File = nullptr;
 	}
 }
 
 bool FileReader::Open (const char *filename)
 {
 	File = fopen (filename, "rb");
-	if (File == NULL) return false;
+	if (File == nullptr) return false;
 	FilePos = 0;
 	StartPos = 0;
 	CloseOnDestruct = true;
@@ -152,9 +152,9 @@ long FileReader::Read (void *buffer, long len)
 
 char *FileReader::Gets(char *strbuf, int len)
 {
-	if (len <= 0 || FilePos >= StartPos + Length) return NULL;
+	if (len <= 0 || FilePos >= StartPos + Length) return nullptr;
 	char *p = fgets(strbuf, len, File);
-	if (p != NULL)
+	if (p != nullptr)
 	{
 		int old = FilePos;
 		FilePos = ftell(File);
@@ -169,7 +169,7 @@ char *FileReader::Gets(char *strbuf, int len)
 char *FileReader::GetsFromBuffer(const char * bufptr, char *strbuf, int len)
 {
 	if (len>Length-FilePos) len=Length-FilePos;
-	if (len <= 0) return NULL;
+	if (len <= 0) return nullptr;
 
 	char *p = strbuf;
 	while (len > 1)
@@ -191,7 +191,7 @@ char *FileReader::GetsFromBuffer(const char * bufptr, char *strbuf, int len)
 		}
 		FilePos++;
 	}
-	if (p==strbuf) return NULL;
+	if (p==strbuf) return nullptr;
 	*p++=0;
 	return strbuf;
 }
@@ -296,9 +296,9 @@ FileReaderBZ2::FileReaderBZ2 (FileReader &file)
 
 	FillBuffer ();
 
-	Stream.bzalloc = NULL;
-	Stream.bzfree = NULL;
-	Stream.opaque = NULL;
+	Stream.bzalloc = nullptr;
+	Stream.bzfree = nullptr;
+	Stream.opaque = nullptr;
 
 	err = BZ2_bzDecompressInit(&Stream, 0, 0);
 

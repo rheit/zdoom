@@ -95,7 +95,7 @@ public:
 	~FDynamicBuffer ();
 
 	void SetData (const BYTE *data, int len);
-	BYTE *GetData (int *len = NULL);
+	BYTE *GetData (int *len = nullptr);
 
 private:
 	BYTE *m_Data;

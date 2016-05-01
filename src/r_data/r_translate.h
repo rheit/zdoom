@@ -47,14 +47,14 @@ struct FRemapTable
 	PalEntry *Palette;			// The ideal palette this maps to
 	FNativePalette *Native;		// The Palette stored in a HW texture
 	int NumEntries;				// # of elements in this table (usually 256)
-	bool Inactive;				// This table is inactive and should be treated as if it was passed as NULL
+	bool Inactive;				// This table is inactive and should be treated as if it was passed as nullptr
 
 private:
 	void Free();
 	void Alloc(int count);
 };
 
-// A class that initializes unusued pointers to NULL. This is used so that when
+// A class that initializes unusued pointers to nullptr. This is used so that when
 // the TAutoGrowArray below is expanded, the new elements will be NULLed.
 class FRemapTablePtr
 {

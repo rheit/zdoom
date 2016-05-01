@@ -61,7 +61,7 @@ class DMessageBoxMenu : public DMenu
 
 public:
 
-	DMessageBoxMenu(DMenu *parent = NULL, const char *message = NULL, int messagemode = 0, bool playsound = false, FName action = NAME_None);
+	DMessageBoxMenu(DMenu *parent = nullptr, const char *message = nullptr, int messagemode = 0, bool playsound = false, FName action = NAME_None);
 	void Destroy();
 	void Init(DMenu *parent, const char *message, int messagemode, bool playsound = false);
 	void Drawer();
@@ -103,12 +103,12 @@ DMessageBoxMenu::DMessageBoxMenu(DMenu *parent, const char *message, int message
 void DMessageBoxMenu::Init(DMenu *parent, const char *message, int messagemode, bool playsound)
 {
 	mParentMenu = parent;
-	if (message != NULL) 
+	if (message != nullptr) 
 	{
 		if (*message == '$') message = GStrings(message+1);
 		mMessage = V_BreakLines(SmallFont, 300, message);
 	}
-	else mMessage = NULL;
+	else mMessage = nullptr;
 	mMessageMode = messagemode;
 	if (playsound)
 	{
@@ -125,8 +125,8 @@ void DMessageBoxMenu::Init(DMenu *parent, const char *message, int messagemode, 
 
 void DMessageBoxMenu::Destroy()
 {
-	if (mMessage != NULL) V_FreeBrokenLines(mMessage);
-	mMessage = NULL;
+	if (mMessage != nullptr) V_FreeBrokenLines(mMessage);
+	mMessage = nullptr;
 }
 
 //=============================================================================
@@ -138,7 +138,7 @@ void DMessageBoxMenu::Destroy()
 void DMessageBoxMenu::CloseSound()
 {
 	S_Sound (CHAN_VOICE | CHAN_UI, 
-		DMenu::CurrentMenu != NULL? "menu/backup" : "menu/dismiss", snd_menuvolume, ATTN_NONE);
+		DMenu::CurrentMenu != nullptr? "menu/backup" : "menu/dismiss", snd_menuvolume, ATTN_NONE);
 }
 
 //=============================================================================
@@ -149,7 +149,7 @@ void DMessageBoxMenu::CloseSound()
 
 void DMessageBoxMenu::HandleResult(bool res)
 {
-	if (mParentMenu != NULL)
+	if (mParentMenu != nullptr)
 	{
 		if (mMessageMode == 0)
 		{
@@ -185,7 +185,7 @@ void DMessageBoxMenu::Drawer ()
 
 	y = 100;
 
-	if (mMessage != NULL)
+	if (mMessage != nullptr)
 	{
 		for (i = 0; mMessage[i].Width >= 0; i++)
 			y -= SmallFont->GetHeight () / 2;
@@ -390,7 +390,7 @@ DQuitMenu::DQuitMenu(bool playsound)
 	}
 	else EndString = gameinfo.quitmessages[messageindex];
 
-	Init(NULL, EndString, 0, playsound);
+	Init(nullptr, EndString, 0, playsound);
 }
 
 //=============================================================================
@@ -467,7 +467,7 @@ IMPLEMENT_CLASS(DEndGameMenu)
 
 DEndGameMenu::DEndGameMenu(bool playsound)
 {
-	Init(NULL, GStrings(netgame ? "NETEND" : "ENDGAME"), 0, playsound);
+	Init(nullptr, GStrings(netgame ? "NETEND" : "ENDGAME"), 0, playsound);
 }
 
 //=============================================================================
@@ -548,7 +548,7 @@ DQuickSaveMenu::DQuickSaveMenu(bool playsound)
 	FString tempstring;
 
 	tempstring.Format(GStrings("QSPROMPT"), quickSaveSlot->Title);
-	Init(NULL, tempstring, 0, playsound);
+	Init(nullptr, tempstring, 0, playsound);
 }
 
 //=============================================================================
@@ -589,7 +589,7 @@ CCMD (quicksave)
 	if (gamestate != GS_LEVEL)
 		return;
 		
-	if (quickSaveSlot == NULL)
+	if (quickSaveSlot == nullptr)
 	{
 		S_Sound(CHAN_VOICE | CHAN_UI, "menu/activate", snd_menuvolume, ATTN_NONE);
 		M_StartControlPanel(false);
@@ -644,7 +644,7 @@ DQuickLoadMenu::DQuickLoadMenu(bool playsound)
 	FString tempstring;
 
 	tempstring.Format(GStrings("QLPROMPT"), quickSaveSlot->Title);
-	Init(NULL, tempstring, 0, playsound);
+	Init(nullptr, tempstring, 0, playsound);
 }
 
 //=============================================================================
@@ -683,7 +683,7 @@ CCMD (quickload)
 		return;
 	}
 		
-	if (quickSaveSlot == NULL)
+	if (quickSaveSlot == nullptr)
 	{
 		M_StartControlPanel(true);
 		// signal that whatever gets loaded should be the new quicksave
@@ -713,7 +713,7 @@ CCMD (quickload)
 
 void M_StartMessage(const char *message, int messagemode, FName action)
 {
-	if (DMenu::CurrentMenu == NULL) 
+	if (DMenu::CurrentMenu == nullptr) 
 	{
 		// only play a sound if no menu was active before
 		M_StartControlPanel(menuactive == MENU_Off);

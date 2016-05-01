@@ -20,13 +20,13 @@ EXTERN_CVAR (Int, opl_numchips)
 
 OPLmusicBlock::OPLmusicBlock()
 {
-	scoredata = NULL;
+	scoredata = nullptr;
 	NextTickIn = 0;
 	LastOffset = 0;
 	NumChips = MIN(*opl_numchips, 2);
 	Looping = false;
 	FullPan = false;
-	io = NULL;
+	io = nullptr;
 	io = new OPLio;
 }
 
@@ -55,7 +55,7 @@ void OPLmusicBlock::Restart()
 OPLmusicFile::OPLmusicFile (FileReader *reader)
 	: ScoreLen (reader->GetLength())
 {
-	if (io == NULL)
+	if (io == nullptr)
 	{
 		return;
 	}
@@ -65,7 +65,7 @@ OPLmusicFile::OPLmusicFile (FileReader *reader)
     if (reader->Read(scoredata, ScoreLen) != ScoreLen)
     {
 fail:	delete[] scoredata;
-        scoredata = NULL;
+        scoredata = nullptr;
         return;
     }
 
@@ -140,7 +140,7 @@ fail:	delete[] scoredata;
 		if (score + 8 > max)
 		{ // Not enough room left for song data
 			delete[] scoredata;
-			scoredata = NULL;
+			scoredata = nullptr;
 			return;
 		}
 		songlen = LittleLong(*(DWORD *)score);
@@ -159,17 +159,17 @@ fail:	delete[] scoredata;
 
 OPLmusicFile::~OPLmusicFile ()
 {
-	if (scoredata != NULL)
+	if (scoredata != nullptr)
 	{
 		io->OPLdeinit ();
 		delete[] scoredata;
-		scoredata = NULL;
+		scoredata = nullptr;
 	}
 }
 
 bool OPLmusicFile::IsValid () const
 {
-	return scoredata != NULL;
+	return scoredata != nullptr;
 }
 
 void OPLmusicFile::SetLooping (bool loop)
@@ -519,7 +519,7 @@ OPLmusicFile::OPLmusicFile(const OPLmusicFile *source, const char *filename)
 	score = source->score;
 	NumChips = source->NumChips;
 	WhichChip = 0;
-	if (io != NULL)
+	if (io != nullptr)
 	{
 		delete io;
 	}

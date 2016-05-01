@@ -70,7 +70,7 @@ protected:
 public:
 	FBitmap()
 	{
-		data = NULL;
+		data = nullptr;
 		Width = Height = 0;
 		Pitch = 0;
 		FreeBuffer = false;
@@ -97,8 +97,8 @@ public:
 
 	void Destroy()
 	{
-		if (data != NULL && FreeBuffer) delete [] data;
-		data = NULL;
+		if (data != nullptr && FreeBuffer) delete [] data;
+		data = nullptr;
 		FreeBuffer = false;
 	}
 
@@ -113,7 +113,7 @@ public:
 		ClipRect.x = ClipRect.y = 0;
 		ClipRect.width = w;
 		ClipRect.height = h;
-		return data != NULL;
+		return data != nullptr;
 	}
 
 	int GetHeight() const
@@ -165,10 +165,10 @@ public:
 
 
 	virtual void CopyPixelDataRGB(int originx, int originy, const BYTE *patch, int srcwidth, 
-								int srcheight, int step_x, int step_y, int rotate, int ct, FCopyInfo *inf = NULL,
+								int srcheight, int step_x, int step_y, int rotate, int ct, FCopyInfo *inf = nullptr,
 		/* for PNG tRNS */		int r=0, int g=0, int b=0);
 	virtual void CopyPixelData(int originx, int originy, const BYTE * patch, int srcwidth, int srcheight, 
-								int step_x, int step_y, int rotate, PalEntry * palette, FCopyInfo *inf = NULL);
+								int step_x, int step_y, int rotate, PalEntry * palette, FCopyInfo *inf = nullptr);
 
 
 };

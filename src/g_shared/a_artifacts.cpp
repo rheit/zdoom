@@ -50,7 +50,7 @@ void PClassPowerupGiver::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 {
 	Super::ReplaceClassRef(oldclass, newclass);
 	APowerupGiver *def = (APowerupGiver*)Defaults;
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		if (def->PowerupType == oldclass) def->PowerupType = static_cast<PClassWeapon *>(newclass);
 	}
@@ -64,7 +64,7 @@ void PClassPowerupGiver::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 
 bool APowerupGiver::Use (bool pickup)
 {
-	if (PowerupType == NULL) return true;	// item is useless
+	if (PowerupType == nullptr) return true;	// item is useless
 
 	APowerup *power = static_cast<APowerup *> (Spawn (PowerupType));
 
@@ -120,7 +120,7 @@ void APowerupGiver::Serialize (FArchive &arc)
 void APowerup::Tick ()
 {
 	// Powerups cannot exist outside an inventory
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
 		Destroy ();
 	}
@@ -176,7 +176,7 @@ void APowerup::InitEffect ()
 
 void APowerup::DoEffect ()
 {
-	if (Owner == NULL || Owner->player == NULL)
+	if (Owner == nullptr || Owner->player == nullptr)
 	{
 		return;
 	}
@@ -291,7 +291,7 @@ bool APowerup::HandlePickup (AInventory *item)
 		power->ItemFlags |= IF_PICKUPGOOD;
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -324,7 +324,7 @@ AInventory *APowerup::CreateCopy (AActor *other)
 	// can properly handle the situation.
 	if (!(ItemFlags & IF_CREATECOPYMOVED))
 	{
-		Owner = NULL;
+		Owner = nullptr;
 	}
 	// All done.
 	return this;
@@ -340,7 +340,7 @@ AInventory *APowerup::CreateCopy (AActor *other)
 
 AInventory *APowerup::CreateTossable ()
 {
-	return NULL;
+	return nullptr;
 }
 
 //===========================================================================
@@ -403,7 +403,7 @@ void APowerInvulnerable::DoEffect ()
 {
 	Super::DoEffect ();
 
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
 		return;
 	}
@@ -457,7 +457,7 @@ void APowerInvulnerable::EndEffect ()
 {
 	Super::EndEffect();
 
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
 		return;
 	}
@@ -480,7 +480,7 @@ void APowerInvulnerable::EndEffect ()
 		Owner->flags2 &= ~MF2_REFLECTIVE;
 	}
 
-	if (Owner->player != NULL)
+	if (Owner->player != nullptr)
 	{
 		Owner->player->fixedcolormap = NOFIXEDCOLORMAP;
 	}
@@ -494,8 +494,8 @@ void APowerInvulnerable::EndEffect ()
 
 int APowerInvulnerable::AlterWeaponSprite (visstyle_t *vis)
 {
-	int changed = Inventory == NULL ? false : Inventory->AlterWeaponSprite(vis);
-	if (Owner != NULL)
+	int changed = Inventory == nullptr ? false : Inventory->AlterWeaponSprite(vis);
+	if (Owner != nullptr)
 	{
 		if (Mode == NAME_Ghost && !(Owner->flags & MF_SHADOW))
 		{
@@ -592,7 +592,7 @@ void APowerInvisibility::InitEffect ()
 	// tic, plus the following code that needs to happen once and only once.
 	// The CommonInit() code has been moved to DoEffect(), so this now ends with a call to DoEffect(),
 	// and DoEffect() no longer needs to call InitEffect(). CommonInit() has been removed for being redundant.
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		flags &= ~(Owner->flags  & INVISIBILITY_FLAGS1);
 		Owner->flags  |= flags & INVISIBILITY_FLAGS1;
@@ -660,7 +660,7 @@ void APowerInvisibility::DoEffect ()
 void APowerInvisibility::EndEffect ()
 {
 	Super::EndEffect();
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		Owner->flags  &= ~(flags  & INVISIBILITY_FLAGS1);
 		Owner->flags3 &= ~(flags3 & INVISIBILITY_FLAGS3);
@@ -673,7 +673,7 @@ void APowerInvisibility::EndEffect ()
 		// If this isn't done there will be one incorrectly drawn frame when this
 		// item expires.
 		AInventory *item = Owner->Inventory;
-		while (item != NULL)
+		while (item != nullptr)
 		{
 			if (item->IsKindOf(RUNTIME_CLASS(APowerInvisibility)) && item != this)
 			{
@@ -692,7 +692,7 @@ void APowerInvisibility::EndEffect ()
 
 int APowerInvisibility::AlterWeaponSprite (visstyle_t *vis)
 {
-	int changed = Inventory == NULL ? false : Inventory->AlterWeaponSprite(vis);
+	int changed = Inventory == nullptr ? false : Inventory->AlterWeaponSprite(vis);
 	// Blink if the powerup is wearing off
 	if (changed == 0 && EffectTics < 4*32 && !(EffectTics & 8))
 	{
@@ -791,7 +791,7 @@ void APowerIronFeet::AbsorbDamage (int damage, FName damageType, int &newdamage)
 	{
 		newdamage = 0;
 	}
-	else if (Inventory != NULL)
+	else if (Inventory != nullptr)
 	{
 		Inventory->AbsorbDamage (damage, damageType, newdamage);
 	}
@@ -805,7 +805,7 @@ void APowerIronFeet::AbsorbDamage (int damage, FName damageType, int &newdamage)
 
 void APowerIronFeet::DoEffect ()
 {
-	if (Owner->player != NULL)
+	if (Owner->player != nullptr)
 	{
 		Owner->player->mo->ResetAirSupply ();
 	}
@@ -863,7 +863,7 @@ void APowerLightAmp::DoEffect ()
 {
 	Super::DoEffect ();
 
-	if (Owner->player != NULL && Owner->player->fixedcolormap < NUMCOLORMAPS)
+	if (Owner->player != nullptr && Owner->player->fixedcolormap < NUMCOLORMAPS)
 	{
 		if (EffectTics > BLINKTHRESHOLD || (EffectTics & 8))
 		{	
@@ -885,7 +885,7 @@ void APowerLightAmp::DoEffect ()
 void APowerLightAmp::EndEffect ()
 {
 	Super::EndEffect();
-	if (Owner != NULL && Owner->player != NULL && Owner->player->fixedcolormap < NUMCOLORMAPS)
+	if (Owner != nullptr && Owner->player != nullptr && Owner->player->fixedcolormap < NUMCOLORMAPS)
 	{
 		Owner->player->fixedlightlevel = -1;
 	}
@@ -915,7 +915,7 @@ void APowerTorch::Serialize (FArchive &arc)
 
 void APowerTorch::DoEffect ()
 {
-	if (Owner == NULL || Owner->player == NULL)
+	if (Owner == nullptr || Owner->player == nullptr)
 	{
 		return;
 	}
@@ -928,7 +928,7 @@ void APowerTorch::DoEffect ()
 	{
 		APowerup::DoEffect ();
 
-		if (!(level.time & 16) && Owner->player != NULL)
+		if (!(level.time & 16) && Owner->player != nullptr)
 		{
 			if (NewTorch != 0)
 			{
@@ -1020,7 +1020,7 @@ void APowerFlight::Tick ()
 void APowerFlight::EndEffect ()
 {
 	Super::EndEffect();
-	if (Owner == NULL || Owner->player == NULL)
+	if (Owner == nullptr || Owner->player == nullptr)
 	{
 		return;
 	}
@@ -1109,17 +1109,17 @@ void APowerWeaponLevel2::InitEffect ()
 
 	Super::InitEffect();
 
-	if (Owner->player == NULL)
+	if (Owner->player == nullptr)
 		return;
 
 	weapon = Owner->player->ReadyWeapon;
 
-	if (weapon == NULL)
+	if (weapon == nullptr)
 		return;
 
 	sister = weapon->SisterWeapon;
 
-	if (sister == NULL)
+	if (sister == nullptr)
 		return;
 
 	if (!(sister->WeaponFlags & WIF_POWERED_UP))
@@ -1143,19 +1143,19 @@ void APowerWeaponLevel2::InitEffect ()
 
 void APowerWeaponLevel2::EndEffect ()
 {
-	player_t *player = Owner != NULL ? Owner->player : NULL;
+	player_t *player = Owner != nullptr ? Owner->player : nullptr;
 
 	Super::EndEffect();
-	if (player != NULL)
+	if (player != nullptr)
 	{
-		if (player->ReadyWeapon != NULL &&
+		if (player->ReadyWeapon != nullptr &&
 			player->ReadyWeapon->WeaponFlags & WIF_POWERED_UP)
 		{
 			player->ReadyWeapon->EndPowerup ();
 		}
-		if (player->PendingWeapon != NULL && player->PendingWeapon != WP_NOCHANGE &&
+		if (player->PendingWeapon != nullptr && player->PendingWeapon != WP_NOCHANGE &&
 			player->PendingWeapon->WeaponFlags & WIF_POWERED_UP &&
-			player->PendingWeapon->SisterWeapon != NULL)
+			player->PendingWeapon->SisterWeapon != nullptr)
 		{
 			player->PendingWeapon = player->PendingWeapon->SisterWeapon;
 		}
@@ -1216,7 +1216,7 @@ void APowerSpeed::Serialize(FArchive &arc)
 
 double APowerSpeed ::GetSpeedFactor ()
 {
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 		return Speed * Inventory->GetSpeedFactor();
 	else
 		return Speed;
@@ -1232,7 +1232,7 @@ void APowerSpeed::DoEffect ()
 {
 	Super::DoEffect ();
 	
-	if (Owner == NULL || Owner->player == NULL)
+	if (Owner == nullptr || Owner->player == nullptr)
 		return;
 
 	if (Owner->player->cheats & CF_PREDICTING)
@@ -1246,7 +1246,7 @@ void APowerSpeed::DoEffect ()
 
 	// Check if another speed item is present to avoid multiple drawing of the speed trail.
 	// Only the last PowerSpeed without PSF_NOTRAIL set will actually draw the trail.
-	for (AInventory *item = Inventory; item != NULL; item = item->Inventory)
+	for (AInventory *item = Inventory; item != nullptr; item = item->Inventory)
 	{
 		if (item->IsKindOf(RUNTIME_CLASS(APowerSpeed)) &&
 			!(static_cast<APowerSpeed *>(item)->SpeedFlags & PSF_NOTRAIL))
@@ -1298,12 +1298,12 @@ void APowerTargeter::InitEffect ()
 
 	Super::InitEffect();
 
-	if ((player = Owner->player) == NULL)
+	if ((player = Owner->player) == nullptr)
 		return;
 
 	FState *state = FindState("Targeter");
 
-	if (state != NULL)
+	if (state != nullptr)
 	{
 		P_SetPsprite (player, ps_targetcenter, state + 0);
 		P_SetPsprite (player, ps_targetleft, state + 1);
@@ -1333,7 +1333,7 @@ void APowerTargeter::DoEffect ()
 {
 	Super::DoEffect ();
 
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
 		player_t *player = Owner->player;
 
@@ -1342,17 +1342,17 @@ void APowerTargeter::DoEffect ()
 		{
 			FState *state = FindState("Targeter");
 
-			if (state != NULL)
+			if (state != nullptr)
 			{
 				if (EffectTics & 32)
 				{
-					P_SetPsprite (player, ps_targetright, NULL);
+					P_SetPsprite (player, ps_targetright, nullptr);
 					P_SetPsprite (player, ps_targetleft, state+1);
 				}
 				else if (EffectTics & 16)
 				{
 					P_SetPsprite (player, ps_targetright, state+2);
-					P_SetPsprite (player, ps_targetleft, NULL);
+					P_SetPsprite (player, ps_targetleft, nullptr);
 				}
 			}
 		}
@@ -1362,11 +1362,11 @@ void APowerTargeter::DoEffect ()
 void APowerTargeter::EndEffect ()
 {
 	Super::EndEffect();
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
-		P_SetPsprite (Owner->player, ps_targetcenter, NULL);
-		P_SetPsprite (Owner->player, ps_targetleft, NULL);
-		P_SetPsprite (Owner->player, ps_targetright, NULL);
+		P_SetPsprite (Owner->player, ps_targetcenter, nullptr);
+		P_SetPsprite (Owner->player, ps_targetleft, nullptr);
+		P_SetPsprite (Owner->player, ps_targetright, nullptr);
 	}
 }
 
@@ -1374,7 +1374,7 @@ void APowerTargeter::PositionAccuracy ()
 {
 	player_t *player = Owner->player;
 
-	if (player != NULL)
+	if (player != nullptr)
 	{
 		player->psprites[ps_targetleft].sx = (160-3) - ((100 - player->mo->accuracy));
 		player->psprites[ps_targetright].sx = (160-3)+ ((100 - player->mo->accuracy));
@@ -1395,7 +1395,7 @@ void APowerFrightener::InitEffect ()
 {
 	Super::InitEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	Owner->player->cheats |= CF_FRIGHTENING;
@@ -1411,7 +1411,7 @@ void APowerFrightener::EndEffect ()
 {
 	Super::EndEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	Owner->player->cheats &= ~CF_FRIGHTENING;
@@ -1431,7 +1431,7 @@ void APowerBuddha::InitEffect ()
 {
 	Super::InitEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	Owner->player->cheats |= CF_BUDDHA;
@@ -1447,7 +1447,7 @@ void APowerBuddha::EndEffect ()
 {
 	Super::EndEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	Owner->player->cheats &= ~CF_BUDDHA;
@@ -1473,7 +1473,7 @@ void APowerTimeFreezer::InitEffect()
 
 	Super::InitEffect();
 
-	if (Owner == NULL || Owner->player == NULL)
+	if (Owner == nullptr || Owner->player == nullptr)
 		return;
 
 	// When this powerup is in effect, pause the music.
@@ -1485,7 +1485,7 @@ void APowerTimeFreezer::InitEffect()
 	for (int i = 0; i < MAXPLAYERS; i++)
 	{
 		if (playeringame[i] &&
-			players[i].mo != NULL &&
+			players[i].mo != nullptr &&
 			players[i].mo->IsTeammate(Owner)
 		   )
 		{
@@ -1525,7 +1525,7 @@ void APowerTimeFreezer::DoEffect()
 	// [RH] Do not change LEVEL_FROZEN on odd tics, or the Revenant's tracer
 	// will get thrown off.
 	// [ED850] Don't change it if the player is predicted either.
-	if (level.time & 1 || (Owner != NULL && Owner->player != NULL && Owner->player->cheats & CF_PREDICTING))
+	if (level.time & 1 || (Owner != nullptr && Owner->player != nullptr && Owner->player->cheats & CF_PREDICTING))
 	{
 		return;
 	}
@@ -1556,7 +1556,7 @@ void APowerTimeFreezer::EndEffect()
 
 	// If there is an owner, remove the timefreeze flag corresponding to
 	// her from all players.
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
 		int freezemask = ~(1 << (Owner->player - players));
 		for (i = 0; i < MAXPLAYERS; ++i)
@@ -1599,7 +1599,7 @@ void APowerDamage::InitEffect( )
 	Super::InitEffect();
 
 	// Use sound channel 5 to avoid interference with other actions.
-	if (Owner != NULL) S_Sound(Owner, 5, SeeSound, 1.0f, ATTN_NONE);
+	if (Owner != nullptr) S_Sound(Owner, 5, SeeSound, 1.0f, ATTN_NONE);
 }
 
 //===========================================================================
@@ -1612,7 +1612,7 @@ void APowerDamage::EndEffect( )
 {
 	Super::EndEffect();
 	// Use sound channel 5 to avoid interference with other actions.
-	if (Owner != NULL) S_Sound(Owner, 5, DeathSound, 1.0f, ATTN_NONE);
+	if (Owner != nullptr) S_Sound(Owner, 5, DeathSound, 1.0f, ATTN_NONE);
 }
 
 //===========================================================================
@@ -1627,7 +1627,7 @@ void APowerDamage::ModifyDamage(int damage, FName damageType, int &newdamage, bo
 	{
 		int newdam;
 		DmgFactors *df = GetClass()->DamageFactors;
-		if (df != NULL && df->CountUsed() != 0)
+		if (df != nullptr && df->CountUsed() != 0)
 		{
 			newdam = MAX(1, df->Apply(damageType, damage));// don't allow zero damage as result of an underflow
 		}
@@ -1635,10 +1635,10 @@ void APowerDamage::ModifyDamage(int damage, FName damageType, int &newdamage, bo
 		{
 			newdam = damage * 4;
 		}
-		if (Owner != NULL && newdam > damage) S_Sound(Owner, 5, ActiveSound, 1.0f, ATTN_NONE);
+		if (Owner != nullptr && newdam > damage) S_Sound(Owner, 5, ActiveSound, 1.0f, ATTN_NONE);
 		newdamage = newdam;
 	}
-	if (Inventory != NULL) Inventory->ModifyDamage(damage, damageType, newdamage, passive);
+	if (Inventory != nullptr) Inventory->ModifyDamage(damage, damageType, newdamage, passive);
 }
 
 // Quarter damage powerup ------------------------------------------------------
@@ -1658,7 +1658,7 @@ void APowerProtection::InitEffect( )
 {
 	Super::InitEffect();
 
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		S_Sound(Owner, CHAN_AUTO, SeeSound, 1.0f, ATTN_NONE);
 
@@ -1682,7 +1682,7 @@ void APowerProtection::InitEffect( )
 void APowerProtection::EndEffect( )
 {
 	Super::EndEffect();
-	if (Owner != NULL)
+	if (Owner != nullptr)
 	{
 		S_Sound(Owner, CHAN_AUTO, DeathSound, 1.0f, ATTN_NONE);
 		Owner->flags3 &= ~(flags3 & PROTECTION_FLAGS3);
@@ -1702,7 +1702,7 @@ void APowerProtection::ModifyDamage(int damage, FName damageType, int &newdamage
 	{
 		int newdam;
 		DmgFactors *df = GetClass()->DamageFactors;
-		if (df != NULL && df->CountUsed() != 0)
+		if (df != nullptr && df->CountUsed() != 0)
 		{
 			newdam = MAX(0, df->Apply(damageType, damage));
 		}
@@ -1710,10 +1710,10 @@ void APowerProtection::ModifyDamage(int damage, FName damageType, int &newdamage
 		{
 			newdam = damage / 4;
 		}
-		if (Owner != NULL && newdam < damage) S_Sound(Owner, CHAN_AUTO, ActiveSound, 1.0f, ATTN_NONE);
+		if (Owner != nullptr && newdam < damage) S_Sound(Owner, CHAN_AUTO, ActiveSound, 1.0f, ATTN_NONE);
 		newdamage = newdam;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		Inventory->ModifyDamage(damage, damageType, newdamage, passive);
 	}
@@ -1733,7 +1733,7 @@ void APowerDrain::InitEffect( )
 {
 	Super::InitEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	// Give the player the power to drain life from opponents when he damages them.
@@ -1751,7 +1751,7 @@ void APowerDrain::EndEffect( )
 	Super::EndEffect();
 
 	// Nothing to do if there's no owner.
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
 		// Take away the drain power.
 		Owner->player->cheats &= ~CF_DRAIN;
@@ -1772,7 +1772,7 @@ IMPLEMENT_CLASS(APowerRegeneration)
 void APowerRegeneration::DoEffect()
 {
 	Super::DoEffect();
-	if (Owner != NULL && Owner->health > 0 && (level.time & 31) == 0)
+	if (Owner != nullptr && Owner->health > 0 && (level.time & 31) == 0)
 	{
 		if (P_GiveBody(Owner, int(Strength)))
 		{
@@ -1795,7 +1795,7 @@ void APowerHighJump::InitEffect( )
 {
 	Super::InitEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	// Give the player the power to jump much higher.
@@ -1812,7 +1812,7 @@ void APowerHighJump::EndEffect( )
 {
 	Super::EndEffect();
 	// Nothing to do if there's no owner.
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
 		// Take away the high jump power.
 		Owner->player->cheats &= ~CF_HIGHJUMP;
@@ -1833,7 +1833,7 @@ void APowerDoubleFiringSpeed::InitEffect( )
 {
 	Super::InitEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	// Give the player the power to shoot twice as fast.
@@ -1850,7 +1850,7 @@ void APowerDoubleFiringSpeed::EndEffect( )
 {
 	Super::EndEffect();
 	// Nothing to do if there's no owner.
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
 		// Take away the shooting twice as fast power.
 		Owner->player->cheats &= ~CF_DOUBLEFIRINGSPEED;
@@ -1884,7 +1884,7 @@ void APowerMorph::InitEffect( )
 {
 	Super::InitEffect();
 
-	if (Owner != NULL && Owner->player != NULL && PlayerClass != NAME_None)
+	if (Owner != nullptr && Owner->player != nullptr && PlayerClass != NAME_None)
 	{
 		player_t *realplayer = Owner->player;	// Remember the identity of the player
 		PClassActor *morph_flash = PClass::FindActor(MorphFlash);
@@ -1914,14 +1914,14 @@ void APowerMorph::EndEffect( )
 	Super::EndEffect();
 
 	// Abort if owner already destroyed
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
-		assert(Player == NULL);
+		assert(Player == nullptr);
 		return;
 	}
 	
 	// Abort if owner already unmorphed
-	if (Player == NULL)
+	if (Player == nullptr)
 	{
 		return;
 	}
@@ -1941,7 +1941,7 @@ void APowerMorph::EndEffect( )
 
 		// Abort if unmorph failed; in that case,
 		// set the usual retry timer and return.
-		if (Player != NULL && Player->morphTics)
+		if (Player != nullptr && Player->morphTics)
 		{
 			// Transfer retry timeout
 			// to the powerup's timer.
@@ -1955,7 +1955,7 @@ void APowerMorph::EndEffect( )
 		}
 	}
 	// Unmorph suceeded
-	Player = NULL;
+	Player = nullptr;
 }
 
 // Infinite Ammo Powerup -----------------------------------------------------
@@ -1972,7 +1972,7 @@ void APowerInfiniteAmmo::InitEffect( )
 {
 	Super::InitEffect();
 
-	if (Owner== NULL || Owner->player == NULL)
+	if (Owner== nullptr || Owner->player == nullptr)
 		return;
 
 	// Give the player infinite ammo
@@ -1990,7 +1990,7 @@ void APowerInfiniteAmmo::EndEffect( )
 	Super::EndEffect();
 
 	// Nothing to do if there's no owner.
-	if (Owner != NULL && Owner->player != NULL)
+	if (Owner != nullptr && Owner->player != nullptr)
 	{
 		// Take away the limitless ammo
 		Owner->player->cheats &= ~CF_INFINITEAMMO;

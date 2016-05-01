@@ -71,7 +71,7 @@ bool P_AutoUseChaosDevice (player_t *player)
 {
 	AInventory *arti = player->mo->FindInventory(PClass::FindActor("ArtiTeleport"));
 
-	if (arti != NULL)
+	if (arti != nullptr)
 	{
 		player->mo->UseInventory (arti);
 		player->health = player->mo->health = (player->health+1)/2;

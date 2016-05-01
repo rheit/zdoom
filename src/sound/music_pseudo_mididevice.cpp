@@ -66,7 +66,7 @@
 
 PseudoMIDIDevice::PseudoMIDIDevice()
 {
-	Stream = NULL;
+	Stream = nullptr;
 	Started = false;
 	bLooping = true;
 }
@@ -90,10 +90,10 @@ PseudoMIDIDevice::~PseudoMIDIDevice()
 
 void PseudoMIDIDevice::Close()
 {
-	if (Stream != NULL)
+	if (Stream != nullptr)
 	{
 		delete Stream;
-		Stream = NULL;
+		Stream = nullptr;
 	}
 	Started = false;
 }
@@ -106,7 +106,7 @@ void PseudoMIDIDevice::Close()
 
 bool PseudoMIDIDevice::IsOpen() const
 {
-	return Stream != NULL;
+	return Stream != nullptr;
 }
 
 //==========================================================================
@@ -164,7 +164,7 @@ void PseudoMIDIDevice::Stop()
 
 bool PseudoMIDIDevice::Pause(bool paused)
 {
-	if (Stream != NULL)
+	if (Stream != nullptr)
 	{
 		return Stream->SetPaused(paused);
 	}
@@ -225,7 +225,7 @@ int PseudoMIDIDevice::SetTimeDiv(int timediv)
 
 FString PseudoMIDIDevice::GetStats()
 {
-	if (Stream != NULL)
+	if (Stream != nullptr)
 	{
 		return Stream->GetStats();
 	}
@@ -254,7 +254,7 @@ int SndSysMIDIDevice::Open(void (*callback)(unsigned int, void *, DWORD, DWORD),
 
 bool SndSysMIDIDevice::Preprocess(MIDIStreamer *song, bool looping)
 {
-    MemoryArrayReader *reader = new MemoryArrayReader(NULL, 0);
+    MemoryArrayReader *reader = new MemoryArrayReader(nullptr, 0);
     song->CreateSMF(reader->GetArray(), looping ? 0 : 1);
     reader->UpdateLength();
 

@@ -106,7 +106,7 @@ public:
 			}
 			UCVarValue val;
 			val.Int = MAKERGB(int(mRed), int(mGreen), int(mBlue));
-			if (mCVar != NULL) mCVar->SetGenericRep (val, CVAR_Int);
+			if (mCVar != nullptr) mCVar->SetGenericRep (val, CVAR_Int);
 			mStartItem = -1;
 		}
 	}
@@ -264,7 +264,7 @@ public:
 	{
 		Super::Drawer();
 
-		if (mCVar == NULL) return;
+		if (mCVar == nullptr) return;
 		int y = (-mDesc->mPosition + BigFont->GetHeight() + mDesc->mItems.Size() * OptionSettings.mLinespacing) * CleanYfac_1;
 		int h = (screen->GetHeight() - y) / 16;
 		int fh = OptionSettings.mLinespacing * CleanYfac_1;
@@ -335,7 +335,7 @@ IMPLEMENT_ABSTRACT_CLASS(DColorPickerMenu)
 
 CCMD(undocolorpic)
 {
-	if (DMenu::CurrentMenu != NULL && DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DColorPickerMenu)))
+	if (DMenu::CurrentMenu != nullptr && DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DColorPickerMenu)))
 	{
 		static_cast<DColorPickerMenu*>(DMenu::CurrentMenu)->Reset();
 	}
@@ -345,13 +345,13 @@ CCMD(undocolorpic)
 DMenu *StartPickerMenu(DMenu *parent, const char *name, FColorCVar *cvar)
 {
 	FMenuDescriptor **desc = MenuDescriptors.CheckKey(NAME_Colorpickermenu);
-	if (desc != NULL && (*desc)->mType == MDESC_OptionsMenu)
+	if (desc != nullptr && (*desc)->mType == MDESC_OptionsMenu)
 	{
 		return new DColorPickerMenu(parent, name, (FOptionMenuDescriptor*)(*desc), cvar);
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 

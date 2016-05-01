@@ -126,7 +126,7 @@ bool AArtiTeleportOther::Use (bool pickup)
 
 int ATelOtherFX1::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 {
-	if ((target->flags3 & MF3_ISMONSTER || target->player != NULL) &&
+	if ((target->flags3 & MF3_ISMONSTER || target->player != nullptr) &&
 		!(target->flags2 & MF2_BOSS) &&
 		!(target->flags3 & MF3_NOTELEOTHER))
 	{
@@ -143,7 +143,7 @@ int ATelOtherFX1::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 			if (target->flags3 & MF3_ISMONSTER && target->special)
 			{
 				target->RemoveFromHash ();
-				P_ExecuteSpecial(target->special, NULL, level.flags & LEVEL_ACTOWNSPECIAL
+				P_ExecuteSpecial(target->special, nullptr, level.flags & LEVEL_ACTOWNSPECIAL
 					? target : (AActor *)(this->target), false, target->args[0], target->args[1],
 					target->args[2], target->args[3], target->args[4]);
 				target->special = 0;

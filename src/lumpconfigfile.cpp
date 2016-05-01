@@ -76,7 +76,7 @@ char *FLumpConfigFile::ReadLine (char *string, int n, void *file) const
 	string[n] = 0;
 	if (n == 0)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	memcpy (string, pos, n);

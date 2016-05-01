@@ -132,7 +132,7 @@ HMISong::HMISong (FileReader &reader, EMidiDevice type, const char *args)
 : MIDIStreamer(type, args), MusHeader(0), Tracks(0)
 {
 #ifdef _WIN32
-	if (ExitEvent == NULL)
+	if (ExitEvent == nullptr)
 	{
 		return;
 	}
@@ -168,11 +168,11 @@ HMISong::HMISong (FileReader &reader, EMidiDevice type, const char *args)
 
 HMISong::~HMISong()
 {
-	if (Tracks != NULL)
+	if (Tracks != nullptr)
 	{
 		delete[] Tracks;
 	}
-	if (MusHeader != NULL)
+	if (MusHeader != nullptr)
 	{
 		delete[] MusHeader;
 	}
@@ -487,7 +487,7 @@ void HMISong :: DoRestart()
 
 bool HMISong::CheckDone()
 {
-	return TrackDue == NULL;
+	return TrackDue == nullptr;
 }
 
 //==========================================================================
@@ -977,7 +977,7 @@ void NoteOffQueue::Heapify()
 //
 // HMISong :: FindNextDue
 //
-// Scans every track for the next event to play. Returns NULL if all events
+// Scans every track for the next event to play. Returns nullptr if all events
 // have been consumed.
 //
 //==========================================================================
@@ -1000,7 +1000,7 @@ HMISong::TrackInfo *HMISong::FindNextDue ()
 	}
 
 	// Check regular tracks.
-	track = NULL;
+	track = nullptr;
 	best = 0xFFFFFFFF;
 	for (i = 0; i < NumTracks; ++i)
 	{

@@ -16,31 +16,31 @@ FontFile *Fonts;
 
 FontFile *ReadDLS(const char *filename, FileReader *f)
 {
-	return NULL;
+	return nullptr;
 }
 
 void font_freeall()
 {
 	FontFile *font, *next;
 
-	for (font = Fonts; font != NULL; font = next)
+	for (font = Fonts; font != nullptr; font = next)
 	{
 		next = font->Next;
 		delete font;
 	}
-	Fonts = NULL;
+	Fonts = nullptr;
 }
 
 FontFile *font_find(const char *filename)
 {
-	for (FontFile *font = Fonts; font != NULL; font = font->Next)
+	for (FontFile *font = Fonts; font != nullptr; font = font->Next)
 	{
 		if (stricmp(filename, font->Filename) == 0)
 		{
 			return font;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void font_add(const char *filename, int load_order)
@@ -48,15 +48,15 @@ void font_add(const char *filename, int load_order)
 	FontFile *font;
 
 	font = font_find(filename);
-	if (font != NULL)
+	if (font != nullptr)
 	{
 		font->SetAllOrders(load_order);
 	}
 	else
 	{
-		FileReader *fp = pathExpander.openFileReader(filename, NULL);
+		FileReader *fp = pathExpander.openFileReader(filename, nullptr);
 
-		if (fp != NULL)
+		if (fp != nullptr)
 		{
 			if ((font = ReadSF2(filename, fp)) || (font = ReadDLS(filename, fp)))
 			{
@@ -72,7 +72,7 @@ void font_remove(const char *filename)
 	FontFile *font;
 
 	font = font_find(filename);
-	if (font != NULL)
+	if (font != nullptr)
 	{
 		// Don't actually remove the font from the list, because instruments
 		// from it might be loaded using the %font extension.
@@ -82,7 +82,7 @@ void font_remove(const char *filename)
 
 void font_order(int order, int bank, int preset, int keynote)
 {
-	for (FontFile *font = Fonts; font != NULL; font = font->Next)
+	for (FontFile *font = Fonts; font != nullptr; font = font->Next)
 	{
 		font->SetOrder(order, bank, preset, keynote);
 	}
@@ -91,24 +91,24 @@ void font_order(int order, int bank, int preset, int keynote)
 Instrument *load_instrument_font(struct Renderer *song, const char *font, int drum, int bank, int instr)
 {
 	FontFile *fontfile = font_find(font);
-	if (fontfile != NULL)
+	if (fontfile != nullptr)
 	{
 		return fontfile->LoadInstrument(song, drum, bank, instr);
 	}
-	return NULL;
+	return nullptr;
 }
 
 Instrument *load_instrument_font_order(struct Renderer *song, int order, int drum, int bank, int instr)
 {
-	for (FontFile *font = Fonts; font != NULL; font = font->Next)
+	for (FontFile *font = Fonts; font != nullptr; font = font->Next)
 	{
 		Instrument *ip = font->LoadInstrument(song, drum, bank, instr);
-		if (ip != NULL)
+		if (ip != nullptr)
 		{
 			return ip;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 FontFile::FontFile(FString filename)
@@ -120,7 +120,7 @@ FontFile::FontFile(FString filename)
 
 FontFile::~FontFile()
 {
-	for (FontFile **probe = &Fonts; *probe != NULL; probe = &(*probe)->Next)
+	for (FontFile **probe = &Fonts; *probe != nullptr; probe = &(*probe)->Next)
 	{
 		if (*probe == this)
 		{

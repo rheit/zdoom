@@ -354,7 +354,7 @@ static void ParseLIST(SFFile *sf2, FileReader *f, DWORD chunklen, ListHandler *h
 
 		for (handler = handlers; handler->ID != 0; ++handler)
 		{
-			if (handler->ID == id && handler->Parser != NULL)
+			if (handler->ID == id && handler->Parser != nullptr)
 			{
 				handler->Parser(sf2, f, id, len);
 				break;
@@ -649,7 +649,7 @@ static void ParseShdr(SFFile *sf2, FileReader *f, DWORD chunkid, DWORD chunklen)
 	sf2->Samples = sample = new SFSample[sf2->NumSamples];
 	for (i = sf2->NumSamples; i != 0; --i, ++sample)
 	{
-		sample->InMemoryData = NULL;
+		sample->InMemoryData = nullptr;
 		read_name(f, sample->Name);
 		sample->Start = read_dword(f);
 		sample->End = read_dword(f);
@@ -693,7 +693,7 @@ static void ParseShdr(SFFile *sf2, FileReader *f, DWORD chunkid, DWORD chunklen)
 
 SFFile *ReadSF2(const char *filename, FileReader *f)
 {
-	SFFile *sf2 = NULL;
+	SFFile *sf2 = nullptr;
 	DWORD filelen;
 	DWORD chunklen;
 
@@ -702,12 +702,12 @@ SFFile *ReadSF2(const char *filename, FileReader *f)
 		// Read RIFF sfbk header
 		if (read_id(f) != ID_RIFF)
 		{
-			return NULL;
+			return nullptr;
 		}
 		filelen = read_dword(f);
 		if (read_id(f) != ID_sfbk)
 		{
-			return NULL;
+			return nullptr;
 		}
 		filelen -= 4;
 
@@ -750,23 +750,23 @@ SFFile *ReadSF2(const char *filename, FileReader *f)
 	{
 		Printf("%s is not a SoundFont version 2 file.\n", filename);
 	}
-	if (sf2 != NULL)
+	if (sf2 != nullptr)
 	{
 		delete sf2;
 	}
-	return NULL;
+	return nullptr;
 }
 
 SFFile::SFFile(FString filename)
 : FontFile(filename)
 {
-	Presets = NULL;
-	PresetBags = NULL;
-	PresetGenerators = NULL;
-	Instruments = NULL;
-	InstrBags = NULL;
-	InstrGenerators = NULL;
-	Samples = NULL;
+	Presets = nullptr;
+	PresetBags = nullptr;
+	PresetGenerators = nullptr;
+	Instruments = nullptr;
+	InstrBags = nullptr;
+	InstrGenerators = nullptr;
+	Samples = nullptr;
 	MinorVersion = 0;
 	SampleDataOffset = 0;
 	SampleDataLSBOffset = 0;
@@ -783,35 +783,35 @@ SFFile::SFFile(FString filename)
 
 SFFile::~SFFile()
 {
-	if (Presets != NULL)
+	if (Presets != nullptr)
 	{
 		delete[] Presets;
 	}
-	if (PresetBags != NULL)
+	if (PresetBags != nullptr)
 	{
 		delete[] PresetBags;
 	}
-	if (PresetGenerators != NULL)
+	if (PresetGenerators != nullptr)
 	{
 		delete[] PresetGenerators;
 	}
-	if (Instruments != NULL)
+	if (Instruments != nullptr)
 	{
 		delete[] Instruments;
 	}
-	if (InstrBags != NULL)
+	if (InstrBags != nullptr)
 	{
 		delete[] InstrBags;
 	}
-	if (InstrGenerators != NULL)
+	if (InstrGenerators != nullptr)
 	{
 		delete[] InstrGenerators;
 	}
-	if (Samples != NULL)
+	if (Samples != nullptr)
 	{
 		for (int i = 0; i < NumSamples; ++i)
 		{
-			if (Samples[i].InMemoryData != NULL)
+			if (Samples[i].InMemoryData != nullptr)
 			{
 				delete[] Samples[i].InMemoryData;
 			}
@@ -823,9 +823,9 @@ SFFile::~SFFile()
 bool SFFile::FinalStructureTest()
 {
 	// All required chunks must be present.
-	if (Presets == NULL || PresetBags == NULL || PresetGenerators == NULL ||
-		Instruments == NULL || InstrBags == NULL || InstrGenerators == NULL ||
-		Samples == NULL)
+	if (Presets == nullptr || PresetBags == nullptr || PresetGenerators == nullptr ||
+		Instruments == nullptr || InstrBags == nullptr || InstrGenerators == nullptr ||
+		Samples == nullptr)
 	{
 		return false;
 	}
@@ -904,7 +904,7 @@ Instrument *SFFile::LoadInstrumentOrder(Renderer *song, int order, int drum, int
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //===========================================================================
@@ -1248,11 +1248,11 @@ Instrument *SFFile::LoadPercussion(Renderer *song, SFPerc *perc)
 			Percussion[i].Generators.sampleID < NumSamples)
 		{
 			SFSample *sfsamp = &Samples[Percussion[i].Generators.sampleID];
-			if (sfsamp->InMemoryData == NULL)
+			if (sfsamp->InMemoryData == nullptr)
 			{
 				LoadSample(sfsamp);
 			}
-			if (sfsamp->InMemoryData != NULL)
+			if (sfsamp->InMemoryData != nullptr)
 			{
 				ip->samples++;
 			}
@@ -1261,7 +1261,7 @@ Instrument *SFFile::LoadPercussion(Renderer *song, SFPerc *perc)
 	if (ip->samples == 0)
 	{ // Nothing here to play.
 		delete ip;
-		return NULL;
+		return nullptr;
 	}
 	ip->sample = (Sample *)safe_malloc(sizeof(Sample) * ip->samples);
 	memset(ip->sample, 0, sizeof(Sample) * ip->samples);
@@ -1278,7 +1278,7 @@ Instrument *SFFile::LoadPercussion(Renderer *song, SFPerc *perc)
 			continue;
 		}
 		SFSample *sfsamp = &Samples[gen->sampleID];
-		if (sfsamp->InMemoryData == NULL)
+		if (sfsamp->InMemoryData == nullptr)
 		{
 			continue;
 		}
@@ -1334,11 +1334,11 @@ Instrument *SFFile::LoadPreset(Renderer *song, SFPreset *preset)
 				InstrBags[j].VelRange.Hi >= PresetBags[i].VelRange.Lo)
 			{ // The preset and instrument zones intersect!
 				sfsamp = &Samples[InstrBags[j].Target];
-				if (sfsamp->InMemoryData == NULL)
+				if (sfsamp->InMemoryData == nullptr)
 				{
 					LoadSample(sfsamp);
 				}
-				if (sfsamp->InMemoryData != NULL)
+				if (sfsamp->InMemoryData != nullptr)
 				{
 					ip->samples++;
 				}
@@ -1348,7 +1348,7 @@ Instrument *SFFile::LoadPreset(Renderer *song, SFPreset *preset)
 	if (ip->samples == 0)
 	{ // Nothing here to play.
 		delete ip;
-		return NULL;
+		return nullptr;
 	}
 	// Allocate the regions and define them
 	ip->sample = (Sample *)safe_malloc(sizeof(Sample) * ip->samples);
@@ -1373,7 +1373,7 @@ Instrument *SFFile::LoadPreset(Renderer *song, SFPreset *preset)
 				InstrBags[j].VelRange.Hi >= PresetBags[i].VelRange.Lo)
 			{ // The preset and instrument zones intersect!
 				sfsamp = &Samples[InstrBags[j].Target];
-				if (sfsamp->InMemoryData == NULL)
+				if (sfsamp->InMemoryData == nullptr)
 				{
 					continue;
 				}
@@ -1501,10 +1501,10 @@ void SFFile::ApplyGeneratorsToRegion(SFGenComposite *gen, SFSample *sfsamp, Rend
 
 void SFFile::LoadSample(SFSample *sample)
 {
-	FileReader *fp = pathExpander.openFileReader(Filename, NULL);
+	FileReader *fp = pathExpander.openFileReader(Filename, nullptr);
 	DWORD i;
 
-	if (fp == NULL)
+	if (fp == nullptr)
 	{
 		return;
 	}

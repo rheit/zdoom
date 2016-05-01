@@ -79,13 +79,13 @@
 static PClassActor *FindClassTentative(const char *name, PClass *ancestor)
 {
 	// "" and "none" mean 'no class'
-	if (name == NULL || *name == 0 || !stricmp(name, "none"))
+	if (name == nullptr || *name == 0 || !stricmp(name, "none"))
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	PClass *cls = ancestor->FindClassTentative(name);
-	assert(cls != NULL);	// cls can not be NULL here
+	assert(cls != nullptr);	// cls can not be nullptr here
 	if (!cls->IsDescendantOf(ancestor))
 	{
 		I_Error("%s does not inherit from %s\n", name, ancestor->TypeName.GetChars());
@@ -200,17 +200,17 @@ INTBOOL CheckActorFlag(const AActor *owner, const char *flagname, bool printerro
 	FFlagDef *fd;
 	const PClass *cls = owner->GetClass();
 
-	if (dot != NULL)
+	if (dot != nullptr)
 	{
 		FString part1(flagname, dot-flagname);
 		fd = FindFlag (cls, part1, dot+1);
 	}
 	else
 	{
-		fd = FindFlag (cls, flagname, NULL);
+		fd = FindFlag (cls, flagname, nullptr);
 	}
 
-	if (fd != NULL)
+	if (fd != nullptr)
 	{
 		return CheckActorFlag(owner, fd);
 	}
@@ -276,7 +276,7 @@ void HandleDeprecatedFlags(AActor *defaults, PClassActor *info, bool set, int in
 		}
 		else
 		{
-			static_cast<AInventory*>(defaults)->PickupFlash = NULL;
+			static_cast<AInventory*>(defaults)->PickupFlash = nullptr;
 		}
 		break;
 	case DEPF_INTERHUBSTRIP: // Old system was 0 or 1, so if the flag is cleared, assume 1.
@@ -356,7 +356,7 @@ int MatchString (const char *in, const char **strings)
 {
 	int i;
 
-	for (i = 0; *strings != NULL; i++)
+	for (i = 0; *strings != nullptr; i++)
 	{
 		if (!stricmp(in, *strings++))
 		{
@@ -520,7 +520,7 @@ DEFINE_PROPERTY(painchance, ZI, Actor)
 {
 	PROP_STRING_PARM(str, 0);
 	PROP_INT_PARM(id, 1);
-	if (str == NULL)
+	if (str == nullptr)
 	{
 		defaults->PainChance=id;
 	}
@@ -581,9 +581,9 @@ DEFINE_PROPERTY(damage, X, Actor)
 
 	// Store this expression here for now. It will be converted to a function
 	// later once all actors have been processed.
-	if (id == NULL)
+	if (id == nullptr)
 	{
-		defaults->Damage = NULL;
+		defaults->Damage = nullptr;
 	}
 	else
 	{
@@ -798,7 +798,7 @@ DEFINE_PROPERTY(dropitem, S_i_i, Actor)
 	if (!bag.DropItemSet)
 	{
 		bag.DropItemSet = true;
-		bag.DropItemList = NULL;
+		bag.DropItemList = nullptr;
 	}
 
 	DDropItem *di = new DDropItem;
@@ -830,7 +830,7 @@ DEFINE_PROPERTY(renderstyle, S, Actor)
 	PROP_STRING_PARM(str, 0);
 	static const char * renderstyles[]={
 		"NONE", "NORMAL", "FUZZY", "SOULTRANS", "OPTFUZZY", "STENCIL", 
-		"TRANSLUCENT", "ADD", "SHADED", "SHADOW", "SUBTRACT", "ADDSTENCIL", "ADDSHADED", NULL };
+		"TRANSLUCENT", "ADD", "SHADED", "SHADOW", "SUBTRACT", "ADDSTENCIL", "ADDSHADED", nullptr };
 
 	static const int renderstyle_values[]={
 		STYLE_None, STYLE_Normal, STYLE_Fuzzy, STYLE_SoulTrans, STYLE_OptFuzzy,
@@ -1106,7 +1106,7 @@ DEFINE_PROPERTY(bloodtype, Sss, Actor)
 //==========================================================================
 DEFINE_PROPERTY(bouncetype, S, Actor)
 {
-	static const char *names[] = { "None", "Doom", "Heretic", "Hexen", "DoomCompat", "HereticCompat", "HexenCompat", "Grenade", "Classic", NULL };
+	static const char *names[] = { "None", "Doom", "Heretic", "Hexen", "DoomCompat", "HereticCompat", "HexenCompat", "Grenade", "Classic", nullptr };
 	static const ActorBounceFlag flags[] = { BOUNCE_None,
 		BOUNCE_Doom, BOUNCE_Heretic, BOUNCE_Hexen,
 		BOUNCE_DoomCompat, BOUNCE_HereticCompat, BOUNCE_HexenCompat,
@@ -1219,7 +1219,7 @@ DEFINE_PROPERTY(damagefactor, ZF, Actor)
 	PROP_STRING_PARM(str, 0);
 	PROP_DOUBLE_PARM(id, 1);
 
-	if (str == NULL)
+	if (str == nullptr)
 	{
 		defaults->DamageFactor = id;
 	}
@@ -1531,7 +1531,7 @@ DEFINE_PROPERTY(distancecheck, S, Actor)
 	PROP_STRING_PARM(cvar, 0);
 	FBaseCVar *scratch;
 	FBaseCVar *cv = FindCVar(cvar, &scratch);
-	if (cv == NULL)
+	if (cv == nullptr)
 	{
 		I_Error("CVar %s not defined", cvar);
 	}
@@ -1739,7 +1739,7 @@ DEFINE_CLASS_PROPERTY(icon, S, Inventory)
 {
 	PROP_STRING_PARM(i, 0);
 
-	if (i == NULL || i[0] == '\0')
+	if (i == nullptr || i[0] == '\0')
 	{
 		defaults->Icon.SetNull();
 	}
@@ -1923,7 +1923,7 @@ DEFINE_CLASS_PROPERTY(ammogive2, I, Weapon)
 DEFINE_CLASS_PROPERTY(ammotype, S, Weapon)
 {
 	PROP_STRING_PARM(str, 0);
-	if (!stricmp(str, "none") || *str == 0) defaults->AmmoType1 = NULL;
+	if (!stricmp(str, "none") || *str == 0) defaults->AmmoType1 = nullptr;
 	else defaults->AmmoType1 = FindClassTentativeAmmo(str);
 }
 
@@ -1933,7 +1933,7 @@ DEFINE_CLASS_PROPERTY(ammotype, S, Weapon)
 DEFINE_CLASS_PROPERTY(ammotype1, S, Weapon)
 {
 	PROP_STRING_PARM(str, 0);
-	if (!stricmp(str, "none") || *str == 0) defaults->AmmoType1 = NULL;
+	if (!stricmp(str, "none") || *str == 0) defaults->AmmoType1 = nullptr;
 	else defaults->AmmoType1 = FindClassTentativeAmmo(str);
 }
 
@@ -1943,7 +1943,7 @@ DEFINE_CLASS_PROPERTY(ammotype1, S, Weapon)
 DEFINE_CLASS_PROPERTY(ammotype2, S, Weapon)
 {
 	PROP_STRING_PARM(str, 0);
-	if (!stricmp(str, "none") || *str == 0) defaults->AmmoType1 = NULL;
+	if (!stricmp(str, "none") || *str == 0) defaults->AmmoType1 = nullptr;
 	else defaults->AmmoType2 = FindClassTentativeAmmo(str);
 }
 
@@ -2059,7 +2059,7 @@ DEFINE_CLASS_PROPERTY(yadjust, F, Weapon)
 //==========================================================================
 DEFINE_CLASS_PROPERTY(bobstyle, S, Weapon)
 {
-	static const char *names[] = { "Normal", "Inverse", "Alpha", "InverseAlpha", "Smooth", "InverseSmooth", NULL };
+	static const char *names[] = { "Normal", "Inverse", "Alpha", "InverseAlpha", "Smooth", "InverseSmooth", nullptr };
 	static const int styles[] = { AWeapon::BobNormal,
 		AWeapon::BobInverse, AWeapon::BobAlpha, AWeapon::BobInverseAlpha,
 		AWeapon::BobSmooth, AWeapon::BobInverseSmooth, };
@@ -2153,7 +2153,7 @@ DEFINE_CLASS_PROPERTY(weapon, S, WeaponPiece)
 DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 {
 	static const char *specialcolormapnames[] = {
-		"INVERSEMAP", "GOLDMAP", "REDMAP", "GREENMAP", "BLUEMAP", NULL };
+		"INVERSEMAP", "GOLDMAP", "REDMAP", "GREENMAP", "BLUEMAP", nullptr };
 
 	int alpha;
 	PalEntry *pBlendColor;
@@ -2192,7 +2192,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 			return;
 		}
 
-		color = V_GetColor(NULL, name);
+		color = V_GetColor(nullptr, name);
 	}
 	if (PROP_PARM_COUNT > 2)
 	{
@@ -2332,7 +2332,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, type, S, PowerupGiver)
 	// Yuck! What was I thinking when I decided to prepend "Power" to the name? 
 	// Now it's too late to change it...
 	PClassActor *cls = PClass::FindActor(str);
-	if (cls == NULL || !cls->IsDescendantOf(RUNTIME_CLASS(APowerup)))
+	if (cls == nullptr || !cls->IsDescendantOf(RUNTIME_CLASS(APowerup)))
 	{
 		FString st;
 		st.Format("%s%s", strnicmp(str, "power", 5)? "Power" : "", str);
@@ -2762,7 +2762,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, startitem, S_i, PlayerPawn)
 	if (!bag.DropItemSet)
 	{
 		bag.DropItemSet = true;
-		bag.DropItemList = NULL;
+		bag.DropItemList = nullptr;
 	}
 
 	DDropItem *di = new DDropItem;

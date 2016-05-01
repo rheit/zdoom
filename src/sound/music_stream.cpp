@@ -17,7 +17,7 @@ void StreamSong::Play (bool looping, int subsong)
 
 void StreamSong::Pause ()
 {
-	if (m_Status == STATE_Playing && m_Stream != NULL)
+	if (m_Status == STATE_Playing && m_Stream != nullptr)
 	{
 		if (m_Stream->SetPaused (true))
 			m_Status = STATE_Paused;
@@ -26,7 +26,7 @@ void StreamSong::Pause ()
 
 void StreamSong::Resume ()
 {
-	if (m_Status == STATE_Paused && m_Stream != NULL)
+	if (m_Status == STATE_Paused && m_Stream != nullptr)
 	{
 		if (m_Stream->SetPaused (false))
 			m_Status = STATE_Playing;
@@ -45,10 +45,10 @@ void StreamSong::Stop ()
 StreamSong::~StreamSong ()
 {
 	Stop ();
-	if (m_Stream != NULL)
+	if (m_Stream != nullptr)
 	{
 		delete m_Stream;
-		m_Stream = NULL;
+		m_Stream = nullptr;
 	}
 }
 
@@ -83,7 +83,7 @@ bool StreamSong::IsPlaying ()
 
 bool StreamSong::SetPosition(unsigned int pos)
 {
-	if (m_Stream != NULL)
+	if (m_Stream != nullptr)
 	{
 		return m_Stream->SetPosition(pos);
 	}
@@ -95,7 +95,7 @@ bool StreamSong::SetPosition(unsigned int pos)
 
 bool StreamSong::SetSubsong(int subsong)
 {
-	if (m_Stream != NULL)
+	if (m_Stream != nullptr)
 	{
 		return m_Stream->SetOrder(subsong);
 	}
@@ -107,7 +107,7 @@ bool StreamSong::SetSubsong(int subsong)
 
 FString StreamSong::GetStats()
 {
-	if (m_Stream != NULL)
+	if (m_Stream != nullptr)
 	{
 		return m_Stream->GetStats();
 	}

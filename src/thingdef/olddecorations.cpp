@@ -79,7 +79,7 @@ public:
 
 	bool TryPickup (AActor *&toucher)
 	{
-		INTBOOL success = P_ExecuteSpecial(special, NULL, toucher, false,
+		INTBOOL success = P_ExecuteSpecial(special, nullptr, toucher, false,
 			args[0], args[1], args[2], args[3], args[4]);
 
 		if (success)
@@ -118,7 +118,7 @@ static const char *RenderStyles[] =
 	"STYLE_Translucent",
 	"STYLE_Add",
 	//"STYLE_Shaded",
-	NULL
+	nullptr
 };
 
 // CODE --------------------------------------------------------------------
@@ -221,7 +221,7 @@ void ParseOldDecoration(FScanner &sc, EDefinitionType def)
 			}
 			if (extra.bDiesAway || def == DEF_Projectile)
 			{
-				type->OwnedStates[i].NextState = NULL;
+				type->OwnedStates[i].NextState = nullptr;
 			}
 			else
 			{
@@ -272,7 +272,7 @@ void ParseOldDecoration(FScanner &sc, EDefinitionType def)
 			}
 			if (extra.bBurnAway)
 			{
-				type->OwnedStates[i].NextState = NULL;
+				type->OwnedStates[i].NextState = nullptr;
 			}
 			else
 			{
@@ -593,11 +593,11 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 		}
 		else if (sc.String[0] != '*')
 		{
-			HandleActorFlag(sc, bag, sc.String, NULL, '+');
+			HandleActorFlag(sc, bag, sc.String, nullptr, '+');
 		}
 		else
 		{
-			sc.ScriptError (NULL);
+			sc.ScriptError (nullptr);
 		}
 		sc.MustGetString ();
 	}
@@ -655,7 +655,7 @@ static void ParseSpriteFrames (PClassActor *info, TArray<FState> &states, FScann
 
 	memset (&state, 0, sizeof(state));
 
-	while (token != NULL)
+	while (token != nullptr)
 	{
 		// Skip leading white space
 		while (*token == ' ')
@@ -665,7 +665,7 @@ static void ParseSpriteFrames (PClassActor *info, TArray<FState> &states, FScann
 		bool firstState = true;
 		char *colon = strchr (token, ':');
 
-		if (colon != NULL)
+		if (colon != nullptr)
 		{
 			char *stop;
 
@@ -714,7 +714,7 @@ static void ParseSpriteFrames (PClassActor *info, TArray<FState> &states, FScann
 			states.Push (state);
 		}
 
-		token = strtok (NULL, ",\t\n\r");
+		token = strtok (nullptr, ",\t\n\r");
 	}
 }
 

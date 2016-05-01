@@ -61,7 +61,7 @@ void A_Fire(AActor *self, double height)
 	AActor *dest;
 				
 	dest = self->tracer;
-	if (dest == NULL || self->target == NULL)
+	if (dest == nullptr || self->target == nullptr)
 		return;
 				
 	// don't move it if the vile lost sight
@@ -122,7 +122,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_VileAttack)
 
 	AActor *fire, *target;
 		
-	if (NULL == (target = self->target))
+	if (nullptr == (target = self->target))
 		return 0;
 	
 	A_FaceTarget (self);
@@ -144,7 +144,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_VileAttack)
 		
 	fire = self->tracer;
 
-	if (fire != NULL)
+	if (fire != nullptr)
 	{
 		// move the fire between the vile and the player
 		DVector3 pos = target->Vec3Angle(-24., self->Angles.Yaw, 0);

@@ -13,7 +13,7 @@ protected:
 	FString parsedString;
 
 	void Skip();
-	FName ParseKey(bool checkblock = false, bool *isblock = NULL);
+	FName ParseKey(bool checkblock = false, bool *isblock = nullptr);
 	int CheckInt(const char *key);
 	double CheckFloat(const char *key);
 	DAngle CheckAngle(const char *key);

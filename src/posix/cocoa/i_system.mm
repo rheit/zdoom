@@ -323,7 +323,7 @@ int I_FindClose(void* const handle)
 		}
 
 		free(state->namelist);
-		state->namelist = NULL;
+		state->namelist = nullptr;
 		state->count = 0;
 	}
 

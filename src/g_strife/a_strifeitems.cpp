@@ -30,7 +30,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_RemoveForceField)
 	for (int i = 0; i < self->Sector->linecount; ++i)
 	{
 		line_t *line = self->Sector->lines[i];
-		if (line->backsector != NULL && line->special == ForceField)
+		if (line->backsector != nullptr && line->special == ForceField)
 		{
 			line->flags &= ~(ML_BLOCKING|ML_BLOCKEVERYTHING);
 			line->special = 0;
@@ -57,7 +57,7 @@ bool ADegninOre::Use (bool pickup)
 		// Amount again and disposing of this item if there are no more.
 		Amount++;
 		drop = Owner->DropInventory (this);
-		if (drop == NULL)
+		if (drop == nullptr)
 		{
 			Amount--;
 			return false;
@@ -83,7 +83,7 @@ bool AHealthTraining::TryPickup (AActor *&toucher)
 	{
 		toucher->GiveInventoryType (PClass::FindActor("GunTraining"));
 		AInventory *coin = Spawn<ACoin> ();
-		if (coin != NULL)
+		if (coin != nullptr)
 		{
 			coin->Amount = toucher->player->mo->accuracy*5 + 300;
 			if (!coin->CallTryPickup (toucher))
@@ -135,7 +135,7 @@ IMPLEMENT_CLASS (APrisonPass)
 bool APrisonPass::TryPickup (AActor *&toucher)
 {
 	Super::TryPickup (toucher);
-	EV_DoDoor (DDoor::doorOpen, NULL, toucher, 223, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorOpen, nullptr, toucher, 223, 2., 0, 0, 0);
 	toucher->GiveInventoryType (QuestItemClasses[9]);
 	return true;
 }
@@ -152,7 +152,7 @@ bool APrisonPass::TryPickup (AActor *&toucher)
 
 bool APrisonPass::SpecialDropAction (AActor *dropper)
 {
-	EV_DoDoor (DDoor::doorOpen, NULL, dropper, 223, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorOpen, nullptr, dropper, 223, 2., 0, 0, 0);
 	Destroy ();
 	return true;
 }
@@ -210,7 +210,7 @@ IMPLEMENT_CLASS (AOpenDoor222)
 
 bool AOpenDoor222::TryPickup (AActor *&toucher)
 {
-	EV_DoDoor (DDoor::doorOpen, NULL, toucher, 222, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorOpen, nullptr, toucher, 222, 2., 0, 0, 0);
 	GoAwayAndDie ();
 	return true;
 }
@@ -229,14 +229,14 @@ IMPLEMENT_CLASS (ACloseDoor222)
 
 bool ACloseDoor222::TryPickup (AActor *&toucher)
 {
-	EV_DoDoor (DDoor::doorClose, NULL, toucher, 222, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorClose, nullptr, toucher, 222, 2., 0, 0, 0);
 	GoAwayAndDie ();
 	return true;
 }
 
 bool ACloseDoor222::SpecialDropAction (AActor *dropper)
 {
-	EV_DoDoor (DDoor::doorClose, NULL, dropper, 222, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorClose, nullptr, dropper, 222, 2., 0, 0, 0);
 	if (dropper->target->CheckLocalView (consoleplayer))
 	{
 		Printf ("You're dead!  You set off the alarm.\n");
@@ -260,14 +260,14 @@ IMPLEMENT_CLASS (AOpenDoor224)
 
 bool AOpenDoor224::TryPickup (AActor *&toucher)
 {
-	EV_DoDoor (DDoor::doorOpen, NULL, toucher, 224, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorOpen, nullptr, toucher, 224, 2., 0, 0, 0);
 	GoAwayAndDie ();
 	return true;
 }
 
 bool AOpenDoor224::SpecialDropAction (AActor *dropper)
 {
-	EV_DoDoor (DDoor::doorOpen, NULL, dropper, 224, 2., 0, 0, 0);
+	EV_DoDoor (DDoor::doorOpen, nullptr, dropper, 224, 2., 0, 0, 0);
 	Destroy ();
 	return true;
 }
@@ -286,13 +286,13 @@ IMPLEMENT_CLASS (AAmmoFillup)
 bool AAmmoFillup::TryPickup (AActor *&toucher)
 {
 	PClassActor *clip = PClass::FindActor(NAME_ClipOfBullets);
-	if (clip != NULL)
+	if (clip != nullptr)
 	{
 		AInventory *item = toucher->FindInventory(clip);
-		if (item == NULL)
+		if (item == nullptr)
 		{
 			item = toucher->GiveInventoryType (clip);
-			if (item != NULL)
+			if (item != nullptr)
 			{
 				item->Amount = 50;
 			}
@@ -340,7 +340,7 @@ IMPLEMENT_CLASS (AUpgradeStamina)
 
 bool AUpgradeStamina::TryPickup (AActor *&toucher)
 {
-	if (toucher->player == NULL)
+	if (toucher->player == nullptr)
 		return false;
 		
 	toucher->player->mo->stamina += Amount;
@@ -358,7 +358,7 @@ IMPLEMENT_CLASS (AUpgradeAccuracy)
 
 bool AUpgradeAccuracy::TryPickup (AActor *&toucher)
 {
-	if (toucher->player == NULL || toucher->player->mo->accuracy >= 100)
+	if (toucher->player == nullptr || toucher->player->mo->accuracy >= 100)
 		return false;
 	toucher->player->mo->accuracy += 10;
 	GoAwayAndDie ();

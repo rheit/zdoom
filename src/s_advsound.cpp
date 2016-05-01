@@ -70,10 +70,10 @@ struct FRandomSoundList
 	}
 	~FRandomSoundList()
 	{
-		if (Sounds != NULL)
+		if (Sounds != nullptr)
 		{
 			delete[] Sounds;
-			Sounds = NULL;
+			Sounds = nullptr;
 		}
 	}
 
@@ -211,7 +211,7 @@ static void S_ParsePlayerSoundCommon (FScanner &sc, FString &pclass, int &gender
 static void S_AddSNDINFO (int lumpnum);
 static void S_AddBloodSFX (int lumpnum);
 static void S_AddStrifeVoice (int lumpnum);
-static int S_AddSound (const char *logicalname, int lumpnum, FScanner *sc=NULL);
+static int S_AddSound (const char *logicalname, int lumpnum, FScanner *sc=nullptr);
 
 // EXTERNAL DATA DECLARATIONS ----------------------------------------------
 
@@ -251,7 +251,7 @@ static const char *SICommandStrings[] =
 	"$musicalias",
 	"$edfoverride",
 	"$attenuation",
-	NULL
+	nullptr
 };
 
 static TArray<FRandomSoundList> S_rnd;
@@ -285,7 +285,7 @@ float S_GetMusicVolume (const char *music)
 {
 	FMusicVolume *musvol = MusicVolumes;
 
-	while (musvol != NULL)
+	while (musvol != nullptr)
 	{
 		if (!stricmp (music, musvol->MusicName))
 		{
@@ -367,7 +367,7 @@ unsigned int S_GetMSLength(FSoundID sound)
 	{
 		if (sfx->bPlayerReserve)
 		{
-			sfx = &S_sfx[S_FindSkinnedSound (NULL, sound)];
+			sfx = &S_sfx[S_FindSkinnedSound (nullptr, sound)];
 		}
 		else if (sfx->bRandomHeader)
 		{
@@ -393,7 +393,7 @@ unsigned int S_GetMSLength(FSoundID sound)
 	}
 
 	sfx = S_LoadSound(sfx);
-	if (sfx != NULL) return GSnd->GetMSLength(sfx->data);
+	if (sfx != nullptr) return GSnd->GetMSLength(sfx->data);
 	else return 0;
 }
 
@@ -431,7 +431,7 @@ int S_FindSound (const char *logicalname)
 {
 	int i;
 
-	if (logicalname != NULL)
+	if (logicalname != nullptr)
 	{
 		i = S_sfx[MakeKey (logicalname) % S_sfx.Size ()].index;
 
@@ -574,7 +574,7 @@ static int S_AddSound (const char *logicalname, int lumpnum, FScanner *sc)
 
 		if (sfx->bPlayerReserve)
 		{
-			if (sc != NULL)
+			if (sc != nullptr)
 			{
 				sc->ScriptError ("Sounds that are reserved for players cannot be reassigned");
 			}
@@ -592,7 +592,7 @@ static int S_AddSound (const char *logicalname, int lumpnum, FScanner *sc)
 		{
 			FRandomSoundList *rnd = &S_rnd[sfx->link];
 			delete[] rnd->Sounds;
-			rnd->Sounds = NULL;
+			rnd->Sounds = nullptr;
 			rnd->NumSounds = 0;
 			rnd->SfxHead = 0;
 		}
@@ -734,7 +734,7 @@ void FPlayerSoundHashTable::Init ()
 {
 	for (int i = 0; i < NUM_BUCKETS; ++i)
 	{
-		Buckets[i] = NULL;
+		Buckets[i] = nullptr;
 	}
 }
 
@@ -750,13 +750,13 @@ void FPlayerSoundHashTable::Free ()
 	{
 		Entry *entry, *next;
 
-		for (entry = Buckets[i]; entry != NULL; )
+		for (entry = Buckets[i]; entry != nullptr; )
 		{
 			next = entry->Next;
 			delete entry;
 			entry = next;
 		}
-		Buckets[i] = NULL;
+		Buckets[i] = nullptr;
 	}
 }
 
@@ -773,7 +773,7 @@ FPlayerSoundHashTable &FPlayerSoundHashTable::operator= (const FPlayerSoundHashT
 	{
 		Entry *entry;
 
-		for (entry = other.Buckets[i]; entry != NULL; entry = entry->Next)
+		for (entry = other.Buckets[i]; entry != nullptr; entry = entry->Next)
 		{
 			AddSound (entry->PlayerSoundID, entry->SfxID);
 		}
@@ -794,11 +794,11 @@ void FPlayerSoundHashTable::AddSound (int player_sound_id, int sfx_id)
 
 	// See if the entry exists already.
 	for (entry = Buckets[bucket_num];
-		 entry != NULL && entry->PlayerSoundID != player_sound_id;
+		 entry != nullptr && entry->PlayerSoundID != player_sound_id;
 		 entry = entry->Next)
 	{ }
 
-	if (entry != NULL)
+	if (entry != nullptr)
 	{ // If the player sound is already present, redefine it.
 		entry->SfxID = sfx_id;
 	}
@@ -825,11 +825,11 @@ int FPlayerSoundHashTable::LookupSound (int player_sound_id)
 
 	// See if the entry exists already.
 	for (entry = Buckets[bucket_num];
-		 entry != NULL && entry->PlayerSoundID != player_sound_id;
+		 entry != nullptr && entry->PlayerSoundID != player_sound_id;
 		 entry = entry->Next)
 	{ }
 
-	return entry != NULL ? entry->SfxID : 0;
+	return entry != nullptr ? entry->SfxID : 0;
 }
 
 //==========================================================================
@@ -844,7 +844,7 @@ void FPlayerSoundHashTable::MarkUsed()
 {
 	for (size_t i = 0; i < NUM_BUCKETS; ++i)
 	{
-		for (Entry *probe = Buckets[i]; probe != NULL; probe = probe->Next)
+		for (Entry *probe = Buckets[i]; probe != nullptr; probe = probe->Next)
 		{
 			S_sfx[probe->SfxID].bUsed = true;
 		}
@@ -871,7 +871,7 @@ static void S_ClearSoundData()
 	}
 	S_sfx.Clear();
 	Ambients.Clear();
-	while (MusicVolumes != NULL)
+	while (MusicVolumes != nullptr)
 	{
 		FMusicVolume *me = MusicVolumes;
 		MusicVolumes = me->Next;
@@ -1818,10 +1818,10 @@ int S_FindSkinnedSound (AActor *actor, FSoundID refid)
 	const char *pclass;
 	int gender = GENDER_MALE;
 
-	if (actor != NULL && actor->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
+	if (actor != nullptr && actor->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
 	{
 		pclass = static_cast<APlayerPawn*>(actor)->GetSoundClass ();
-		if (actor->player != NULL) gender = actor->player->userinfo.GetGender();
+		if (actor->player != nullptr) gender = actor->player->userinfo.GetGender();
 	}
 	else
 	{
@@ -2140,7 +2140,7 @@ void AAmbientSound::MarkPrecacheSounds() const
 {
 	Super::MarkPrecacheSounds();
 	FAmbientSound *ambient = Ambients.CheckKey(args[0]);
-	if (ambient != NULL)
+	if (ambient != nullptr)
 	{
 		ambient->sound.MarkUsed();
 	}
@@ -2163,7 +2163,7 @@ void AAmbientSound::Tick ()
 	int loop = 0;
 
 	ambient = Ambients.CheckKey(args[0]);
-	if (ambient == NULL)
+	if (ambient == nullptr)
 	{
 		return;
 	}
@@ -2248,7 +2248,7 @@ void AAmbientSound::SetTicker (struct FAmbientSound *ambient)
 void AAmbientSound::BeginPlay ()
 {
 	Super::BeginPlay ();
-	Activate (NULL);
+	Activate (nullptr);
 }
 
 //==========================================================================
@@ -2265,7 +2265,7 @@ void AAmbientSound::Activate (AActor *activator)
 
 	FAmbientSound *amb = Ambients.CheckKey(args[0]);
 
-	if (amb == NULL)
+	if (amb == nullptr)
 	{
 		Destroy ();
 		return;
@@ -2308,7 +2308,7 @@ void AAmbientSound::Deactivate (AActor *activator)
 	{
 		bActive = false;
 		FAmbientSound *ambient = Ambients.CheckKey(args[0]);
-		if (ambient != NULL && (ambient->type & CONTINUOUS) == CONTINUOUS)
+		if (ambient != nullptr && (ambient->type & CONTINUOUS) == CONTINUOUS)
 		{
 			S_StopSound (this, CHAN_BODY);
 		}
@@ -2335,7 +2335,7 @@ void S_ParseMusInfo()
 		{
 			level_info_t *map = FindLevelInfo(sc.String);
 
-			if (map == NULL)
+			if (map == nullptr)
 			{
 				// Don't abort for invalid maps
 				sc.ScriptMessage("Unknown map '%s'", sc.String);
@@ -2347,7 +2347,7 @@ void S_ParseMusInfo()
 				if (index > 0)
 				{
 					FName music = sc.String;
-					if (map != NULL)
+					if (map != nullptr)
 					{
 						map->MusicMap[index] = music;
 					}
@@ -2376,7 +2376,7 @@ IMPLEMENT_CLASS(AMusicChanger)
 
 bool AMusicChanger::DoTriggerAction (AActor *triggerer, int activationType)
 {
-	if (activationType & SECSPAC_Enter && triggerer->player != NULL)
+	if (activationType & SECSPAC_Enter && triggerer->player != nullptr)
 	{
 		if (triggerer->player->MUSINFOactor != this)
 		{

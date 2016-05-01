@@ -57,9 +57,9 @@ bool DThinker::bSerialOverride = false;
 
 void FThinkerList::AddTail(DThinker *thinker)
 {
-	assert(thinker->PrevThinker == NULL && thinker->NextThinker == NULL);
+	assert(thinker->PrevThinker == nullptr && thinker->NextThinker == nullptr);
 	assert(!(thinker->ObjectFlags & OF_EuthanizeMe));
-	if (Sentinel == NULL)
+	if (Sentinel == nullptr)
 	{
 		Sentinel = new DThinker(DThinker::NO_LINK);
 		Sentinel->ObjectFlags |= OF_Sentinel;
@@ -81,9 +81,9 @@ void FThinkerList::AddTail(DThinker *thinker)
 
 DThinker *FThinkerList::GetHead() const
 {
-	if (Sentinel == NULL || Sentinel->NextThinker == Sentinel)
+	if (Sentinel == nullptr || Sentinel->NextThinker == Sentinel)
 	{
-		return NULL;
+		return nullptr;
 	}
 	assert(Sentinel->NextThinker->PrevThinker == Sentinel);
 	return Sentinel->NextThinker;
@@ -91,25 +91,25 @@ DThinker *FThinkerList::GetHead() const
 
 DThinker *FThinkerList::GetTail() const
 {
-	if (Sentinel == NULL || Sentinel->PrevThinker == Sentinel)
+	if (Sentinel == nullptr || Sentinel->PrevThinker == Sentinel)
 	{
-		return NULL;
+		return nullptr;
 	}
 	return Sentinel->PrevThinker;
 }
 
 bool FThinkerList::IsEmpty() const
 {
-	return Sentinel == NULL || Sentinel->NextThinker == NULL;
+	return Sentinel == nullptr || Sentinel->NextThinker == nullptr;
 }
 
 void DThinker::SaveList(FArchive &arc, DThinker *node)
 {
-	if (node != NULL)
+	if (node != nullptr)
 	{
 		while (!(node->ObjectFlags & OF_Sentinel))
 		{
-			assert(node->NextThinker != NULL && !(node->NextThinker->ObjectFlags & OF_EuthanizeMe));
+			assert(node->NextThinker != nullptr && !(node->NextThinker->ObjectFlags & OF_EuthanizeMe));
 			arc << node;
 			node = node->NextThinker;
 		}
@@ -145,8 +145,8 @@ void DThinker::SerializeAll(FArchive &arc, bool hubLoad)
 				arc << stat;
 				SaveList(arc, Thinkers[i].GetHead());
 				SaveList(arc, FreshThinkers[i].GetHead());
-				thinker = NULL;
-				arc << thinker;		// Save a final NULL for this list
+				thinker = nullptr;
+				arc << thinker;		// Save a final nullptr for this list
 			}
 		}
 	}
@@ -166,11 +166,11 @@ void DThinker::SerializeAll(FArchive &arc, bool hubLoad)
 			while (statcount > 0)
 			{
 				arc << stat << thinker;
-				while (thinker != NULL)
+				while (thinker != nullptr)
 				{
 					// This may be a player stored in their ancillary list. Remove
 					// them first before inserting them into the new list.
-					if (thinker->NextThinker != NULL)
+					if (thinker->NextThinker != nullptr)
 					{
 						thinker->Remove();
 					}
@@ -206,8 +206,8 @@ void DThinker::SerializeAll(FArchive &arc, bool hubLoad)
 
 DThinker::DThinker (int statnum) throw()
 {
-	NextThinker = NULL;
-	PrevThinker = NULL;
+	NextThinker = nullptr;
+	PrevThinker = nullptr;
 	if (bSerialOverride)
 	{ // The serializer will insert us into the right list
 		return;
@@ -228,14 +228,14 @@ DThinker::DThinker(no_link_type foo) throw()
 
 DThinker::~DThinker ()
 {
-	assert(NextThinker == NULL && PrevThinker == NULL);
+	assert(NextThinker == nullptr && PrevThinker == nullptr);
 }
 
 void DThinker::Destroy ()
 {
-	assert((NextThinker != NULL && PrevThinker != NULL) ||
-		   (NextThinker == NULL && PrevThinker == NULL));
-	if (NextThinker != NULL)
+	assert((NextThinker != nullptr && PrevThinker != nullptr) ||
+		   (NextThinker == nullptr && PrevThinker == nullptr));
+	if (NextThinker != nullptr)
 	{
 		Remove();
 	}
@@ -250,7 +250,7 @@ void DThinker::Remove()
 	}
 	DThinker *prev = PrevThinker;
 	DThinker *next = NextThinker;
-	assert(prev != NULL && next != NULL);
+	assert(prev != nullptr && next != nullptr);
 	assert((ObjectFlags & OF_Sentinel) || (prev != this && next != this));
 	assert(prev->NextThinker == this);
 	assert(next->PrevThinker == this);
@@ -258,8 +258,8 @@ void DThinker::Remove()
 	next->PrevThinker = prev;
 	GC::WriteBarrier(prev, next);
 	GC::WriteBarrier(next, prev);
-	NextThinker = NULL;
-	PrevThinker = NULL;
+	NextThinker = nullptr;
+	PrevThinker = nullptr;
 }
 
 void DThinker::PostBeginPlay ()
@@ -275,12 +275,12 @@ DThinker *DThinker::FirstThinker (int statnum)
 		statnum = MAX_STATNUM;
 	}
 	node = Thinkers[statnum].GetHead();
-	if (node == NULL)
+	if (node == nullptr)
 	{
 		node = FreshThinkers[statnum].GetHead();
-		if (node == NULL)
+		if (node == nullptr)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	return node;
@@ -291,7 +291,7 @@ void DThinker::ChangeStatNum (int statnum)
 	FThinkerList *list;
 
 	// This thinker should already be in a list; verify that.
-	assert(NextThinker != NULL && PrevThinker != NULL);
+	assert(NextThinker != nullptr && PrevThinker != nullptr);
 
 	if ((unsigned)statnum > MAX_STATNUM)
 	{
@@ -357,15 +357,15 @@ void DThinker::DestroyMostThinkers ()
 
 void DThinker::DestroyThinkersInList (FThinkerList &list)
 {
-	if (list.Sentinel != NULL)
+	if (list.Sentinel != nullptr)
 	{
 		for (DThinker *node = list.Sentinel->NextThinker; node != list.Sentinel; node = list.Sentinel->NextThinker)
 		{
-			assert(node != NULL);
+			assert(node != nullptr);
 			node->Destroy();
 		}
 		list.Sentinel->Destroy();
-		list.Sentinel = NULL;
+		list.Sentinel = nullptr;
 	}
 }
 
@@ -375,7 +375,7 @@ void DThinker::DestroyMostThinkersInList (FThinkerList &list, int stat)
 	{
 		DestroyThinkersInList (list);
 	}
-	else if (list.Sentinel != NULL)
+	else if (list.Sentinel != nullptr)
 	{ // If it's a voodoo doll, destroy it. Otherwise, simply remove
 	  // it from the list. G_FinishTravel() will find it later from
 	  // a players[].mo link and destroy it then, after copying various
@@ -383,7 +383,7 @@ void DThinker::DestroyMostThinkersInList (FThinkerList &list, int stat)
 		for (DThinker *probe = list.Sentinel->NextThinker; probe != list.Sentinel; probe = list.Sentinel->NextThinker)
 		{
 			if (!probe->IsKindOf(RUNTIME_CLASS(APlayerPawn)) ||		// <- should not happen
-				static_cast<AActor *>(probe)->player == NULL ||
+				static_cast<AActor *>(probe)->player == nullptr ||
 				static_cast<AActor *>(probe)->player->mo != probe)
 			{
 				probe->Destroy();
@@ -416,7 +416,7 @@ void DThinker::RunThinkers ()
 	// Tick every thinker left from last time
 	for (i = STAT_FIRST_THINKING; i <= MAX_STATNUM; ++i)
 	{
-		TickThinkers (&Thinkers[i], NULL);
+		TickThinkers (&Thinkers[i], nullptr);
 	}
 
 	// Keep ticking the fresh thinkers until there are no new ones.
@@ -437,7 +437,7 @@ int DThinker::TickThinkers (FThinkerList *list, FThinkerList *dest)
 	int count = 0;
 	DThinker *node = list->GetHead();
 
-	if (node == NULL)
+	if (node == nullptr)
 	{
 		return 0;
 	}
@@ -449,14 +449,14 @@ int DThinker::TickThinkers (FThinkerList *list, FThinkerList *dest)
 		if (node->ObjectFlags & OF_JustSpawned)
 		{
 			// Leave OF_JustSpawn set until after Tick() so the ticker can check it.
-			if (dest != NULL)
+			if (dest != nullptr)
 			{ // Move thinker from this list to the destination list
 				node->Remove();
 				dest->AddTail(node);
 			}
 			node->PostBeginPlay();
 		}
-		else if (dest != NULL)
+		else if (dest != nullptr)
 		{
 			I_Error("There is a thinker in the fresh list that has already ticked.\n");
 		}
@@ -478,8 +478,8 @@ void DThinker::Tick ()
 
 size_t DThinker::PropagateMark()
 {
-	assert(NextThinker != NULL && !(NextThinker->ObjectFlags & OF_EuthanizeMe));
-	assert(PrevThinker != NULL && !(PrevThinker->ObjectFlags & OF_EuthanizeMe));
+	assert(NextThinker != nullptr && !(NextThinker->ObjectFlags & OF_EuthanizeMe));
+	assert(PrevThinker != nullptr && !(PrevThinker->ObjectFlags & OF_EuthanizeMe));
 	GC::Mark(NextThinker);
 	GC::Mark(PrevThinker);
 	return Super::PropagateMark();
@@ -515,7 +515,7 @@ FThinkerIterator::FThinkerIterator (const PClass *type, int statnum, DThinker *p
 		m_SearchStats = false;
 	}
 	m_ParentType = type;
-	if (prev == NULL || (prev->NextThinker->ObjectFlags & OF_Sentinel))
+	if (prev == nullptr || (prev->NextThinker->ObjectFlags & OF_Sentinel))
 	{
 		Reinit();
 	}
@@ -534,15 +534,15 @@ void FThinkerIterator::Reinit ()
 
 DThinker *FThinkerIterator::Next ()
 {
-	if (m_ParentType == NULL)
+	if (m_ParentType == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	do
 	{
 		do
 		{
-			if (m_CurrThinker != NULL)
+			if (m_CurrThinker != nullptr)
 			{
 				while (!(m_CurrThinker->ObjectFlags & OF_Sentinel))
 				{
@@ -570,7 +570,7 @@ DThinker *FThinkerIterator::Next ()
 		m_CurrThinker = DThinker::Thinkers[m_Stat].GetHead();
 		m_SearchingFresh = false;
 	} while (m_SearchStats && m_Stat != STAT_FIRST_THINKING);
-	return NULL;
+	return nullptr;
 }
 
 ADD_STAT (think)

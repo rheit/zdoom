@@ -100,7 +100,7 @@ level_info_t *FindLevelInfo (const char *mapname, bool allowdefault)
 		}
 		return &TheDefaultLevelInfo;
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -114,7 +114,7 @@ level_info_t *FindLevelByNum (int num)
 		if (wadlevelinfos[i].levelnum == num)
 			return &wadlevelinfos[i];
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -129,7 +129,7 @@ static level_info_t *FindLevelByWarpTrans (int num)
 		if (wadlevelinfos[i].WarpTrans == num)
 			return &wadlevelinfos[i];
 
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -143,7 +143,7 @@ bool CheckWarpTransMap (FString &mapname, bool substitute)
 		(mapname[2] & 0xDF) == 'T' && mapname[3] == '@')
 	{
 		level_info_t *lev = FindLevelByWarpTrans (atoi (&mapname[4]));
-		if (lev != NULL)
+		if (lev != nullptr)
 		{
 			mapname = lev->MapName;
 			return true;
@@ -248,7 +248,7 @@ void level_info_t::Reset()
 	WallVertLight = +8;
 	F1Pic = "";
 	musicorder = 0;
-	snapshot = NULL;
+	snapshot = nullptr;
 	snapshotVer = 0;
 	defered = 0;
 	skyspeed1 = skyspeed2 = 0.f;
@@ -292,7 +292,7 @@ FString level_info_t::LookupLevelName()
 		const char *lookedup;
 
 		lookedup = GStrings[LevelName];
-		if (lookedup == NULL)
+		if (lookedup == nullptr)
 		{
 			thename = LevelName;
 		}
@@ -319,7 +319,7 @@ FString level_info_t::LookupLevelName()
 				checkstring[0] = '\0';
 			}
 			thename = strstr (lookedup, checkstring);
-			if (thename == NULL)
+			if (thename == nullptr)
 			{
 				thename = lookedup;
 			}
@@ -341,8 +341,8 @@ FString level_info_t::LookupLevelName()
 
 void level_info_t::ClearSnapshot()
 {
-	if (snapshot != NULL) delete snapshot;
-	snapshot = NULL;
+	if (snapshot != nullptr) delete snapshot;
+	snapshot = nullptr;
 }
 
 //==========================================================================
@@ -359,7 +359,7 @@ void level_info_t::ClearDefered()
 		delete def;
 		def = next;
 	}
-	defered = NULL;
+	defered = nullptr;
 }
 
 //==========================================================================
@@ -372,7 +372,7 @@ level_info_t *level_info_t::CheckLevelRedirect ()
 	if (RedirectType != NAME_None)
 	{
 		PClassActor *type = PClass::FindActor(RedirectType);
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			for (int i = 0; i < MAXPLAYERS; ++i)
 			{
@@ -388,7 +388,7 @@ level_info_t *level_info_t::CheckLevelRedirect ()
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -496,7 +496,7 @@ void FMapInfoParser::ParseAssign()
 void FMapInfoParser::MustParseAssign()
 {
 	if (format_type == FMT_New) sc.MustGetStringName("=");
-	else sc.ScriptError(NULL);
+	else sc.ScriptError(nullptr);
 }
 
 //==========================================================================
@@ -739,7 +739,7 @@ void FMapInfoParser::ParseCluster()
 		{
 			ParseAssign();
 			sc.MustGetString();
-			clusterinfo->cdid = strtoul (sc.String, NULL, 16);
+			clusterinfo->cdid = strtoul (sc.String, nullptr, 16);
 		}
 		else if (sc.Compare("entertextislump"))
 		{
@@ -890,14 +890,14 @@ DEFINE_MAP_OPTION(fade, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetString();
-	info->fadeto = V_GetColor(NULL, parse.sc.String);
+	info->fadeto = V_GetColor(nullptr, parse.sc.String);
 }
 
 DEFINE_MAP_OPTION(outsidefog, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetString();
-	info->outsidefog = V_GetColor(NULL, parse.sc.String);
+	info->outsidefog = V_GetColor(nullptr, parse.sc.String);
 }
 
 DEFINE_MAP_OPTION(titlepatch, true)
@@ -961,7 +961,7 @@ DEFINE_MAP_OPTION(cdid, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetString();
-	info->cdid = strtoul (parse.sc.String, NULL, 16);
+	info->cdid = strtoul (parse.sc.String, nullptr, 16);
 }
 
 DEFINE_MAP_OPTION(warptrans, true)
@@ -1176,7 +1176,7 @@ DEFINE_MAP_OPTION(defaultenvironment, false)
 	{ // Named environment
 		parse.sc.MustGetString();
 		ReverbContainer *reverb = S_FindEnvironment(parse.sc.String);
-		if (reverb == NULL)
+		if (reverb == nullptr)
 		{
 			parse.sc.ScriptMessage("Unknown sound environment '%s'\n", parse.sc.String);
 			id = 0;
@@ -1335,7 +1335,7 @@ MapFlagHandlers[] =
 	{ "cd_end3_track",					MITYPE_EATNEXT,	0, 0 },
 	{ "cd_intermission_track",			MITYPE_EATNEXT,	0, 0 },
 	{ "cd_title_track",					MITYPE_EATNEXT,	0, 0 },
-	{ NULL, MITYPE_IGNORE, 0, 0}
+	{ nullptr, MITYPE_IGNORE, 0, 0}
 };
 
 //==========================================================================
@@ -1450,7 +1450,7 @@ void FMapInfoParser::ParseMapDefinition(level_info_t &info)
 			FAutoSegIterator probe(YRegHead, YRegTail);
 			bool success = false;
 
-			while (*++probe != NULL)
+			while (*++probe != nullptr)
 			{
 				if (sc.Compare(((FMapOptInfo *)(*probe))->name))
 				{
@@ -1586,7 +1586,7 @@ level_info_t *FMapInfoParser::ParseMapHeader(level_info_t &defaultinfo)
 	// Does this map have a song defined via SNDINFO's $map command?
 	// Set that as this map's default music if it does.
 	FString *song;
-	if ((song = HexenMusic.CheckKey(levelinfo->levelnum)) != NULL)
+	if ((song = HexenMusic.CheckKey(levelinfo->levelnum)) != nullptr)
 	{
 		levelinfo->Music = *song;
 	}
@@ -1948,7 +1948,7 @@ static void ClearMapinfo()
 	AllSkills.Clear();
 	DefaultSkill = -1;
 	DeinitIntermissions();
-	level.info = NULL;
+	level.info = nullptr;
 }
 
 //==========================================================================
@@ -1981,7 +1981,7 @@ void G_ParseMapInfo (FString basemapinfo)
 		parse.ParseMapInfo(baselump, gamedefaults, defaultinfo);
 	}
 
-	static const char *mapinfonames[] = { "MAPINFO", "ZMAPINFO", NULL };
+	static const char *mapinfonames[] = { "MAPINFO", "ZMAPINFO", nullptr };
 	int nindex;
 
 	// Parse any extra MAPINFOs.

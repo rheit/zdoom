@@ -148,7 +148,7 @@ static int printf_wrapper(FILE *f, const char *fmt, ...)
 	int count;
 
 	va_start(argptr, fmt);
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		count = VPrintf(PRINT_HIGH, fmt, argptr);
 	}
@@ -165,7 +165,7 @@ void VMDumpConstants(FILE *out, const VMScriptFunction *func)
 	char tmp[21];
 	int i, j, k, kk;
 
-	if (func->KonstD != NULL && func->NumKonstD != 0)
+	if (func->KonstD != nullptr && func->NumKonstD != 0)
 	{
 		printf_wrapper(out, "\nConstant integers:\n");
 		kk = (func->NumKonstD + 3) / 4;
@@ -179,7 +179,7 @@ void VMDumpConstants(FILE *out, const VMScriptFunction *func)
 			printf_wrapper(out, "\n");
 		}
 	}
-	if (func->KonstF != NULL && func->NumKonstF != 0)
+	if (func->KonstF != nullptr && func->NumKonstF != 0)
 	{
 		printf_wrapper(out, "\nConstant floats:\n");
 		kk = (func->NumKonstF + 3) / 4;
@@ -193,7 +193,7 @@ void VMDumpConstants(FILE *out, const VMScriptFunction *func)
 			printf_wrapper(out, "\n");
 		}
 	}
-	if (func->KonstA != NULL && func->NumKonstA != 0)
+	if (func->KonstA != nullptr && func->NumKonstA != 0)
 	{
 		printf_wrapper(out, "\nConstant addresses:\n");
 		kk = (func->NumKonstA + 3) / 4;
@@ -207,7 +207,7 @@ void VMDumpConstants(FILE *out, const VMScriptFunction *func)
 			printf_wrapper(out, "\n");
 		}
 	}
-	if (func->KonstS != NULL && func->NumKonstS != 0)
+	if (func->KonstS != nullptr && func->NumKonstS != 0)
 	{
 		printf_wrapper(out, "\nConstant strings:\n");
 		for (i = 0; i < func->NumKonstS; ++i)
@@ -468,31 +468,31 @@ static int print_reg(FILE *out, int col, int arg, int mode, int immshift, const 
 		return col+printf_wrapper(out, "v%d", arg);
 
 	case MODE_KI:
-		if (func != NULL)
+		if (func != nullptr)
 		{
 			return col+printf_wrapper(out, "%d", func->KonstD[arg]);
 		}
 		return printf_wrapper(out, "kd%d", arg);
 	case MODE_KF:
-		if (func != NULL)
+		if (func != nullptr)
 		{
 			return col+printf_wrapper(out, "%#g", func->KonstF[arg]);
 		}
 		return col+printf_wrapper(out, "kf%d", arg);
 	case MODE_KS:
-		if (func != NULL)
+		if (func != nullptr)
 		{
 			return col+printf_wrapper(out, "\"%.27s\"", func->KonstS[arg].GetChars());
 		}
 		return col+printf_wrapper(out, "ks%d", arg);
 	case MODE_KP:
-		if (func != NULL)
+		if (func != nullptr)
 		{
 			return col+printf_wrapper(out, "%p", func->KonstA[arg]);
 		}
 		return col+printf_wrapper(out, "ka%d", arg);
 	case MODE_KV:
-		if (func != NULL)
+		if (func != nullptr)
 		{
 			return col+printf_wrapper(out, "(%f,%f,%f)", func->KonstF[arg], func->KonstF[arg+1], func->KonstF[arg+2]);
 		}

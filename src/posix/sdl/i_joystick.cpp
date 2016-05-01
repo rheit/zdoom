@@ -13,7 +13,7 @@ public:
 	SDLInputJoystick(int DeviceIndex) : DeviceIndex(DeviceIndex), Multiplier(1.0f)
 	{
 		Device = SDL_JoystickOpen(DeviceIndex);
-		if(Device != NULL)
+		if(Device != nullptr)
 		{
 			NumAxes = SDL_JoystickNumAxes(Device);
 			NumHats = SDL_JoystickNumHats(Device);
@@ -23,14 +23,14 @@ public:
 	}
 	~SDLInputJoystick()
 	{
-		if(Device != NULL)
+		if(Device != nullptr)
 			M_SaveJoystickConfig(this);
 		SDL_JoystickClose(Device);
 	}
 
 	bool IsValid() const
 	{
-		return Device != NULL;
+		return Device != nullptr;
 	}
 
 	FString GetName()
@@ -305,5 +305,5 @@ void I_ProcessJoysticks()
 
 IJoystickConfig *I_UpdateDeviceList()
 {
-	return NULL;
+	return nullptr;
 }

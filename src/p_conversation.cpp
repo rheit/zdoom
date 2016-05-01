@@ -152,7 +152,7 @@ void SetConversation(int convid, PClassActor *Class, int dlgindex)
 	{
 		DialogueRoots[convid] = dlgindex;
 	}
-	if (Class != NULL)
+	if (Class != nullptr)
 	{
 		ClassRoots[Class->TypeName] = dlgindex;
 	}
@@ -161,21 +161,21 @@ void SetConversation(int convid, PClassActor *Class, int dlgindex)
 PClassActor *GetStrifeType (int typenum)
 {
 	PClassActor **ptype = StrifeTypes.CheckKey(typenum);
-	if (ptype == NULL) return NULL;
+	if (ptype == nullptr) return nullptr;
 	else return *ptype;
 }
 
 int GetConversation(int conv_id)
 {
 	int *pindex = DialogueRoots.CheckKey(conv_id);
-	if (pindex == NULL) return -1;
+	if (pindex == nullptr) return -1;
 	else return *pindex;
 }
 
 int GetConversation(FName classname)
 {
 	int *pindex = ClassRoots.CheckKey(classname);
-	if (pindex == NULL) return -1;
+	if (pindex == nullptr) return -1;
 	else return *pindex;
 }
 
@@ -339,7 +339,7 @@ static FStrifeDialogueNode *ReadRetailNode (FileReader *lump, DWORD &prevSpeaker
 
 	if ((signed)(speech.SpeakerType) >= 0 && prevSpeakerType != speech.SpeakerType)
 	{
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			ClassRoots[type->TypeName] = StrifeDialogues.Size();
 		}
@@ -374,7 +374,7 @@ static FStrifeDialogueNode *ReadRetailNode (FileReader *lump, DWORD &prevSpeaker
 		node->ItemCheck[j].Amount = -1;
 	}
 	node->ItemCheckNode = speech.Link;
-	node->Children = NULL;
+	node->Children = nullptr;
 
 	ParseReplies (&node->Children, &speech.Responses[0]);
 
@@ -412,7 +412,7 @@ static FStrifeDialogueNode *ReadTeaserNode (FileReader *lump, DWORD &prevSpeaker
 
 	if ((signed)speech.SpeakerType >= 0 && prevSpeakerType != speech.SpeakerType)
 	{
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			ClassRoots[type->TypeName] = StrifeDialogues.Size();
 		}
@@ -448,11 +448,11 @@ static FStrifeDialogueNode *ReadTeaserNode (FileReader *lump, DWORD &prevSpeaker
 	node->ItemCheck.Resize(3);
 	for (j = 0; j < 3; ++j)
 	{
-		node->ItemCheck[j].Item = NULL;
+		node->ItemCheck[j].Item = nullptr;
 		node->ItemCheck[j].Amount = -1;
 	}
 	node->ItemCheckNode = 0;
-	node->Children = NULL;
+	node->Children = nullptr;
 
 	ParseReplies (&node->Children, &speech.Responses[0]);
 
@@ -504,7 +504,7 @@ static void ParseReplies (FStrifeDialogueReply **replyptr, Response *responses)
 
 		// The message to record in the log for this reply.
 		reply->LogNumber = rsp->Log;
-		reply->LogString = NULL;
+		reply->LogString = nullptr;
 
 		// The item to receive when this reply is used.
 		reply->GiveType = dyn_cast<PClassActor>(GetStrifeType (rsp->GiveType));
@@ -527,7 +527,7 @@ static void ParseReplies (FStrifeDialogueReply **replyptr, Response *responses)
 		// QuickNo messages are shown when you don't.
 		if (rsp->Yes[0] == '_' && rsp->Yes[1] == 0)
 		{
-			reply->QuickYes = NULL;
+			reply->QuickYes = nullptr;
 		}
 		else
 		{
@@ -539,7 +539,7 @@ static void ParseReplies (FStrifeDialogueReply **replyptr, Response *responses)
 		}
 		else
 		{
-			reply->QuickNo = NULL;
+			reply->QuickNo = nullptr;
 		}
 		reply->Next = *replyptr;
 		*replyptr = reply;
@@ -555,10 +555,10 @@ static void ParseReplies (FStrifeDialogueReply **replyptr, Response *responses)
 
 FStrifeDialogueNode::~FStrifeDialogueNode ()
 {
-	if (SpeakerName != NULL) delete[] SpeakerName;
-	if (Dialogue != NULL) delete[] Dialogue;
+	if (SpeakerName != nullptr) delete[] SpeakerName;
+	if (Dialogue != nullptr) delete[] Dialogue;
 	FStrifeDialogueReply *tokill = Children;
-	while (tokill != NULL)
+	while (tokill != nullptr)
 	{
 		FStrifeDialogueReply *next = tokill->Next;
 		delete tokill;
@@ -574,9 +574,9 @@ FStrifeDialogueNode::~FStrifeDialogueNode ()
 
 FStrifeDialogueReply::~FStrifeDialogueReply ()
 {
-	if (Reply != NULL) delete[] Reply;
-	if (QuickYes != NULL) delete[] QuickYes;
-	if (QuickNo != NULL) delete[] QuickNo;
+	if (Reply != nullptr) delete[] Reply;
+	if (QuickYes != nullptr) delete[] QuickYes;
+	if (QuickNo != nullptr) delete[] QuickNo;
 }
 
 //============================================================================
@@ -602,7 +602,7 @@ static int FindNode (const FStrifeDialogueNode *node)
 //
 // CheckStrifeItem
 //
-// Checks if you have an item. A NULL itemtype is always considered to be
+// Checks if you have an item. A nullptr itemtype is always considered to be
 // present.
 //
 //============================================================================
@@ -611,11 +611,11 @@ static bool CheckStrifeItem (player_t *player, PClassActor *itemtype, int amount
 {
 	AInventory *item;
 
-	if (itemtype == NULL || amount == 0)
+	if (itemtype == nullptr || amount == 0)
 		return true;
 
 	item = player->ConversationPC->FindInventory (itemtype);
-	if (item == NULL)
+	if (item == nullptr)
 		return false;
 
 	return amount < 0 || item->Amount >= amount;
@@ -632,7 +632,7 @@ static bool CheckStrifeItem (player_t *player, PClassActor *itemtype, int amount
 
 static void TakeStrifeItem (player_t *player, PClassActor *itemtype, int amount)
 {
-	if (itemtype == NULL || amount == 0)
+	if (itemtype == nullptr || amount == 0)
 		return;
 
 	// Don't take quest items.
@@ -686,7 +686,7 @@ public:
 	DConversationMenu(FStrifeDialogueNode *CurNode) 
 	{
 		mCurNode = CurNode;
-		mDialogueLines = NULL;
+		mDialogueLines = nullptr;
 		mShowGold = false;
 
 		// Format the speaker's message.
@@ -697,7 +697,7 @@ public:
 
 			dlgtext.Format("TXT_%s_%02d", toSay, 1+(pr_randomspeech() % NUM_RANDOM_LINES));
 			toSay = GStrings[dlgtext];
-			if (toSay == NULL)
+			if (toSay == nullptr)
 			{
 				toSay = GStrings["TXT_GOAWAY"];	// Ok, it's lame - but it doesn't look like an error to the player. ;)
 			}
@@ -710,7 +710,7 @@ public:
 				toSay = GStrings(toSay + 1);
 			}
 		}
-		if (toSay == NULL)
+		if (toSay == nullptr)
 		{
 			toSay = ".";
 		}
@@ -718,9 +718,9 @@ public:
 
 		FStrifeDialogueReply *reply;
 		int i,j;
-		for (reply = CurNode->Children, i = 1; reply != NULL; reply = reply->Next)
+		for (reply = CurNode->Children, i = 1; reply != nullptr; reply = reply->Next)
 		{
-			if (reply->Reply == NULL)
+			if (reply->Reply == nullptr)
 			{
 				continue;
 			}
@@ -747,7 +747,7 @@ public:
 		char goodbye[25];
 		mysnprintf(goodbye, countof(goodbye), "TXT_RANDOMGOODBYE_%d", 1+(pr_randomspeech() % NUM_RANDOM_GOODBYES));
 		const char *goodbyestr = GStrings[goodbye];
-		if (goodbyestr == NULL) goodbyestr = "Bye.";
+		if (goodbyestr == nullptr) goodbyestr = "Bye.";
 		mResponses.Push(mResponseLines.Size());
 		mResponseLines.Push(FString(goodbyestr));
 
@@ -774,7 +774,7 @@ public:
 	void Destroy()
 	{
 		V_FreeBrokenLines(mDialogueLines);
-		mDialogueLines = NULL;
+		mDialogueLines = nullptr;
 		I_SetMusicVolume (1.f);
 	}
 
@@ -911,12 +911,12 @@ public:
 
 		player_t *cp = &players[consoleplayer];
 
-		assert (mDialogueLines != NULL);
-		assert (mCurNode != NULL);
+		assert (mDialogueLines != nullptr);
+		assert (mCurNode != nullptr);
 
 		FStrifeDialogueNode *CurNode = mCurNode;
 
-		if (CurNode == NULL)
+		if (CurNode == nullptr)
 		{
 			Close ();
 			return;
@@ -937,7 +937,7 @@ public:
 		linesize = 10 * CleanYfac;
 
 		// Who is talking to you?
-		if (CurNode->SpeakerName != NULL)
+		if (CurNode->SpeakerName != nullptr)
 		{
 			speakerName = CurNode->SpeakerName;
 			if (speakerName[0] == '$') speakerName = GStrings(speakerName+1);
@@ -955,7 +955,7 @@ public:
 			{ }
 			screen->Dim (0, 0.45f, 14 * screen->GetWidth() / 320, 13 * screen->GetHeight() / 200,
 				308 * screen->GetWidth() / 320 - 14 * screen->GetWidth () / 320,
-				speakerName == NULL ? linesize * i + 6 * CleanYfac
+				speakerName == nullptr ? linesize * i + 6 * CleanYfac
 				: linesize * i + 6 * CleanYfac + linesize * 3/2);
 		}
 
@@ -966,7 +966,7 @@ public:
 			272 * CleanXfac,
 			MIN<int>(mResponseLines.Size() * OptionSettings.mLinespacing + 4, 200 - mYpos) * CleanYfac);
 
-		if (speakerName != NULL)
+		if (speakerName != nullptr)
 		{
 			screen->DrawText (SmallFont, CR_WHITE, x, y, speakerName,
 				DTA_CleanNoMove, true, TAG_DONE);
@@ -985,7 +985,7 @@ public:
 			AInventory *coin = cp->ConversationPC->FindInventory (RUNTIME_CLASS(ACoin));
 			char goldstr[32];
 
-			mysnprintf (goldstr, countof(goldstr), "%d", coin != NULL ? coin->Amount : 0);
+			mysnprintf (goldstr, countof(goldstr), "%d", coin != nullptr ? coin->Amount : 0);
 			screen->DrawText (SmallFont, CR_GRAY, 21, 191, goldstr, DTA_320x200, true,
 				DTA_FillColor, 0, DTA_AlphaF, HR_SHADOW, TAG_DONE);
 			screen->DrawTexture (TexMan(((AInventory *)GetDefaultByType (RUNTIME_CLASS(ACoin)))->Icon),
@@ -1055,8 +1055,8 @@ void P_FreeStrifeConversations ()
 	DialogueRoots.Clear();
 	ClassRoots.Clear();
 
-	PrevNode = NULL;
-	if (DMenu::CurrentMenu != NULL && DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DConversationMenu)))
+	PrevNode = nullptr;
+	if (DMenu::CurrentMenu != nullptr && DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DConversationMenu)))
 	{
 		DMenu::CurrentMenu->Close();
 	}
@@ -1076,7 +1076,7 @@ void P_StartConversation (AActor *npc, AActor *pc, bool facetalker, bool saveang
 	int i;
 
 	// Make sure this is actually a player.
-	if (pc->player == NULL) return;
+	if (pc->player == nullptr) return;
 
 	// [CW] If an NPC is talking to a PC already, then don't let
 	// anyone else talk to the NPC.
@@ -1123,7 +1123,7 @@ void P_StartConversation (AActor *npc, AActor *pc, bool facetalker, bool saveang
 	}
 
 	// Check if we should jump to another node
-	while (CurNode->ItemCheck.Size() > 0 && CurNode->ItemCheck[0].Item != NULL)
+	while (CurNode->ItemCheck.Size() > 0 && CurNode->ItemCheck[0].Item != nullptr)
 	{
 		bool jump = true;
 		for (i = 0; i < (int)CurNode->ItemCheck.Size(); ++i)
@@ -1188,7 +1188,7 @@ void P_ResumeConversation ()
 
 		player_t *p = &players[i];
 
-		if (p->ConversationPC != NULL && p->ConversationNPC != NULL)
+		if (p->ConversationPC != nullptr && p->ConversationNPC != nullptr)
 		{
 			P_StartConversation (p->ConversationNPC, p->ConversationPC, p->ConversationFaceTalker, false);
 		}
@@ -1205,24 +1205,24 @@ void P_ResumeConversation ()
 
 static void HandleReply(player_t *player, bool isconsole, int nodenum, int replynum)
 {
-	const char *replyText = NULL;
+	const char *replyText = nullptr;
 	FStrifeDialogueReply *reply;
 	FStrifeDialogueNode *node;
 	AActor *npc;
 	bool takestuff;
 	int i;
 
-	if (player->ConversationNPC == NULL || (unsigned)nodenum >= StrifeDialogues.Size())
+	if (player->ConversationNPC == nullptr || (unsigned)nodenum >= StrifeDialogues.Size())
 	{
 		return;
 	}
 
 	// Find the reply.
 	node = StrifeDialogues[nodenum];
-	for (i = 0, reply = node->Children; reply != NULL && i != replynum; ++i, reply = reply->Next)
+	for (i = 0, reply = node->Children; reply != nullptr && i != replynum; ++i, reply = reply->Next)
 	{ }
 	npc = player->ConversationNPC;
-	if (reply == NULL)
+	if (reply == nullptr)
 	{
 		// The default reply was selected
 		npc->Angles.Yaw = player->ConversationNPCAngle;
@@ -1252,13 +1252,13 @@ static void HandleReply(player_t *player, bool isconsole, int nodenum, int reply
 
 	// If this reply gives you something, then try to receive it.
 	takestuff = true;
-	if (reply->GiveType != NULL)
+	if (reply->GiveType != nullptr)
 	{
 		if (reply->GiveType->IsDescendantOf(RUNTIME_CLASS(AInventory)))
 		{
 			if (reply->GiveType->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
 			{
-				if (player->mo->FindInventory(reply->GiveType) != NULL)
+				if (player->mo->FindInventory(reply->GiveType) != nullptr)
 				{
 					takestuff = false;
 				}
@@ -1298,7 +1298,7 @@ static void HandleReply(player_t *player, bool isconsole, int nodenum, int reply
 
 	if (reply->ActionSpecial != 0)
 	{
-		takestuff |= !!P_ExecuteSpecial(reply->ActionSpecial, NULL, player->mo, false,
+		takestuff |= !!P_ExecuteSpecial(reply->ActionSpecial, nullptr, player->mo, false,
 			reply->Args[0], reply->Args[1], reply->Args[2], reply->Args[3], reply->Args[4]);
 	}
 
@@ -1317,7 +1317,7 @@ static void HandleReply(player_t *player, bool isconsole, int nodenum, int reply
 	}
 
 	// Update the quest log, if needed.
-	if (reply->LogString != NULL)
+	if (reply->LogString != nullptr)
 	{
 		const char *log = reply->LogString;
 		if (log[0] == '$')
@@ -1332,7 +1332,7 @@ static void HandleReply(player_t *player, bool isconsole, int nodenum, int reply
 		player->SetLogNumber(reply->LogNumber);
 	}
 
-	if (replyText != NULL && isconsole)
+	if (replyText != nullptr && isconsole)
 	{
 		TerminalResponse(replyText);
 	}
@@ -1371,15 +1371,15 @@ static void HandleReply(player_t *player, bool isconsole, int nodenum, int reply
 
 	npc->Angles.Yaw = player->ConversationNPCAngle;
 
-	// [CW] Set these to NULL because we're not using to them
+	// [CW] Set these to nullptr because we're not using to them
 	// anymore. However, this can interfere with slideshows
-	// so we don't set them to NULL in that case.
+	// so we don't set them to nullptr in that case.
 	if (gameaction != ga_slideshow)
 	{
 		npc->flags5 &= ~MF5_INCONVERSATION;
 		player->ConversationFaceTalker = false;
-		player->ConversationNPC = NULL;
-		player->ConversationPC = NULL;
+		player->ConversationNPC = nullptr;
+		player->ConversationPC = nullptr;
 		player->ConversationNPCAngle = 0.;
 	}
 
@@ -1403,7 +1403,7 @@ void P_ConversationCommand (int netcode, int pnum, BYTE **stream)
 
 	// The conversation menus are normally closed by the menu code, but that
 	// doesn't happen during demo playback, so we need to do it here.
-	if (demoplayback && DMenu::CurrentMenu != NULL &&
+	if (demoplayback && DMenu::CurrentMenu != nullptr &&
 		DMenu::CurrentMenu->IsKindOf(RUNTIME_CLASS(DConversationMenu)))
 	{
 		DMenu::CurrentMenu->Close();
@@ -1417,7 +1417,7 @@ void P_ConversationCommand (int netcode, int pnum, BYTE **stream)
 	else
 	{
 		assert(netcode == DEM_CONVNULL || netcode == DEM_CONVCLOSE);
-		if (player->ConversationNPC != NULL)
+		if (player->ConversationNPC != nullptr)
 		{
 			player->ConversationNPC->Angles.Yaw = player->ConversationNPCAngle;
 			player->ConversationNPC->flags5 &= ~MF5_INCONVERSATION;
@@ -1425,8 +1425,8 @@ void P_ConversationCommand (int netcode, int pnum, BYTE **stream)
 		if (netcode == DEM_CONVNULL)
 		{
 			player->ConversationFaceTalker = false;
-			player->ConversationNPC = NULL;
-			player->ConversationPC = NULL;
+			player->ConversationNPC = nullptr;
+			player->ConversationPC = nullptr;
 			player->ConversationNPCAngle = 0.;
 		}
 	}
@@ -1443,7 +1443,7 @@ void P_ConversationCommand (int netcode, int pnum, BYTE **stream)
 
 static void TerminalResponse (const char *str)
 {
-	if (str != NULL)
+	if (str != nullptr)
 	{
 		// handle string table replacement
 		if (str[0] == '$')
@@ -1451,7 +1451,7 @@ static void TerminalResponse (const char *str)
 			str = GStrings(str + 1);
 		}
 
-		if (StatusBar != NULL)
+		if (StatusBar != nullptr)
 		{
 			AddToConsole(-1, str);
 			AddToConsole(-1, "\n");
@@ -1476,14 +1476,14 @@ template<> FArchive &operator<< (FArchive &arc, FStrifeDialogueNode *&node)
 	DWORD convnum;
 	if (arc.IsStoring())
 	{
-		arc.WriteCount (node == NULL? ~0u : node->ThisNodeNum);
+		arc.WriteCount (node == nullptr? ~0u : node->ThisNodeNum);
 	}
 	else 
 	{
 		convnum = arc.ReadCount();
 		if (convnum >= StrifeDialogues.Size())
 		{
-			node = NULL;
+			node = nullptr;
 		}
 		else
 		{

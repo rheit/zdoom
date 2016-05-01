@@ -198,7 +198,7 @@ TArray<FString> I_GetSteamPath()
 	SteamInstallFolders.Push(appSupportPath + "/Steam/SteamApps/common");
 #else
 	char* home = getenv("HOME");
-	if(home != NULL && *home != '\0')
+	if(home != nullptr && *home != '\0')
 	{
 		FString regPath;
 		regPath.Format("%s/.local/share/Steam/config/config.vdf", home);

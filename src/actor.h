@@ -693,7 +693,7 @@ public:
 		return static_cast<T *> (FindInventory (RUNTIME_TEMPLATE_CLASS(T)));
 	}
 
-	// Adds one item of a particular type. Returns NULL if it could not be added.
+	// Adds one item of a particular type. Returns nullptr if it could not be added.
 	AInventory *GiveInventoryType (PClassActor *type);
 
 	// Returns the first item held with IF_INVBAR set.
@@ -738,7 +738,7 @@ public:
 
 	inline bool IsNoClip2() const;
 	void CheckPortalTransition(bool islinked);
-	DVector3 GetPortalTransition(double byoffset, sector_t **pSec = NULL);
+	DVector3 GetPortalTransition(double byoffset, sector_t **pSec = nullptr);
 
 	// What species am I?
 	virtual FName GetSpecies();
@@ -798,10 +798,10 @@ public:
 		}
 		else
 		{
-			return NULL;
+			return nullptr;
 		}
 
-		if (bloodcls != NULL)
+		if (bloodcls != nullptr)
 		{
 			bloodcls = bloodcls->GetReplacement();
 		}
@@ -958,7 +958,7 @@ public:
 
 	double GetGravity() const;
 	bool IsSentient() const;
-	const char *GetTag(const char *def = NULL) const;
+	const char *GetTag(const char *def = nullptr) const;
 	void SetTag(const char *def);
 
 	// Triggers SECSPAC_Exit/SECSPAC_Enter and related events if oldsec != current sector
@@ -1030,7 +1030,7 @@ public:
 	SBYTE			visdir;
 	SWORD			movecount;		// when 0, select a new dir
 	SWORD			strafecount;	// for MF3_AVOIDMELEE
-	TObjPtr<AActor> target;			// thing being chased/attacked (or NULL)
+	TObjPtr<AActor> target;			// thing being chased/attacked (or nullptr)
 									// also the originator for missiles
 	TObjPtr<AActor>	lastenemy;		// Last known enemy -- killough 2/15/98
 	TObjPtr<AActor> LastHeard;		// [RH] Last actor this one heard
@@ -1178,7 +1178,7 @@ private:
 	bool FixMapthingPos();
 
 public:
-	void LinkToWorld (bool spawningmapthing=false, sector_t *sector = NULL);
+	void LinkToWorld (bool spawningmapthing=false, sector_t *sector = nullptr);
 	void UnlinkFromWorld ();
 	void AdjustFloorClip ();
 	bool InStateSequence(FState * newstate, FState * basestate);
@@ -1377,7 +1377,7 @@ public:
 class FActorIterator
 {
 public:
-	FActorIterator (int i) : base (NULL), id (i)
+	FActorIterator (int i) : base (nullptr), id (i)
 	{
 	}
 	FActorIterator (int i, AActor *start) : base (start), id (i)
@@ -1386,7 +1386,7 @@ public:
 	AActor *Next ()
 	{
 		if (id == 0)
-			return NULL;
+			return nullptr;
 		if (!base)
 			base = AActor::TIDHash[id & 127];
 		else
@@ -1428,7 +1428,7 @@ public:
 	AActor *Next ()
 	{
 		AActor *actor;
-		if (type == NULL) return NULL;
+		if (type == nullptr) return nullptr;
 		do
 		{
 			actor = FActorIterator::Next ();

@@ -96,18 +96,18 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxChase)
 	{
 		FActorIterator iterator (KORAX_FIRST_TELEPORT_TID);
 		spot = iterator.Next ();
-		if (spot != NULL)
+		if (spot != nullptr)
 		{
 			P_Teleport (self, spot->PosAtZ(ONFLOORZ), spot->Angles.Yaw, TELF_SOURCEFOG | TELF_DESTFOG);
 		}
 
-		P_StartScript (self, NULL, 249, NULL, NULL, 0, 0);
+		P_StartScript (self, nullptr, 249, nullptr, nullptr, 0, 0);
 		self->special2 = 1;	// Don't run again
 
 		return 0;
 	}
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 	{
 		return 0;
 	}
@@ -127,12 +127,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxChase)
 		{
 			FActorIterator iterator (KORAX_TELEPORT_TID);
 
-			if (self->tracer != NULL)
+			if (self->tracer != nullptr)
 			{	// Find the previous teleport destination
 				do
 				{
 					spot = iterator.Next ();
-				} while (spot != NULL && spot != self->tracer);
+				} while (spot != nullptr && spot != self->tracer);
 			}
 
 			// Go to the next teleport destination
@@ -170,7 +170,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxBonePop)
 		}
 	}
 
-	P_StartScript (self, NULL, 255, NULL, NULL, 0, 0);		// Death script
+	P_StartScript (self, nullptr, 255, nullptr, nullptr, 0, 0);		// Death script
 	return 0;
 }
 
@@ -241,7 +241,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxMissile)
 	S_Sound(self, CHAN_VOICE, "KoraxAttack", 1, ATTN_NORM);
 
 	info = PClass::FindActor(choices[type].type);
-	if (info == NULL)
+	if (info == nullptr)
 	{
 		I_Error("Unknown Korax missile: %s\n", choices[type].type);
 	}
@@ -285,7 +285,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_KoraxCommand)
 		numcommands = 4;
 	}
 
-	P_StartScript (self, NULL, 250+(pr_koraxcommand()%numcommands), NULL, NULL, 0, 0);
+	P_StartScript (self, nullptr, 250+(pr_koraxcommand()%numcommands), nullptr, nullptr, 0, 0);
 	return 0;
 }
 
@@ -345,7 +345,7 @@ static void A_KSpiritSeeker (AActor *actor, DAngle thresh, DAngle turnMax)
 	double deltaZ;
 
 	target = actor->tracer;
-	if (target == NULL)
+	if (target == nullptr)
 	{
 		return;
 	}
@@ -495,5 +495,5 @@ AActor *P_SpawnKoraxMissile (const DVector3 &pos, AActor *source, AActor *dest, 
 	th->VelFromAngle();
 	dist = dest->DistanceBySpeed(th, th->Speed);
 	th->Vel.Z = (dest->Z() - pos.Z + 30) / dist;
-	return (P_CheckMissileSpawn(th, source->radius) ? th : NULL);
+	return (P_CheckMissileSpawn(th, source->radius) ? th : nullptr);
 }

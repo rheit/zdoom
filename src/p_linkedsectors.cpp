@@ -374,7 +374,7 @@ void P_AddSectorLinksByID(sector_t *control, int id, INTBOOL ceiling)
 			if ((movetype & LINK_FLOORMIRROR) == LINK_FLOORMIRRORFLAG) movetype &= ~LINK_FLOORMIRRORFLAG;
 			if ((movetype & LINK_CEILINGMIRROR) == LINK_CEILINGMIRRORFLAG) movetype &= ~LINK_CEILINGMIRRORFLAG;
 
-			if (movetype != 0 && ld->frontsector != NULL)//&& ld->frontsector != control) Needs to be allowed!
+			if (movetype != 0 && ld->frontsector != nullptr)//&& ld->frontsector != control) Needs to be allowed!
 			{
 				AddSingleSector(scrollplane, ld->frontsector, movetype);
 			}

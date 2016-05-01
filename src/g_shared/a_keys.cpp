@@ -29,7 +29,7 @@ struct OneKey
 			// Other calls check an actor that may have a key in its inventory.
 			AInventory *item;
 
-			for (item = owner->Inventory; item != NULL; item = item->Inventory)
+			for (item = owner->Inventory; item != nullptr; item = item->Inventory)
 			{
 				if (item->IsA(key))
 				{
@@ -83,7 +83,7 @@ struct Lock
 		// An empty key list means that any key will do
 		if (!keylist.Size())
 		{
-			for (AInventory * item = owner->Inventory; item != NULL; item = item->Inventory)
+			for (AInventory * item = owner->Inventory; item != nullptr; item = item->Inventory)
 			{
 				if (item->IsKindOf (RUNTIME_CLASS(AKey)))
 				{
@@ -114,7 +114,7 @@ static const char * keywords_lock[]={
 	"REMOTEMESSAGE",
 	"MAPCOLOR",
 	"LOCKEDSOUND",
-	NULL
+	nullptr
 };
 
 //===========================================================================
@@ -175,7 +175,7 @@ static Keygroup *ParseKeygroup(FScanner &sc)
 	if (keygroup->anykeylist.Size() == 0)
 	{
 		delete keygroup;
-		return NULL;
+		return nullptr;
 	}
 	keygroup->anykeylist.ShrinkToFit();
 	return keygroup;
@@ -188,7 +188,7 @@ static Keygroup *ParseKeygroup(FScanner &sc)
 
 static void PrintMessage (const char *str)
 {
-	if (str != NULL)
+	if (str != nullptr)
 	{
 		if (str[0]=='$') 
 		{
@@ -333,7 +333,7 @@ static void ClearLocks()
 		if (PClassActor::AllActorClasses[i]->IsDescendantOf(RUNTIME_CLASS(AKey)))
 		{
 			AKey *key = static_cast<AKey*>(GetDefaultByType(PClassActor::AllActorClasses[i]));
-			if (key != NULL)
+			if (key != nullptr)
 			{
 				key->KeyNumber = 0;
 			}
@@ -341,10 +341,10 @@ static void ClearLocks()
 	}
 	for(i = 0; i < 256; i++)
 	{
-		if (locks[i] != NULL) 
+		if (locks[i] != nullptr) 
 		{
 			delete locks[i];
-			locks[i] = NULL;
+			locks[i] = nullptr;
 		}
 	}
 	currentnumber = 0;
@@ -411,11 +411,11 @@ void P_DeinitKeyMessages()
 
 bool P_CheckKeys (AActor *owner, int keynum, bool remote)
 {
-	const char *failtext = NULL;
+	const char *failtext = nullptr;
 	FSoundID *failsound;
 	int numfailsounds;
 
-	if (owner == NULL) return false;
+	if (owner == nullptr) return false;
 	if (keynum<=0 || keynum>255) return true;
 	// Just a safety precaution. The messages should have been initialized upon game start.
 	if (!keysdone) P_InitKeyMessages();
@@ -485,7 +485,7 @@ bool AKey::HandlePickup (AInventory *item)
 		item->ItemFlags |= IF_PICKUPGOOD;
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}

@@ -126,7 +126,7 @@ CCMD (dumpmapthings)
 
 		for (unsigned i = 0; i < infos.Size (); ++i)
 		{
-			if (infos[i]->Value.Type != NULL)
+			if (infos[i]->Value.Type != nullptr)
 			{
 				Printf("%6d %s\n", infos[i]->Key, infos[i]->Value.Type->TypeName.GetChars());
 			}
@@ -164,7 +164,7 @@ void FMapInfoParser::ParseDoomEdNums()
 			sc.MustGetString();
 
 			bool *def = defined.CheckKey(ednum);
-			if (def != NULL)
+			if (def != nullptr)
 			{
 				sc.ScriptMessage("Editor Number %d defined more than once", ednum);
 				error++;
@@ -259,11 +259,11 @@ void InitActorNumsFromMapinfo()
 
 	while (it.NextPair(pair))
 	{
-		PClassActor *cls = NULL;
+		PClassActor *cls = nullptr;
 		if (pair->Value.classname != NAME_None)
 		{
 			cls = PClass::FindActor(pair->Value.classname);
-			if (cls == NULL)
+			if (cls == nullptr)
 			{
 				Printf(TEXTCOLOR_RED "Script error, \"%s\" line %d:\nUnknown actor class %s\n",
 					pair->Value.filename.GetChars(), pair->Value.linenum, pair->Value.classname.GetChars());

@@ -66,7 +66,7 @@ musicBlock::musicBlock ()
 
 musicBlock::~musicBlock ()
 {
-	if (OPLinstruments != NULL) free(OPLinstruments);
+	if (OPLinstruments != nullptr) free(OPLinstruments);
 }
 
 void musicBlock::writeFrequency(uint slot, uint note, int pitch, uint keyOn)
@@ -207,7 +207,7 @@ struct OP2instrEntry *musicBlock::getInstrument(uint channel, uchar note)
 	if (channel == PERCUSSION)
 	{
 		if (note < 35 || note > 81)
-			return NULL;		/* wrong percussion number */
+			return nullptr;		/* wrong percussion number */
 		instrnumber = note + (128-35);
 	}
 	else
@@ -218,7 +218,7 @@ struct OP2instrEntry *musicBlock::getInstrument(uint channel, uchar note)
 	if (OPLinstruments)
 		return &OPLinstruments[instrnumber];
 	else
-		return NULL;
+		return nullptr;
 }
 
 
@@ -236,7 +236,7 @@ void musicBlock::OPLplayNote(uint channel, uchar note, int volume)
 		return;
 	}
 
-	if ( (instr = getInstrument(channel, note)) == NULL )
+	if ( (instr = getInstrument(channel, note)) == nullptr )
 		return;
 
 	if ( (i = findFreeChannel((channel == PERCUSSION) ? 2 : 0, channel, note)) != -1)
@@ -462,10 +462,10 @@ int musicBlock::OPLloadBank (FileReader &data)
 	data.Read (filehdr, 8);
 	if (memcmp(filehdr, masterhdr, 8))
 		return -2;			/* bad instrument file */
-	if ( (instruments = (struct OP2instrEntry *)calloc(OP2INSTRCOUNT, OP2INSTRSIZE)) == NULL)
+	if ( (instruments = (struct OP2instrEntry *)calloc(OP2INSTRCOUNT, OP2INSTRSIZE)) == nullptr)
 		return -3;			/* not enough memory */
 	data.Read (instruments, OP2INSTRSIZE * OP2INSTRCOUNT);
-	if (OPLinstruments != NULL)
+	if (OPLinstruments != nullptr)
 	{
 		free(OPLinstruments);
 	}

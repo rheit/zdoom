@@ -26,8 +26,8 @@ void A_PainShootSkull (AActor *self, DAngle Angle, PClassActor *spawntype, int f
 	AActor *other;
 	double prestep;
 
-	if (spawntype == NULL) spawntype = PClass::FindActor("LostSoul");
-	assert(spawntype != NULL);
+	if (spawntype == nullptr) spawntype = PClass::FindActor("LostSoul");
+	assert(spawntype != nullptr);
 	if (self->DamageType == NAME_Massacre) return;
 
 	// [RH] check to make sure it's not too close to the ceiling
@@ -152,7 +152,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PainAttack)
 	if (!self->target)
 		return 0;
 
-	PARAM_CLASS_OPT (spawntype, AActor)	{ spawntype = NULL; }
+	PARAM_CLASS_OPT (spawntype, AActor)	{ spawntype = nullptr; }
 	PARAM_ANGLE_OPT (angle)				{ angle = 0.; }
 	PARAM_INT_OPT   (flags)				{ flags = 0; }
 	PARAM_INT_OPT   (limit)				{ limit = -1; }
@@ -166,7 +166,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PainAttack)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DualPainAttack)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, AActor) { spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, AActor) { spawntype = nullptr; }
 
 	if (!self->target)
 		return 0;
@@ -180,9 +180,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_DualPainAttack)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_PainDie)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT(spawntype, AActor) { spawntype = NULL; }
+	PARAM_CLASS_OPT(spawntype, AActor) { spawntype = nullptr; }
 
-	if (self->target != NULL && self->IsFriend(self->target))
+	if (self->target != nullptr && self->IsFriend(self->target))
 	{ // And I thought you were my friend!
 		self->flags &= ~MF_FRIENDLY;
 	}

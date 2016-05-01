@@ -81,17 +81,17 @@ void ATeleportFog::PostBeginPlay ()
 void P_SpawnTeleportFog(AActor *mobj, const DVector3 &pos, bool beforeTele, bool setTarget)
 {
 	AActor *mo;
-	if ((beforeTele ? mobj->TeleFogSourceType : mobj->TeleFogDestType) == NULL)
+	if ((beforeTele ? mobj->TeleFogSourceType : mobj->TeleFogDestType) == nullptr)
 	{
 		//Do nothing.
-		mo = NULL;
+		mo = nullptr;
 	}
 	else
 	{
 		mo = Spawn((beforeTele ? mobj->TeleFogSourceType : mobj->TeleFogDestType), pos, ALLOW_REPLACE);
 	}
 
-	if (mo != NULL && setTarget)
+	if (mo != nullptr && setTarget)
 		mo->target = mobj;
 }
 
@@ -117,7 +117,7 @@ bool P_Teleport (AActor *thing, DVector3 pos, DAngle angle, int flags)
 	// killough 5/12/98: exclude voodoo dolls:
 	player = thing->player;
 	if (player && player->mo != thing)
-		player = NULL;
+		player = nullptr;
 	floorheight = destsect->floorplane.ZatPoint (pos);
 	ceilingheight = destsect->ceilingplane.ZatPoint (pos);
 	if (thing->flags & MF_MISSILE)
@@ -209,7 +209,7 @@ bool P_Teleport (AActor *thing, DVector3 pos, DAngle angle, int flags)
 	if (thing->player && ((flags & TELF_DESTFOG) || !(flags & TELF_KEEPORIENTATION)) && !(flags & TELF_KEEPVELOCITY))
 	{
 		// Freeze player for about .5 sec
-		if (thing->Inventory == NULL || !thing->Inventory->GetNoTeleportFreeze())
+		if (thing->Inventory == nullptr || !thing->Inventory->GetNoTeleportFreeze())
 			thing->reactiontime = 18;
 	}
 	if (thing->flags & MF_MISSILE)
@@ -261,12 +261,12 @@ static AActor *SelectTeleDest (int tid, int tag, bool norandom)
 				// Try to find a matching map spot (fixes Hexen MAP10)
 				NActorIterator it2 (NAME_MapSpot, tid);
 				searcher = it2.Next ();
-				if (searcher == NULL)
+				if (searcher == nullptr)
 				{
 					// Try to find a matching non-blocking spot of any type (fixes Caldera MAP13)
 					FActorIterator it3 (tid);
 					searcher = it3.Next ();
-					while (searcher != NULL && (searcher->flags & MF_SOLID))
+					while (searcher != nullptr && (searcher->flags & MF_SOLID))
 					{
 						searcher = it3.Next ();
 					}
@@ -280,7 +280,7 @@ static AActor *SelectTeleDest (int tid, int tag, bool norandom)
 			{
 				count = 1 + (pr_teleport() % count);
 			}
-			searcher = NULL;
+			searcher = nullptr;
 			while (count > 0)
 			{
 				searcher = iterator.Next ();
@@ -308,7 +308,7 @@ static AActor *SelectTeleDest (int tid, int tag, bool norandom)
 			// only the last one has a destination, *every* actor is scanned at least 49
 			// times. Yuck.
 			TThinkerIterator<AActor> it2(NAME_TeleportDest);
-			while ((searcher = it2.Next()) != NULL)
+			while ((searcher = it2.Next()) != nullptr)
 			{
 				if (searcher->Sector == sectors + secnum)
 				{
@@ -318,7 +318,7 @@ static AActor *SelectTeleDest (int tid, int tag, bool norandom)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, int flags)
@@ -330,7 +330,7 @@ bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, int f
 	double vx = 0, vy = 0;
 	DAngle badangle = 0.;
 
-	if (thing == NULL)
+	if (thing == nullptr)
 	{ // Teleport function called with an invalid actor
 		return false;
 	}
@@ -344,7 +344,7 @@ bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, int f
 		return 0;
 	}
 	searcher = SelectTeleDest(tid, tag, predicting);
-	if (searcher == NULL)
+	if (searcher == nullptr)
 	{
 		return false;
 	}
@@ -376,7 +376,7 @@ bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, int f
 	{
 		z = ONFLOORZ;
 	}
-	if ((i_compatflags2 & COMPATF2_BADANGLES) && (thing->player != NULL))
+	if ((i_compatflags2 & COMPATF2_BADANGLES) && (thing->player != nullptr))
 	{
 		badangle = 0.01;
 	}
@@ -395,7 +395,7 @@ bool EV_Teleport (int tid, int tag, line_t *line, int side, AActor *thing, int f
 				thing->Vel.Y = vy*c + vx*s;
 			}
 		}
-		if (vx == 0 && vy == 0 && thing->player != NULL && thing->player->mo == thing && !predicting)
+		if (vx == 0 && vy == 0 && thing->player != nullptr && thing->player->mo == thing && !predicting)
 		{
 			thing->player->mo->PlayIdle ();
 		}
@@ -418,7 +418,7 @@ bool EV_SilentLineTeleport (line_t *line, int side, AActor *thing, int id, INTBO
 	int i;
 	line_t *l;
 
-	if (side || thing->flags2 & MF2_NOTELEPORT || !line || line->sidedef[1] == NULL)
+	if (side || thing->flags2 & MF2_NOTELEPORT || !line || line->sidedef[1] == nullptr)
 		return false;
 
 	FLineIdIterator itr(id);
@@ -485,7 +485,7 @@ bool EV_SilentLineTeleport (line_t *line, int side, AActor *thing, int id, INTBO
 			// Whether this is a player, and if so, a pointer to its player_t.
 			// Voodoo dolls are excluded by making sure thing->player->mo==thing.
 			player_t *player = thing->player && thing->player->mo == thing ?
-				thing->player : NULL;
+				thing->player : nullptr;
 
 			// Whether walking towards first side of exit linedef steps down
 			bool stepdown = l->frontsector->floorplane.ZatPoint(p) < l->backsector->floorplane.ZatPoint(p);
@@ -595,7 +595,7 @@ bool EV_TeleportOther (int other_tid, int dest_tid, bool fog)
 
 		while ( (victim = iterator.Next ()) )
 		{
-			didSomething |= EV_Teleport (dest_tid, 0, NULL, 0, victim,
+			didSomething |= EV_Teleport (dest_tid, 0, nullptr, 0, victim,
 				fog ? (TELF_DESTFOG | TELF_SOURCEFOG) : TELF_KEEPORIENTATION);
 		}
 	}
@@ -629,7 +629,7 @@ bool EV_TeleportGroup (int group_tid, AActor *victim, int source_tid, int dest_t
 		FActorIterator iterator (source_tid);
 		sourceOrigin = iterator.Next ();
 	}
-	if (sourceOrigin == NULL)
+	if (sourceOrigin == nullptr)
 	{ // If there is no source origin, behave like TeleportOther
 		return EV_TeleportOther (group_tid, dest_tid, fog);
 	}
@@ -638,7 +638,7 @@ bool EV_TeleportGroup (int group_tid, AActor *victim, int source_tid, int dest_t
 		NActorIterator iterator (NAME_TeleportDest, dest_tid);
 		destOrigin = iterator.Next ();
 	}
-	if (destOrigin == NULL)
+	if (destOrigin == nullptr)
 	{
 		return false;
 	}
@@ -647,7 +647,7 @@ bool EV_TeleportGroup (int group_tid, AActor *victim, int source_tid, int dest_t
 	bool floorz = !destOrigin->IsKindOf (PClass::FindClass("TeleportDest2"));
 
 	// Use the passed victim if group_tid is 0
-	if (group_tid == 0 && victim != NULL)
+	if (group_tid == 0 && victim != nullptr)
 	{
 		didSomething = DoGroupForOne (victim, sourceOrigin, destOrigin, floorz, fog);
 	}
@@ -684,7 +684,7 @@ bool EV_TeleportSector (int tag, int source_tid, int dest_tid, bool fog, int gro
 		FActorIterator iterator (source_tid);
 		sourceOrigin = iterator.Next ();
 	}
-	if (sourceOrigin == NULL)
+	if (sourceOrigin == nullptr)
 	{
 		return false;
 	}
@@ -692,7 +692,7 @@ bool EV_TeleportSector (int tag, int source_tid, int dest_tid, bool fog, int gro
 		NActorIterator iterator (NAME_TeleportDest, dest_tid);
 		destOrigin = iterator.Next ();
 	}
-	if (destOrigin == NULL)
+	if (destOrigin == nullptr)
 	{
 		return false;
 	}
@@ -714,7 +714,7 @@ bool EV_TeleportSector (int tag, int source_tid, int dest_tid, bool fog, int gro
 			msecnode_t *next = node->m_snext;
 
 			// possibly limit actors by group
-			if (actor != NULL && (group_tid == 0 || actor->tid == group_tid))
+			if (actor != nullptr && (group_tid == 0 || actor->tid == group_tid))
 			{
 				didSomething |= DoGroupForOne (actor, sourceOrigin, destOrigin, floorz, fog);
 			}

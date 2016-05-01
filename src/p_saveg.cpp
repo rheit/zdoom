@@ -125,7 +125,7 @@ void P_SerializePlayers (FArchive &arc, bool skipload)
 static void ReadOnePlayer (FArchive &arc, bool skipload)
 {
 	int i;
-	char *name = NULL;
+	char *name = nullptr;
 	bool didIt = false;
 
 	arc << name;
@@ -146,10 +146,10 @@ static void ReadOnePlayer (FArchive &arc, bool skipload)
 			}
 			else
 			{
-				if (players[i].mo != NULL)
+				if (players[i].mo != nullptr)
 				{
 					players[i].mo->Destroy();
-					players[i].mo = NULL;
+					players[i].mo = nullptr;
 				}
 			}
 		}
@@ -168,7 +168,7 @@ static void ReadMultiplePlayers (FArchive &arc, int numPlayers, int numPlayersNo
 
 	for (i = 0; i < numPlayers; ++i)
 	{
-		nametemp[i] = NULL;
+		nametemp[i] = nullptr;
 		arc << nametemp[i];
 		playertemp[i].Serialize (arc);
 		tempPlayerUsed[i] = 0;
@@ -226,10 +226,10 @@ static void ReadMultiplePlayers (FArchive &arc, int numPlayers, int numPlayersNo
 		{
 			if (playerUsed[j] == 0)
 			{
-				if (players[j].mo != NULL)
+				if (players[j].mo != nullptr)
 				{
 					players[j].mo->Destroy();
-					players[j].mo = NULL;
+					players[j].mo = nullptr;
 				}
 			}
 		}
@@ -241,7 +241,7 @@ static void ReadMultiplePlayers (FArchive &arc, int numPlayers, int numPlayersNo
 			if (tempPlayerUsed[i] == 0)
 			{
 				playertemp[i].mo->Destroy();
-				playertemp[i].mo = NULL;
+				playertemp[i].mo = nullptr;
 			}
 		}
 	}
@@ -274,7 +274,7 @@ static void CopyPlayer (player_t *dst, player_t *src, const char *name)
 
 	dst->cheats |= chasecam;
 
-	if (dst->Bot != NULL)
+	if (dst->Bot != nullptr)
 	{
 		botinfo_t *thebot = bglobal.botinfo;
 		while (thebot && stricmp (name, thebot->name))
@@ -296,7 +296,7 @@ static void CopyPlayer (player_t *dst, player_t *src, const char *name)
 	dst->userinfo.SkinNumChanged(R_FindSkin(skins[dst->userinfo.GetSkin()].name, dst->CurrentPlayerClass));
 
 	// Make sure the player pawn points to the proper player struct.
-	if (dst->mo != NULL)
+	if (dst->mo != nullptr)
 	{
 		dst->mo->player = dst;
 	}
@@ -318,7 +318,7 @@ static void SpawnExtraPlayers ()
 
 	for (i = 0; i < MAXPLAYERS; ++i)
 	{
-		if (playeringame[i] && players[i].mo == NULL)
+		if (playeringame[i] && players[i].mo == nullptr)
 		{
 			players[i].playerstate = PST_ENTER;
 			P_SpawnPlayer(&playerstarts[i], i, (level.flags2 & LEVEL2_PRERAISEWEAPON) ? SPF_WEAPONFULLYUP : 0);
@@ -411,7 +411,7 @@ void P_SerializeWorld (FArchive &arc)
 		arc << li->portalindex;
 		for (j = 0; j < 2; j++)
 		{
-			if (li->sidedef[j] == NULL)
+			if (li->sidedef[j] == nullptr)
 				continue;
 
 			side_t *si = li->sidedef[j];
@@ -431,7 +431,7 @@ void P_SerializeWorld (FArchive &arc)
 
 	if (arc.IsLoading())
 	{
-		if (zones != NULL)
+		if (zones != nullptr)
 		{
 			delete[] zones;
 		}
@@ -469,7 +469,7 @@ void P_SerializeWorldActors(FArchive &arc)
 	{
 		for (int s = 0; s < 2; s++)
 		{
-			if (line->sidedef[s] != NULL)
+			if (line->sidedef[s] != nullptr)
 			{
 				DBaseDecal::SerializeChain(arc, &line->sidedef[s]->AttachedDecals);
 			}
@@ -529,7 +529,7 @@ void P_SerializeSounds (FArchive &arc)
 {
 	S_SerializeSounds (arc);
 	DSeqNode::SerializeSequences (arc);
-	char *name = NULL;
+	char *name = nullptr;
 	BYTE order;
 
 	if (arc.IsStoring ())
@@ -616,7 +616,7 @@ void RecalculateDrawnSubsectors()
 		subsector_t *sub = &subsectors[i];
 		for(unsigned int j=0;j<sub->numlines;j++)
 		{
-			if (sub->firstline[j].linedef != NULL && 
+			if (sub->firstline[j].linedef != nullptr && 
 				(sub->firstline[j].linedef->flags & ML_MAPPED))
 			{
 				sub->flags |= SSECF_DRAWN;

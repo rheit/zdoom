@@ -82,7 +82,7 @@ protected:
 
 	Node *FindString(const char *str, size_t strlen, unsigned int &hash);
 private:
-	void *Alloc(size_t size) { return NULL; }	// No access to FMemArena::Alloc for outsiders.
+	void *Alloc(size_t size) { return nullptr; }	// No access to FMemArena::Alloc for outsiders.
 };
 
 

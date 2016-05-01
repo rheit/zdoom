@@ -21,7 +21,7 @@ struct FRenderer
 
 	virtual ~FRenderer()
 	{
-		Renderer = NULL;
+		Renderer = nullptr;
 	}
 
 	// Can be overridden so that the colormaps for sector color/fade won't be built.

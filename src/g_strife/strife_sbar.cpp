@@ -104,7 +104,7 @@ const BYTE *FHealthBar::GetColumn (unsigned int column, const Span **spans_out)
 	{
 		column = 199;
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = &DummySpan[column >= (unsigned int)VialLevel*2];
 	}
@@ -191,11 +191,11 @@ public:
 	{
 		static const char *sharedLumpNames[] =
 		{
-			NULL,		NULL,		"INVFONY0",	"INVFONY1",	"INVFONY2",
+			nullptr,		nullptr,		"INVFONY0",	"INVFONY1",	"INVFONY2",
 			"INVFONY3",	"INVFONY4",	"INVFONY5",	"INVFONY6",	"INVFONY7",
-			"INVFONY8",	"INVFONY9",	NULL,		NULL,		NULL,
-			NULL,		NULL,		NULL,		NULL,		NULL,
-			NULL,		NULL,		NULL,		"INVFONG0",	"INVFONG1",
+			"INVFONY8",	"INVFONY9",	nullptr,		nullptr,		nullptr,
+			nullptr,		nullptr,		nullptr,		nullptr,		nullptr,
+			nullptr,		nullptr,		nullptr,		"INVFONG0",	"INVFONG1",
 			"INVFONG2",	"INVFONG3",	"INVFONG4",	"INVFONG5",	"INVFONG6",
 			"INVFONG7",	"INVFONG8",	"INVFONG9"
 		};
@@ -212,7 +212,7 @@ public:
 	{
 		Images.Uninit ();
 		DoCommonInit ();
-		if (CPlayer != NULL)
+		if (CPlayer != nullptr)
 		{
 			AttachToPlayer (CPlayer);
 		}
@@ -260,7 +260,7 @@ public:
 				KeyPopScroll = 280;
 
 				for (item = CPlayer->mo->Inventory, i = 0;
-					item != NULL;
+					item != nullptr;
 					item = item->Inventory)
 				{
 					if (item->IsKindOf (RUNTIME_CLASS(AKey)))
@@ -309,7 +309,7 @@ private:
 
 		Images.Init (strifeLumpNames, NUM_STRIFESB_IMAGES);
 
-		CursorImage = Images[imgINVCURS] != NULL ? imgINVCURS : imgCURSOR01;
+		CursorImage = Images[imgINVCURS] != nullptr ? imgINVCURS : imgCURSOR01;
 
 		ST_SetNeedRefresh();
 
@@ -411,7 +411,7 @@ private:
 
 		// Armor
 		item = CPlayer->mo->FindInventory<ABasicArmor>();
-		if (item != NULL && item->Amount > 0)
+		if (item != nullptr && item->Amount > 0)
 		{
 			DrawImage (TexMan(item->Icon), 2, 9);
 			DrINumber (item->Amount, 27, 23, imgFONY0);
@@ -422,11 +422,11 @@ private:
 		int ammocount1, ammocount2;
 
 		GetCurrentAmmo (ammo1, ammo2, ammocount1, ammocount2);
-		if (ammo1 != NULL)
+		if (ammo1 != nullptr)
 		{
 			DrINumber (ammo1->Amount, 311, -6, imgFONG0);
 			DrawImage (TexMan(ammo1->Icon), 290, 13);
-			if (ammo2 != NULL)
+			if (ammo2 != nullptr)
 			{
 /*				int y = MIN (-5 - BigHeight, -5 - TexMan(ammo1->Icon)->GetHeight());
 				screen->DrawTexture (TexMan(ammo2->Icon), -14, y,
@@ -439,7 +439,7 @@ private:
 
 		// Sigil
 		item = CPlayer->mo->FindInventory<ASigil>();
-		if (item != NULL)
+		if (item != nullptr)
 		{
 			DrawImage (TexMan(item->Icon), 253, 7);
 		}
@@ -447,7 +447,7 @@ private:
 		// Inventory
 		CPlayer->inventorytics = 0;
 		CPlayer->mo->InvFirst = ValidateInvFirst (6);
-		for (item = CPlayer->mo->InvFirst, i = 0; item != NULL && i < 6; item = item->NextInv(), ++i)
+		for (item = CPlayer->mo->InvFirst, i = 0; item != nullptr && i < 6; item = item->NextInv(), ++i)
 		{
 			if (item == CPlayer->mo->InvSel)
 			{
@@ -476,7 +476,7 @@ private:
 
 		// Draw armor
 		ABasicArmor *armor = CPlayer->mo->FindInventory<ABasicArmor>();
-		if (armor != NULL && armor->Amount != 0)
+		if (armor != nullptr && armor->Amount != 0)
 		{
 			DrINumberOuter (armor->Amount, 35, -10, false, 7);
 			screen->DrawTexture (TexMan(armor->Icon), 45, -17,
@@ -490,7 +490,7 @@ private:
 		int ammocount1, ammocount2;
 
 		GetCurrentAmmo (ammo1, ammo2, ammocount1, ammocount2);
-		if (ammo1 != NULL)
+		if (ammo1 != nullptr)
 		{
 			// Draw primary ammo in the bottom-right corner
 			DrINumberOuter (ammo1->Amount, -23, -10, false, 7);
@@ -498,7 +498,7 @@ private:
 				DTA_HUDRules, HUD_Normal,
 				DTA_CenterBottomOffset, true,
 				TAG_DONE);
-			if (ammo2 != NULL && ammo1!=ammo2)
+			if (ammo2 != nullptr && ammo1!=ammo2)
 			{
 				// Draw secondary ammo just above the primary ammo
 				DrINumberOuter (ammo2->Amount, -23, -48, false, 7);
@@ -542,9 +542,9 @@ private:
 			CPlayer->mo->InvFirst = ValidateInvFirst (6);
 			int i = 0;
 			AInventory *item;
-			if (CPlayer->mo->InvFirst != NULL)
+			if (CPlayer->mo->InvFirst != nullptr)
 			{
-				for (item = CPlayer->mo->InvFirst; item != NULL && i < 6; item = item->NextInv(), ++i)
+				for (item = CPlayer->mo->InvFirst; item != nullptr && i < 6; item = item->NextInv(), ++i)
 				{
 					if (item == CPlayer->mo->InvSel)
 					{
@@ -632,7 +632,7 @@ private:
 				leftcol = leftcol - 280 + scroll;
 			}
 			for (i = 0, item = CPlayer->mo->Inventory;
-				i < endpos && item != NULL;
+				i < endpos && item != nullptr;
 				item = item->Inventory)
 			{
 				if (!item->IsKindOf (RUNTIME_CLASS(AKey)))
@@ -677,7 +677,7 @@ private:
 
 			// How many keys does the player have?
 			for (i = 0, item = CPlayer->mo->Inventory;
-				item != NULL;
+				item != nullptr;
 				item = item->Inventory)
 			{
 				if (item->IsKindOf (RUNTIME_CLASS(AKey)))
@@ -689,7 +689,7 @@ private:
 
 			// Does the player have a communicator?
 			item = CPlayer->mo->FindInventory (NAME_Communicator);
-			if (item != NULL)
+			if (item != nullptr)
 			{
 				screen->DrawTexture (TexMan(item->Icon),
 					left + 280*xscale,
@@ -717,7 +717,7 @@ private:
 				PClassActor *ammotype = PClass::FindActor(AmmoList[i].AmmoType);
 				item = CPlayer->mo->FindInventory (ammotype);
 
-				if (item == NULL)
+				if (item == nullptr)
 				{
 					DrINumber2 (0, left+206*xscale, top+AmmoList[i].Y*yscale, 7*xscale, imgFONY0);
 					DrINumber2 (((AInventory *)GetDefaultByType (ammotype))->MaxAmount,
@@ -748,7 +748,7 @@ private:
 			{
 				item = CPlayer->mo->FindInventory (WeaponList[i].TypeName);
 
-				if (item != NULL)
+				if (item != nullptr)
 				{
 					screen->DrawTexture (TexMan(item->Icon),
 						left + WeaponList[i].X*xscale,

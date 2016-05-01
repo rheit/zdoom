@@ -103,7 +103,7 @@ void FStat::PrintStat ()
 	int y = SCREENHEIGHT;
 	int count = 0;
 
-	for (FStat *stat = FirstStat; stat != NULL; stat = stat->m_Next)
+	for (FStat *stat = FirstStat; stat != nullptr; stat = stat->m_Next)
 	{
 		if (stat->m_Active)
 		{

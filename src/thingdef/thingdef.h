@@ -88,8 +88,8 @@ public:
 
 	FStateDefinitions()
 	{
-		laststate = NULL;
-		laststatebeforelabel = NULL;
+		laststate = nullptr;
+		laststatebeforelabel = nullptr;
 		lastlabel = -1;
 	}
 
@@ -119,7 +119,7 @@ public:
 
 struct FStateTempCall
 {
-	FStateTempCall() : ActorClass(NULL), Code(NULL), FirstState(0), NumStates(0) {}
+	FStateTempCall() : ActorClass(nullptr), Code(nullptr), FirstState(0), NumStates(0) {}
 
 	PClassActor *ActorClass;
 	class FxExpression *Code;
@@ -156,7 +156,7 @@ struct Baggage
 
 inline void ResetBaggage (Baggage *bag, PClassActor *stateclass)
 {
-	bag->DropItemList = NULL;
+	bag->DropItemList = nullptr;
 	bag->DropItemSet = false;
 	bag->CurrentState = 0;
 	bag->StateSet = false;
@@ -327,7 +327,7 @@ int MatchString (const char *in, const char **strings);
 	double var = params[(no)+1].d;
 
 #define PROP_COLOR_PARM(var, no) \
-	int var = params[(no)+1].i== 0? params[(no)+2].i : V_GetColor(NULL, params[(no)+2].s);
+	int var = params[(no)+1].i== 0? params[(no)+2].i : V_GetColor(nullptr, params[(no)+2].s);
 
 
 // Macros to handle action functions. These are here so that I don't have to
@@ -349,14 +349,14 @@ int MatchString (const char *in, const char **strings);
 //#define DECLARE_PARAMINFO AActor *self, AActor *stateowner, FState *CallingState, int ParameterIndex, StateCallData *statecall
 //#define PUSH_PARAMINFO self, stateowner, CallingState, ParameterIndex, statecall
 
-#define CALL_ACTION(name,self) { /*AF_##name(self, self, NULL, 0, NULL)*/ \
-		VMValue params[3] = { self, self, VMValue(NULL, ATAG_STATE) }; \
-		stack->Call(name##_VMPtr, params, countof(params), NULL, 0, NULL); \
+#define CALL_ACTION(name,self) { /*AF_##name(self, self, nullptr, 0, nullptr)*/ \
+		VMValue params[3] = { self, self, VMValue(nullptr, ATAG_STATE) }; \
+		stack->Call(name##_VMPtr, params, countof(params), nullptr, 0, nullptr); \
 	}
 
 
-#define ACTION_RETURN_STATE(v) do { FState *state = v; if (numret > 0) { assert(ret != NULL); ret->SetPointer(state, ATAG_STATE); return 1; } return 0; } while(0)
-#define ACTION_RETURN_INT(v) do { int u = v; if (numret > 0) { assert(ret != NULL); ret->SetInt(u); return 1; } return 0; } while(0)
+#define ACTION_RETURN_STATE(v) do { FState *state = v; if (numret > 0) { assert(ret != nullptr); ret->SetPointer(state, ATAG_STATE); return 1; } return 0; } while(0)
+#define ACTION_RETURN_INT(v) do { int u = v; if (numret > 0) { assert(ret != nullptr); ret->SetInt(u); return 1; } return 0; } while(0)
 #define ACTION_RETURN_BOOL(v) ACTION_RETURN_INT(v)
 
 // Checks to see what called the current action function

@@ -44,7 +44,7 @@ class TWeightedList
 	template<class U>
 	struct Choice
 	{
-		Choice(WORD w, U v) : Next(NULL), Weight(w), RandomVal(0), Value(v) {}
+		Choice(WORD w, U v) : Next(nullptr), Weight(w), RandomVal(0), Value(v) {}
 
 		Choice<U> *Next;
 		WORD Weight;
@@ -53,11 +53,11 @@ class TWeightedList
 	};
 
 	public:
-		TWeightedList (FRandom &pr) : Choices (NULL), RandomClass (pr) {}
+		TWeightedList (FRandom &pr) : Choices (nullptr), RandomClass (pr) {}
 		~TWeightedList ()
 		{
 			Choice<T> *choice = Choices;
-			while (choice != NULL)
+			while (choice != nullptr)
 			{
 				Choice<T> *next = choice->Next;
 				delete choice;
@@ -90,7 +90,7 @@ void TWeightedList<T>::AddEntry (T value, WORD weight)
 	Choice<T> **insAfter = &Choices, *insBefore = Choices;
 	Choice<T> *theNewOne;
 
-	while (insBefore != NULL && insBefore->Weight < weight)
+	while (insBefore != nullptr && insBefore->Weight < weight)
 	{
 		insAfter = &insBefore->Next;
 		insBefore = insBefore->Next;
@@ -107,11 +107,11 @@ T TWeightedList<T>::PickEntry () const
 	BYTE randomnum = RandomClass();
 	Choice<T> *choice = Choices;
 
-	while (choice != NULL && randomnum > choice->RandomVal)
+	while (choice != nullptr && randomnum > choice->RandomVal)
 	{
 		choice = choice->Next;
 	}
-	return choice != NULL ? choice->Value : NULL;
+	return choice != nullptr ? choice->Value : nullptr;
 }
 
 template<class T>
@@ -124,7 +124,7 @@ void TWeightedList<T>::RecalcRandomVals ()
 	Choice<T> *choice;
 	double randVal, weightDenom;
 
-	if (Choices == NULL)
+	if (Choices == nullptr)
 	{ // No choices, so nothing to do.
 		return;
 	}
@@ -132,7 +132,7 @@ void TWeightedList<T>::RecalcRandomVals ()
 	numChoices = 1;
 	weightSums = 0;
 
-	for (choice = Choices; choice->Next != NULL; choice = choice->Next)
+	for (choice = Choices; choice->Next != nullptr; choice = choice->Next)
 	{
 		++numChoices;
 		weightSums += choice->Weight;
@@ -144,7 +144,7 @@ void TWeightedList<T>::RecalcRandomVals ()
 	randVal = 0.0;
 	weightDenom = 1.0 / (double)weightSums;
 
-	for (choice = Choices; choice->Next != NULL; choice = choice->Next)
+	for (choice = Choices; choice->Next != nullptr; choice = choice->Next)
 	{
 		randVal += (double)choice->Weight * weightDenom;
 		choice->RandomVal = (BYTE)(randVal * 255.0);
@@ -157,7 +157,7 @@ void TWeightedList<T>::ReplaceValues(T oldval, T newval)
 {
 	Choice<T> *choice;
 
-	for (choice = Choices; choice != NULL; choice = choice->Next)
+	for (choice = Choices; choice != nullptr; choice = choice->Next)
 	{
 		if (choice->Value == oldval)
 		{

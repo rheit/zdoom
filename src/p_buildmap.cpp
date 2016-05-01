@@ -234,7 +234,7 @@ bool P_LoadBuildMap (BYTE *data, size_t len, FMapThing **sprites, int *numspr)
 	*sprites = new FMapThing[numsprites + 1];
 	CreateStartSpot ((SDWORD *)(data + 4), *sprites);
 	*numspr = 1 + LoadSprites ((spritetype *)(data + 26 + numsectors*sizeof(sectortype) + numwalls*sizeof(walltype)),
-		NULL, numsprites, (sectortype *)(data + 22), *sprites + 1);
+		nullptr, numsprites, (sectortype *)(data + 22), *sprites + 1);
 
 	return true;
 }
@@ -586,7 +586,7 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 		}
 		else
 		{
-			lines[j].backsector = NULL;
+			lines[j].backsector = nullptr;
 		}
 		P_AdjustLine (&lines[j]);
 		if (walls[i].cstat & 128)
@@ -669,12 +669,12 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 	{
 		intptr_t front = intptr_t(lines[i].sidedef[0]);
 		intptr_t back = intptr_t(lines[i].sidedef[1]);
-		lines[i].sidedef[0] = front >= 0 ? &sides[front] : NULL;
-		lines[i].sidedef[1] = back >= 0 ? &sides[back] : NULL;
+		lines[i].sidedef[0] = front >= 0 ? &sides[front] : nullptr;
+		lines[i].sidedef[1] = back >= 0 ? &sides[back] : nullptr;
 	}
 	for (i = 0; i < numsides; i++)
 	{
-		assert(sides[i].sector != NULL);
+		assert(sides[i].sector != nullptr);
 		sides[i].linedef = &lines[intptr_t(sides[i].linedef)];
 	}
 }
@@ -709,7 +709,7 @@ static int LoadSprites (spritetype *sprites, Xsprite *xsprites, int numsprites,
 		mapthings[count].health = -1;
 		mapthings[count].FloatbobPhase = -1;
 
-		if (xsprites != NULL && sprites[i].lotag == 710)
+		if (xsprites != nullptr && sprites[i].lotag == 710)
 		{ // Blood ambient sound
 			mapthings[count].args[0] = xsprites[i].Data3;
 			// I am totally guessing about the volume level. 50 seems to be a pretty
@@ -719,14 +719,14 @@ static int LoadSprites (spritetype *sprites, Xsprite *xsprites, int numsprites,
 			mapthings[count].args[3] = xsprites[i].Data2;
 			mapthings[count].EdNum = 14065;
 		}
-		else if (xsprites != NULL && sprites[i].lotag == 1)
+		else if (xsprites != nullptr && sprites[i].lotag == 1)
 		{ // Blood player start
 			if (xsprites[i].Data1 < 4)
 				mapthings[count].EdNum= 1 + xsprites[i].Data1;
 			else
 				mapthings[count].EdNum = 4001 + xsprites[i].Data1 - 4;
 		}
-		else if (xsprites != NULL && sprites[i].lotag == 2)
+		else if (xsprites != nullptr && sprites[i].lotag == 2)
 		{ // Bloodbath start
 			mapthings[count].EdNum = 11;
 		}

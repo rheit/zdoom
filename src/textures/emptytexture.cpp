@@ -71,10 +71,10 @@ protected:
 FTexture *EmptyTexture_TryCreate(FileReader & file, int lumpnum)
 {
 	char check[8];
-	if (file.GetLength() != 8) return NULL;
+	if (file.GetLength() != 8) return nullptr;
 	file.Seek(0, SEEK_SET);
-	if (file.Read(check, 8) != 8) return NULL;
-	if (memcmp(check, "\0\0\0\0\0\0\0\0", 8)) return NULL;
+	if (file.Read(check, 8) != 8) return nullptr;
+	if (memcmp(check, "\0\0\0\0\0\0\0\0", 8)) return nullptr;
 
 	return new FEmptyTexture(lumpnum);
 }
@@ -86,7 +86,7 @@ FTexture *EmptyTexture_TryCreate(FileReader & file, int lumpnum)
 //==========================================================================
 
 FEmptyTexture::FEmptyTexture (int lumpnum)
-: FTexture(NULL, lumpnum)
+: FTexture(nullptr, lumpnum)
 {
 	bMasked = true;
 	WidthBits = HeightBits = 1;
@@ -105,7 +105,7 @@ FEmptyTexture::FEmptyTexture (int lumpnum)
 
 const BYTE *FEmptyTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpans;
 	}

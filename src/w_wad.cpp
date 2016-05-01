@@ -106,8 +106,8 @@ void uppercopy (char *to, const char *from)
 }
 
 FWadCollection::FWadCollection ()
-: FirstLumpIndex(NULL), NextLumpIndex(NULL),
-  FirstLumpIndex_FullName(NULL), NextLumpIndex_FullName(NULL), 
+: FirstLumpIndex(nullptr), NextLumpIndex(nullptr),
+  FirstLumpIndex_FullName(nullptr), NextLumpIndex_FullName(nullptr), 
   NumLumps(0)
 {
 }
@@ -119,25 +119,25 @@ FWadCollection::~FWadCollection ()
 
 void FWadCollection::DeleteAll ()
 {
-	if (FirstLumpIndex != NULL)
+	if (FirstLumpIndex != nullptr)
 	{
 		delete[] FirstLumpIndex;
-		FirstLumpIndex = NULL;
+		FirstLumpIndex = nullptr;
 	}
-	if (NextLumpIndex != NULL)
+	if (NextLumpIndex != nullptr)
 	{
 		delete[] NextLumpIndex;
-		NextLumpIndex = NULL;
+		NextLumpIndex = nullptr;
 	}
-	if (FirstLumpIndex_FullName != NULL)
+	if (FirstLumpIndex_FullName != nullptr)
 	{
 		delete[] FirstLumpIndex_FullName;
-		FirstLumpIndex_FullName = NULL;
+		FirstLumpIndex_FullName = nullptr;
 	}
-	if (NextLumpIndex_FullName != NULL)
+	if (NextLumpIndex_FullName != nullptr)
 	{
 		delete[] NextLumpIndex_FullName;
-		NextLumpIndex_FullName = NULL;
+		NextLumpIndex_FullName = nullptr;
 	}
 
 	LumpInfo.Clear();
@@ -229,7 +229,7 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 	int startlump;
 	bool isdir = false;
 
-	if (wadinfo == NULL)
+	if (wadinfo == nullptr)
 	{
 		// Does this exist? If so, is it a directory?
 		struct stat info;
@@ -266,7 +266,7 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 	else
 		resfile = FResourceFile::OpenDirectory(filename);
 
-	if (resfile != NULL)
+	if (resfile != nullptr)
 	{
 		DWORD lumpstart = LumpInfo.Size();
 
@@ -306,7 +306,7 @@ void FWadCollection::AddFile (const char *filename, FileReader *wadinfo)
 
 			FileReader *reader = wadinfo;
 
-			if (reader != NULL)
+			if (reader != nullptr)
 			{
 				MD5Context md5;
 				reader->Seek(0, SEEK_SET);
@@ -368,7 +368,7 @@ int FWadCollection::CheckIfWadLoaded (const char *name)
 {
 	unsigned int i;
 
-	if (strrchr (name, '/') != NULL)
+	if (strrchr (name, '/') != nullptr)
 	{
 		for (i = 0; i < Files.Size(); ++i)
 		{
@@ -433,7 +433,7 @@ int FWadCollection::CheckNumForName (const char *name, int space)
 	};
 	DWORD i;
 
-	if (name == NULL)
+	if (name == nullptr)
 	{
 		return -1;
 	}
@@ -536,7 +536,7 @@ int FWadCollection::CheckNumForFullName (const char *name, bool trynormal, int n
 {
 	DWORD i;
 
-	if (name == NULL)
+	if (name == nullptr)
 	{
 		return -1;
 	}
@@ -625,7 +625,7 @@ FTexture *FWadCollection::GetLinkedTexture(int lump)
 		FResourceLump *reslump = LumpInfo[lump].lump;
 		return reslump->LinkedTexture;
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -915,7 +915,7 @@ void FWadCollection::RenameNerve ()
 	while (++w < GetNumWads())
 	{
 		FileReader *fr = GetFileReader(w);
-		if (fr == NULL)
+		if (fr == nullptr)
 		{
 			continue;
 		}
@@ -1057,7 +1057,7 @@ int FWadCollection::FindLump (const char *name, int *lastlump, bool anyns)
 
 	uppercopy (name8, name);
 
-	assert(lastlump != NULL && *lastlump >= 0);
+	assert(lastlump != nullptr && *lastlump >= 0);
 	lump_p = &LumpInfo[*lastlump];
 	while (lump_p < &LumpInfo[NumLumps])
 	{
@@ -1089,7 +1089,7 @@ int FWadCollection::FindLumpMulti (const char **names, int *lastlump, bool anyns
 {
 	LumpRecord *lump_p;
 
-	assert(lastlump != NULL && *lastlump >= 0);
+	assert(lastlump != nullptr && *lastlump >= 0);
 	lump_p = &LumpInfo[*lastlump];
 	while (lump_p < &LumpInfo[NumLumps])
 	{
@@ -1098,13 +1098,13 @@ int FWadCollection::FindLumpMulti (const char **names, int *lastlump, bool anyns
 		if (anyns || lump->Namespace == ns_global)
 		{
 			
-			for(const char **name = names; *name != NULL; name++)
+			for(const char **name = names; *name != nullptr; name++)
 			{
 				if (!strnicmp(*name, lump->Name, 8))
 				{
 					int lump = int(lump_p - &LumpInfo[0]);
 					*lastlump = lump + 1;
-					if (nameindex != NULL) *nameindex = int(name - names);
+					if (nameindex != nullptr) *nameindex = int(name - names);
 					return lump;
 				}
 			}
@@ -1165,7 +1165,7 @@ void FWadCollection::GetLumpName(FString &to, int lump) const
 const char *FWadCollection::GetLumpFullName (int lump) const
 {
 	if ((size_t)lump >= NumLumps)
-		return NULL;
+		return nullptr;
 	else if (LumpInfo[lump].lump->FullName.IsNotEmpty())
 		return LumpInfo[lump].lump->FullName;
 	else
@@ -1313,7 +1313,7 @@ FWadLump *FWadCollection::ReopenLumpNumNewFile (int lump)
 {
 	if ((unsigned)lump >= (unsigned)LumpInfo.Size())
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	return new FWadLump(lump, LumpInfo[lump].lump);
@@ -1333,7 +1333,7 @@ FileReader *FWadCollection::GetFileReader(int wadnum)
 {
 	if ((DWORD)wadnum >= Files.Size())
 	{
-		return NULL;
+		return nullptr;
 	}
 	return Files[wadnum]->GetReader();
 }
@@ -1352,12 +1352,12 @@ const char *FWadCollection::GetWadName (int wadnum) const
 
 	if ((DWORD)wadnum >= Files.Size())
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	name = Files[wadnum]->Filename;
 	slash = strrchr (name, '/');
-	return slash != NULL ? slash+1 : name;
+	return slash != nullptr ? slash+1 : name;
 }
 
 //==========================================================================
@@ -1402,7 +1402,7 @@ const char *FWadCollection::GetWadFullName (int wadnum) const
 {
 	if ((unsigned int)wadnum >= Files.Size())
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	return Files[wadnum]->Filename;
@@ -1431,7 +1431,7 @@ bool FWadCollection::IsUncompressedFile(int lump) const
 	
 	// We can access the file only if we get the FILE pointer from the FileReader here.
 	// Any other case means it won't work.
-	return (f != NULL && f->GetFile() != NULL);
+	return (f != nullptr && f->GetFile() != nullptr);
 }
 
 //==========================================================================
@@ -1455,7 +1455,7 @@ bool FWadCollection::IsEncryptedFile(int lump) const
 // FWadLump -----------------------------------------------------------------
 
 FWadLump::FWadLump ()
-: FileReader(), Lump(NULL)
+: FileReader(), Lump(nullptr)
 {
 }
 
@@ -1491,17 +1491,17 @@ FWadLump::FWadLump(FResourceLump *lump, bool alwayscache)
 {
 	FileReader *f = lump->GetReader();
 
-	if (f != NULL && f->GetFile() != NULL && !alwayscache)
+	if (f != nullptr && f->GetFile() != nullptr && !alwayscache)
 	{
 		// Uncompressed lump in a file
 		File = f->GetFile();
 		Length = lump->LumpSize;
 		StartPos = FilePos = lump->GetFileOffset();
-		Lump = NULL;
+		Lump = nullptr;
 	}
 	else
 	{
-		File = NULL;
+		File = nullptr;
 		Length = lump->LumpSize;
 		StartPos = FilePos = 0;
 		Lump = lump;
@@ -1514,23 +1514,23 @@ FWadLump::FWadLump(int lumpnum, FResourceLump *lump)
 {
 	FileReader *f = lump->GetReader();
 
-	if (f != NULL && f->GetFile() != NULL)
+	if (f != nullptr && f->GetFile() != nullptr)
 	{
 		// Uncompressed lump in a file. For this we will have to open a new FILE, since we need it for streaming
 		int fileno = Wads.GetLumpFile(lumpnum);
 		const char *filename = Wads.GetWadFullName(fileno);
 		File = fopen(filename, "rb");
-		if (File != NULL)
+		if (File != nullptr)
 		{
 			Length = lump->LumpSize;
 			StartPos = FilePos = lump->GetFileOffset();
-			Lump = NULL;
+			Lump = nullptr;
 			CloseOnDestruct = true;
 			Seek(0, SEEK_SET);
 			return;
 		}
 	}
-	File = NULL;
+	File = nullptr;
 	Length = lump->LumpSize;
 	StartPos = FilePos = 0;
 	Lump = lump;
@@ -1539,7 +1539,7 @@ FWadLump::FWadLump(int lumpnum, FResourceLump *lump)
 
 FWadLump::~FWadLump()
 {
-	if (Lump != NULL)
+	if (Lump != nullptr)
 	{
 		Lump->ReleaseCache();
 	}
@@ -1547,7 +1547,7 @@ FWadLump::~FWadLump()
 
 long FWadLump::Seek (long offset, int origin)
 {
-	if (Lump != NULL)
+	if (Lump != nullptr)
 	{
 		switch (origin)
 		{
@@ -1573,7 +1573,7 @@ long FWadLump::Read (void *buffer, long len)
 	long numread;
 	long startread = FilePos;
 
-	if (Lump != NULL)
+	if (Lump != nullptr)
 	{
 		if (FilePos + len > Length)
 		{
@@ -1592,7 +1592,7 @@ long FWadLump::Read (void *buffer, long len)
 
 char *FWadLump::Gets(char *strbuf, int len)
 {
-	if (Lump != NULL)
+	if (Lump != nullptr)
 	{
 		return GetsFromBuffer(Lump->Cache, strbuf, len);
 	}
@@ -1674,12 +1674,12 @@ static void PrintLastError ()
 	FormatMessageA(0x1300 /*FORMAT_MESSAGE_ALLOCATE_BUFFER | 
 							FORMAT_MESSAGE_FROM_SYSTEM | 
 							FORMAT_MESSAGE_IGNORE_INSERTS*/,
-		NULL,
+		nullptr,
 		GetLastError(),
 		1 << 10 /*MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT)*/, // Default language
 		&lpMsgBuf,
 		0,
-		NULL 
+		nullptr 
 	);
 	Printf (TEXTCOLOR_RED "  %s\n", lpMsgBuf);
 	// Free the buffer.

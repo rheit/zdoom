@@ -337,7 +337,7 @@ void DTextEnterMenu::Drawer ()
 				color = (x == InputGridX && y == InputGridY) ? CR_YELLOW : CR_DARKGRAY;
 				remap = SmallFont->GetColorTranslation(color);
 
-				if (pic != NULL)
+				if (pic != nullptr)
 				{
 					// Draw a normal character.
 					screen->DrawTexture(pic, xx + cell_width/2 - width*CleanXfac/2, yy + top_padding,

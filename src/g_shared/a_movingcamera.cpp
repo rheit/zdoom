@@ -78,7 +78,7 @@ void AInterpolationPoint::Serialize (FArchive &arc)
 void AInterpolationPoint::BeginPlay ()
 {
 	Super::BeginPlay ();
-	Next = NULL;
+	Next = nullptr;
 }
 
 void AInterpolationPoint::HandleSpawnFlags ()
@@ -99,12 +99,12 @@ void AInterpolationPoint::FormChain ()
 	if (Next == this)	// Don't link to self
 		Next = iterator.Next ();
 
-	if (Next == NULL && (args[3] | args[4]))
+	if (Next == nullptr && (args[3] | args[4]))
 		Printf ("Can't find target for camera node %d\n", tid);
 
 	Angles.Pitch = (double)clamp<int>((signed char)args[0], -89, 89);
 
-	if (Next != NULL)
+	if (Next != nullptr)
 		Next->FormChain ();
 }
 
@@ -117,7 +117,7 @@ AInterpolationPoint *AInterpolationPoint::ScanForLoop ()
 		node->special1 = 1;
 		node = node->Next;
 	}
-	return node->Next == this ? node : NULL;
+	return node->Next == this ? node : nullptr;
 }
 
 /*
@@ -208,7 +208,7 @@ double APathFollower::Lerp (double p1, double p2)
 void APathFollower::BeginPlay ()
 {
 	Super::BeginPlay ();
-	PrevNode = CurrNode = NULL;
+	PrevNode = CurrNode = nullptr;
 	bActive = false;
 }
 
@@ -221,7 +221,7 @@ void APathFollower::PostBeginPlay ()
 
 	target = node;
 
-	if (node == NULL)
+	if (node == nullptr)
 	{
 		Printf ("PathFollower %d: Can't find interpolation pt %d\n",
 			tid, args[0] + 256 * args[1]);
@@ -232,18 +232,18 @@ void APathFollower::PostBeginPlay ()
 	node->FormChain ();
 	if (args[2] & 1)
 	{	// linear path; need 2 nodes
-		if (node->Next == NULL)
+		if (node->Next == nullptr)
 		{
 			Printf ("PathFollower %d: Path needs at least 2 nodes\n", tid);
 			return;
 		}
-		lastenemy = NULL;
+		lastenemy = nullptr;
 	}
 	else
 	{	// spline path; need 4 nodes
-		if (node->Next == NULL ||
-			node->Next->Next == NULL ||
-			node->Next->Next->Next == NULL)
+		if (node->Next == nullptr ||
+			node->Next->Next == nullptr ||
+			node->Next->Next->Next == nullptr)
 		{
 			Printf ("PathFollower %d: Path needs at least 4 nodes\n", tid);
 			return;
@@ -251,7 +251,7 @@ void APathFollower::PostBeginPlay ()
 		// If the first node is in a loop, we can start there.
 		// Otherwise, we need to start at the second node in the path.
 		prevnode = node->ScanForLoop ();
-		if (prevnode == NULL || prevnode->Next != node)
+		if (prevnode == nullptr || prevnode->Next != node)
 		{
 			lastenemy = target;
 			target = node->Next;
@@ -275,7 +275,7 @@ void APathFollower::Activate (AActor *activator)
 		CurrNode = barrier_cast<AInterpolationPoint *>(target);
 		PrevNode = barrier_cast<AInterpolationPoint *>(lastenemy);
 
-		if (CurrNode != NULL)
+		if (CurrNode != nullptr)
 		{
 			NewNode ();
 			SetOrigin (CurrNode->Pos(), false);
@@ -306,14 +306,14 @@ void APathFollower::Tick ()
 		return;
 
 	// Splines must have a previous node.
-	if (PrevNode == NULL && !(args[2] & 1))
+	if (PrevNode == nullptr && !(args[2] & 1))
 	{
 		bActive = false;
 		return;
 	}
 
 	// All paths must have a current node.
-	if (CurrNode->Next == NULL)
+	if (CurrNode->Next == nullptr)
 	{
 		bActive = false;
 		return;
@@ -328,11 +328,11 @@ void APathFollower::Tick ()
 			bJustStepped = true;
 			PrevNode = CurrNode;
 			CurrNode = CurrNode->Next;
-			if (CurrNode != NULL)
+			if (CurrNode != nullptr)
 				NewNode ();
-			if (CurrNode == NULL || CurrNode->Next == NULL)
+			if (CurrNode == nullptr || CurrNode->Next == nullptr)
 				Deactivate (this);
-			if ((args[2] & 1) == 0 && CurrNode->Next->Next == NULL)
+			if ((args[2] & 1) == 0 && CurrNode->Next->Next == nullptr)
 				Deactivate (this);
 		}
 	}
@@ -345,7 +345,7 @@ void APathFollower::NewNode ()
 
 	while ( (spec = iterator.Next ()) )
 	{
-		P_ExecuteSpecial(spec->special, NULL, NULL, false, spec->args[0],
+		P_ExecuteSpecial(spec->special, nullptr, nullptr, false, spec->args[0],
 			spec->args[1], spec->args[2], spec->args[3], spec->args[4]);
 	}
 }
@@ -359,7 +359,7 @@ bool APathFollower::Interpolate ()
 		dpos = Pos();
 	}
 
-	if (CurrNode->Next==NULL) return false;
+	if (CurrNode->Next==nullptr) return false;
 
 	UnlinkFromWorld ();
 	DVector3 newpos;
@@ -371,7 +371,7 @@ bool APathFollower::Interpolate ()
 	}
 	else
 	{	// spline
-		if (CurrNode->Next->Next==NULL) return false;
+		if (CurrNode->Next->Next==nullptr) return false;
 
 		newpos.X = Splerp(PrevNode->X(), CurrNode->X(), CurrNode->Next->X(), CurrNode->Next->Next->X());
 		newpos.Y = Splerp(PrevNode->Y(), CurrNode->Y(), CurrNode->Next->Y(), CurrNode->Next->Next->Y());
@@ -483,7 +483,7 @@ void AActorMover::PostBeginPlay ()
 	TActorIterator<AActor> iterator (args[3]);
 	tracer = iterator.Next ();
 
-	if (tracer == NULL)
+	if (tracer == nullptr)
 	{
 		Printf ("ActorMover %d: Can't find target %d\n", tid, args[3]);
 	}
@@ -496,7 +496,7 @@ void AActorMover::PostBeginPlay ()
 
 bool AActorMover::Interpolate ()
 {
-	if (tracer == NULL)
+	if (tracer == nullptr)
 		return true;
 
 	if (Super::Interpolate ())
@@ -521,7 +521,7 @@ bool AActorMover::Interpolate ()
 
 void AActorMover::Activate (AActor *activator)
 {
-	if (tracer == NULL || bActive)
+	if (tracer == nullptr || bActive)
 		return;
 
 	Super::Activate (activator);
@@ -550,7 +550,7 @@ void AActorMover::Deactivate (AActor *activator)
 	if (bActive)
 	{
 		Super::Deactivate (activator);
-		if (tracer != NULL)
+		if (tracer != nullptr)
 		{
 			tracer->UnlinkFromWorld ();
 			tracer->flags = ActorFlags::FromInt (special1);
@@ -598,12 +598,12 @@ void AMovingCamera::PostBeginPlay ()
 {
 	Super::PostBeginPlay ();
 
-	Activator = NULL;
+	Activator = nullptr;
 	if (args[3] != 0)
 	{
 		TActorIterator<AActor> iterator (args[3]);
 		tracer = iterator.Next ();
-		if (tracer == NULL)
+		if (tracer == nullptr)
 		{
 			Printf ("MovingCamera %d: Can't find thing %d\n", tid, args[3]);
 		}
@@ -612,7 +612,7 @@ void AMovingCamera::PostBeginPlay ()
 
 bool AMovingCamera::Interpolate ()
 {
-	if (tracer == NULL)
+	if (tracer == nullptr)
 		return Super::Interpolate ();
 
 	if (Super::Interpolate ())

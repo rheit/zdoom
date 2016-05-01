@@ -147,12 +147,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_LightningClip)
 	PARAM_ACTION_PROLOGUE;
 
 	AActor *cMo;
-	AActor *target = NULL;
+	AActor *target = nullptr;
 	int zigZag;
 
 	if (self->flags3 & MF3_FLOORHUGGER)
 	{
-		if (self->lastenemy == NULL)
+		if (self->lastenemy == nullptr)
 		{
 			return 0;
 		}
@@ -191,7 +191,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LightningClip)
 	{
 		if(target->health <= 0)
 		{
-			P_ExplodeMissile(self, NULL, NULL);
+			P_ExplodeMissile(self, nullptr, nullptr);
 		}
 		else
 		{
@@ -216,7 +216,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LightningZap)
 	PClassActor *lightning = PClass::FindActor(self->GetClass()->MissileName);
 	AActor *mo;
 
-	if (lightning == NULL)
+	if (lightning == nullptr)
 	{
 		lightning = PClass::FindActor(NAME_LightningZap);
 	}
@@ -273,16 +273,16 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_MLightningAttack)
 	}
 	if (cmo)
 	{
-		cmo->tracer = NULL;
+		cmo->tracer = nullptr;
 		cmo->lastenemy = fmo;
 		CALL_ACTION(A_LightningZap, cmo);	
 	}
 	S_Sound (self, CHAN_BODY, "MageLightningFire", 1, ATTN_NORM);
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL)
+		if (weapon != nullptr)
 		{
 			weapon->DepleteAmmo (weapon->bAltFire);
 		}
@@ -307,7 +307,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ZapMimic)
 	{
 		if (mo->state >= mo->FindState(NAME_Death))
 		{
-			P_ExplodeMissile (self, NULL, NULL);
+			P_ExplodeMissile (self, nullptr, nullptr);
 		}
 		else
 		{
@@ -331,7 +331,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LastZap)
 
 	AActor *mo;
 
-	if (lightning == NULL)
+	if (lightning == nullptr)
 	{
 		lightning = PClass::FindActor(NAME_LightningZap);
 	}
@@ -340,7 +340,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_LastZap)
 	{
 		mo->SetState (mo->FindState (NAME_Death));
 		mo->Vel.Z = 40;
-		mo->Damage = NULL;
+		mo->Damage = nullptr;
 	}
 	return 0;
 }
@@ -360,8 +360,8 @@ DEFINE_ACTION_FUNCTION(AActor, A_LightningRemove)
 	mo = self->lastenemy;
 	if (mo)
 	{
-		mo->lastenemy = NULL;
-		P_ExplodeMissile (mo, NULL, NULL);
+		mo->lastenemy = nullptr;
+		P_ExplodeMissile (mo, nullptr, nullptr);
 	}
 	return 0;
 }

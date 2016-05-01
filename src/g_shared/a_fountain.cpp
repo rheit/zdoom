@@ -52,7 +52,7 @@ void AParticleFountain::PostBeginPlay ()
 {
 	Super::PostBeginPlay ();
 	if (!(SpawnFlags & MTF_DORMANT))
-		Activate (NULL);
+		Activate (nullptr);
 }
 
 void AParticleFountain::Activate (AActor *activator)

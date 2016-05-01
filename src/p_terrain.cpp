@@ -150,7 +150,7 @@ static const char *OuterKeywords[] =
 	"ifstrife",
 	"endif",
 	"defaultterrain",
-	NULL
+	nullptr
 };
 
 static const char *SplashKeywords[] =
@@ -167,7 +167,7 @@ static const char *SplashKeywords[] =
 	"chunkzvelshift",
 	"chunkbasezvel",
 	"noalert",
-	NULL
+	nullptr
 };
 
 static const char *TerrainKeywords[] =
@@ -186,7 +186,7 @@ static const char *TerrainKeywords[] =
 	"liquid",
 	"friction",
 	"allowprotection",
-	NULL
+	nullptr
 };
 
 static FGenericParse SplashParser[] =
@@ -356,7 +356,7 @@ static void SetSplashDefaults (FSplashDef *splashdef)
 		splashdef->NormalSplashSound = 0;
 	splashdef->SmallSplash =
 		splashdef->SplashBase =
-		splashdef->SplashChunk = NULL;
+		splashdef->SplashChunk = nullptr;
 	splashdef->ChunkXVelShift =
 		splashdef->ChunkYVelShift =
 		splashdef->ChunkZVelShift = 8;
@@ -554,7 +554,7 @@ static void GenericParse (FScanner &sc, FGenericParse *parser, const char **keyw
 			sc.MustGetString ();
 			if (sc.Compare ("None"))
 			{
-				info = NULL;
+				info = nullptr;
 			}
 			else
 			{
@@ -563,9 +563,9 @@ static void GenericParse (FScanner &sc, FGenericParse *parser, const char **keyw
 				{
 					Printf ("%s is not an Actor (in %s %s)\n",
 						sc.String, type, name.GetChars());
-					info = NULL;
+					info = nullptr;
 				}
-				else if (info == NULL)
+				else if (info == nullptr)
 				{
 					Printf ("Unknown actor %s in %s %s\n",
 						sc.String, type, name.GetChars());

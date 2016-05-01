@@ -69,7 +69,7 @@ class FConsoleBuffer
 public:
 	FConsoleBuffer();
 	~FConsoleBuffer();
-	void AddText(int printlevel, const char *string, FILE *logfile = NULL);
+	void AddText(int printlevel, const char *string, FILE *logfile = nullptr);
 	void AddMidText(const char *string, bool bold, FILE *logfile);
 	void FormatText(FFont *formatfont, int displaywidth);
 	void ResizeBuffer(unsigned newsize);

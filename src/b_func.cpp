@@ -148,7 +148,7 @@ void DBot::Dofire (ticcmd_t *cmd)
 	if (!enemy || !(enemy->flags & MF_SHOOTABLE) || enemy->health <= 0)
 		return;
 
-	if (player->ReadyWeapon == NULL)
+	if (player->ReadyWeapon == nullptr)
 		return;
 
 	if (player->damagecount > skill.isp)
@@ -176,7 +176,7 @@ void DBot::Dofire (ticcmd_t *cmd)
 	//FIRE EACH TYPE OF WEAPON DIFFERENT: Here should all the different weapons go.
 	if (player->ReadyWeapon->WeaponFlags & WIF_MELEEWEAPON)
 	{
-		if ((player->ReadyWeapon->ProjectileType != NULL))
+		if ((player->ReadyWeapon->ProjectileType != nullptr))
 		{
 			if (player->ReadyWeapon->CheckAmmo (AWeapon::PrimaryFire, false, true))
 			{
@@ -203,7 +203,7 @@ void DBot::Dofire (ticcmd_t *cmd)
 			if(Check_LOS(enemy, SHOOTFOV))
 				no_fire = false;
 	}
-	else if (player->ReadyWeapon->ProjectileType != NULL)
+	else if (player->ReadyWeapon->ProjectileType != nullptr)
 	{
 		if (player->ReadyWeapon->WeaponFlags & WIF_BOT_EXPLOSIVE)
 		{
@@ -274,7 +274,7 @@ bool FCajunMaster::IsLeader (player_t *player)
 {
 	for (int count = 0; count < MAXPLAYERS; count++)
 	{
-		if (players[count].Bot != NULL
+		if (players[count].Bot != nullptr
 			&& players[count].Bot->mate == player->mo)
 		{
 			return true;
@@ -292,7 +292,7 @@ void FCajunMaster::BotTick(AActor *mo)
 	bglobal.m_Thinking = true;
 	for (int i = 0; i < MAXPLAYERS; i++)
 	{
-		if (!playeringame[i] || players[i].Bot == NULL)
+		if (!playeringame[i] || players[i].Bot == nullptr)
 			continue;
 
 		if (mo->flags3 & MF3_ISMONSTER)
@@ -340,7 +340,7 @@ AActor *DBot::Choose_Mate ()
 	if (mate)
 	{
 		if (mate->health <= 0)
-			mate = NULL;
+			mate = nullptr;
 		else
 			last_mate = mate;
 	}
@@ -350,14 +350,14 @@ AActor *DBot::Choose_Mate ()
 	//Check old_mates status.
 	if (last_mate)
 		if (last_mate->health <= 0)
-			last_mate = NULL;
+			last_mate = nullptr;
 
-	target = NULL;
+	target = nullptr;
 	closest_dist = FLT_MAX;
 	if (bot_observer)
 		observer = players[consoleplayer].mo;
 	else
-		observer = NULL;
+		observer = nullptr;
 
 	//Check for player friends
 	for (count = 0; count < MAXPLAYERS; count++)
@@ -426,12 +426,12 @@ AActor *DBot::Find_enemy ()
 		vangle = ENEMY_SCAN_FOV;
 	allround = false;
 
-	target = NULL;
+	target = nullptr;
 	closest_dist = FLT_MAX;
 	if (bot_observer)
 		observer = players[consoleplayer].mo;
 	else
-		observer = NULL;
+		observer = nullptr;
 
 	for (count = 0; count < MAXPLAYERS; count++)
 	{
@@ -497,7 +497,7 @@ void FCajunMaster::SetBodyAt (const DVector3 &pos, int hostnum)
 //------------------------------------------
 //    FireRox()
 //
-//Returns NULL if shouldn't fire
+//Returns nullptr if shouldn't fire
 //else an angle (in degrees) are given
 //This function assumes actor->player->angle
 //has been set an is the main aiming angle.
@@ -583,7 +583,7 @@ void FCajunMaster::StartTravel ()
 {
 	for (int i = 0; i < MAXPLAYERS; ++i)
 	{
-		if (players[i].Bot != NULL)
+		if (players[i].Bot != nullptr)
 		{
 			players[i].Bot->ChangeStatNum (STAT_TRAVELLING);
 		}
@@ -594,7 +594,7 @@ void FCajunMaster::FinishTravel ()
 {
 	for (int i = 0; i < MAXPLAYERS; ++i)
 	{
-		if (players[i].Bot != NULL)
+		if (players[i].Bot != nullptr)
 		{
 			players[i].Bot->ChangeStatNum (STAT_BOT);
 		}

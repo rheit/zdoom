@@ -127,7 +127,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 	FTexture::Span unmaskedSpan[2];
 	const FTexture::Span **spanptr, *spans;
 	static short bottomclipper[MAXWIDTH], topclipper[MAXWIDTH];
-	const BYTE *translation = NULL;
+	const BYTE *translation = nullptr;
 
 	if (parms.masked)
 	{
@@ -135,7 +135,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 	}
 	else
 	{
-		spanptr = NULL;
+		spanptr = nullptr;
 	}
 
 	if (APART(parms.colorOverlay) != 0)
@@ -158,12 +158,12 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 			parms.colorOverlay & MAKEARGB(0,255,255,255), 0);
 		translation = &colormap->Maps[(APART(parms.colorOverlay)*NUMCOLORMAPS/255)*256];
 	}
-	else if (parms.remap != NULL)
+	else if (parms.remap != nullptr)
 	{
 		translation = parms.remap->Remap;
 	}
 
-	if (translation != NULL)
+	if (translation != nullptr)
 	{
 		dc_colormap = (lighttable_t *)translation;
 	}
@@ -177,7 +177,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 
 	BYTE *destorgsave = dc_destorg;
 	dc_destorg = screen->GetBuffer();
-	if (dc_destorg == NULL)
+	if (dc_destorg == nullptr)
 	{
 		I_FatalError("Attempt to write to buffer of hardware canvas");
 	}
@@ -190,7 +190,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 		const BYTE *pixels;
 		int stop4;
 
-		if (spanptr == NULL)
+		if (spanptr == nullptr)
 		{ // Create a single span for forced unmasked images
 			spans = unmaskedSpan;
 			unmaskedSpan[0].TopOffset = 0;
@@ -332,7 +332,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 
 bool DCanvas::SetTextureParms(DrawParms *parms, FTexture *img, double xx, double yy) const
 {
-	if (img != NULL)
+	if (img != nullptr)
 	{
 		parms->x = xx;
 		parms->y = yy;
@@ -431,7 +431,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 
 	if (!fortext)
 	{
-		if (img == NULL || img->UseType == FTexture::TEX_Null)
+		if (img == nullptr || img->UseType == FTexture::TEX_Null)
 		{
 			va_end(tags);
 			return false;
@@ -458,7 +458,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	parms->destheight = INT_MAX;
 	parms->Alpha = 1.f;
 	parms->fillcolor = -1;
-	parms->remap = NULL;
+	parms->remap = nullptr;
 	parms->colorOverlay = 0;
 	parms->alphaChannel = false;
 	parms->flipX = false;
@@ -470,8 +470,8 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	parms->style.BlendOp = 255;		// Dummy "not set" value
 	parms->masked = true;
 	parms->bilinear = false;
-	parms->specialcolormap = NULL;
-	parms->colormapstyle = NULL;
+	parms->specialcolormap = nullptr;
+	parms->colormapstyle = nullptr;
 	parms->cleanmode = DTA_Base;
 	parms->scalex = parms->scaley = 1;
 	parms->cellx = parms->celly = 0;
@@ -604,7 +604,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			if (boolval)
 			{
 				assert(fortext == false);
-				if (img == NULL) return false;
+				if (img == nullptr) return false;
 				parms->cleanmode = DTA_Fullscreen;
 				parms->virtWidth = img->GetScaledWidthDouble();
 				parms->virtHeight = img->GetScaledHeightDouble();
@@ -630,9 +630,9 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 
 		case DTA_Translation:
 			parms->remap = va_arg(tags, FRemapTable *);
-			if (parms->remap != NULL && parms->remap->Inactive)
-			{ // If it's inactive, pretend we were passed NULL instead.
-				parms->remap = NULL;
+			if (parms->remap != nullptr && parms->remap->Inactive)
+			{ // If it's inactive, pretend we were passed nullptr instead.
+				parms->remap = nullptr;
 			}
 			break;
 
@@ -813,7 +813,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 		return false;
 	}
 
-	if (img != NULL)
+	if (img != nullptr)
 	{
 		SetTextureParms(parms, img, x, y);
 
@@ -957,7 +957,7 @@ void DCanvas::FillBorder (FTexture *img)
 		bordright = bord - bordleft;
 	}
 
-	if (img != NULL)
+	if (img != nullptr)
 	{
 		FlatFill (0, 0, Width, bordtop, img);									// Top
 		FlatFill (0, bordtop, bordleft, Height - bordbottom, img);				// Left
@@ -990,7 +990,7 @@ void DCanvas::PUTTRANSDOT (int xx, int yy, int basecolor, int level)
 		else if(yy > (finit_height - 32))
 			cc += 7-((finit_height-yy) >> 2);
 //	}
-	if(cc > cm && cm != NULL)
+	if(cc > cm && cm != nullptr)
 	{
 		cc = cm;
 	}
@@ -1274,7 +1274,7 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 	bool dorotate = rotation != 0.;
 	double cosrot, sinrot;
 
-	if (--npoints < 2 || Buffer == NULL)
+	if (--npoints < 2 || Buffer == nullptr)
 	{ // not a polygon or we're not locked
 		return;
 	}
@@ -1318,7 +1318,7 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 
 	// Setup constant texture mapping parameters.
 	R_SetupSpanBits(tex);
-	R_SetSpanColormap(colormap != NULL ? &colormap->Maps[clamp(shade >> FRACBITS, 0, NUMCOLORMAPS-1) * 256] : identitymap);
+	R_SetSpanColormap(colormap != nullptr ? &colormap->Maps[clamp(shade >> FRACBITS, 0, NUMCOLORMAPS-1) * 256] : identitymap);
 	R_SetSpanSource(tex->GetPixels());
 	scalex = double(1u << (32 - ds_xbits)) / scalex;
 	scaley = double(1u << (32 - ds_ybits)) / scaley;
@@ -1517,7 +1517,7 @@ bool DCanvas::ClipBox (int &x, int &y, int &w, int &h, const BYTE *&src, const i
 
 void V_SetBorderNeedRefresh()
 {
-	if (screen != NULL)
+	if (screen != nullptr)
 	{
 		BorderNeedRefresh = screen->GetPageCount();
 	}
@@ -1537,7 +1537,7 @@ void V_DrawFrame (int left, int top, int width, int height)
 	FTexture *p;
 	const gameborder_t *border = &gameinfo.Border;
 	// Sanity check for incomplete gameinfo
-	if (border == NULL)
+	if (border == nullptr)
 		return;
 	int offset = border->offset;
 	int right = left + width;
@@ -1572,7 +1572,7 @@ void V_DrawBorder (int x1, int y1, int x2, int y2)
 {
 	FTextureID picnum;
 
-	if (level.info != NULL && level.info->BorderTexture.Len() != 0)
+	if (level.info != nullptr && level.info->BorderTexture.Len() != 0)
 	{
 		picnum = TexMan.CheckForTexture (level.info->BorderTexture, FTexture::TEX_Flat);
 	}

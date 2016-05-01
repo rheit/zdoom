@@ -39,10 +39,10 @@
 #define ASSERTA(x)		assert((unsigned)(x) < f->NumRegA)
 #define ASSERTS(x)		assert((unsigned)(x) < f->NumRegS)
 
-#define ASSERTKD(x)		assert(sfunc != NULL && (unsigned)(x) < sfunc->NumKonstD)
-#define ASSERTKF(x)		assert(sfunc != NULL && (unsigned)(x) < sfunc->NumKonstF)
-#define ASSERTKA(x)		assert(sfunc != NULL && (unsigned)(x) < sfunc->NumKonstA)
-#define ASSERTKS(x)		assert(sfunc != NULL && (unsigned)(x) < sfunc->NumKonstS)
+#define ASSERTKD(x)		assert(sfunc != nullptr && (unsigned)(x) < sfunc->NumKonstD)
+#define ASSERTKF(x)		assert(sfunc != nullptr && (unsigned)(x) < sfunc->NumKonstF)
+#define ASSERTKA(x)		assert(sfunc != nullptr && (unsigned)(x) < sfunc->NumKonstA)
+#define ASSERTKS(x)		assert(sfunc != nullptr && (unsigned)(x) < sfunc->NumKonstS)
 
 #define THROW(x)
 
@@ -63,7 +63,7 @@ enum
 };
 
 #define GETADDR(a,o,x) \
-	if (a == NULL) { THROW(x); } \
+	if (a == nullptr) { THROW(x); } \
 	ptr = (VM_SBYTE *)a + o
 
 static const VM_UWORD ZapTable[16] =
@@ -160,7 +160,7 @@ void VMFillParams(VMValue *params, VMFrame *callee, int numparam)
 	VMScriptFunction *calleefunc = static_cast<VMScriptFunction *>(callee->Func);
 	const VMRegisters calleereg(callee);
 
-	assert(calleefunc != NULL && !calleefunc->Native);
+	assert(calleefunc != nullptr && !calleefunc->Native);
 	assert(numparam == calleefunc->NumArgs);
 	assert(REGT_INT == 0 && REGT_FLOAT == 1 && REGT_STRING == 2 && REGT_POINTER == 3);
 

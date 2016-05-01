@@ -54,7 +54,7 @@ class FLumpReader : public MemoryReader
 
 public:
 	FLumpReader(FResourceLump *src)
-		: MemoryReader(NULL, src->LumpSize), source(src)
+		: MemoryReader(nullptr, src->LumpSize), source(src)
 	{
 		src->CacheLump();
 		bufptr = src->Cache;
@@ -75,12 +75,12 @@ public:
 
 FResourceLump::~FResourceLump()
 {
-	if (Cache != NULL && RefCount >= 0)
+	if (Cache != nullptr && RefCount >= 0)
 	{
 		delete [] Cache;
-		Cache = NULL;
+		Cache = nullptr;
 	}
-	Owner = NULL;
+	Owner = nullptr;
 }
 
 
@@ -150,7 +150,7 @@ static bool IsWadInFolder(const FResourceFile* const archive, const char* const 
 	// Checks a special case when <somefile.wad> was put in
 	// <myproject> directory inside <myproject.zip>
 
-	if (NULL == archive)
+	if (nullptr == archive)
 	{
 		return false;
 	}
@@ -175,10 +175,10 @@ void FResourceLump::CheckEmbedded()
 	/* later
 	else
 	{
-		if (c==NULL) c = strstr(Name, ".zip");
-		if (c==NULL) c = strstr(Name, ".pk3");
-		if (c==NULL) c = strstr(Name, ".7z");
-		if (c==NULL) c = strstr(Name, ".pak");
+		if (c==nullptr) c = strstr(Name, ".zip");
+		if (c==nullptr) c = strstr(Name, ".pk3");
+		if (c==nullptr) c = strstr(Name, ".7z");
+		if (c==nullptr) c = strstr(Name, ".pak");
 		if (c && strlen(c) <= 4)
 		{
 			// Mark all embedded archives in any directory
@@ -199,7 +199,7 @@ void FResourceLump::CheckEmbedded()
 
 FileReader *FResourceLump::GetReader()
 {
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -221,7 +221,7 @@ FileReader *FResourceLump::NewReader()
 
 void *FResourceLump::CacheLump()
 {
-	if (Cache != NULL)
+	if (Cache != nullptr)
 	{
 		if (RefCount > 0) RefCount++;
 	}
@@ -245,7 +245,7 @@ int FResourceLump::ReleaseCache()
 		if (--RefCount == 0)
 		{
 			delete [] Cache;
-			Cache = NULL;
+			Cache = nullptr;
 		}
 	}
 	return RefCount;
@@ -272,7 +272,7 @@ static CheckFunc funcs[] = { CheckWad, CheckZip, Check7Z, CheckPak, CheckGRP, Ch
 
 FResourceFile *FResourceFile::OpenResourceFile(const char *filename, FileReader *file, bool quiet)
 {
-	if (file == NULL)
+	if (file == nullptr)
 	{
 		try
 		{
@@ -280,20 +280,20 @@ FResourceFile *FResourceFile::OpenResourceFile(const char *filename, FileReader 
 		}
 		catch (CRecoverableError &)
 		{
-			return NULL;
+			return nullptr;
 		}
 	}
 	for(size_t i = 0; i < countof(funcs); i++)
 	{
 		FResourceFile *resfile = funcs[i](filename, file, quiet);
-		if (resfile != NULL) return resfile;
+		if (resfile != nullptr) return resfile;
 	}
-	return NULL;
+	return nullptr;
 }
 
 FResourceFile *FResourceFile::OpenDirectory(const char *filename, bool quiet)
 {
-	return CheckDir(filename, NULL, quiet);
+	return CheckDir(filename, nullptr, quiet);
 }
 
 //==========================================================================
@@ -304,15 +304,15 @@ FResourceFile *FResourceFile::OpenDirectory(const char *filename, bool quiet)
 
 FResourceFile::FResourceFile(const char *filename, FileReader *r)
 {
-	if (filename != NULL) Filename = copystring(filename);
-	else Filename = NULL;
+	if (filename != nullptr) Filename = copystring(filename);
+	else Filename = nullptr;
 	Reader = r;
 }
 
 
 FResourceFile::~FResourceFile()
 {
-	if (Filename != NULL) delete [] Filename;
+	if (Filename != nullptr) delete [] Filename;
 	delete Reader;
 }
 
@@ -430,14 +430,14 @@ int FResourceFile::FilterLumpsByGameType(int type, void *lumps, size_t lumpsize,
 		{ GAME_Raven,			"game-Raven" },
 		{ GAME_DoomStrifeChex,	"game-DoomStrifeChex" },
 		{ GAME_DoomChex,		"game-DoomChex" },
-		{ GAME_Any, NULL }
+		{ GAME_Any, nullptr }
 	};
 	if (type == 0)
 	{
 		return 0;
 	}
 	int count = 0;
-	for (int i = 0; blanket[i].name != NULL; ++i)
+	for (int i = 0; blanket[i].name != nullptr; ++i)
 	{
 		if (type & blanket[i].match)
 		{
@@ -583,7 +583,7 @@ int FUncompressedLump::FillCache()
 {
 	const char * buffer = Owner->Reader->GetBuffer();
 
-	if (buffer != NULL)
+	if (buffer != nullptr)
 	{
 		// This is an in-memory file so the cache can point directly to the file's data.
 		Cache = const_cast<char*>(buffer) + Position;
@@ -607,12 +607,12 @@ int FUncompressedLump::FillCache()
 FUncompressedFile::FUncompressedFile(const char *filename, FileReader *r)
 : FResourceFile(filename, r)
 {
-	Lumps = NULL;
+	Lumps = nullptr;
 }
 
 FUncompressedFile::~FUncompressedFile()
 {
-	if (Lumps != NULL) delete [] Lumps;
+	if (Lumps != nullptr) delete [] Lumps;
 }
 
 
@@ -625,12 +625,12 @@ FUncompressedFile::~FUncompressedFile()
 
 FExternalLump::FExternalLump(const char *_filename, int filesize)
 {
-	filename = _filename? copystring(_filename) : NULL;
+	filename = _filename? copystring(_filename) : nullptr;
 
 	if (filesize == -1)
 	{
 		FILE *f = fopen(_filename,"rb");
-		if (f != NULL)
+		if (f != nullptr)
 		{
 			fseek(f, 0, SEEK_END);
 			LumpSize = ftell(f);
@@ -650,7 +650,7 @@ FExternalLump::FExternalLump(const char *_filename, int filesize)
 
 FExternalLump::~FExternalLump()
 {
-	if (filename != NULL) delete [] filename;
+	if (filename != nullptr) delete [] filename;
 }
 
 //==========================================================================
@@ -664,7 +664,7 @@ int FExternalLump::FillCache()
 {
 	Cache = new char[LumpSize];
 	FILE *f = fopen(filename, "rb");
-	if (f != NULL)
+	if (f != nullptr)
 	{
 		fread(Cache, 1, LumpSize, f);
 		fclose(f);

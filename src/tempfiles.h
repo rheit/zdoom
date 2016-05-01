@@ -48,7 +48,7 @@
 class FTempFileName
 {
 public:
-	FTempFileName (const char *prefix=NULL);
+	FTempFileName (const char *prefix=nullptr);
 	~FTempFileName ();
 
 	operator const char * () { return Name; }

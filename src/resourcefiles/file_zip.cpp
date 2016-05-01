@@ -142,7 +142,7 @@ public:
 	FZipFile(const char * filename, FileReader *file);
 	virtual ~FZipFile();
 	bool Open(bool quiet);
-	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : NULL; }
+	virtual FResourceLump *GetLump(int no) { return ((unsigned)no < NumLumps)? &Lumps[no] : nullptr; }
 };
 
 
@@ -155,7 +155,7 @@ public:
 FZipFile::FZipFile(const char * filename, FileReader *file)
 : FResourceFile(filename, file)
 {
-	Lumps = NULL;
+	Lumps = nullptr;
 }
 
 bool FZipFile::Open(bool quiet)
@@ -164,7 +164,7 @@ bool FZipFile::Open(bool quiet)
 	FZipEndOfCentralDirectory info;
 	int skipped = 0;
 
-	Lumps = NULL;
+	Lumps = nullptr;
 
 	if (centraldir == 0)
 	{
@@ -282,7 +282,7 @@ bool FZipFile::Open(bool quiet)
 
 FZipFile::~FZipFile()
 {
-	if (Lumps != NULL) delete [] Lumps;
+	if (Lumps != nullptr) delete [] Lumps;
 }
 
 //==========================================================================
@@ -310,7 +310,7 @@ void FZipLump::SetLumpAddress()
 
 //==========================================================================
 //
-// Get reader (only returns non-NULL if not encrypted)
+// Get reader (only returns non-nullptr if not encrypted)
 //
 //==========================================================================
 
@@ -324,7 +324,7 @@ FileReader *FZipLump::GetReader()
 		Owner->Reader->Seek(Position, SEEK_SET);
 		return Owner->Reader;
 	}
-	else return NULL;	
+	else return nullptr;	
 }
 
 //==========================================================================
@@ -338,7 +338,7 @@ int FZipLump::FillCache()
 	if (Flags & LUMPFZIP_NEEDFILESTART) SetLumpAddress();
 	const char *buffer;
 
-	if (Method == METHOD_STORED && (buffer = Owner->Reader->GetBuffer()) != NULL)
+	if (Method == METHOD_STORED && (buffer = Owner->Reader->GetBuffer()) != nullptr)
 	{
 		// This is an in-memory file so the cache can point directly to the file's data.
 		Cache = const_cast<char*>(buffer) + Position;
@@ -419,11 +419,11 @@ FResourceFile *CheckZip(const char *filename, FileReader *file, bool quiet)
 			FResourceFile *rf = new FZipFile(filename, file);
 			if (rf->Open(quiet)) return rf;
 
-			rf->Reader = NULL; // to avoid destruction of reader
+			rf->Reader = nullptr; // to avoid destruction of reader
 			delete rf;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 

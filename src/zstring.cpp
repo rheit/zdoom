@@ -49,7 +49,7 @@ FNullStringData FString::NullString =
 
 void FString::AttachToOther (const FString &other)
 {
-	assert (other.Chars != NULL);
+	assert (other.Chars != nullptr);
 
 	if (other.Data()->RefCount < 0)
 	{
@@ -64,7 +64,7 @@ void FString::AttachToOther (const FString &other)
 
 FString::FString (const char *copyStr)
 {
-	if (copyStr == NULL || *copyStr == '\0')
+	if (copyStr == nullptr || *copyStr == '\0')
 	{
 		NullString.RefCount++;
 		Chars = &NullString.Nothing[0];
@@ -198,7 +198,7 @@ void FString::UnlockBuffer()
 
 FString &FString::operator = (const FString &other)
 {
-	assert (Chars != NULL);
+	assert (Chars != nullptr);
 
 	if (&other != this)
 	{
@@ -217,7 +217,7 @@ FString &FString::operator = (const char *copyStr)
 {
 	if (copyStr != Chars)
 	{
-		if (copyStr == NULL || *copyStr == '\0')
+		if (copyStr == nullptr || *copyStr == '\0')
 		{
 			Data()->Release();
 			NullString.RefCount++;
@@ -234,12 +234,12 @@ FString &FString::operator = (const char *copyStr)
 				// We know the string isn't in our buffer, so release it now
 				// to reduce the potential for needless memory fragmentation.
 				old->Release();
-				old = NULL;
+				old = nullptr;
 			}
 			size_t len = strlen (copyStr);
 			AllocBuffer (len);
 			StrCopy (Chars, copyStr, len);
-			if (old != NULL)
+			if (old != nullptr)
 			{
 				old->Release();
 			}
@@ -411,7 +411,7 @@ long FString::IndexOf (const char *substr, long startIndex) const
 		return -1;
 	}
 	char *str = strstr (Chars + startIndex, substr);
-	if (str == NULL)
+	if (str == nullptr)
 	{
 		return -1;
 	}
@@ -425,7 +425,7 @@ long FString::IndexOf (char subchar, long startIndex) const
 		return -1;
 	}
 	char *str = strchr (Chars + startIndex, subchar);
-	if (str == NULL)
+	if (str == nullptr)
 	{
 		return -1;
 	}
@@ -444,7 +444,7 @@ long FString::IndexOfAny (const char *charset, long startIndex) const
 		return -1;
 	}
 	char *brk = strpbrk (Chars + startIndex, charset);
-	if (brk == NULL)
+	if (brk == nullptr)
 	{
 		return -1;
 	}
@@ -532,7 +532,7 @@ long FString::LastIndexOfAny (const char *charset, long endIndex) const
 	}
 	while (--endIndex >= 0)
 	{
-		if (strchr (charset, Chars[endIndex]) != NULL)
+		if (strchr (charset, Chars[endIndex]) != nullptr)
 		{
 			return endIndex;
 		}
@@ -812,7 +812,7 @@ void FString::ReplaceChars (const char *oldcharset, char newchar)
 	LockBuffer();
 	for (i = 0, j = Len(); i < j; ++i)
 	{
-		if (strchr (oldcharset, Chars[i]) != NULL)
+		if (strchr (oldcharset, Chars[i]) != nullptr)
 		{
 			Chars[i] = newchar;
 		}
@@ -844,7 +844,7 @@ void FString::StripChars (const char *killchars)
 	LockBuffer();
 	for (read = write = 0, mylen = Len(); read < mylen; ++read)
 	{
-		if (strchr (killchars, Chars[read]) == NULL)
+		if (strchr (killchars, Chars[read]) == nullptr)
 		{
 			Chars[write++] = Chars[read];
 		}
@@ -890,9 +890,9 @@ void FString::MergeChars (const char *charset, char newchar)
 	LockBuffer();
 	for (read = write = 0, mylen = Len(); read < mylen; )
 	{
-		if (strchr (charset, Chars[read]) != NULL)
+		if (strchr (charset, Chars[read]) != nullptr)
 		{
-			while (strchr (charset, Chars[++read]) != NULL)
+			while (strchr (charset, Chars[++read]) != nullptr)
 			{
 			}
 			Chars[write++] = newchar;
@@ -934,7 +934,7 @@ void FString::Substitute (const char *oldstr, const char *newstr, size_t oldstrl
 	{
 		char *match = strstr (Chars + checkpt, oldstr);
 		size_t len = Len();
-		if (match != NULL)
+		if (match != nullptr)
 		{
 			size_t matchpt = match - Chars;
 			if (oldstrlen != newstrlen)
@@ -1065,17 +1065,17 @@ digits		= [0-9];
 
 long FString::ToLong (int base) const
 {
-	return strtol (Chars, NULL, base);
+	return strtol (Chars, nullptr, base);
 }
 
 unsigned long FString::ToULong (int base) const
 {
-	return strtoul (Chars, NULL, base);
+	return strtoul (Chars, nullptr, base);
 }
 
 double FString::ToDouble () const
 {
-	return strtod (Chars, NULL);
+	return strtod (Chars, nullptr);
 }
 
 void FString::StrCopy (char *to, const char *from, size_t len)
@@ -1131,10 +1131,10 @@ FStringData *FStringData::Alloc (size_t strlen)
 	strlen = (strlen + 7) & ~7;			// Pad length up
 
 #ifdef _WIN32
-	if (StringHeap == NULL)
+	if (StringHeap == nullptr)
 	{
 		StringHeap = HeapCreate (0, STRING_HEAP_SIZE, 0);
-		if (StringHeap == NULL)
+		if (StringHeap == nullptr)
 		{
 			throw std::bad_alloc();
 		}
@@ -1144,7 +1144,7 @@ FStringData *FStringData::Alloc (size_t strlen)
 #else
 	FStringData *block = (FStringData *)malloc (strlen);
 #endif
-	if (block == NULL)
+	if (block == nullptr)
 	{
 		throw std::bad_alloc();
 	}
@@ -1166,7 +1166,7 @@ FStringData *FStringData::Realloc (size_t newstrlen)
 #else
 	FStringData *block = (FStringData *)realloc (this, newstrlen);
 #endif
-	if (block == NULL)
+	if (block == nullptr)
 	{
 		throw std::bad_alloc();
 	}

@@ -37,7 +37,7 @@ void APigPlayer::MorphPlayerThink ()
 	}
 	if(Vel.X == 0 && Vel.Y == 0 && pr_pigplayerthink() < 64)
 	{ // Snout sniff
-		if (player->ReadyWeapon != NULL)
+		if (player->ReadyWeapon != nullptr)
 		{
 			P_SetPsprite(player, ps_weapon, player->ReadyWeapon->FindState("Grunt"));
 		}
@@ -67,7 +67,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SnoutAttack)
 	AActor *puff;
 	FTranslatedLineTarget t;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -80,7 +80,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SnoutAttack)
 	if(t.linetarget)
 	{
 		AdjustPlayerAngle(player->mo, &t);
-		if(puff != NULL)
+		if(puff != nullptr)
 		{ // Bit something
 			S_Sound(player->mo, CHAN_VOICE, "PigAttack", 1, ATTN_NORM);
 		}

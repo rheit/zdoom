@@ -63,13 +63,13 @@ CVAR(String, wildmidi_config, "", CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Int, wildmidi_frequency, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CUSTOM_CVAR(Bool, wildmidi_reverb, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
 {
-	if (currSong != NULL)
+	if (currSong != nullptr)
 		currSong->WildMidiSetOption(WM_MO_REVERB, *self? WM_MO_REVERB:0);
 }
 
 CUSTOM_CVAR(Bool, wildmidi_enhanced_resampling, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
 {
-	if (currSong != NULL)
+	if (currSong != nullptr)
 		currSong->WildMidiSetOption(WM_MO_ENHANCED_RESAMPLING, *self? WM_MO_ENHANCED_RESAMPLING:0);
 }
 
@@ -83,7 +83,7 @@ CUSTOM_CVAR(Bool, wildmidi_enhanced_resampling, true, CVAR_ARCHIVE | CVAR_GLOBAL
 
 WildMIDIDevice::WildMIDIDevice(const char *args)
 {
-	Renderer = NULL;
+	Renderer = nullptr;
 
 	if (wildmidi_frequency >= 11025 && wildmidi_frequency < 65536)
 	{ // Use our own sample rate instead of the global one
@@ -94,7 +94,7 @@ WildMIDIDevice::WildMIDIDevice(const char *args)
 		SampleRate = clamp(SampleRate, 11025, 65535);
 	}
 
-	if (args == NULL || *args == 0) args = wildmidi_config;
+	if (args == nullptr || *args == 0) args = wildmidi_config;
 
 	if (CurrentConfig.CompareNoCase(args) != 0 || SampleRate != WildMidi_GetSampleRate())
 	{
@@ -127,7 +127,7 @@ WildMIDIDevice::WildMIDIDevice(const char *args)
 WildMIDIDevice::~WildMIDIDevice()
 {
 	Close();
-	if (Renderer != NULL)
+	if (Renderer != nullptr)
 	{
 		delete Renderer;
 	}
@@ -144,7 +144,7 @@ WildMIDIDevice::~WildMIDIDevice()
 
 int WildMIDIDevice::Open(void (*callback)(unsigned int, void *, DWORD, DWORD), void *userdata)
 {
-	if (Renderer == NULL)
+	if (Renderer == nullptr)
 	{
 		return 1;
 	}

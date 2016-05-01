@@ -40,7 +40,7 @@ namespace Timidity
 extern Instrument *load_instrument_dls(Renderer *song, int drum, int bank, int instrument);
 
 Instrument::Instrument()
-: samples(0), sample(NULL)
+: samples(0), sample(nullptr)
 {
 }
 
@@ -51,7 +51,7 @@ Instrument::~Instrument()
 
 	for (i = samples, sp = &(sample[0]); i != 0; i--, sp++)
 	{
-		if (sp->type == INST_GUS && sp->data != NULL)
+		if (sp->type == INST_GUS && sp->data != nullptr)
 		{
 			free(sp->data);
 		}
@@ -73,10 +73,10 @@ ToneBank::~ToneBank()
 	delete[] tone;
 	for (int i = 0; i < MAXPROG; i++)
 	{
-		if (instrument[i] != NULL && instrument[i] != MAGIC_LOAD_INSTRUMENT)
+		if (instrument[i] != nullptr && instrument[i] != MAGIC_LOAD_INSTRUMENT)
 		{
 			delete instrument[i];
-			instrument[i] = NULL;
+			instrument[i] = nullptr;
 		}
 	}
 }
@@ -159,16 +159,16 @@ static Instrument *load_instrument(Renderer *song, const char *name, int percuss
 	if (!name) return 0;
 
 	/* Open patch file */
-	if ((fp = pathExpander.openFileReader(name, NULL)) == NULL)
+	if ((fp = pathExpander.openFileReader(name, nullptr)) == nullptr)
 	{
 		/* Try with various extensions */
 		FString tmp = name;
 		tmp += ".pat";
-		if ((fp = pathExpander.openFileReader(tmp, NULL)) == NULL)
+		if ((fp = pathExpander.openFileReader(tmp, nullptr)) == nullptr)
 		{
 #ifdef __unix__			// Windows isn't case-sensitive.
 			tmp.ToUpper();
-			if ((fp = pathExpander.openFileReader(tmp, NULL)) == NULL)
+			if ((fp = pathExpander.openFileReader(tmp, nullptr)) == nullptr)
 #endif
 			{
 				noluck = true;
@@ -468,7 +468,7 @@ fail:
 void convert_sample_data(Sample *sp, const void *data)
 {
 	/* convert everything to 32-bit floating point data */
-	sample_t *newdata = NULL;
+	sample_t *newdata = nullptr;
 
 	switch (sp->modes & (PATCH_16 | PATCH_UNSIGNED))
 	{
@@ -557,7 +557,7 @@ void convert_sample_data(Sample *sp, const void *data)
 	}
 	/* Duplicate the final sample for linear interpolation. */
 	newdata[sp->data_length] = newdata[sp->data_length - 1];
-	if (sp->data != NULL)
+	if (sp->data != nullptr)
 	{
 		free(sp->data);
 	}
@@ -568,7 +568,7 @@ static int fill_bank(Renderer *song, int dr, int b)
 {
 	int i, errors = 0;
 	ToneBank *bank = ((dr) ? drumset[b] : tonebank[b]);
-	if (bank == NULL)
+	if (bank == nullptr)
 	{
 		cmsg(CMSG_ERROR, VERB_NORMAL, 
 			"Huh. Tried to load instruments in non-existent %s %d\n",
@@ -579,15 +579,15 @@ static int fill_bank(Renderer *song, int dr, int b)
 	{
 		if (bank->instrument[i] == MAGIC_LOAD_INSTRUMENT)
 		{
-			bank->instrument[i] = NULL;
+			bank->instrument[i] = nullptr;
 			bank->instrument[i] = load_instrument_dls(song, dr, b, i);
-			if (bank->instrument[i] != NULL)
+			if (bank->instrument[i] != nullptr)
 			{
 				continue;
 			}
 			Instrument *ip;
 			ip = load_instrument_font_order(song, 0, dr, b, i);
-			if (ip == NULL)
+			if (ip == nullptr)
 			{
 				if (bank->tone[i].fontbank >= 0)
 				{
@@ -603,13 +603,13 @@ static int fill_bank(Renderer *song, int dr, int b)
 						(bank->tone[i].strip_envelope != -1) ? bank->tone[i].strip_envelope : ((dr) ? 1 : -1),
 						bank->tone[i].strip_tail);
 				}
-				if (ip == NULL)
+				if (ip == nullptr)
 				{
 					ip = load_instrument_font_order(song, 1, dr, b, i);
 				}
 			}
 			bank->instrument[i] = ip;
-			if (ip == NULL)
+			if (ip == nullptr)
 			{
 				if (bank->tone[i].name.IsEmpty())
 				{
@@ -629,7 +629,7 @@ static int fill_bank(Renderer *song, int dr, int b)
 				{
 					/* Mark the corresponding instrument in the default
 					   bank / drumset for loading (if it isn't already) */
-					if (((dr) ? drumset[0] : tonebank[0])->instrument[i] != NULL)
+					if (((dr) ? drumset[0] : tonebank[0])->instrument[i] != nullptr)
 					{
 						((dr) ? drumset[0] : tonebank[0])->instrument[i] = MAGIC_LOAD_INSTRUMENT;
 					}
@@ -646,9 +646,9 @@ int Renderer::load_missing_instruments()
 	int i = MAXBANK, errors = 0;
 	while (i--)
 	{
-		if (tonebank[i] != NULL)
+		if (tonebank[i] != nullptr)
 			errors += fill_bank(this, 0,i);
-		if (drumset[i] != NULL)
+		if (drumset[i] != nullptr)
 			errors += fill_bank(this, 1,i);
 	}
 	return errors;
@@ -659,15 +659,15 @@ void free_instruments()
 	int i = MAXBANK;
 	while (i--)
 	{
-		if (tonebank[i] != NULL)
+		if (tonebank[i] != nullptr)
 		{
 			delete tonebank[i];
-			tonebank[i] = NULL;
+			tonebank[i] = nullptr;
 		}
-		if (drumset[i] != NULL)
+		if (drumset[i] != nullptr)
 		{
 			delete drumset[i];
-			drumset[i] = NULL;
+			drumset[i] = nullptr;
 		}
 	}
 }
@@ -675,11 +675,11 @@ void free_instruments()
 int Renderer::set_default_instrument(const char *name)
 {
 	Instrument *ip;
-	if ((ip = load_instrument(this, name, 0, -1, -1, 0, 0, 0)) == NULL)
+	if ((ip = load_instrument(this, name, 0, -1, -1, 0, 0, 0)) == nullptr)
 	{
 		return -1;
 	}
-	if (default_instrument != NULL)
+	if (default_instrument != nullptr)
 	{
 		delete default_instrument;
 	}

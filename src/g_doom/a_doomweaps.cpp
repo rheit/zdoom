@@ -35,10 +35,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_Punch)
 	DAngle 		pitch;
 	FTranslatedLineTarget t;
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL && !(weapon->WeaponFlags & WIF_DEHAMMO) && ACTION_CALL_FROM_WEAPON())
+		if (weapon != nullptr && !(weapon->WeaponFlags & WIF_DEHAMMO) && ACTION_CALL_FROM_WEAPON())
 		{
 			if (!weapon->DepleteAmmo (weapon->bAltFire))
 				return 0;
@@ -73,10 +73,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePistol)
 
 	bool accurate;
 
-	if (self->player != NULL)
+	if (self->player != nullptr)
 	{
 		AWeapon *weapon = self->player->ReadyWeapon;
-		if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+		if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 		{
 			if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 				return 0;
@@ -120,14 +120,14 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Saw)
 	PARAM_SOUND_OPT	(fullsound)			{ fullsound = "weapons/sawfull"; }
 	PARAM_SOUND_OPT	(hitsound)			{ hitsound = "weapons/sawhit"; }
 	PARAM_INT_OPT	(damage)			{ damage = 2; }
-	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = NULL; }
+	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = nullptr; }
 	PARAM_INT_OPT	(flags)				{ flags = 0; }
 	PARAM_FLOAT_OPT	(range)				{ range = 0; }
 	PARAM_ANGLE_OPT	(spread_xy)			{ spread_xy = 2.8125; }
 	PARAM_ANGLE_OPT	(spread_z)			{ spread_z = 0.; }
 	PARAM_FLOAT_OPT	(lifesteal)			{ lifesteal = 0; }
 	PARAM_INT_OPT	(lifestealmax)		{ lifestealmax = 0; }
-	PARAM_CLASS_OPT	(armorbonustype, ABasicArmorBonus)	{ armorbonustype = NULL; }
+	PARAM_CLASS_OPT	(armorbonustype, ABasicArmorBonus)	{ armorbonustype = nullptr; }
 
 	DAngle angle;
 	DAngle slope;
@@ -135,12 +135,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Saw)
 	FTranslatedLineTarget t;
 	int actualdamage;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
-	if (pufftype == NULL)
+	if (pufftype == nullptr)
 	{
 		pufftype = PClass::FindActor(NAME_BulletPuff);
 	}
@@ -161,7 +161,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Saw)
 	slope = P_AimLineAttack (self, angle, range, &t) + spread_z * (pr_saw.Random2() / 255.);
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if ((weapon != NULL) && !(flags & SF_NOUSEAMMO) && !(!t.linetarget && (flags & SF_NOUSEAMMOMISS)) && !(weapon->WeaponFlags & WIF_DEHAMMO) && ACTION_CALL_FROM_WEAPON())
+	if ((weapon != nullptr) && !(flags & SF_NOUSEAMMO) && !(!t.linetarget && (flags & SF_NOUSEAMMOMISS)) && !(weapon->WeaponFlags & WIF_DEHAMMO) && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -200,11 +200,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Saw)
 	{
 		if (flags & SF_STEALARMOR)
 		{
-			if (armorbonustype == NULL)
+			if (armorbonustype == nullptr)
 			{
 				armorbonustype = dyn_cast<ABasicArmorBonus::MetaClass>(PClass::FindClass("ArmorBonus"));
 			}
-			if (armorbonustype != NULL)
+			if (armorbonustype != nullptr)
 			{
 				assert(armorbonustype->IsDescendantOf (RUNTIME_CLASS(ABasicArmorBonus)));
 				ABasicArmorBonus *armorbonus = static_cast<ABasicArmorBonus *>(Spawn(armorbonustype));
@@ -263,14 +263,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireShotgun)
 	int i;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	S_Sound (self, CHAN_WEAPON,  "weapons/shotgf", 1, ATTN_NORM);
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 			return 0;
@@ -300,14 +300,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireShotgun2)
 	int 		damage;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	S_Sound (self, CHAN_WEAPON, "weapons/sshotf", 1, ATTN_NORM);
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 2))
 			return 0;
@@ -404,7 +404,7 @@ void P_SetSafeFlash(AWeapon *weapon, player_t *player, FState *flashstate, int i
 	// The only way to check this would be to go through all Dehacked modifiable actors, convert
 	// their states into a single flat array and find the correct one.
 	// Rather than that, just check to make sure it belongs to something.
-	if (FState::StaticFindStateOwner(flashstate + index) == NULL)
+	if (FState::StaticFindStateOwner(flashstate + index) == nullptr)
 	{ // Invalid state. With no index offset, it should at least be valid.
 		index = 0;
 	}
@@ -421,13 +421,13 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireCGun)
 
 	player_t *player;
 
-	if (self == NULL || NULL == (player = self->player))
+	if (self == nullptr || nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 			return 0;
@@ -435,7 +435,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireCGun)
 		S_Sound (self, CHAN_WEAPON, "weapons/chngun", 1, ATTN_NORM);
 
 		FState *flash = weapon->FindState(NAME_Flash);
-		if (flash != NULL)
+		if (flash != nullptr)
 		{
 			// [RH] Fix for Sparky's messed-up Dehacked patch! Blargh!
 			FState * atk = weapon->FindState(NAME_Fire);
@@ -466,12 +466,12 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireMissile)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 			return 0;
@@ -490,15 +490,15 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireSTGrenade)
 
 	player_t *player;
 
-	if (grenade == NULL)
+	if (grenade == nullptr)
 		return 0;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire))
 			return 0;
@@ -521,18 +521,18 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePlasma)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 			return 0;
 
 		FState *flash = weapon->FindState(NAME_Flash);
-		if (flash != NULL)
+		if (flash != nullptr)
 		{
 			P_SetSafeFlash(weapon, player, flash, (pr_fireplasma()&1));
 		}
@@ -550,19 +550,19 @@ static void FireRailgun(AActor *self, int offset_xy, bool fromweapon)
 	int damage;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return;
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && fromweapon)
+	if (weapon != nullptr && fromweapon)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 			return;
 
 		FState *flash = weapon->FindState(NAME_Flash);
-		if (flash != NULL)
+		if (flash != nullptr)
 		{
 			P_SetSafeFlash(weapon, player, flash, (pr_firerail()&1));
 		}
@@ -601,7 +601,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireRailgunLeft)
 
 DEFINE_ACTION_FUNCTION(AActor, A_RailWait)
 {
-	// Okay, this was stupid. Just use a NULL function instead of this.
+	// Okay, this was stupid. Just use a nullptr function instead of this.
 	return 0;
 }
 
@@ -615,19 +615,19 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireBFG)
 
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (weapon != NULL && ACTION_CALL_FROM_WEAPON())
+	if (weapon != nullptr && ACTION_CALL_FROM_WEAPON())
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, deh.BFGCells))
 			return 0;
 	}
 
-	P_SpawnPlayerMissile (self,  0, 0, 0, PClass::FindActor("BFGBall"), self->Angles.Yaw, NULL, NULL, !!(dmflags2 & DF2_NO_FREEAIMBFG));
+	P_SpawnPlayerMissile (self,  0, 0, 0, PClass::FindActor("BFGBall"), self->Angles.Yaw, nullptr, nullptr, !!(dmflags2 & DF2_NO_FREEAIMBFG));
 	return 0;
 }
 
@@ -639,7 +639,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireBFG)
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT	(spraytype, AActor)		{ spraytype = NULL; }
+	PARAM_CLASS_OPT	(spraytype, AActor)		{ spraytype = nullptr; }
 	PARAM_INT_OPT	(numrays)				{ numrays = 0; }
 	PARAM_INT_OPT	(damagecnt)				{ damagecnt = 0; }
 	PARAM_ANGLE_OPT	(angle)					{ angle = 0.; }
@@ -653,7 +653,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 	DAngle 				an;
 	FTranslatedLineTarget t;
 
-	if (spraytype == NULL) spraytype = PClass::FindActor("BFGExtra");
+	if (spraytype == nullptr) spraytype = PClass::FindActor("BFGExtra");
 	if (numrays <= 0) numrays = 40;
 	if (damagecnt <= 0) damagecnt = 15;
 	if (angle == 0) angle = 90.;
@@ -672,14 +672,14 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_BFGSpray)
 		// self->target is the originator (player) of the missile
 		P_AimLineAttack(self->target, an, distance, &t, vrange);
 
-		if (t.linetarget != NULL)
+		if (t.linetarget != nullptr)
 		{
 			AActor *spray = Spawn(spraytype, t.linetarget->PosPlusZ(t.linetarget->Height / 4), ALLOW_REPLACE);
 
 			int dmgFlags = 0;
 			FName dmgType = NAME_BFGSplash;
 
-			if (spray != NULL)
+			if (spray != nullptr)
 			{
 				if (spray->flags6 & MF6_MTHRUSPECIES && self->target->GetSpecies() == t.linetarget->GetSpecies())
 				{
@@ -734,19 +734,19 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireOldBFG)
 {
 	PARAM_ACTION_PROLOGUE;
 	PClassActor *plasma[] = { PClass::FindActor("PlasmaBall1"), PClass::FindActor("PlasmaBall2") };
-	AActor * mo = NULL;
+	AActor * mo = nullptr;
 
 	player_t *player;
 	bool doesautoaim = false;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
 
 	AWeapon *weapon = self->player->ReadyWeapon;
-	if (!ACTION_CALL_FROM_WEAPON()) weapon = NULL;
-	if (weapon != NULL)
+	if (!ACTION_CALL_FROM_WEAPON()) weapon = nullptr;
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, true, 1))
 			return 0;
@@ -768,7 +768,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FireOldBFG)
 		self->Angles.Yaw = SavedPlayerAngle;
 		self->Angles.Pitch = SavedPlayerPitch;
     }
-	if (doesautoaim && weapon != NULL)
+	if (doesautoaim && weapon != nullptr)
 	{ // Restore autoaim setting
 		weapon->WeaponFlags &= ~WIF_NOAUTOAIM;
 	}

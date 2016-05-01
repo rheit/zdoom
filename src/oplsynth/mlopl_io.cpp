@@ -70,7 +70,7 @@ void OPLio::OPLwriteReg(int which, uint reg, uchar data)
 		reg |= (which & 1) << 8;
 		which >>= 1;
 	}
-	if (chips[which] != NULL)
+	if (chips[which] != nullptr)
 	{
 		chips[which]->WriteReg(reg, data);
 	}
@@ -265,7 +265,7 @@ void OPLio::OPLwritePan(uint channel, struct OPL2instrument *instr, int pan)
 		// Set real panning if we're using emulated chips.
 		int chanper = IsOPL3 ? OPL3CHANNELS : OPL2CHANNELS;
 		int which = channel / chanper;
-		if (chips[which] != NULL)
+		if (chips[which] != nullptr)
 		{
 			// This is the MIDI-recommended pan formula. 0 and 1 are
 			// both hard left so that 64 can be perfectly center.
@@ -335,7 +335,7 @@ int OPLio::OPLinit(uint numchips, bool stereo, bool initopl3)
 	for (i = 0; i < numchips; ++i)
 	{
 		OPLEmul *chip = IsOPL3 ? (current_opl_core == 1 ? DBOPLCreate(stereo) : (current_opl_core == 2 ? JavaOPLCreate(stereo) : NukedOPL3Create(stereo))) : YM3812Create(stereo);
-		if (chip == NULL)
+		if (chip == nullptr)
 		{
 			break;
 		}
@@ -371,10 +371,10 @@ void OPLio::OPLdeinit(void)
 {
 	for (size_t i = 0; i < countof(chips); ++i)
 	{
-		if (chips[i] != NULL)
+		if (chips[i] != nullptr)
 		{
 			delete chips[i];
-			chips[i] = NULL;
+			chips[i] = nullptr;
 		}
 	}
 }

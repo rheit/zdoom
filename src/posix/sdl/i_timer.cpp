@@ -154,16 +154,16 @@ void I_SelectTimer()
 	signal(SIGALRM, I_HandleAlarm);
 #else
 	struct sigaction alrmaction;
-	sigaction(SIGALRM, NULL, &alrmaction);
+	sigaction(SIGALRM, nullptr, &alrmaction);
 	alrmaction.sa_handler = I_HandleAlarm;
-	sigaction(SIGALRM, &alrmaction, NULL);
+	sigaction(SIGALRM, &alrmaction, nullptr);
 #endif
 
 	struct itimerval itv;
 	itv.it_interval.tv_sec = itv.it_value.tv_sec = 0;
 	itv.it_interval.tv_usec = itv.it_value.tv_usec = 1000000/TICRATE;
 
-	if (setitimer(ITIMER_REAL, &itv, NULL) != 0)
+	if (setitimer(ITIMER_REAL, &itv, nullptr) != 0)
 	{
 		I_GetTime = I_GetTimePolled;
 		I_FreezeTime = I_FreezeTimePolled;

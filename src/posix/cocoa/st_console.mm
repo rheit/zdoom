@@ -130,20 +130,20 @@ static FConsoleWindow* s_instance;
 
 void FConsoleWindow::CreateInstance()
 {
-	assert(NULL == s_instance);
+	assert(nullptr == s_instance);
 	s_instance = new FConsoleWindow;
 }
 
 void FConsoleWindow::DeleteInstance()
 {
-	assert(NULL != s_instance);
+	assert(nullptr != s_instance);
 	delete s_instance;
-	s_instance = NULL;
+	s_instance = nullptr;
 }
 
 FConsoleWindow& FConsoleWindow::GetInstance()
 {
-	assert(NULL != s_instance);
+	assert(nullptr != s_instance);
 	return *s_instance;
 }
 

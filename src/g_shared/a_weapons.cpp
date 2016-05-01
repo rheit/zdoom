@@ -59,7 +59,7 @@ void PClassWeapon::ReplaceClassRef(PClass *oldclass, PClass *newclass)
 {
 	Super::ReplaceClassRef(oldclass, newclass);
 	AWeapon *def = (AWeapon*)Defaults;
-	if (def != NULL)
+	if (def != nullptr)
 	{
 		if (def->AmmoType1 == oldclass) def->AmmoType1 = static_cast<PClassAmmo *>(newclass);
 		if (def->AmmoType2 == oldclass) def->AmmoType2 = static_cast<PClassAmmo *>(newclass);
@@ -126,8 +126,8 @@ bool AWeapon::TryPickupRestricted (AActor *&toucher)
 		return false;
 	}
 
-	bool gaveSome = (NULL != AddAmmo (toucher, AmmoType1, AmmoGive1));
-	gaveSome |= (NULL != AddAmmo (toucher, AmmoType2, AmmoGive2));
+	bool gaveSome = (nullptr != AddAmmo (toucher, AmmoType1, AmmoGive1));
+	gaveSome |= (nullptr != AddAmmo (toucher, AmmoType2, AmmoGive2));
 	if (gaveSome)
 	{
 		GoAwayAndDie ();
@@ -145,7 +145,7 @@ bool AWeapon::TryPickupRestricted (AActor *&toucher)
 bool AWeapon::TryPickup (AActor *&toucher)
 {
 	FState * ReadyState = FindState(NAME_Ready);
-	if (ReadyState != NULL &&
+	if (ReadyState != nullptr &&
 		ReadyState->GetFrame() < sprites[ReadyState->sprite].numframes)
 	{
 		return Super::TryPickup (toucher);
@@ -170,13 +170,13 @@ bool AWeapon::Use (bool pickup)
 
 	// If the player is powered-up, use the alternate version of the
 	// weapon, if one exists.
-	if (SisterWeapon != NULL &&
+	if (SisterWeapon != nullptr &&
 		SisterWeapon->WeaponFlags & WIF_POWERED_UP &&
 		Owner->FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true))
 	{
 		useweap = SisterWeapon;
 	}
-	if (Owner->player != NULL && Owner->player->ReadyWeapon != useweap)
+	if (Owner->player != nullptr && Owner->player->ReadyWeapon != useweap)
 	{
 		Owner->player->PendingWeapon = useweap;
 	}
@@ -194,10 +194,10 @@ void AWeapon::Destroy()
 {
 	AWeapon *sister = SisterWeapon;
 
-	if (sister != NULL)
+	if (sister != nullptr)
 	{
 		// avoid recursion
-		sister->SisterWeapon = NULL;
+		sister->SisterWeapon = nullptr;
 		if (sister != this)
 		{ // In case we are our own sister, don't crash.
 			sister->Destroy();
@@ -224,7 +224,7 @@ bool AWeapon::HandlePickup (AInventory *item)
 		}
 		return true;
 	}
-	if (Inventory != NULL)
+	if (Inventory != nullptr)
 	{
 		return Inventory->HandlePickup (item);
 	}
@@ -248,20 +248,20 @@ bool AWeapon::PickupForAmmo (AWeapon *ownedWeapon)
 	{
 		int oldamount1 = 0;
 		int oldamount2 = 0;
-		if (ownedWeapon->Ammo1 != NULL) oldamount1 = ownedWeapon->Ammo1->Amount;
-		if (ownedWeapon->Ammo2 != NULL) oldamount2 = ownedWeapon->Ammo2->Amount;
+		if (ownedWeapon->Ammo1 != nullptr) oldamount1 = ownedWeapon->Ammo1->Amount;
+		if (ownedWeapon->Ammo2 != nullptr) oldamount2 = ownedWeapon->Ammo2->Amount;
 
 		if (AmmoGive1 > 0) gotstuff = AddExistingAmmo (ownedWeapon->Ammo1, AmmoGive1);
 		if (AmmoGive2 > 0) gotstuff |= AddExistingAmmo (ownedWeapon->Ammo2, AmmoGive2);
 
 		AActor *Owner = ownedWeapon->Owner;
-		if (gotstuff && Owner != NULL && Owner->player != NULL)
+		if (gotstuff && Owner != nullptr && Owner->player != nullptr)
 		{
-			if (ownedWeapon->Ammo1 != NULL && oldamount1 == 0)
+			if (ownedWeapon->Ammo1 != nullptr && oldamount1 == 0)
 			{
 				static_cast<APlayerPawn *>(Owner)->CheckWeaponSwitch(ownedWeapon->Ammo1->GetClass());
 			}
-			else if (ownedWeapon->Ammo2 != NULL && oldamount2 == 0)
+			else if (ownedWeapon->Ammo2 != nullptr && oldamount2 == 0)
 			{
 				static_cast<APlayerPawn *>(Owner)->CheckWeaponSwitch(ownedWeapon->Ammo2->GetClass());
 			}
@@ -300,7 +300,7 @@ AInventory *AWeapon::CreateTossable ()
 {
 	// Only drop the weapon that is meant to be placed in a level. That is,
 	// only drop the weapon that normally gives you ammo.
-	if (SisterWeapon != NULL && 
+	if (SisterWeapon != nullptr && 
 		((AWeapon*)GetDefault())->AmmoGive1 == 0 &&
 		((AWeapon*)GetDefault())->AmmoGive2 == 0 &&
 		(((AWeapon*)SisterWeapon->GetDefault())->AmmoGive1 > 0 ||
@@ -310,12 +310,12 @@ AInventory *AWeapon::CreateTossable ()
 	}
 	AWeapon *copy = static_cast<AWeapon *> (Super::CreateTossable ());
 
-	if (copy != NULL)
+	if (copy != nullptr)
 	{
 		// If this weapon has a sister, remove it from the inventory too.
-		if (SisterWeapon != NULL)
+		if (SisterWeapon != nullptr)
 		{
-			SisterWeapon->SisterWeapon = NULL;
+			SisterWeapon->SisterWeapon = nullptr;
 			SisterWeapon->Destroy ();
 		}
 		// To avoid exploits, the tossed weapon must not have any ammo.
@@ -338,7 +338,7 @@ void AWeapon::AttachToOwner (AActor *other)
 	Ammo1 = AddAmmo (Owner, AmmoType1, AmmoGive1);
 	Ammo2 = AddAmmo (Owner, AmmoType2, AmmoGive2);
 	SisterWeapon = AddWeapon (SisterWeaponType);
-	if (Owner->player != NULL)
+	if (Owner->player != nullptr)
 	{
 		if (!Owner->player->userinfo.GetNeverSwitch() && !(WeaponFlags & WIF_NO_AUTO_SWITCH))
 		{
@@ -364,9 +364,9 @@ AAmmo *AWeapon::AddAmmo (AActor *other, PClassActor *ammotype, int amount)
 {
 	AAmmo *ammo;
 
-	if (ammotype == NULL)
+	if (ammotype == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// [BC] This behavior is from the original Doom. Give 5/2 times as much ammo when
@@ -380,7 +380,7 @@ AAmmo *AWeapon::AddAmmo (AActor *other, PClassActor *ammotype, int amount)
 		amount = int(amount * G_SkillProperty(SKILLP_AmmoFactor));
 	}
 	ammo = static_cast<AAmmo *>(other->FindInventory (ammotype));
-	if (ammo == NULL)
+	if (ammo == nullptr)
 	{
 		ammo = static_cast<AAmmo *>(Spawn (ammotype));
 		ammo->Amount = MIN (amount, ammo->MaxAmount);
@@ -408,7 +408,7 @@ EXTERN_CVAR(Bool, sv_unlimited_pickup)
 
 bool AWeapon::AddExistingAmmo (AAmmo *ammo, int amount)
 {
-	if (ammo != NULL && (ammo->Amount < ammo->MaxAmount || sv_unlimited_pickup))
+	if (ammo != nullptr && (ammo->Amount < ammo->MaxAmount || sv_unlimited_pickup))
 	{
 		// extra ammo in baby mode and nightmare mode
 		if (!(ItemFlags&IF_IGNORESKILL))
@@ -437,12 +437,12 @@ AWeapon *AWeapon::AddWeapon (PClassWeapon *weapontype)
 {
 	AWeapon *weap;
 
-	if (weapontype == NULL || !weapontype->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+	if (weapontype == nullptr || !weapontype->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
 	{
-		return NULL;
+		return nullptr;
 	}
 	weap = static_cast<AWeapon *>(Owner->FindInventory (weapontype));
-	if (weap == NULL)
+	if (weap == nullptr)
 	{
 		weap = static_cast<AWeapon *>(Spawn (weapontype));
 		weap->AttachToOwner (Owner);
@@ -492,7 +492,7 @@ bool AWeapon::CheckAmmo (int fireMode, bool autoSwitch, bool requireAmmo, int am
 		bool gotSome = CheckAmmo (PrimaryFire, false) || CheckAmmo (AltFire, false);
 		if (!gotSome && autoSwitch)
 		{
-			barrier_cast<APlayerPawn *>(Owner)->PickNewWeapon (NULL);
+			barrier_cast<APlayerPawn *>(Owner)->PickNewWeapon (nullptr);
 		}
 		return gotSome;
 	}
@@ -501,10 +501,10 @@ bool AWeapon::CheckAmmo (int fireMode, bool autoSwitch, bool requireAmmo, int am
 	{
 		return true;
 	}
-	count1 = (Ammo1 != NULL) ? Ammo1->Amount : 0;
-	count2 = (Ammo2 != NULL) ? Ammo2->Amount : 0;
+	count1 = (Ammo1 != nullptr) ? Ammo1->Amount : 0;
+	count2 = (Ammo2 != nullptr) ? Ammo2->Amount : 0;
 
-	if ((WeaponFlags & WIF_DEHAMMO) && (Ammo1 == NULL))
+	if ((WeaponFlags & WIF_DEHAMMO) && (Ammo1 == nullptr))
 	{
 		lAmmoUse1 = 0;
 	}
@@ -526,7 +526,7 @@ bool AWeapon::CheckAmmo (int fireMode, bool autoSwitch, bool requireAmmo, int am
 	{
 		enoughmask = 1 << altFire;
 	}
-	if (altFire && FindState(NAME_AltFire) == NULL)
+	if (altFire && FindState(NAME_AltFire) == nullptr)
 	{ // If this weapon has no alternate fire, then there is never enough ammo for it
 		enough &= 1;
 	}
@@ -537,7 +537,7 @@ bool AWeapon::CheckAmmo (int fireMode, bool autoSwitch, bool requireAmmo, int am
 	// out of ammo, pick a weapon to change to
 	if (autoSwitch)
 	{
-		barrier_cast<APlayerPawn *>(Owner)->PickNewWeapon (NULL);
+		barrier_cast<APlayerPawn *>(Owner)->PickNewWeapon (nullptr);
 	}
 	return false;
 }
@@ -562,7 +562,7 @@ bool AWeapon::DepleteAmmo (bool altFire, bool checkEnough, int ammouse)
 		}
 		if (!altFire)
 		{
-			if (Ammo1 != NULL)
+			if (Ammo1 != nullptr)
 			{
 				if (ammouse >= 0 && (WeaponFlags & WIF_DEHAMMO))
 				{
@@ -573,25 +573,25 @@ bool AWeapon::DepleteAmmo (bool altFire, bool checkEnough, int ammouse)
 					Ammo1->Amount -= AmmoUse1;
 				}
 			}
-			if ((WeaponFlags & WIF_PRIMARY_USES_BOTH) && Ammo2 != NULL)
+			if ((WeaponFlags & WIF_PRIMARY_USES_BOTH) && Ammo2 != nullptr)
 			{
 				Ammo2->Amount -= AmmoUse2;
 			}
 		}
 		else
 		{
-			if (Ammo2 != NULL)
+			if (Ammo2 != nullptr)
 			{
 				Ammo2->Amount -= AmmoUse2;
 			}
-			if ((WeaponFlags & WIF_ALT_USES_BOTH) && Ammo1 != NULL)
+			if ((WeaponFlags & WIF_ALT_USES_BOTH) && Ammo1 != nullptr)
 			{
 				Ammo1->Amount -= AmmoUse1;
 			}
 		}
-		if (Ammo1 != NULL && Ammo1->Amount < 0)
+		if (Ammo1 != nullptr && Ammo1->Amount < 0)
 			Ammo1->Amount = 0;
-		if (Ammo2 != NULL && Ammo2->Amount < 0)
+		if (Ammo2 != nullptr && Ammo2->Amount < 0)
 			Ammo2->Amount = 0;
 	}
 	return true;
@@ -608,7 +608,7 @@ bool AWeapon::DepleteAmmo (bool altFire, bool checkEnough, int ammouse)
 
 void AWeapon::PostMorphWeapon ()
 {
-	if (Owner == NULL)
+	if (Owner == nullptr)
 	{
 		return;
 	}
@@ -629,11 +629,11 @@ void AWeapon::PostMorphWeapon ()
 
 void AWeapon::EndPowerup ()
 {
-	if (SisterWeapon != NULL && WeaponFlags&WIF_POWERED_UP)
+	if (SisterWeapon != nullptr && WeaponFlags&WIF_POWERED_UP)
 	{
 		if (GetReadyState() != SisterWeapon->GetReadyState())
 		{
-			if (Owner->player->PendingWeapon == NULL ||
+			if (Owner->player->PendingWeapon == nullptr ||
 				Owner->player->PendingWeapon == WP_NOCHANGE)
 				Owner->player->PendingWeapon = SisterWeapon;
 		}
@@ -685,10 +685,10 @@ FState *AWeapon::GetReadyState ()
 
 FState *AWeapon::GetAtkState (bool hold)
 {
-	FState * state=NULL;
+	FState * state=nullptr;
 	
 	if (hold) state = FindState(NAME_Hold);
-	if (state == NULL) state = FindState(NAME_Fire);
+	if (state == nullptr) state = FindState(NAME_Fire);
 	return state;
 }
 
@@ -700,10 +700,10 @@ FState *AWeapon::GetAtkState (bool hold)
 
 FState *AWeapon::GetAltAtkState (bool hold)
 {
-	FState * state=NULL;
+	FState * state=nullptr;
 	
 	if (hold) state = FindState(NAME_AltHold);
-	if (state == NULL) state = FindState(NAME_AltFire);
+	if (state == nullptr) state = FindState(NAME_AltFire);
 	return state;
 }
 
@@ -734,15 +734,15 @@ bool AWeaponGiver::TryPickup(AActor *&toucher)
 	DDropItem *di = GetDropItems();
 	AWeapon *weap;
 
-	if (di != NULL)
+	if (di != nullptr)
 	{
 		PClassWeapon *ti = dyn_cast<PClassWeapon>(PClass::FindClass(di->Name));
-		if (ti != NULL)
+		if (ti != nullptr)
 		{
-			if (master == NULL)
+			if (master == nullptr)
 			{
 				master = weap = static_cast<AWeapon*>(Spawn(di->Name));
-				if (weap != NULL)
+				if (weap != nullptr)
 				{
 					weap->ItemFlags &= ~IF_ALWAYSPICKUP;	// use the flag of this item only.
 					weap->flags = (weap->flags & ~MF_DROPPED) | (this->flags & MF_DROPPED);
@@ -767,7 +767,7 @@ bool AWeaponGiver::TryPickup(AActor *&toucher)
 			if (res)
 			{
 				GoAwayAndDie();
-				master = NULL;
+				master = nullptr;
 			}
 			return res;
 		}
@@ -794,7 +794,7 @@ bool FWeaponSlot::AddWeapon(PClassWeapon *type)
 {
 	unsigned int i;
 	
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		return false;
 	}
@@ -835,10 +835,10 @@ void FWeaponSlot :: AddWeaponList(const char *list, bool clear)
 		Clear();
 	}
 	tok = strtok(buff, " ");
-	while (tok != NULL)
+	while (tok != nullptr)
 	{
 		AddWeapon(tok);
-		tok = strtok(NULL, " ");
+		tok = strtok(nullptr, " ");
 	}
 }
 
@@ -882,22 +882,22 @@ AWeapon *FWeaponSlot::PickWeapon(player_t *player, bool checkammo)
 {
 	int i, j;
 
-	if (player->mo == NULL)
+	if (player->mo == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 	// Does this slot even have any weapons?
 	if (Weapons.Size() == 0)
 	{
 		return player->ReadyWeapon;
 	}
-	if (player->ReadyWeapon != NULL)
+	if (player->ReadyWeapon != nullptr)
 	{
 		for (i = 0; (unsigned)i < Weapons.Size(); i++)
 		{
 			if (Weapons[i].Type == player->ReadyWeapon->GetClass() ||
 				(player->ReadyWeapon->WeaponFlags & WIF_POWERED_UP &&
-				 player->ReadyWeapon->SisterWeapon != NULL &&
+				 player->ReadyWeapon->SisterWeapon != nullptr &&
 				 player->ReadyWeapon->SisterWeapon->GetClass() == Weapons[i].Type))
 			{
 				for (j = (i == 0 ? Weapons.Size() - 1 : i - 1);
@@ -906,7 +906,7 @@ AWeapon *FWeaponSlot::PickWeapon(player_t *player, bool checkammo)
 				{
 					AWeapon *weap = static_cast<AWeapon *> (player->mo->FindInventory(Weapons[j].Type));
 
-					if (weap != NULL && weap->IsKindOf(RUNTIME_CLASS(AWeapon)))
+					if (weap != nullptr && weap->IsKindOf(RUNTIME_CLASS(AWeapon)))
 					{
 						if (!checkammo || weap->CheckAmmo(AWeapon::EitherFire, false))
 						{
@@ -921,7 +921,7 @@ AWeapon *FWeaponSlot::PickWeapon(player_t *player, bool checkammo)
 	{
 		AWeapon *weap = static_cast<AWeapon *> (player->mo->FindInventory(Weapons[i].Type));
 
-		if (weap != NULL && weap->IsKindOf(RUNTIME_CLASS(AWeapon)))
+		if (weap != nullptr && weap->IsKindOf(RUNTIME_CLASS(AWeapon)))
 		{
 			if (!checkammo || weap->CheckAmmo(AWeapon::EitherFire, false))
 			{
@@ -1060,8 +1060,8 @@ bool FWeaponSlots::LocateWeapon (PClassWeapon *type, int *const slot, int *const
 		j = Slots[i].LocateWeapon(type);
 		if (j >= 0)
 		{
-			if (slot != NULL) *slot = i;
-			if (index != NULL) *index = j;
+			if (slot != nullptr) *slot = i;
+			if (index != nullptr) *index = j;
 			return true;
 		}
 	}
@@ -1085,14 +1085,14 @@ static bool FindMostRecentWeapon(player_t *player, int *slot, int *index)
 	{
 		return player->weapons.LocateWeapon(player->PendingWeapon->GetClass(), slot, index);
 	}
-	else if (player->ReadyWeapon != NULL)
+	else if (player->ReadyWeapon != nullptr)
 	{
 		AWeapon *weap = player->ReadyWeapon;
 		if (!player->weapons.LocateWeapon(weap->GetClass(), slot, index))
 		{
 			// If the current weapon wasn't found and is powered up,
 			// look for its non-powered up version.
-			if (weap->WeaponFlags & WIF_POWERED_UP && weap->SisterWeaponType != NULL)
+			if (weap->WeaponFlags & WIF_POWERED_UP && weap->SisterWeaponType != nullptr)
 			{
 				return player->weapons.LocateWeapon(weap->SisterWeaponType, slot, index);
 			}
@@ -1121,16 +1121,16 @@ AWeapon *FWeaponSlots::PickNextWeapon(player_t *player)
 	int startslot, startindex;
 	int slotschecked = 0;
 
-	if (player->mo == NULL)
+	if (player->mo == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
-	if (player->ReadyWeapon == NULL || FindMostRecentWeapon(player, &startslot, &startindex))
+	if (player->ReadyWeapon == nullptr || FindMostRecentWeapon(player, &startslot, &startindex))
 	{
 		int slot;
 		int index;
 
-		if (player->ReadyWeapon == NULL)
+		if (player->ReadyWeapon == nullptr)
 		{
 			startslot = NUM_WEAPON_SLOTS - 1;
 			startindex = Slots[startslot].Size() - 1;
@@ -1151,7 +1151,7 @@ AWeapon *FWeaponSlots::PickNextWeapon(player_t *player)
 			}
 			PClassWeapon *type = Slots[slot].GetWeapon(index);
 			AWeapon *weap = static_cast<AWeapon *>(player->mo->FindInventory(type));
-			if (weap != NULL && weap->CheckAmmo(AWeapon::EitherFire, false))
+			if (weap != nullptr && weap->CheckAmmo(AWeapon::EitherFire, false))
 			{
 				return weap;
 			}
@@ -1176,16 +1176,16 @@ AWeapon *FWeaponSlots::PickPrevWeapon (player_t *player)
 	int startslot, startindex;
 	int slotschecked = 0;
 
-	if (player->mo == NULL)
+	if (player->mo == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
-	if (player->ReadyWeapon == NULL || FindMostRecentWeapon (player, &startslot, &startindex))
+	if (player->ReadyWeapon == nullptr || FindMostRecentWeapon (player, &startslot, &startindex))
 	{
 		int slot;
 		int index;
 
-		if (player->ReadyWeapon == NULL)
+		if (player->ReadyWeapon == nullptr)
 		{
 			startslot = 0;
 			startindex = 0;
@@ -1206,7 +1206,7 @@ AWeapon *FWeaponSlots::PickPrevWeapon (player_t *player)
 			}
 			PClassWeapon *type = Slots[slot].GetWeapon(index);
 			AWeapon *weap = static_cast<AWeapon *>(player->mo->FindInventory(type));
-			if (weap != NULL && weap->CheckAmmo(AWeapon::EitherFire, false))
+			if (weap != nullptr && weap->CheckAmmo(AWeapon::EitherFire, false))
 			{
 				return weap;
 			}
@@ -1246,9 +1246,9 @@ void FWeaponSlots::AddExtraWeapons()
 		}
 		PClassWeapon *acls = static_cast<PClassWeapon *>(cls);
 		if ((acls->GameFilter == GAME_Any || (acls->GameFilter & gameinfo.gametype)) &&
-			acls->Replacement == NULL &&		// Replaced weapons don't get slotted.
+			acls->Replacement == nullptr &&		// Replaced weapons don't get slotted.
 			!(((AWeapon *)(acls->Defaults))->WeaponFlags & WIF_POWERED_UP) &&
-			!LocateWeapon(acls, NULL, NULL)		// Don't duplicate it if it's already present.
+			!LocateWeapon(acls, nullptr, nullptr)		// Don't duplicate it if it's already present.
 			)
 		{
 			int slot = acls->SlotNumber;
@@ -1292,7 +1292,7 @@ void FWeaponSlots::SetFromGameInfo()
 		for (unsigned j = 0; j < gameinfo.DefaultWeaponSlots[i].Size(); j++)
 		{
 			PClassWeapon *cls = dyn_cast<PClassWeapon>(PClass::FindClass(gameinfo.DefaultWeaponSlots[i][j]));
-			if (cls == NULL)
+			if (cls == nullptr)
 			{
 				Printf("Unknown weapon class '%s' found in default weapon slot assignments\n",
 					gameinfo.DefaultWeaponSlots[i][j].GetChars());
@@ -1488,7 +1488,7 @@ CCMD (setslot)
 	if (argv.argc() < 2 || (slot = atoi (argv[1])) >= NUM_WEAPON_SLOTS)
 	{
 		Printf("Usage: setslot [slot] [weapons]\nCurrent slot assignments:\n");
-		if (players[consoleplayer].mo != NULL)
+		if (players[consoleplayer].mo != nullptr)
 		{
 			FString config(GameConfig->GetConfigPath(false));
 			Printf(TEXTCOLOR_BLUE "Add the following to " TEXTCOLOR_ORANGE "%s" TEXTCOLOR_BLUE
@@ -1507,7 +1507,7 @@ CCMD (setslot)
 	{
 		KeyConfWeapons.Push(argv.args());
 	}
-	else if (PlayingKeyConf != NULL)
+	else if (PlayingKeyConf != nullptr)
 	{
 		PlayingKeyConf->Slots[slot].Clear();
 		for (int i = 2; i < argv.argc(); ++i)
@@ -1540,7 +1540,7 @@ CCMD (setslot)
 
 void FWeaponSlots::AddSlot(int slot, PClassWeapon *type, bool feedback)
 {
-	if (type != NULL && !Slots[slot].AddWeapon(type) && feedback)
+	if (type != nullptr && !Slots[slot].AddWeapon(type) && feedback)
 	{
 		Printf ("Could not add %s to slot %d\n", type->TypeName.GetChars(), slot);
 	}
@@ -1557,7 +1557,7 @@ CCMD (addslot)
 	}
 
 	PClassWeapon *type= dyn_cast<PClassWeapon>(PClass::FindClass(argv[2]));
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		Printf("%s is not a weapon\n", argv[2]);
 		return;
@@ -1567,7 +1567,7 @@ CCMD (addslot)
 	{
 		KeyConfWeapons.Push(argv.args());
 	}
-	else if (PlayingKeyConf != NULL)
+	else if (PlayingKeyConf != nullptr)
 	{
 		PlayingKeyConf->AddSlot(int(slot), type, false);
 	}
@@ -1600,7 +1600,7 @@ CCMD (weaponsection)
 //===========================================================================
 void FWeaponSlots::AddSlotDefault(int slot, PClassWeapon *type, bool feedback)
 {
-	if (type != NULL && type->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+	if (type != nullptr && type->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
 	{
 		switch (AddDefaultWeapon(slot, type))
 		{
@@ -1633,7 +1633,7 @@ CCMD (addslotdefault)
 	}
 
 	type = dyn_cast<PClassWeapon>(PClass::FindClass(argv[2]));
-	if (type == NULL)
+	if (type == nullptr)
 	{
 		Printf ("%s is not a weapon\n", argv[2]);
 		return;
@@ -1643,7 +1643,7 @@ CCMD (addslotdefault)
 	{
 		KeyConfWeapons.Push(argv.args());
 	}
-	else if (PlayingKeyConf != NULL)
+	else if (PlayingKeyConf != nullptr)
 	{
 		PlayingKeyConf->AddSlotDefault(int(slot), type, false);
 	}
@@ -1671,7 +1671,7 @@ void P_PlaybackKeyConfWeapons(FWeaponSlots *slots)
 		FString cmd(KeyConfWeapons[i]);
 		AddCommandString(cmd.LockBuffer());
 	}
-	PlayingKeyConf = NULL;
+	PlayingKeyConf = nullptr;
 }
 
 //===========================================================================
@@ -1693,8 +1693,8 @@ void P_SetupWeapons_ntohton()
 	Weapons_ntoh.Clear();
 	Weapons_hton.Clear();
 
-	cls = NULL;
-	Weapons_ntoh.Push(cls);		// Index 0 is always NULL.
+	cls = nullptr;
+	Weapons_ntoh.Push(cls);		// Index 0 is always nullptr.
 	for (i = 0; i < PClassActor::AllActorClasses.Size(); ++i)
 	{
 		PClassActor *cls = PClassActor::AllActorClasses[i];
@@ -1775,7 +1775,7 @@ void P_ReadDemoWeaponsChunk(BYTE **demo)
 	Weapons_ntoh.Resize(count);
 	Weapons_hton.Clear(count);
 
-	Weapons_ntoh[0] = type = NULL;
+	Weapons_ntoh[0] = type = nullptr;
 	Weapons_hton[type] = 0;
 
 	for (i = 1; i < count; ++i)
@@ -1785,7 +1785,7 @@ void P_ReadDemoWeaponsChunk(BYTE **demo)
 		// If a demo was recorded with a weapon that is no longer present,
 		// should we report it?
 		Weapons_ntoh[i] = type;
-		if (type != NULL)
+		if (type != nullptr)
 		{
 			Weapons_hton[type] = i;
 		}
@@ -1803,7 +1803,7 @@ void Net_WriteWeapon(PClassWeapon *type)
 	int index, *index_p;
 
 	index_p = Weapons_hton.CheckKey(type);
-	if (index_p == NULL)
+	if (index_p == nullptr)
 	{
 		index = 0;
 	}
@@ -1841,7 +1841,7 @@ PClassWeapon *Net_ReadWeapon(BYTE **stream)
 	}
 	if ((unsigned)index >= Weapons_ntoh.Size())
 	{
-		return NULL;
+		return nullptr;
 	}
 	return Weapons_ntoh[index];
 }
@@ -1858,7 +1858,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AWeapon, A_ZoomFactor)
 	PARAM_FLOAT_OPT	(zoom)	{ zoom = 1; }
 	PARAM_INT_OPT	(flags)	{ flags = 0; }
 
-	if (self->player != NULL && self->player->ReadyWeapon != NULL)
+	if (self->player != nullptr && self->player->ReadyWeapon != nullptr)
 	{
 		zoom = 1 / clamp(zoom, 0.1, 50.0);
 		if (flags & 1)
@@ -1885,7 +1885,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AWeapon, A_SetCrosshair)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_INT(xhair);
 
-	if (self->player != NULL && self->player->ReadyWeapon != NULL)
+	if (self->player != nullptr && self->player->ReadyWeapon != nullptr)
 	{
 		self->player->ReadyWeapon->Crosshair = xhair;
 	}

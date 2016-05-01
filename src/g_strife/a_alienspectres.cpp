@@ -24,7 +24,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpectreChunkSmall)
 
 	AActor *foo = Spawn("AlienChunkSmall", self->PosPlusZ(10.), ALLOW_REPLACE);
 
-	if (foo != NULL)
+	if (foo != nullptr)
 	{
 		int t;
 
@@ -45,7 +45,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpectreChunkLarge)
 
 	AActor *foo = Spawn("AlienChunkLarge", self->PosPlusZ(10.), ALLOW_REPLACE);
 
-	if (foo != NULL)
+	if (foo != nullptr)
 	{
 		int t;
 
@@ -64,7 +64,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Spectre3Attack)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	AActor *foo = Spawn("SpectralLightningV2", self->PosPlusZ(32.), ALLOW_REPLACE);
@@ -98,7 +98,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 	{
 		return 0;
 	}
-	for (i = 0, player = NULL; i < MAXPLAYERS; ++i)
+	for (i = 0, player = nullptr; i < MAXPLAYERS; ++i)
 	{
 		if (playeringame[i] && players[i].health > 0)
 		{
@@ -106,7 +106,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 			break;
 		}
 	}
-	if (player == NULL)
+	if (player == nullptr)
 	{
 		return 0;
 	}
@@ -114,7 +114,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 	switch (self->GetClass()->TypeName)
 	{
 	case NAME_AlienSpectre1:
-		EV_DoFloor (DFloor::floorLowerToLowest, NULL, 999, 1., 0., -1, 0, false);
+		EV_DoFloor (DFloor::floorLowerToLowest, nullptr, 999, 1., 0., -1, 0, false);
 		log = 95;
 		break;
 
@@ -131,7 +131,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 		TThinkerIterator<AActor> it(NAME_Oracle);
 		AActor *oracle;
 
-		while ( (oracle = it.Next()) != NULL)
+		while ( (oracle = it.Next()) != nullptr)
 		{
 			if (oracle->health > 0)
 			{
@@ -144,7 +144,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 		{ // If the Bishop is dead, set quest item 22
 			player->GiveInventoryType (QuestItemClasses[21]);
 		}
-		if (player->FindInventory (QuestItemClasses[23]) == NULL)
+		if (player->FindInventory (QuestItemClasses[23]) == nullptr)
 		{	// Macil is calling us back...
 			log = 87;
 		}
@@ -152,14 +152,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 		{	// You wield the power of the complete Sigil.
 			log = 85;
 		}
-		EV_DoDoor (DDoor::doorOpen, NULL, NULL, 222, 8., 0, 0, 0);
+		EV_DoDoor (DDoor::doorOpen, nullptr, nullptr, 222, 8., 0, 0, 0);
 		break;
 	}
 
 	case NAME_AlienSpectre4:
 		C_MidPrint(SmallFont, GStrings("TXT_KILLED_MACIL"));
 		player->GiveInventoryType (QuestItemClasses[23]);
-		if (player->FindInventory (QuestItemClasses[24]) == NULL)
+		if (player->FindInventory (QuestItemClasses[24]) == nullptr)
 		{	// Richter has taken over. Macil is a snake.
 			log = 79;
 		}
@@ -180,7 +180,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 			player->GiveInventoryType (RUNTIME_CLASS(AUpgradeAccuracy));
 		}
 		sigil = player->FindInventory<ASigil>();
-		if (sigil != NULL && sigil->NumPieces == 5)
+		if (sigil != nullptr && sigil->NumPieces == 5)
 		{	// You wield the power of the complete Sigil.
 			log = 85;
 		}
@@ -188,7 +188,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_AlienSpectreDeath)
 		{	// Another Sigil piece. Woohoo!
 			log = 83;
 		}
-		EV_DoFloor (DFloor::floorLowerToLowest, NULL, 666, 1., 0., -1, 0, false);
+		EV_DoFloor (DFloor::floorLowerToLowest, nullptr, 666, 1., 0., -1, 0, false);
 		break;
 
 	default:

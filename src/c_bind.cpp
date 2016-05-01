@@ -56,7 +56,7 @@ const char *KeyNames[NUM_KEYS] =
 	// DirectInput codes and assume a qwerty keyboard layout.
 	// See <dinput.h> for the DIK_* codes
 
-	NULL,		"escape",	"1",		"2",		"3",		"4",		"5",		"6",		//00
+	nullptr,		"escape",	"1",		"2",		"3",		"4",		"5",		"6",		//00
 	"7",		"8",		"9",		"0",		"-",		"=",		"backspace","tab",		//08
 	"q",		"w",		"e",		"r",		"t",		"y",		"u",		"i",		//10
 	"o",		"p",		"[",		"]",		"enter",	"ctrl",		"a",		"s",		//18
@@ -66,32 +66,32 @@ const char *KeyNames[NUM_KEYS] =
 	"alt",		"space",	"capslock",	"f1",		"f2",		"f3",		"f4",		"f5",		//38
 	"f6",		"f7",		"f8",		"f9",		"f10",		"numlock",	"scroll",	"kp7",		//40
 	"kp8",		"kp9",		"kp-",		"kp4",		"kp5",		"kp6",		"kp+",		"kp1",		//48
-	"kp2",		"kp3",		"kp0",		"kp.",		NULL,		NULL,		"oem102",	"f11",		//50
-	"f12",		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		//58
-	NULL,		NULL,		NULL,		NULL,		"f13",		"f14",		"f15",		"f16",		//60
-	NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		//68
-	"kana",		NULL,		NULL,		"abnt_c1",	NULL,		NULL,		NULL,		NULL,		//70
-	NULL,		"convert",	NULL,		"noconvert",NULL,		"yen",		"abnt_c2",	NULL,		//78
-	NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		//80
-	NULL,		NULL,		NULL,		NULL,		NULL,		"kp=",		NULL,		NULL,		//88
+	"kp2",		"kp3",		"kp0",		"kp.",		nullptr,		nullptr,		"oem102",	"f11",		//50
+	"f12",		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		//58
+	nullptr,		nullptr,		nullptr,		nullptr,		"f13",		"f14",		"f15",		"f16",		//60
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		//68
+	"kana",		nullptr,		nullptr,		"abnt_c1",	nullptr,		nullptr,		nullptr,		nullptr,		//70
+	nullptr,		"convert",	nullptr,		"noconvert",nullptr,		"yen",		"abnt_c2",	nullptr,		//78
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		//80
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		"kp=",		nullptr,		nullptr,		//88
 	"circumflex","@",		":",		"_",		"kanji",	"stop",		"ax",		"unlabeled",//90
-	NULL,		"prevtrack",NULL,		NULL,		"kp-enter",	"rctrl",	NULL,		NULL,		//98
-	"mute",		"calculator","play",	NULL,		"stop",		NULL,		NULL,		NULL,		//A0
-	NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		"voldown",	NULL,		//A8
-	"volup",	NULL,		"webhome",	"kp,",		NULL,		"kp/",		NULL,		"sysrq",	//B0
-	"ralt",		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		//B8
-	NULL,		NULL,		NULL,		NULL,		NULL,		"pause",	NULL,		"home",		//C0
-	"uparrow",	"pgup",		NULL,		"leftarrow",NULL,		"rightarrow",NULL,		"end",		//C8
-	"downarrow","pgdn",		"ins",		"del",		NULL,		NULL,		NULL,		NULL,		//D0
+	nullptr,		"prevtrack",nullptr,		nullptr,		"kp-enter",	"rctrl",	nullptr,		nullptr,		//98
+	"mute",		"calculator","play",	nullptr,		"stop",		nullptr,		nullptr,		nullptr,		//A0
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		"voldown",	nullptr,		//A8
+	"volup",	nullptr,		"webhome",	"kp,",		nullptr,		"kp/",		nullptr,		"sysrq",	//B0
+	"ralt",		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		//B8
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		"pause",	nullptr,		"home",		//C0
+	"uparrow",	"pgup",		nullptr,		"leftarrow",nullptr,		"rightarrow",nullptr,		"end",		//C8
+	"downarrow","pgdn",		"ins",		"del",		nullptr,		nullptr,		nullptr,		nullptr,		//D0
 #ifdef __APPLE__
-	NULL,		NULL,		NULL,		"command",	NULL,		"apps",		"power",	"sleep",	//D8
+	nullptr,		nullptr,		nullptr,		"command",	nullptr,		"apps",		"power",	"sleep",	//D8
 #else // !__APPLE__
-	NULL,		NULL,		NULL,		"lwin",		"rwin",		"apps",		"power",	"sleep",	//D8
+	nullptr,		nullptr,		nullptr,		"lwin",		"rwin",		"apps",		"power",	"sleep",	//D8
 #endif // __APPLE__
-	NULL,		NULL,		NULL,		"wake",		NULL,		"search",	"favorites","refresh",	//E0
-	"webstop",	"webforward","webback",	"mycomputer","mail",	"mediaselect",NULL,		NULL,		//E8
-	NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		//F0
-	NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		NULL,		//F8
+	nullptr,		nullptr,		nullptr,		"wake",		nullptr,		"search",	"favorites","refresh",	//E0
+	"webstop",	"webforward","webback",	"mycomputer","mail",	"mediaselect",nullptr,		nullptr,		//E8
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		//F0
+	nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		nullptr,		//F8
 
 	// non-keyboard buttons that can be bound
 	"mouse1",	"mouse2",	"mouse3",	"mouse4",		// 8 mouse buttons
@@ -377,11 +377,11 @@ void FKeyBindings::PerformBind(FCommandLine &argv, const char *msg)
 //=============================================================================
 //
 // This function is first called for functions in custom key sections.
-// In this case, matchcmd is non-NULL, and only keys bound to that command
+// In this case, matchcmd is non-nullptr, and only keys bound to that command
 // are stored. If a match is found, its binding is set to "\1".
 // After all custom key sections are saved, it is called one more for the
 // normal Bindings and DoubleBindings sections for this game. In this case
-// matchcmd is NULL and all keys will be stored. The config section was not
+// matchcmd is nullptr and all keys will be stored. The config section was not
 // previously cleared, so all old bindings are still in place. If the binding
 // for a key is empty, the corresponding key in the config is removed as well.
 // If a binding is "\1", then the binding itself is cleared, but nothing
@@ -397,12 +397,12 @@ void FKeyBindings::ArchiveBindings(FConfigFile *f, const char *matchcmd)
 	{
 		if (Binds[i].IsEmpty())
 		{
-			if (matchcmd == NULL)
+			if (matchcmd == nullptr)
 			{
 				f->ClearKey(ConfigKeyName(i));
 			}
 		}
-		else if (matchcmd == NULL || stricmp(Binds[i], matchcmd) == 0)
+		else if (matchcmd == nullptr || stricmp(Binds[i], matchcmd) == 0)
 		{
 			if (Binds[i][0] == '\1')
 			{
@@ -410,7 +410,7 @@ void FKeyBindings::ArchiveBindings(FConfigFile *f, const char *matchcmd)
 				continue;
 			}
 			f->SetValueForKey(ConfigKeyName(i), Binds[i]);
-			if (matchcmd != NULL)
+			if (matchcmd != nullptr)
 			{ // If saving a specific command, set a marker so that
 			  // it does not get saved in the general binding list.
 				Binds[i] = "\1";
@@ -693,7 +693,7 @@ bool C_DoKey (event_t *ev, FKeyBindings *binds, FKeyBindings *doublebinds)
 
 	// This used level.time which didn't work outside a level.
 	nowtime = I_MSTime();
-	if (doublebinds != NULL && DClickTime[ev->data1] > nowtime && ev->type == EV_KeyDown)
+	if (doublebinds != nullptr && DClickTime[ev->data1] > nowtime && ev->type == EV_KeyDown)
 	{
 		// Key pressed for a double click
 		binding = doublebinds->GetBinding(ev->data1);
@@ -707,7 +707,7 @@ bool C_DoKey (event_t *ev, FKeyBindings *binds, FKeyBindings *doublebinds)
 			binding = binds->GetBinding(ev->data1);
 			DClickTime[ev->data1] = nowtime + 571;
 		}
-		else if (doublebinds != NULL && DClicked[dclickspot] & dclickmask)
+		else if (doublebinds != nullptr && DClicked[dclickspot] & dclickmask)
 		{ // Key released from a double click
 			binding = doublebinds->GetBinding(ev->data1);
 			DClicked[dclickspot] &= ~dclickmask;

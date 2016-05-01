@@ -78,7 +78,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_ProgrammerMelee)
 
 	int damage;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	A_FaceTarget (self);
@@ -106,11 +106,11 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpotLightning)
 
 	AActor *spot;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 
 	spot = Spawn("SpectralLightningSpot", self->target->PosAtZ(self->target->floorz), ALLOW_REPLACE);
-	if (spot != NULL)
+	if (spot != nullptr)
 	{
 		spot->threshold = 25;
 		spot->target = self;
@@ -131,7 +131,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpawnProgrammerBase)
 	PARAM_ACTION_PROLOGUE;
 
 	AActor *foo = Spawn("ProgrammerBase", self->PosPlusZ(24.), ALLOW_REPLACE);
-	if (foo != NULL)
+	if (foo != nullptr)
 	{
 		foo->Angles.Yaw = self->Angles.Yaw + 180. + pr_prog.Random2() * (360. / 1024.);
 		foo->VelFromAngle();

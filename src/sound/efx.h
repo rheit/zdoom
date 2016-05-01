@@ -168,7 +168,7 @@ extern "C" {
 #define AL_EFFECTSLOT_GAIN                       0x0002
 #define AL_EFFECTSLOT_AUXILIARY_SEND_AUTO        0x0003
 
-/* NULL Auxiliary Slot ID to disable a source send. */
+/* nullptr Auxiliary Slot ID to disable a source send. */
 #define AL_EFFECTSLOT_NULL                       0x0000
 
 

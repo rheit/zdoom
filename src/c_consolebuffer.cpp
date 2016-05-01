@@ -45,9 +45,9 @@
 
 FConsoleBuffer::FConsoleBuffer()
 {
-	mLogFile = NULL;
+	mLogFile = nullptr;
 	mAddType = NEWLINE;
-	mLastFont = NULL;
+	mLastFont = nullptr;
 	mLastDisplayWidth = -1;
 	mLastLineNeedsUpdate = false;
 	mTextLines = 0;
@@ -77,8 +77,8 @@ void FConsoleBuffer::FreeBrokenText(unsigned start, unsigned end)
 	if (end > mBrokenConsoleText.Size()) end = mBrokenConsoleText.Size();
 	for (unsigned i = start; i < end; i++)
 	{
-		if (mBrokenConsoleText[i] != NULL) V_FreeBrokenLines(mBrokenConsoleText[i]);
-		mBrokenConsoleText[i] = NULL;
+		if (mBrokenConsoleText[i] != nullptr) V_FreeBrokenLines(mBrokenConsoleText[i]);
+		mBrokenConsoleText[i] = nullptr;
 	}
 }
 
@@ -138,7 +138,7 @@ void FConsoleBuffer::AddText(int printlevel, const char *text, FILE *logfile)
 	// don't bother about linefeeds etc. inside the text, we'll let the formatter sort this out later.
 	build.AppendCStrPart(text, textsize);
 	mConsoleText.Push(build);
-	if (logfile != NULL) WriteLineToLog(logfile, text);
+	if (logfile != nullptr) WriteLineToLog(logfile, text);
 }
 
 //==========================================================================
@@ -206,7 +206,7 @@ void FConsoleBuffer::WriteLineToLog(FILE *LogFile, const char *outline)
 
 void FConsoleBuffer::WriteContentToLog(FILE *LogFile)
 {
-	if (LogFile != NULL)
+	if (LogFile != nullptr)
 	{
 		for (unsigned i = 0; i < mConsoleText.Size(); i++)
 		{
@@ -223,7 +223,7 @@ void FConsoleBuffer::WriteContentToLog(FILE *LogFile)
 
 void FConsoleBuffer::Linefeed(FILE *Logfile)
 {
-	if (mAddType != NEWLINE && Logfile != NULL) fputc('\n', Logfile);
+	if (mAddType != NEWLINE && Logfile != nullptr) fputc('\n', Logfile);
 	mAddType = NEWLINE;
 }
 

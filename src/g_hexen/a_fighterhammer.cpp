@@ -35,7 +35,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FHammerAttack)
 	FTranslatedLineTarget t;
 	PClassActor *hammertime;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -49,10 +49,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_FHammerAttack)
 		{
 			angle = pmo->Angles.Yaw + j*i*(45. / 32);
 			slope = P_AimLineAttack(pmo, angle, HAMMER_RANGE, &t, 0., ALF_CHECK3D);
-			if (t.linetarget != NULL)
+			if (t.linetarget != nullptr)
 			{
 				P_LineAttack(pmo, angle, HAMMER_RANGE, slope, damage, NAME_Melee, hammertime, true, &t);
-				if (t.linetarget != NULL)
+				if (t.linetarget != nullptr)
 				{
 					AdjustPlayerAngle(pmo, &t);
 					if (t.linetarget->flags3 & MF3_ISMONSTER || t.linetarget->player)
@@ -67,8 +67,8 @@ DEFINE_ACTION_FUNCTION(AActor, A_FHammerAttack)
 	}
 	// didn't find any targets in meleerange, so set to throw out a hammer
 	angle = pmo->Angles.Yaw;
-	slope = P_AimLineAttack (pmo, angle, HAMMER_RANGE, NULL, 0., ALF_CHECK3D);
-	if (P_LineAttack (pmo, angle, HAMMER_RANGE, slope, damage, NAME_Melee, hammertime, true) != NULL)
+	slope = P_AimLineAttack (pmo, angle, HAMMER_RANGE, nullptr, 0., ALF_CHECK3D);
+	if (P_LineAttack (pmo, angle, HAMMER_RANGE, slope, damage, NAME_Melee, hammertime, true) != nullptr)
 	{
 		pmo->weaponspecial = false;
 	}
@@ -78,7 +78,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FHammerAttack)
 	}
 hammerdone:
 	// Don't spawn a hammer if the player doesn't have enough mana
-	if (player->ReadyWeapon == NULL ||
+	if (player->ReadyWeapon == nullptr ||
 		!player->ReadyWeapon->CheckAmmo (player->ReadyWeapon->bAltFire ?
 			AWeapon::AltFire : AWeapon::PrimaryFire, false, true))
 	{ 
@@ -100,7 +100,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FHammerThrow)
 	AActor *mo;
 	player_t *player;
 
-	if (NULL == (player = self->player))
+	if (nullptr == (player = self->player))
 	{
 		return 0;
 	}
@@ -110,7 +110,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FHammerThrow)
 		return 0;
 	}
 	AWeapon *weapon = player->ReadyWeapon;
-	if (weapon != NULL)
+	if (weapon != nullptr)
 	{
 		if (!weapon->DepleteAmmo (weapon->bAltFire, false))
 			return 0;

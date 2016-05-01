@@ -59,8 +59,8 @@ class TOptWin32Proc
 	static Proto GetOptionalWin32Proc(const char* module, const char* function)
 	{
 		HMODULE hmodule = GetModuleHandle(module);
-		if (hmodule == NULL)
-			return NULL;
+		if (hmodule == nullptr)
+			return nullptr;
 
 		return (Proto)GetProcAddress(hmodule, function);
 	}
@@ -71,7 +71,7 @@ public:
 	TOptWin32Proc(const char* module, const char* function)
 		: Call(GetOptionalWin32Proc(module, function)) {}
 
-	// Wrapper object can be tested against NULL, but not directly called.
+	// Wrapper object can be tested against nullptr, but not directly called.
 	operator const void*() const { return Call; }
 };
 

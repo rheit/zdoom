@@ -118,7 +118,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FiredAttack)
 {
 	PARAM_ACTION_PROLOGUE;
 
-	if (self->target == NULL)
+	if (self->target == nullptr)
 		return 0;
 	AActor *mo = P_SpawnMissile (self, self->target, PClass::FindActor("FireDemonMissile"));
 	if (mo) S_Sound (self, CHAN_BODY, "FireDemonAttack", 1, ATTN_NORM);
@@ -155,7 +155,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FiredChase)
 
 	if(!self->target || !(self->target->flags&MF_SHOOTABLE))
 	{	// Invalid target
-		P_LookForPlayers (self,true, NULL);
+		P_LookForPlayers (self,true, nullptr);
 		return 0;
 	}
 

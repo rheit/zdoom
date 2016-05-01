@@ -86,7 +86,7 @@ FTexture *FlatTexture_TryCreate(FileReader & file, int lumpnum)
 //==========================================================================
 
 FFlatTexture::FFlatTexture (int lumpnum)
-: FTexture(NULL, lumpnum), Pixels(0)
+: FTexture(nullptr, lumpnum), Pixels(0)
 {
 	int area;
 	int bits;
@@ -133,10 +133,10 @@ FFlatTexture::~FFlatTexture ()
 
 void FFlatTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -148,7 +148,7 @@ void FFlatTexture::Unload ()
 
 const BYTE *FFlatTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -163,7 +163,7 @@ const BYTE *FFlatTexture::GetColumn (unsigned int column, const Span **spans_out
 			column %= Width;
 		}
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpans;
 	}
@@ -178,7 +178,7 @@ const BYTE *FFlatTexture::GetColumn (unsigned int column, const Span **spans_out
 
 const BYTE *FFlatTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}

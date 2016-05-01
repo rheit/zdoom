@@ -183,7 +183,7 @@ void FGameConfigFile::DoAutoloadSetup (FIWadManager *iwad_man)
 	if (SetSection ("LastRun"))
 	{
 		const char *lastver = GetValueForKey ("Version");
-		if (lastver != NULL) last = atof(lastver);
+		if (lastver != nullptr) last = atof(lastver);
 	}
 
 	if (last < 211)
@@ -205,7 +205,7 @@ void FGameConfigFile::DoAutoloadSetup (FIWadManager *iwad_man)
 		RenameSection("Doom2.Autoload", "doom.doom2.commercial.Autoload");
 	}
 	const FString *pAuto;
-	for (int num = 0; (pAuto = iwad_man->GetAutoname(num)) != NULL; num++)
+	for (int num = 0; (pAuto = iwad_man->GetAutoname(num)) != nullptr; num++)
 	{
 		if (!(iwad_man->GetIWadFlags(num) & GI_SHAREWARE))	// we do not want autoload sections for shareware IWADs (which may have an autoname for resource filtering)
 		{
@@ -264,13 +264,13 @@ void FGameConfigFile::DoGlobalSetup ()
 	if (SetSection ("LastRun"))
 	{
 		const char *lastver = GetValueForKey ("Version");
-		if (lastver != NULL)
+		if (lastver != nullptr)
 		{
 			double last = atof (lastver);
 			if (last < 123.1)
 			{
-				FBaseCVar *noblitter = FindCVar ("vid_noblitter", NULL);
-				if (noblitter != NULL)
+				FBaseCVar *noblitter = FindCVar ("vid_noblitter", nullptr);
+				if (noblitter != nullptr)
 				{
 					noblitter->ResetToDefault ();
 				}
@@ -293,8 +293,8 @@ void FGameConfigFile::DoGlobalSetup ()
 			if (last < 204)
 			{ // The old default for vsync was true, but with an unlimited framerate
 			  // now, false is a better default.
-				FBaseCVar *vsync = FindCVar ("vid_vsync", NULL);
-				if (vsync != NULL)
+				FBaseCVar *vsync = FindCVar ("vid_vsync", nullptr);
+				if (vsync != nullptr)
 				{
 					vsync->ResetToDefault ();
 				}
@@ -308,8 +308,8 @@ void FGameConfigFile::DoGlobalSetup ()
 			}
 			if (last < 207)
 			{ // Now that snd_midiprecache works again, you probably don't want it on.
-				FBaseCVar *precache = FindCVar ("snd_midiprecache", NULL);
-				if (precache != NULL)
+				FBaseCVar *precache = FindCVar ("snd_midiprecache", nullptr);
+				if (precache != nullptr)
 				{
 					precache->ResetToDefault();
 				}
@@ -324,7 +324,7 @@ void FGameConfigFile::DoGlobalSetup ()
 				while (more)
 				{
 					name = GetCurrentSection();
-					if (name != NULL && 
+					if (name != nullptr && 
 						(namelen = strlen(name)) > 12 &&
 						strcmp(name + namelen - 12, ".WeaponSlots") == 0)
 					{
@@ -339,8 +339,8 @@ void FGameConfigFile::DoGlobalSetup ()
 			if (last < 209)
 			{
 				// menu dimming is now a gameinfo option so switch user override off
-				FBaseCVar *dim = FindCVar ("dimamount", NULL);
-				if (dim != NULL)
+				FBaseCVar *dim = FindCVar ("dimamount", nullptr);
+				if (dim != nullptr)
 				{
 					dim->ResetToDefault ();
 				}
@@ -401,17 +401,17 @@ void FGameConfigFile::DoGameSetup (const char *gamename)
 	strncpy (subsection, "ConsoleAliases", sublen);
 	if (SetSection (section))
 	{
-		const char *name = NULL;
+		const char *name = nullptr;
 		while (NextInSection (key, value))
 		{
 			if (stricmp (key, "Name") == 0)
 			{
 				name = value;
 			}
-			else if (stricmp (key, "Command") == 0 && name != NULL)
+			else if (stricmp (key, "Command") == 0 && name != nullptr)
 			{
 				C_SetAlias (name, value);
-				name = NULL;
+				name = nullptr;
 			}
 		}
 	}
@@ -426,7 +426,7 @@ void FGameConfigFile::DoKeySetup(const char *gamename)
 		{ "Bindings", &Bindings },
 		{ "DoubleBindings", &DoubleBindings },
 		{ "AutomapBindings", &AutomapBindings },
-		{ NULL, NULL }
+		{ nullptr, nullptr }
 	};
 	const char *key, *value;
 
@@ -436,7 +436,7 @@ void FGameConfigFile::DoKeySetup(const char *gamename)
 
 	C_SetDefaultBindings ();
 
-	for (int i = 0; binders[i].label != NULL; ++i)
+	for (int i = 0; binders[i].label != nullptr; ++i)
 	{
 		strncpy(subsection, binders[i].label, sublen);
 		if (SetSection(section))
@@ -497,10 +497,10 @@ void FGameConfigFile::ReadCVars (DWORD flags)
 	flags |= CVAR_ARCHIVE|CVAR_UNSETTABLE|CVAR_AUTO;
 	while (NextInSection (key, value))
 	{
-		cvar = FindCVar (key, NULL);
-		if (cvar == NULL)
+		cvar = FindCVar (key, nullptr);
+		if (cvar == nullptr)
 		{
-			cvar = new FStringCVar (key, NULL, flags);
+			cvar = new FStringCVar (key, nullptr, flags);
 		}
 		val.String = const_cast<char *>(value);
 		cvar->SetGenericRep (val, CVAR_String);
@@ -595,7 +595,7 @@ FString FGameConfigFile::GetConfigPath (bool tryProg)
 	const char *pathval;
 
 	pathval = Args->CheckValue ("-config");
-	if (pathval != NULL)
+	if (pathval != nullptr)
 	{
 		return FString(pathval);
 	}

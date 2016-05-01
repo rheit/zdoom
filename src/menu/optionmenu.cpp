@@ -79,7 +79,7 @@ DOptionMenu::DOptionMenu(DMenu *parent, FOptionMenuDescriptor *desc)
 	CanScrollUp = false;
 	CanScrollDown = false;
 	VisBottom = 0;
-	mFocusControl = NULL;
+	mFocusControl = nullptr;
 	Init(parent, desc);
 }
 
@@ -94,7 +94,7 @@ void DOptionMenu::Init(DMenu *parent, FOptionMenuDescriptor *desc)
 	mParentMenu = parent;
 	GC::WriteBarrier(this, parent);
 	mDesc = desc;
-	if (mDesc != NULL && mDesc->mSelectedItem == -1) mDesc->mSelectedItem = FirstSelectable();
+	if (mDesc != nullptr && mDesc->mSelectedItem == -1) mDesc->mSelectedItem = FirstSelectable();
 
 }
 
@@ -106,7 +106,7 @@ void DOptionMenu::Init(DMenu *parent, FOptionMenuDescriptor *desc)
 
 int DOptionMenu::FirstSelectable()
 {
-	if (mDesc != NULL)
+	if (mDesc != nullptr)
 	{
 		// Go down to the first selectable item
 		int i = -1;
@@ -130,10 +130,10 @@ FOptionMenuItem *DOptionMenu::GetItem(FName name)
 {
 	for(unsigned i=0;i<mDesc->mItems.Size(); i++)
 	{
-		FName nm = mDesc->mItems[i]->GetAction(NULL);
+		FName nm = mDesc->mItems[i]->GetAction(nullptr);
 		if (nm == name) return mDesc->mItems[i];
 	}
-	return NULL;
+	return nullptr;
 }
 
 //=============================================================================
@@ -479,7 +479,7 @@ void DOptionMenu::Drawer ()
 
 FOptionMenuItem::~FOptionMenuItem()
 {
-	if (mLabel != NULL) delete [] mLabel;
+	if (mLabel != nullptr) delete [] mLabel;
 }
 
 int FOptionMenuItem::Draw(FOptionMenuDescriptor *desc, int y, int indent, bool selected)
@@ -551,10 +551,10 @@ FOptionMenuItem *FOptionMenuDescriptor::GetItem(FName name)
 {
 	for(unsigned i=0;i<mItems.Size(); i++)
 	{
-		FName nm = mItems[i]->GetAction(NULL);
+		FName nm = mItems[i]->GetAction(nullptr);
 		if (nm == name) return mItems[i];
 	}
-	return NULL;
+	return nullptr;
 }
 
 

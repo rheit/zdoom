@@ -209,7 +209,7 @@ void DScroller::Tick ()
 				sides[m_Affectee].AddTextureXOffset(side_t::top, dx);
 				sides[m_Affectee].AddTextureYOffset(side_t::top, dy);
 			}
-			if (m_Parts & EScrollPos::scw_mid && (sides[m_Affectee].linedef->backsector == NULL ||
+			if (m_Parts & EScrollPos::scw_mid && (sides[m_Affectee].linedef->backsector == nullptr ||
 				!(sides[m_Affectee].linedef->flags&ML_3DMIDTEX)))
 			{
 				sides[m_Affectee].AddTextureXOffset(side_t::mid, dx);
@@ -279,7 +279,7 @@ DScroller::DScroller (EScroll type, double dx, double dy,
 		m_LastHeight =
 			sectors[control].CenterFloor () + sectors[control].CenterCeiling ();
 	m_Affectee = affectee;
-	m_Interpolations[0] = m_Interpolations[1] = m_Interpolations[2] = NULL;
+	m_Interpolations[0] = m_Interpolations[1] = m_Interpolations[2] = nullptr;
 
 	switch (type)
 	{
@@ -293,7 +293,7 @@ DScroller::DScroller (EScroll type, double dx, double dy,
 		{
 			m_Interpolations[0] = sides[m_Affectee].SetInterpolation(side_t::top);
 		}
-		if (m_Parts & EScrollPos::scw_mid && (sides[m_Affectee].linedef->backsector == NULL ||
+		if (m_Parts & EScrollPos::scw_mid && (sides[m_Affectee].linedef->backsector == nullptr ||
 			!(sides[m_Affectee].linedef->flags&ML_3DMIDTEX)))
 		{
 			m_Interpolations[1] = sides[m_Affectee].SetInterpolation(side_t::mid);
@@ -321,10 +321,10 @@ void DScroller::Destroy ()
 {
 	for(int i=0;i<3;i++)
 	{
-		if (m_Interpolations[i] != NULL)
+		if (m_Interpolations[i] != nullptr)
 		{
 			m_Interpolations[i]->DelRef();
-			m_Interpolations[i] = NULL;
+			m_Interpolations[i] = nullptr;
 		}
 	}
 	Super::Destroy();
@@ -362,13 +362,13 @@ DScroller::DScroller (double dx, double dy, const line_t *l,
 		m_LastHeight = sectors[control].CenterFloor() + sectors[control].CenterCeiling();
 	m_Affectee = int(l->sidedef[0] - sides);
 	sides[m_Affectee].Flags |= WALLF_NOAUTODECALS;
-	m_Interpolations[0] = m_Interpolations[1] = m_Interpolations[2] = NULL;
+	m_Interpolations[0] = m_Interpolations[1] = m_Interpolations[2] = nullptr;
 
 	if (m_Parts & EScrollPos::scw_top)
 	{
 		m_Interpolations[0] = sides[m_Affectee].SetInterpolation(side_t::top);
 	}
-	if (m_Parts & EScrollPos::scw_mid && (sides[m_Affectee].linedef->backsector == NULL ||
+	if (m_Parts & EScrollPos::scw_mid && (sides[m_Affectee].linedef->backsector == nullptr ||
 		!(sides[m_Affectee].linedef->flags&ML_3DMIDTEX)))
 	{
 		m_Interpolations[1] = sides[m_Affectee].SetInterpolation(side_t::mid);
@@ -418,7 +418,7 @@ void P_SpawnScrollers(void)
 		// Check for undefined parameters that are non-zero and output messages for them.
 		// We don't report for specials we don't understand.
 		FLineSpecial *spec = P_GetLineSpecialInfo(special);
-		if (spec != NULL)
+		if (spec != nullptr)
 		{
 			int max = spec->map_args;
 			for (unsigned arg = max; arg < countof(l->args); ++arg)
@@ -656,7 +656,7 @@ void SetWallScroller (int id, int sidechoice, double dx, double dy, EScrollPos W
 		FLineIdIterator itr(id);
 		while ((linenum = itr.Next()) >= 0)
 		{
-			if (lines[linenum].sidedef[sidechoice] != NULL)
+			if (lines[linenum].sidedef[sidechoice] != nullptr)
 			{
 				int sidenum = int(lines[linenum].sidedef[sidechoice] - sides);
 				unsigned int i;

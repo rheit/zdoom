@@ -32,14 +32,14 @@ DBot::DBot ()
 
 void DBot::Clear ()
 {
-	player = NULL;
+	player = nullptr;
 	Angle = 0.;
-	dest = NULL;
-	prev = NULL;
-	enemy = NULL;
-	missile = NULL;
-	mate = NULL;
-	last_mate = NULL;
+	dest = nullptr;
+	prev = nullptr;
+	enemy = nullptr;
+	missile = nullptr;
+	mate = nullptr;
+	last_mate = nullptr;
 	memset(&skill, 0, sizeof(skill));
 	t_active = 0;
 	t_respawn = 0;
@@ -86,7 +86,7 @@ void DBot::Tick ()
 {
 	Super::Tick ();
 
-	if (player->mo == NULL || bglobal.freeze)
+	if (player->mo == nullptr || bglobal.freeze)
 	{
 		return;
 	}
@@ -124,7 +124,7 @@ CCMD (addbot)
 	if (argv.argc() > 1)
 		bglobal.SpawnBot (argv[1]);
 	else
-		bglobal.SpawnBot (NULL);
+		bglobal.SpawnBot (nullptr);
 }
 
 void FCajunMaster::ClearPlayer (int i, bool keepTeam)
@@ -132,7 +132,7 @@ void FCajunMaster::ClearPlayer (int i, bool keepTeam)
 	if (players[i].mo)
 	{
 		players[i].mo->Destroy ();
-		players[i].mo = NULL;
+		players[i].mo = nullptr;
 	}
 	botinfo_t *bot = botinfo;
 	while (bot && stricmp (players[i].userinfo.GetName(), bot->name))
@@ -142,10 +142,10 @@ void FCajunMaster::ClearPlayer (int i, bool keepTeam)
 		bot->inuse = BOTINUSE_No;
 		bot->lastteam = keepTeam ? players[i].userinfo.GetTeam() : TEAM_NONE;
 	}
-	if (players[i].Bot != NULL)
+	if (players[i].Bot != nullptr)
 	{
 		players[i].Bot->Destroy ();
-		players[i].Bot = NULL;
+		players[i].Bot = nullptr;
 	}
 	players[i].~player_t();
 	::new(&players[i]) player_t;
@@ -210,18 +210,18 @@ void InitBotStuff()
 		const char *projectile;
 	} botinits[] = {
 
-		{ "Pistol", 25000000, 0, NULL },
-		{ "Shotgun", 24000000, 0, NULL },
-		{ "SuperShotgun", 15000000, 0, NULL },
-		{ "Chaingun", 27000000, 0, NULL },
+		{ "Pistol", 25000000, 0, nullptr },
+		{ "Shotgun", 24000000, 0, nullptr },
+		{ "SuperShotgun", 15000000, 0, nullptr },
+		{ "Chaingun", 27000000, 0, nullptr },
 		{ "RocketLauncher", 18350080, WIF_BOT_REACTION_SKILL_THING|WIF_BOT_EXPLOSIVE, "Rocket" },
 		{ "PlasmaRifle",  27000000, 0, "PlasmaBall" },
 		{ "BFG9000", 10000000, WIF_BOT_REACTION_SKILL_THING|WIF_BOT_BFG, "BFGBall" },
-		{ "GoldWand", 25000000, 0, NULL },
-		{ "GoldWandPowered", 25000000, 0, NULL },
+		{ "GoldWand", 25000000, 0, nullptr },
+		{ "GoldWandPowered", 25000000, 0, nullptr },
 		{ "Crossbow", 24000000, 0, "CrossbowFX1" },
 		{ "CrossbowPowered", 24000000, 0, "CrossbowFX2" },
-		{ "Blaster", 27000000, 0, NULL },
+		{ "Blaster", 27000000, 0, nullptr },
 		{ "BlasterPowered", 27000000, 0, "BlasterFX1" },
 		{ "SkullRod", 27000000, 0, "HornRodFX1" },
 		{ "SkullRodPowered", 27000000, 0, "HornRodFX2" },
@@ -239,10 +239,10 @@ void InitBotStuff()
 		{ "MWeapBloodscourge", 20000000, 0, "MageStaffFX2" },
 		{ "StrifeCrossbow", 24000000, 0, "ElectricBolt" },
 		{ "StrifeCrossbow2", 24000000, 0, "PoisonBolt" },
-		{ "AssaultGun", 27000000, 0, NULL },
+		{ "AssaultGun", 27000000, 0, nullptr },
 		{ "MiniMissileLauncher", 18350080, WIF_BOT_REACTION_SKILL_THING|WIF_BOT_EXPLOSIVE, "MiniMissile" },
 		{ "FlameThrower", 24000000, 0, "FlameMissile" },
-		{ "Mauler", 15000000, 0, NULL },
+		{ "Mauler", 15000000, 0, nullptr },
 		{ "Mauler2", 10000000, 0, "MaulerTorpedo" },
 		{ "StrifeGrenadeLauncher", 18350080, WIF_BOT_REACTION_SKILL_THING|WIF_BOT_EXPLOSIVE, "HEGrenade" },
 		{ "StrifeGrenadeLauncher2", 18350080, WIF_BOT_REACTION_SKILL_THING|WIF_BOT_EXPLOSIVE, "PhosphorousGrenade" },
@@ -251,10 +251,10 @@ void InitBotStuff()
 	for(unsigned i=0;i<sizeof(botinits)/sizeof(botinits[0]);i++)
 	{
 		const PClass *cls = PClass::FindClass(botinits[i].type);
-		if (cls != NULL && cls->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+		if (cls != nullptr && cls->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
 		{
 			AWeapon *w = (AWeapon*)GetDefaultByType(cls);
-			if (w != NULL)
+			if (w != nullptr)
 			{
 				w->MoveCombatDist = botinits[i].movecombatdist/65536.;
 				w->WeaponFlags |= botinits[i].weaponflags;
@@ -267,7 +267,7 @@ void InitBotStuff()
 	for(unsigned i=0;i<countof(warnbotmissiles);i++)
 	{
 		AActor *a = GetDefaultByName (warnbotmissiles[i]);
-		if (a != NULL)
+		if (a != nullptr)
 		{
 			a->flags3|=MF3_WARNBOT;
 		}

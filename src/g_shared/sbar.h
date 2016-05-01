@@ -130,7 +130,7 @@ protected:
 	double Alpha;
 
 	void CalcClipCoords(int hudheight);
-	DHUDMessage () : SourceText(NULL) {}
+	DHUDMessage () : SourceText(nullptr) {}
 
 private:
 	TObjPtr<DHUDMessage> Next;
@@ -379,7 +379,7 @@ protected:
 	void DrawPowerups ();
 
 	void UpdateRect (int x, int y, int width, int height) const;
-	void DrawImage (FTexture *image, int x, int y, FRemapTable *translation=NULL) const;
+	void DrawImage (FTexture *image, int x, int y, FRemapTable *translation=nullptr) const;
 	void DrawDimImage (FTexture *image, int x, int y, bool dimmed) const;
 	void DrawPartialImage (FTexture *image, int wx, int ww) const;
 

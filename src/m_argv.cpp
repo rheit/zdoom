@@ -158,9 +158,9 @@ int DArgs::CheckParmList(const char *check, FString **strings, int start) const
 
 	if (parmat == 0)
 	{
-		if (strings != NULL)
+		if (strings != nullptr)
 		{
-			*strings = NULL;
+			*strings = nullptr;
 		}
 		return 0;
 	}
@@ -171,7 +171,7 @@ int DArgs::CheckParmList(const char *check, FString **strings, int start) const
 			break;
 		}
 	}
-	if (strings != NULL)
+	if (strings != nullptr)
 	{
 		*strings = &Argv[parmat];
 	}
@@ -183,7 +183,7 @@ int DArgs::CheckParmList(const char *check, FString **strings, int start) const
 // DArgs :: CheckValue
 //
 // Like CheckParm, but it also checks that the parameter has a value after
-// it and returns that or NULL if not present.
+// it and returns that or nullptr if not present.
 //
 //===========================================================================
 
@@ -194,11 +194,11 @@ const char *DArgs::CheckValue(const char *check) const
 	if (i > 0 && i < (int)Argv.Size() - 1)
 	{
 		i++;
-		return Argv[i][0] != '+' && Argv[i][0] != '-' ? Argv[i].GetChars() : NULL;
+		return Argv[i][0] != '+' && Argv[i][0] != '-' ? Argv[i].GetChars() : nullptr;
 	}
 	else
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -261,7 +261,7 @@ void DArgs::RemoveArgs(const char *check)
 
 const char *DArgs::GetArg(int arg) const
 {
-	return ((unsigned)arg < Argv.Size()) ? Argv[arg].GetChars() : NULL;
+	return ((unsigned)arg < Argv.Size()) ? Argv[arg].GetChars() : nullptr;
 }
 
 //===========================================================================
@@ -274,7 +274,7 @@ const char *DArgs::GetArg(int arg) const
 
 FString *DArgs::GetArgList(int arg) const
 {
-	return ((unsigned)arg < Argv.Size()) ? &Argv[arg] : NULL;
+	return ((unsigned)arg < Argv.Size()) ? &Argv[arg] : nullptr;
 }
 
 //===========================================================================
@@ -312,7 +312,7 @@ void DArgs::AppendArg(FString arg)
 
 void DArgs::AppendArgs(int argc, const FString *argv)
 {
-	if (argv != NULL && argc > 0)
+	if (argv != nullptr && argc > 0)
 	{
 		Argv.Grow(argc);
 		for (int i = 0; i < argc; ++i)
@@ -341,7 +341,7 @@ void DArgs::RemoveArg(int argindex)
 //
 // Takes all arguments after any instance of -param and any arguments before
 // all switches that end in .extension and combines them into a single
-// -switch block at the end of the arguments. If extension is NULL, then
+// -switch block at the end of the arguments. If extension is nullptr, then
 // every parameter before the first switch is added after this -param.
 //
 //===========================================================================
@@ -350,7 +350,7 @@ void DArgs::CollectFiles(const char *param, const char *extension)
 {
 	TArray<FString> work;
 	unsigned int i;
-	size_t extlen = extension == NULL ? 0 : strlen(extension);
+	size_t extlen = extension == nullptr ? 0 : strlen(extension);
 
 	// Step 1: Find suitable arguments before the first switch.
 	i = 1;

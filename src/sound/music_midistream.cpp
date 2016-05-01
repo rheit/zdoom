@@ -97,13 +97,13 @@ MIDIStreamer::MIDIStreamer(EMidiDevice type, const char *args)
   MIDI(0), Division(0), InitialTempo(500000), DeviceType(type), Args(args)
 {
 #ifdef _WIN32
-	BufferDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (BufferDoneEvent == NULL)
+	BufferDoneEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	if (BufferDoneEvent == nullptr)
 	{
 		Printf(PRINT_BOLD, "Could not create buffer done event for MIDI playback\n");
 	}
-	ExitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (ExitEvent == NULL)
+	ExitEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	if (ExitEvent == nullptr)
 	{
 		Printf(PRINT_BOLD, "Could not create exit event for MIDI playback\n");
 		return;
@@ -125,8 +125,8 @@ MIDIStreamer::MIDIStreamer(const char *dumpname, EMidiDevice type)
   MIDI(0), Division(0), InitialTempo(500000), DeviceType(type), DumpFilename(dumpname)
 {
 #ifdef _WIN32
-	BufferDoneEvent = NULL;
-	ExitEvent = NULL;
+	BufferDoneEvent = nullptr;
+	ExitEvent = nullptr;
 #endif
 }
 
@@ -140,16 +140,16 @@ MIDIStreamer::~MIDIStreamer()
 {
 	Stop();
 #ifdef _WIN32
-	if (ExitEvent != NULL)
+	if (ExitEvent != nullptr)
 	{
 		CloseHandle(ExitEvent);
 	}
-	if (BufferDoneEvent != NULL)
+	if (BufferDoneEvent != nullptr)
 	{
 		CloseHandle(BufferDoneEvent);
 	}
 #endif
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		delete MIDI;
 	}
@@ -177,7 +177,7 @@ bool MIDIStreamer::IsMIDI() const
 bool MIDIStreamer::IsValid() const
 {
 #ifdef _WIN32
-	return ExitEvent != NULL && Division != 0;
+	return ExitEvent != nullptr && Division != 0;
 #else
 	return Division != 0;
 #endif
@@ -297,7 +297,7 @@ MIDIDevice *MIDIStreamer::CreateMIDIDevice(EMidiDevice devtype) const
 		return new WildMIDIDevice(Args);
 
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -319,7 +319,7 @@ void MIDIStreamer::Play(bool looping, int subsong)
 	Restarting = true;
 	InitialPlayback = true;
 
-	assert(MIDI == NULL);
+	assert(MIDI == nullptr);
 	devtype = SelectMIDIDevice(DeviceType);
 	if (DumpFilename.IsNotEmpty())
 	{
@@ -338,16 +338,16 @@ void MIDIStreamer::Play(bool looping, int subsong)
 	}
 	
 #ifndef _WIN32
-	assert(MIDI == NULL || MIDI->NeedThreadedCallback() == false);
+	assert(MIDI == nullptr || MIDI->NeedThreadedCallback() == false);
 #endif
 
-	if (MIDI == NULL || 0 != MIDI->Open(Callback, this))
+	if (MIDI == nullptr || 0 != MIDI->Open(Callback, this))
 	{
 		Printf(PRINT_BOLD, "Could not open MIDI out device\n");
-		if (MIDI != NULL)
+		if (MIDI != nullptr)
 		{
 			delete MIDI;
-			MIDI = NULL;
+			MIDI = nullptr;
 		}
 		return;
 	}
@@ -358,7 +358,7 @@ void MIDIStreamer::Play(bool looping, int subsong)
 	if (MIDI->Preprocess(this, looping))
 	{
 		StartPlayback();
-		if (MIDI == NULL)
+		if (MIDI == nullptr)
 		{ // The MIDI file had no content and has been automatically closed.
 			return;
 		}
@@ -374,8 +374,8 @@ void MIDIStreamer::Play(bool looping, int subsong)
 #ifdef _WIN32
 		if (MIDI->NeedThreadedCallback())
 		{
-			PlayerThread = CreateThread(NULL, 0, PlayerProc, this, 0, &tid);
-			if (PlayerThread == NULL)
+			PlayerThread = CreateThread(nullptr, 0, PlayerProc, this, 0, &tid);
+			if (PlayerThread == nullptr)
 			{
 				Printf ("Creating MIDI thread failed\n");
 				Stop();
@@ -506,25 +506,25 @@ void MIDIStreamer::Stop()
 {
 	EndQueued = 4;
 #ifdef _WIN32
-	if (PlayerThread != NULL)
+	if (PlayerThread != nullptr)
 	{
 		SetEvent(ExitEvent);
 		WaitForSingleObject(PlayerThread, INFINITE);
 		CloseHandle(PlayerThread);
-		PlayerThread = NULL;
+		PlayerThread = nullptr;
 	}
 #endif
-	if (MIDI != NULL && MIDI->IsOpen())
+	if (MIDI != nullptr && MIDI->IsOpen())
 	{
 		MIDI->Stop();
 		MIDI->UnprepareHeader(&Buffer[0]);
 		MIDI->UnprepareHeader(&Buffer[1]);
 		MIDI->Close();
 	}
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		delete MIDI;
-		MIDI = NULL;
+		MIDI = nullptr;
 	}
 	m_Status = STATE_Stopped;
 }
@@ -537,7 +537,7 @@ void MIDIStreamer::Stop()
 
 bool MIDIStreamer::IsPlaying()
 {
-	if (m_Status != STATE_Stopped && (MIDI == NULL || (EndQueued != 0 && EndQueued < 4)))
+	if (m_Status != STATE_Stopped && (MIDI == nullptr || (EndQueued != 0 && EndQueued < 4)))
 	{
 		Stop();
 	}
@@ -559,7 +559,7 @@ bool MIDIStreamer::IsPlaying()
 
 void MIDIStreamer::MusicVolumeChanged()
 {
-	if (MIDI != NULL && MIDI->FakeVolume())
+	if (MIDI != nullptr && MIDI->FakeVolume())
 	{
 		float realvolume = clamp<float>(snd_musicvolume * relative_volume, 0.f, 1.f);
 		Volume = clamp<DWORD>((DWORD)(realvolume * 65535.f), 0, 65535);
@@ -582,7 +582,7 @@ void MIDIStreamer::MusicVolumeChanged()
 
 void MIDIStreamer::TimidityVolumeChanged()
 {
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		MIDI->TimidityVolumeChanged();
 	}
@@ -596,7 +596,7 @@ void MIDIStreamer::TimidityVolumeChanged()
 
 void MIDIStreamer::FluidSettingInt(const char *setting, int value)
 {
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		MIDI->FluidSettingInt(setting, value);
 	}
@@ -610,7 +610,7 @@ void MIDIStreamer::FluidSettingInt(const char *setting, int value)
 
 void MIDIStreamer::FluidSettingNum(const char *setting, double value)
 {
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		MIDI->FluidSettingNum(setting, value);
 	}
@@ -624,7 +624,7 @@ void MIDIStreamer::FluidSettingNum(const char *setting, double value)
 
 void MIDIStreamer::FluidSettingStr(const char *setting, const char *value)
 {
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		MIDI->FluidSettingStr(setting, value);
 	}
@@ -639,7 +639,7 @@ void MIDIStreamer::FluidSettingStr(const char *setting, const char *value)
 
 void MIDIStreamer::WildMidiSetOption(int opt, int set)
 {
-	if (MIDI != NULL)
+	if (MIDI != nullptr)
 	{
 		MIDI->WildMidiSetOption(opt, set);
 	}
@@ -656,7 +656,7 @@ void MIDIStreamer::WildMidiSetOption(int opt, int set)
 
 void MIDIStreamer::OutputVolume (DWORD volume)
 {
-	if (MIDI != NULL && MIDI->FakeVolume())
+	if (MIDI != nullptr && MIDI->FakeVolume())
 	{
 		NewVolume = volume;
 		VolumeChanged = true;
@@ -702,7 +702,7 @@ void MIDIStreamer::Callback(unsigned int uMsg, void *userdata, DWORD dwParam1, D
 	if (uMsg == MOM_DONE)
 	{
 #ifdef _WIN32
-		if (self->PlayerThread != NULL)
+		if (self->PlayerThread != nullptr)
 		{
 			SetEvent(self->BufferDoneEvent);
 		}
@@ -727,7 +727,7 @@ void MIDIStreamer::Update()
 {
 #ifdef _WIN32
 	// If the PlayerThread is signalled, then it's dead.
-	if (PlayerThread != NULL &&
+	if (PlayerThread != nullptr &&
 		WaitForSingleObject(PlayerThread, 0) == WAIT_OBJECT_0)
 	{
 		static const char *const MMErrorCodes[] =
@@ -769,7 +769,7 @@ void MIDIStreamer::Update()
 		DWORD code = 0xABADCAFE;
 		GetExitCodeThread(PlayerThread, &code);
 		CloseHandle(PlayerThread);
-		PlayerThread = NULL;
+		PlayerThread = nullptr;
 		Printf ("MIDI playback failure: ");
 		if (code < countof(MMErrorCodes))
 		{
@@ -1312,7 +1312,7 @@ static void WriteVarLen (TArray<BYTE> &file, DWORD value)
 void MIDIStreamer::SetTempo(int new_tempo)
 {
 	InitialTempo = new_tempo;
-	if (NULL != MIDI && 0 == MIDI->SetTempo(new_tempo))
+	if (nullptr != MIDI && 0 == MIDI->SetTempo(new_tempo))
 	{
 		Tempo = new_tempo;
 	}
@@ -1360,7 +1360,7 @@ int MIDIStreamer::ClampLoopCount(int loopcount)
 
 FString MIDIStreamer::GetStats()
 {
-	if (MIDI == NULL)
+	if (MIDI == nullptr)
 	{
 		return "No MIDI device in use.";
 	}

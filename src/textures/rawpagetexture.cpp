@@ -150,7 +150,7 @@ static bool CheckIfRaw(FileReader & data)
 
 FTexture *RawPageTexture_TryCreate(FileReader & file, int lumpnum)
 {
-	if (!CheckIfRaw(file)) return NULL;
+	if (!CheckIfRaw(file)) return nullptr;
 	return new FRawPageTexture(lumpnum);
 }
 
@@ -173,7 +173,7 @@ const FTexture::Span FRawPageTexture::DummySpans[2] =
 //==========================================================================
 
 FRawPageTexture::FRawPageTexture (int lumpnum)
-: FTexture(NULL, lumpnum), Pixels(0)
+: FTexture(nullptr, lumpnum), Pixels(0)
 {
 	Width = 320;
 	Height = 200;
@@ -201,10 +201,10 @@ FRawPageTexture::~FRawPageTexture ()
 
 void FRawPageTexture::Unload ()
 {
-	if (Pixels != NULL)
+	if (Pixels != nullptr)
 	{
 		delete[] Pixels;
-		Pixels = NULL;
+		Pixels = nullptr;
 	}
 }
 
@@ -216,7 +216,7 @@ void FRawPageTexture::Unload ()
 
 const BYTE *FRawPageTexture::GetColumn (unsigned int column, const Span **spans_out)
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}
@@ -224,7 +224,7 @@ const BYTE *FRawPageTexture::GetColumn (unsigned int column, const Span **spans_
 	{
 		column %= 320;
 	}
-	if (spans_out != NULL)
+	if (spans_out != nullptr)
 	{
 		*spans_out = DummySpans;
 	}
@@ -239,7 +239,7 @@ const BYTE *FRawPageTexture::GetColumn (unsigned int column, const Span **spans_
 
 const BYTE *FRawPageTexture::GetPixels ()
 {
-	if (Pixels == NULL)
+	if (Pixels == nullptr)
 	{
 		MakeTexture ();
 	}

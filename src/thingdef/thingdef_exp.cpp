@@ -396,10 +396,10 @@ static FxExpression *ParseExpression0 (FScanner &sc, PClassActor *cls)
 				try
 				{
 					// There is an action function ACS_NamedExecuteWithResult which must be ignored here for this to work.
-					if (func != NULL && identifier != NAME_ACS_NamedExecuteWithResult)
+					if (func != nullptr && identifier != NAME_ACS_NamedExecuteWithResult)
 					{
 						sc.UnGet();
-						ParseFunctionParameters(sc, cls, *args, func, "", NULL);
+						ParseFunctionParameters(sc, cls, *args, func, "", nullptr);
 						return new FxVMFunctionCall(func, args, sc);
 					}
 					else if (!sc.CheckToken(')'))
@@ -411,7 +411,7 @@ static FxExpression *ParseExpression0 (FScanner &sc, PClassActor *cls)
 						while (sc.CheckToken(','));
 						sc.MustGetToken(')');
 					}
-					return new FxFunctionCall(NULL, identifier, args, sc);
+					return new FxFunctionCall(nullptr, identifier, args, sc);
 				}
 				catch (...)
 				{
@@ -431,7 +431,7 @@ static FxExpression *ParseExpression0 (FScanner &sc, PClassActor *cls)
 		FString tokname = sc.TokenName(sc.TokenType, sc.String);
 		sc.ScriptError ("Unexpected token %s", tokname.GetChars());
 	}
-	return NULL;
+	return nullptr;
 }
 
 static FRandom *ParseRNG(FScanner &sc)
@@ -496,7 +496,7 @@ static FxExpression *ParseRandomPick(FScanner &sc, FName identifier, PClassActor
 static FxExpression *ParseRandom2(FScanner &sc, PClassActor *cls)
 {
 	FRandom *rng = ParseRNG(sc);
-	FxExpression *mask = NULL;
+	FxExpression *mask = nullptr;
 
 	sc.MustGetToken('(');
 

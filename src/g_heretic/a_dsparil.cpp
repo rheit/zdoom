@@ -90,7 +90,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Srcr1Attack)
 	else
 	{ // Spit three fireballs
 		mo = P_SpawnMissileZ (self, self->Z() + 48, self->target, fx);
-		if (mo != NULL)
+		if (mo != nullptr)
 		{
 			angle = mo->Angles.Yaw;
 			P_SpawnMissileAngleZ(self, self->Z() + 48, fx, angle - 3, mo->Vel.Z);
@@ -146,10 +146,10 @@ void P_DSparilTeleport (AActor *actor)
 	AActor *spot;
 
 	DSpotState *state = DSpotState::GetSpotState();
-	if (state == NULL) return;
+	if (state == nullptr) return;
 
 	spot = state->GetSpotWithMinMaxDistance(PClass::FindClass("BossSpot"), actor->X(), actor->Y(), 128, 0);
-	if (spot == NULL) return;
+	if (spot == nullptr) return;
 
 	prev = actor->Pos();
 	if (P_TeleportMove (actor, spot->Pos(), false))
@@ -271,7 +271,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_GenWizard)
 	AActor *mo;
 
 	mo = Spawn("Wizard", self->Pos(), ALLOW_REPLACE);
-	if (mo != NULL)
+	if (mo != nullptr)
 	{
 		mo->AddZ(-mo->GetDefault()->Height / 2, false);
 		if (!P_TestMobjLocation (mo))

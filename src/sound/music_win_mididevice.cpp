@@ -100,7 +100,7 @@ int WinMIDIDevice::Open(void (*callback)(UINT, void *, DWORD, DWORD), void *user
 
 	Callback = callback;
 	CallbackData = userdata;
-	if (MidiOut == NULL)
+	if (MidiOut == nullptr)
 	{
 		err = midiStreamOpen(&MidiOut, &DeviceID, 1, (DWORD_PTR)CallbackFunc, (DWORD_PTR)this, CALLBACK_FUNCTION);
 
@@ -132,10 +132,10 @@ int WinMIDIDevice::Open(void (*callback)(UINT, void *, DWORD, DWORD), void *user
 
 void WinMIDIDevice::Close()
 {
-	if (MidiOut != NULL)
+	if (MidiOut != nullptr)
 	{
 		midiStreamClose(MidiOut);
-		MidiOut = NULL;
+		MidiOut = nullptr;
 	}
 }
 
@@ -147,7 +147,7 @@ void WinMIDIDevice::Close()
 
 bool WinMIDIDevice::IsOpen() const
 {
-	return MidiOut != NULL;
+	return MidiOut != nullptr;
 }
 
 //==========================================================================
@@ -398,7 +398,7 @@ bool WinMIDIDevice::NeedThreadedCallback()
 void CALLBACK WinMIDIDevice::CallbackFunc(HMIDIOUT hOut, UINT uMsg, DWORD_PTR dwInstance, DWORD dwParam1, DWORD dwParam2)
 {
 	WinMIDIDevice *self = (WinMIDIDevice *)dwInstance;
-	if (self->Callback != NULL)
+	if (self->Callback != nullptr)
 	{
 		self->Callback(uMsg, self->CallbackData, dwParam1, dwParam2);
 	}
@@ -447,9 +447,9 @@ static bool IgnoreMIDIVolume(UINT id)
 				// Now try to create an IMMDeviceEnumerator interface. If it succeeds,
 				// we know we're using the new audio stack introduced with Vista and
 				// should ignore this MIDI device's volume control.
-				if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL,
+				if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
 											   __uuidof(IMMDeviceEnumerator), (void**)&enumerator))
-					&& enumerator != NULL)
+					&& enumerator != nullptr)
 				{
 					enumerator->Release();
 					return true;

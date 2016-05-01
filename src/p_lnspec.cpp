@@ -177,7 +177,7 @@ FUNC(LS_Polyobj_MoveToSpot)
 {
 	FActorIterator iterator (arg2);
 	AActor *spot = iterator.Next();
-	if (spot == NULL) return false;
+	if (spot == nullptr) return false;
 	return EV_MovePolyTo (ln, arg0, SPEED(arg1), spot->Pos(), false);
 }
 
@@ -228,7 +228,7 @@ FUNC(LS_Polyobj_OR_MoveToSpot)
 {
 	FActorIterator iterator (arg2);
 	AActor *spot = iterator.Next();
-	if (spot == NULL) return false;
+	if (spot == nullptr) return false;
 	return EV_MovePolyTo (ln, arg0, SPEED(arg1), spot->Pos(), true);
 }
 
@@ -1063,11 +1063,11 @@ FUNC(LS_Teleport_NoFog)
 		break;
 
 	case 2:
-		if (ln != NULL) flags |= TELF_KEEPORIENTATION | TELF_ROTATEBOOM;	// adjust to exit thing like Boom (i.e. with incorrect reversed angle)
+		if (ln != nullptr) flags |= TELF_KEEPORIENTATION | TELF_ROTATEBOOM;	// adjust to exit thing like Boom (i.e. with incorrect reversed angle)
 		break;
 
 	case 3:
-		if (ln != NULL) flags |= TELF_KEEPORIENTATION | TELF_ROTATEBOOMINVERSE;	// adjust to exit thing correctly
+		if (ln != nullptr) flags |= TELF_KEEPORIENTATION | TELF_ROTATEBOOMINVERSE;	// adjust to exit thing correctly
 		break;
 	}
 
@@ -1082,7 +1082,7 @@ FUNC(LS_Teleport_ZombieChanger)
 // Teleport_ZombieChanger (tid, sectortag)
 {
 	// This is practically useless outside of Strife, but oh well.
-	if (it != NULL)
+	if (it != nullptr)
 	{
 		EV_Teleport (arg0, arg1, ln, backSide, it, 0);
 		if (it->health >= 0) it->SetState (it->FindState(NAME_Pain));
@@ -1112,9 +1112,9 @@ FUNC(LS_TeleportInSector)
 FUNC(LS_Teleport_EndGame)
 // Teleport_EndGame ()
 {
-	if (!backSide && CheckIfExitIsGood (it, NULL))
+	if (!backSide && CheckIfExitIsGood (it, nullptr))
 	{
-		G_ChangeLevel(NULL, 0, 0);
+		G_ChangeLevel(nullptr, 0, 0);
 		return true;
 	}
 	return false;
@@ -1142,7 +1142,7 @@ FUNC(LS_ThrustThing)
 	if (arg3 != 0)
 	{
 		FActorIterator iterator (arg3);
-		while ((it = iterator.Next()) != NULL)
+		while ((it = iterator.Next()) != nullptr)
 		{
 			ThrustThingHelper (it, BYTEANGLE(arg0), arg1, arg2);
 		}
@@ -1201,7 +1201,7 @@ FUNC(LS_Thing_SetSpecial)	// [BC]
 {
 	if (arg0 == 0)
 	{
-		if (it != NULL)
+		if (it != nullptr)
 		{
 			it->special = arg1;
 			it->args[0] = arg2;
@@ -1230,7 +1230,7 @@ FUNC(LS_Thing_ChangeTID)
 {
 	if (arg0 == 0)
 	{
-		if (it != NULL && !(it->ObjectFlags & OF_EuthanizeMe))
+		if (it != nullptr && !(it->ObjectFlags & OF_EuthanizeMe))
 		{
 			it->RemoveFromHash ();
 			it->tid = arg1;
@@ -1243,7 +1243,7 @@ FUNC(LS_Thing_ChangeTID)
 		AActor *actor, *next;
 
 		next = iterator.Next ();
-		while (next != NULL)
+		while (next != nullptr)
 		{
 			actor = next;
 			next = iterator.Next ();
@@ -1279,11 +1279,11 @@ FUNC(LS_DamageThing)
 		}
 		else if (arg0 > 0)
 		{
-			P_DamageMobj (it, NULL, NULL, arg0, MODtoDamageType (arg1));
+			P_DamageMobj (it, nullptr, nullptr, arg0, MODtoDamageType (arg1));
 		}
 		else
 		{ // If zero damage, guarantee a kill
-			P_DamageMobj (it, NULL, NULL, TELEFRAG_DAMAGE, MODtoDamageType (arg1));
+			P_DamageMobj (it, nullptr, nullptr, TELEFRAG_DAMAGE, MODtoDamageType (arg1));
 		}
 	}
 
@@ -1297,7 +1297,7 @@ FUNC(LS_HealThing)
 	{
 		int max = arg1;
 
-		if (max == 0 || it->player == NULL)
+		if (max == 0 || it->player == nullptr)
 		{
 			P_GiveBody(it, arg0);
 			return true;
@@ -1371,7 +1371,7 @@ FUNC(LS_Thing_Activate)
 
 		return count != 0;
 	}
-	else if (it != NULL)
+	else if (it != nullptr)
 	{
 		DoActivateThing(it, it);
 		return true;
@@ -1401,7 +1401,7 @@ FUNC(LS_Thing_Deactivate)
 	
 		return count != 0;
 	}
-	else if (it != NULL)
+	else if (it != nullptr)
 	{
 		DoDeactivateThing(it, it);
 		return true;
@@ -1426,7 +1426,7 @@ FUNC(LS_Thing_Remove)
 			actor = temp;
 		}
 	}
-	else if (it != NULL)
+	else if (it != nullptr)
 	{
 		P_RemoveThing(it);
 	}
@@ -1452,7 +1452,7 @@ FUNC(LS_Thing_Destroy)
 		{
 			AActor *temp = iterator.Next ();
 			if (actor->flags & MF_SHOOTABLE && tagManager.SectorHasTag(actor->Sector, arg2))
-				P_DamageMobj (actor, NULL, it, arg1 ? TELEFRAG_DAMAGE : actor->health, NAME_None);
+				P_DamageMobj (actor, nullptr, it, arg1 ? TELEFRAG_DAMAGE : actor->health, NAME_None);
 			actor = temp;
 		}
 	}
@@ -1465,7 +1465,7 @@ FUNC(LS_Thing_Destroy)
 		{
 			AActor *temp = iterator.Next ();
 			if (actor->flags & MF_SHOOTABLE && (arg2 == 0 || tagManager.SectorHasTag(actor->Sector, arg2)))
-				P_DamageMobj (actor, NULL, it, arg1 ? TELEFRAG_DAMAGE : actor->health, NAME_None);
+				P_DamageMobj (actor, nullptr, it, arg1 ? TELEFRAG_DAMAGE : actor->health, NAME_None);
 			actor = temp;
 		}
 	}
@@ -1482,22 +1482,22 @@ FUNC(LS_Thing_Damage)
 FUNC(LS_Thing_Projectile)
 // Thing_Projectile (tid, type, angle, speed, vspeed)
 {
-	return P_Thing_Projectile (arg0, it, arg1, NULL, BYTEANGLE(arg2), SPEED(arg3),
-		SPEED(arg4), 0, NULL, 0, 0, false);
+	return P_Thing_Projectile (arg0, it, arg1, nullptr, BYTEANGLE(arg2), SPEED(arg3),
+		SPEED(arg4), 0, nullptr, 0, 0, false);
 }
 
 FUNC(LS_Thing_ProjectileGravity)
 // Thing_ProjectileGravity (tid, type, angle, speed, vspeed)
 {
-	return P_Thing_Projectile (arg0, it, arg1, NULL, BYTEANGLE(arg2), SPEED(arg3),
-		SPEED(arg4), 0, NULL, 1, 0, false);
+	return P_Thing_Projectile (arg0, it, arg1, nullptr, BYTEANGLE(arg2), SPEED(arg3),
+		SPEED(arg4), 0, nullptr, 1, 0, false);
 }
 
 FUNC(LS_Thing_Hate)
 // Thing_Hate (hater, hatee, group/"xray"?)
 {
 	FActorIterator haterIt (arg0);
-	AActor *hater, *hatee = NULL;
+	AActor *hater, *hatee = nullptr;
 	FActorIterator hateeIt (arg1);
 	bool nothingToHate = false;
 
@@ -1512,7 +1512,7 @@ FUNC(LS_Thing_Hate)
 				break;
 			}
 		}
-		if (hatee == NULL)
+		if (hatee == nullptr)
 		{ // Nothing to hate
 			nothingToHate = true;
 		}
@@ -1520,7 +1520,7 @@ FUNC(LS_Thing_Hate)
 
 	if (arg0 == 0)
 	{
-		if (it != NULL && it->player != NULL)
+		if (it != nullptr && it->player != nullptr)
 		{
 			// Players cannot have their attitudes set
 			return false;
@@ -1540,30 +1540,30 @@ FUNC(LS_Thing_Hate)
 			}
 		}
 	}
-	while (hater != NULL)
+	while (hater != nullptr)
 	{
 		// Can't hate if can't attack.
-		if (hater->SeeState != NULL)
+		if (hater->SeeState != nullptr)
 		{
-			// If hating a group of things, record the TID and NULL
+			// If hating a group of things, record the TID and nullptr
 			// the target (if its TID doesn't match). A_Look will
 			// find an appropriate thing to go chase after.
 			if (arg2 != 0)
 			{
 				hater->TIDtoHate = arg1;
-				hater->LastLookActor = NULL;
+				hater->LastLookActor = nullptr;
 
 				// If the TID to hate is 0, then don't forget the target and
 				// lastenemy fields.
 				if (arg1 != 0)
 				{
-					if (hater->target != NULL && hater->target->tid != arg1)
+					if (hater->target != nullptr && hater->target->tid != arg1)
 					{
-						hater->target = NULL;
+						hater->target = nullptr;
 					}
-					if (hater->lastenemy != NULL && hater->lastenemy->tid != arg1)
+					if (hater->lastenemy != nullptr && hater->lastenemy->tid != arg1)
 					{
-						hater->lastenemy = NULL;
+						hater->lastenemy = nullptr;
 					}
 				}
 			}
@@ -1610,7 +1610,7 @@ FUNC(LS_Thing_Hate)
 			}
 			else if (nothingToHate)
 			{
-				hatee = NULL;
+				hatee = nullptr;
 			}
 			else if (arg2 != 0)
 			{
@@ -1618,14 +1618,14 @@ FUNC(LS_Thing_Hate)
 				{
 					hatee = hateeIt.Next ();
 				}
-				while ( hatee == NULL ||
+				while ( hatee == nullptr ||
 						hatee == hater ||					// can't hate self
 						!(hatee->flags & MF_SHOOTABLE) ||	// can't hate nonshootable things
 						hatee->health <= 0 ||				// can't hate dead things
 						(hatee->flags2 & MF2_DORMANT));	
 			}
 
-			if (hatee != NULL && hatee != hater && (arg2 == 0 || (hater->goal != NULL && hater->target != hater->goal)))
+			if (hatee != nullptr && hatee != hater && (arg2 == 0 || (hater->goal != nullptr && hater->target != hater->goal)))
 			{
 				if (hater->target)
 				{
@@ -1650,7 +1650,7 @@ FUNC(LS_Thing_Hate)
 		}
 		else
 		{
-			hater = NULL;
+			hater = nullptr;
 		}
 	}
 	return true;
@@ -1659,13 +1659,13 @@ FUNC(LS_Thing_Hate)
 FUNC(LS_Thing_ProjectileAimed)
 // Thing_ProjectileAimed (tid, type, speed, target, newtid)
 {
-	return P_Thing_Projectile (arg0, it, arg1, NULL, 0., SPEED(arg2), 0, arg3, it, 0, arg4, false);
+	return P_Thing_Projectile (arg0, it, arg1, nullptr, 0., SPEED(arg2), 0, arg3, it, 0, arg4, false);
 }
 
 FUNC(LS_Thing_ProjectileIntercept)
 // Thing_ProjectileIntercept (tid, type, speed, target, newtid)
 {
-	return P_Thing_Projectile (arg0, it, arg1, NULL, 0., SPEED(arg2), 0, arg3, it, 0, arg4, true);
+	return P_Thing_Projectile (arg0, it, arg1, nullptr, 0., SPEED(arg2), 0, arg3, it, 0, arg4, true);
 }
 
 // [BC] added newtid for next two
@@ -1695,7 +1695,7 @@ FUNC(LS_Thing_Raise)
 
 	if (arg0==0)
 	{
-		ok = P_Thing_Raise (it,NULL);
+		ok = P_Thing_Raise (it,nullptr);
 	}
 	else
 	{
@@ -1703,7 +1703,7 @@ FUNC(LS_Thing_Raise)
 
 		while ( (target = iterator.Next ()) )
 		{
-			ok |= P_Thing_Raise(target,NULL);
+			ok |= P_Thing_Raise(target,nullptr);
 		}
 	}
 	return ok;
@@ -1717,10 +1717,10 @@ FUNC(LS_Thing_Stop)
 
 	if (arg0==0)
 	{
-		if (it != NULL)
+		if (it != nullptr)
 		{
 			it->Vel.Zero();
-			if (it->player != NULL) it->player->Vel.Zero();
+			if (it->player != nullptr) it->player->Vel.Zero();
 			ok = true;
 		}
 	}
@@ -1731,7 +1731,7 @@ FUNC(LS_Thing_Stop)
 		while ( (target = iterator.Next ()) )
 		{
 			target->Vel.Zero();
-			if (target->player != NULL) target->player->Vel.Zero();
+			if (target->player != nullptr) target->player->Vel.Zero();
 			ok = true;
 		}
 	}
@@ -1757,7 +1757,7 @@ FUNC(LS_Thing_SetGoal)
 			{ // Targeting a goal already? -> don't target it anymore.
 			  // A_Look will set it to the goal, presuming no real targets
 			  // come into view by then.
-				self->target = NULL;
+				self->target = nullptr;
 			}
 			self->goal = goal;
 			if (arg3 == 0)
@@ -1768,7 +1768,7 @@ FUNC(LS_Thing_SetGoal)
 			{
 				self->flags5 |= MF5_CHASEGOAL;
 			}
-			if (self->target == NULL)
+			if (self->target == nullptr)
 			{
 				self->reactiontime = arg2 * TICRATE;
 			}
@@ -1797,7 +1797,7 @@ FUNC(LS_Thing_SetTranslation)
 	AActor *target;
 	bool ok = false;
 
-	if (arg1 == -1 && it != NULL)
+	if (arg1 == -1 && it != nullptr)
 	{
 		range = it->Translation;
 	}
@@ -1816,7 +1816,7 @@ FUNC(LS_Thing_SetTranslation)
 
 	if (arg0 == 0)
 	{
-		if (it != NULL)
+		if (it != nullptr)
 		{
 			ok = true;
 			it->Translation = range==0? it->GetDefault()->Translation : range;
@@ -1838,7 +1838,7 @@ FUNC(LS_ACS_Execute)
 // ACS_Execute (script, map, s_arg1, s_arg2, s_arg3)
 {
 	level_info_t *info;
-	const char *mapname = NULL;
+	const char *mapname = nullptr;
 	int args[3] = { arg2, arg3, arg4 };
 	int flags = (backSide ? ACS_BACKSIDE : 0);
 
@@ -1846,7 +1846,7 @@ FUNC(LS_ACS_Execute)
 	{
 		mapname = level.MapName;
 	}
-	else if ((info = FindLevelByNum(arg1)) != NULL)
+	else if ((info = FindLevelByNum(arg1)) != nullptr)
 	{
 		mapname = info->MapName;
 	}
@@ -1861,7 +1861,7 @@ FUNC(LS_ACS_ExecuteAlways)
 // ACS_ExecuteAlways (script, map, s_arg1, s_arg2, s_arg3)
 {
 	level_info_t *info;
-	const char *mapname = NULL;
+	const char *mapname = nullptr;
 	int args[3] = { arg2, arg3, arg4 };
 	int flags = (backSide ? ACS_BACKSIDE : 0) | ACS_ALWAYS;
 
@@ -1869,7 +1869,7 @@ FUNC(LS_ACS_ExecuteAlways)
 	{
 		mapname = level.MapName;
 	}
-	else if ((info = FindLevelByNum(arg1)) != NULL)
+	else if ((info = FindLevelByNum(arg1)) != nullptr)
 	{
 		mapname = info->MapName;
 	}
@@ -2095,7 +2095,7 @@ FUNC(LS_UsePuzzleItem)
 	if (!it) return false;
 
 	// Check player's inventory for puzzle item
-	for (item = it->Inventory; item != NULL; item = item->Inventory)
+	for (item = it->Inventory; item != nullptr; item = item->Inventory)
 	{
 		if (item->IsKindOf (RUNTIME_CLASS(APuzzleItem)))
 		{
@@ -2563,7 +2563,7 @@ FUNC(LS_Line_SetTextureOffset)
 	while ((line = itr.Next()) >= 0)
 	{
 		side_t *side = lines[line].sidedef[arg3];
-		if (side != NULL)
+		if (side != nullptr)
 		{
 
 			if ((arg4&8)==0)
@@ -2618,7 +2618,7 @@ FUNC(LS_Line_SetTextureScale)
 	while ((line = itr.Next()) >= 0)
 	{
 		side_t *side = lines[line].sidedef[arg3];
-		if (side != NULL)
+		if (side != nullptr)
 		{
 			if ((arg4&8)==0)
 			{
@@ -2709,7 +2709,7 @@ FUNC(LS_ChangeCamera)
 	}
 	else
 	{
-		camera = NULL;
+		camera = nullptr;
 	}
 
 	if (!it || !it->player || arg1)
@@ -2803,17 +2803,17 @@ FUNC(LS_SetPlayerProperty)
 			&RUNTIME_CLASS_CASTLESS(APowerStrength),
 			&RUNTIME_CLASS_CASTLESS(APowerInvisibility),
 			&RUNTIME_CLASS_CASTLESS(APowerIronFeet),
-			NULL, // MapRevealer
+			nullptr, // MapRevealer
 			&RUNTIME_CLASS_CASTLESS(APowerLightAmp),
 			&RUNTIME_CLASS_CASTLESS(APowerWeaponLevel2),
 			&RUNTIME_CLASS_CASTLESS(APowerFlight),
-			NULL,
-			NULL,
+			nullptr,
+			nullptr,
 			&RUNTIME_CLASS_CASTLESS(APowerSpeed)
 		};
 		int power = arg2 - PROP_INVULNERABILITY;
 
-		if (power > 4 && powers[power] == NULL)
+		if (power > 4 && powers[power] == nullptr)
 		{
 			return false;
 		}
@@ -2825,7 +2825,7 @@ FUNC(LS_SetPlayerProperty)
 				if (power != 4)
 				{
 					APowerup *item = static_cast<APowerup*>(it->GiveInventoryType(static_cast<PClassActor *>(*powers[power])));
-					if (item != NULL && power == 0 && arg1 == 1) 
+					if (item != nullptr && power == 0 && arg1 == 1) 
 					{
 						item->BlendColor = MakeSpecialColormap(INVERSECOLORMAP);
 					}
@@ -2840,7 +2840,7 @@ FUNC(LS_SetPlayerProperty)
 				if (power != 4)
 				{
 					AInventory *item = it->FindInventory(static_cast<PClassActor *>(*powers[power]), true);
-					if (item != NULL)
+					if (item != nullptr)
 					{
 						item->Destroy ();
 					}
@@ -2857,7 +2857,7 @@ FUNC(LS_SetPlayerProperty)
 
 			for (i = 0; i < MAXPLAYERS; i++)
 			{
-				if (!playeringame[i] || players[i].mo == NULL)
+				if (!playeringame[i] || players[i].mo == nullptr)
 					continue;
 
 				if (arg1)
@@ -2865,7 +2865,7 @@ FUNC(LS_SetPlayerProperty)
 					if (power != 4)
 					{
 						APowerup *item = static_cast<APowerup*>(players[i].mo->GiveInventoryType (static_cast<PClassActor *>(*powers[power])));
-						if (item != NULL && power == 0 && arg1 == 1) 
+						if (item != nullptr && power == 0 && arg1 == 1) 
 						{
 							item->BlendColor = MakeSpecialColormap(INVERSECOLORMAP);
 						}
@@ -2880,7 +2880,7 @@ FUNC(LS_SetPlayerProperty)
 					if (power != 4)
 					{
 						AInventory *item = players[i].mo->FindInventory (static_cast<PClassActor *>(*powers[power]));
-						if (item != NULL)
+						if (item != nullptr)
 						{
 							item->Destroy ();
 						}
@@ -3067,7 +3067,7 @@ FUNC(LS_SendToCommunicator)
 	if (arg1 && backSide)
 		return false;
 
-	if (it != NULL && it->player != NULL && it->FindInventory(NAME_Communicator))
+	if (it != nullptr && it->player != nullptr && it->FindInventory(NAME_Communicator))
 	{
 		char name[32];									   
 		mysnprintf (name, countof(name), "svox/voc%d", arg0);
@@ -3086,7 +3086,7 @@ FUNC(LS_SendToCommunicator)
 			FString msg;
 			msg.Format("TXT_COMM%d", arg2);
 			const char *str = GStrings[msg];
-			if (str != NULL)
+			if (str != nullptr)
 			{
 				Printf (PRINT_CHAT, "%s\n", str);
 			}
@@ -3099,9 +3099,9 @@ FUNC(LS_SendToCommunicator)
 FUNC(LS_ForceField)
 // ForceField ()
 {
-	if (it != NULL)
+	if (it != nullptr)
 	{
-		P_DamageMobj (it, NULL, NULL, 16, NAME_None);
+		P_DamageMobj (it, nullptr, nullptr, 16, NAME_None);
 		it->Thrust(it->Angles.Yaw + 180, 7.8125);
 	}
 	return true;
@@ -3122,7 +3122,7 @@ FUNC(LS_ClearForceField)
 		for (int i = 0; i < sec->linecount; ++i)
 		{
 			line_t *line = sec->lines[i];
-			if (line->backsector != NULL && line->special == ForceField)
+			if (line->backsector != nullptr && line->special == ForceField)
 			{
 				line->flags &= ~(ML_BLOCKING|ML_BLOCKEVERYTHING);
 				line->special = 0;
@@ -3143,7 +3143,7 @@ FUNC(LS_GlassBreak)
 	ln->flags &= ~(ML_BLOCKING|ML_BLOCKEVERYTHING);
 	switched = P_ChangeSwitchTexture (ln->sidedef[0], false, 0, &quest1);
 	ln->special = 0;
-	if (ln->sidedef[1] != NULL)
+	if (ln->sidedef[1] != nullptr)
 	{
 		switched |= P_ChangeSwitchTexture (ln->sidedef[1], false, 0, &quest2);
 	}
@@ -3183,7 +3183,7 @@ FUNC(LS_GlassBreak)
 		}
 		if (quest1 || quest2)
 		{ // Up stats and signal this mission is complete
-			if (it == NULL)
+			if (it == nullptr)
 			{
 				for (int i = 0; i < MAXPLAYERS; ++i)
 				{
@@ -3194,7 +3194,7 @@ FUNC(LS_GlassBreak)
 					}
 				}
 			}
-			if (it != NULL)
+			if (it != nullptr)
 			{
 				it->GiveInventoryType (QuestItemClasses[28]);
 				it->GiveInventoryType (RUNTIME_CLASS(AUpgradeAccuracy));
@@ -3214,13 +3214,13 @@ FUNC(LS_StartConversation)
 	AActor *target = iterator.Next();
 
 	// Nothing to talk to
-	if (target == NULL)
+	if (target == nullptr)
 	{
 		return false;
 	}
 	
 	// Only living players are allowed to start conversations
-	if (it == NULL || it->player == NULL || it->player->mo != it || it->health<=0)
+	if (it == nullptr || it->player == nullptr || it->player->mo != it || it->health<=0)
 	{
 		return false;
 	}
@@ -3235,7 +3235,7 @@ FUNC(LS_StartConversation)
 	{
 		return false;
 	}
-	if (target->Conversation != NULL)
+	if (target->Conversation != nullptr)
 	{
 		// Give the NPC a chance to play a brief animation
 		target->ConversationAnimation (0);
@@ -3249,7 +3249,7 @@ FUNC(LS_Thing_SetConversation)
 // Thing_SetConversation (tid, dlg_id)
 {
 	int dlg_index = -1;
-	FStrifeDialogueNode *node = NULL;
+	FStrifeDialogueNode *node = nullptr;
 
 	if (arg1 != 0)
 	{
@@ -3261,7 +3261,7 @@ FUNC(LS_Thing_SetConversation)
 	if (arg0 != 0)
 	{
 		FActorIterator iterator (arg0);
-		while ((it = iterator.Next()) != NULL)
+		while ((it = iterator.Next()) != nullptr)
 		{
 			it->ConversationRoot = dlg_index;
 			it->Conversation = node;
@@ -3585,13 +3585,13 @@ static struct LineSpecialTable
 		LineSpecialsInfo.Resize(max + 1);
 		for (unsigned i = 0; i <= max; i++)
 		{
-			LineSpecialsInfo[i] = NULL;
+			LineSpecialsInfo[i] = nullptr;
 		}
 
 		qsort(LineSpecialNames, countof(LineSpecialNames), sizeof(FLineSpecial), lscmp);
 		for (size_t i = 0; i < countof(LineSpecialNames); ++i)
 		{
-			assert(LineSpecialsInfo[LineSpecialNames[i].number] == NULL);
+			assert(LineSpecialsInfo[LineSpecialNames[i].number] == nullptr);
 			LineSpecialsInfo[LineSpecialNames[i].number] = &LineSpecialNames[i];
 		}
 	}
@@ -3620,7 +3620,7 @@ FLineSpecial *P_GetLineSpecialInfo(int special)
 	{
 		return LineSpec.LineSpecialsInfo[special];
 	}
-	return NULL;
+	return nullptr;
 }
 
 //==========================================================================
@@ -3641,8 +3641,8 @@ int P_FindLineSpecial (const char *string, int *min_args, int *max_args)
 		int lexval = stricmp (string, LineSpecialNames[mid].name);
 		if (lexval == 0)
 		{
-			if (min_args != NULL) *min_args = LineSpecialNames[mid].min_args;
-			if (max_args != NULL) *max_args = LineSpecialNames[mid].max_args;
+			if (min_args != nullptr) *min_args = LineSpecialNames[mid].min_args;
+			if (max_args != nullptr) *max_args = LineSpecialNames[mid].max_args;
 			return LineSpecialNames[mid].number;
 		}
 		else if (lexval > 0)

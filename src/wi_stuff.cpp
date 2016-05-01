@@ -229,16 +229,16 @@ struct FPatchInfo
 		if (gifont.color == NAME_Null)
 		{
 			mPatch = TexMan[gifont.fontname];	// "entering"
-			mColor = mPatch == NULL? CR_UNTRANSLATED : CR_UNDEFINED;
-			mFont = NULL;
+			mColor = mPatch == nullptr? CR_UNTRANSLATED : CR_UNDEFINED;
+			mFont = nullptr;
 		}
 		else
 		{
 			mFont = V_GetFont(gifont.fontname);
 			mColor = V_FindFontColor(gifont.color);
-			mPatch = NULL;
+			mPatch = nullptr;
 		}
-		if (mFont == NULL)
+		if (mFont == nullptr)
 		{
 			mFont = BigFont;
 		}
@@ -302,7 +302,7 @@ static const char *WI_Cmd[]={
 
 	"NoAutostartMap",
 
-	NULL
+	nullptr
 };
 
 //====================================================================
@@ -323,7 +323,7 @@ static bool IsExMy(const char * name)
 
 void WI_LoadBackground(bool isenterpic)
 {
-	const char *lumpname = NULL;
+	const char *lumpname = nullptr;
 	char buffer[10];
 	in_anim_t an;
 	lnode_t pt;
@@ -335,7 +335,7 @@ void WI_LoadBackground(bool isenterpic)
 	if (isenterpic)
 	{
 		level_info_t * li = FindLevelInfo(wbs->next);
-		if (li != NULL) lumpname = li->EnterPic;
+		if (li != nullptr) lumpname = li->EnterPic;
 	}
 	else
 	{
@@ -343,9 +343,9 @@ void WI_LoadBackground(bool isenterpic)
 	}
 
 	// Try to get a default if nothing specified
-	if (lumpname == NULL || lumpname[0]==0) 
+	if (lumpname == nullptr || lumpname[0]==0) 
 	{
-		lumpname = NULL;
+		lumpname = nullptr;
 		switch(gameinfo.gametype)
 		{
 		case GAME_Chex:
@@ -412,17 +412,17 @@ void WI_LoadBackground(bool isenterpic)
 			break;
 		}
 	}
-	if (lumpname == NULL)
+	if (lumpname == nullptr)
 	{
 		// shouldn't happen!
-		background = NULL;
+		background = nullptr;
 		return;
 	}
 
 	lnodes.Clear();
 	anims.Clear();
 	yah.Clear();
-	splat = NULL;
+	splat = nullptr;
 
 	// a name with a starting '$' indicates an intermission script
 	if (*lumpname!='$')
@@ -649,7 +649,7 @@ void WI_drawBackground()
 			// placing the animations precisely where they belong on the base pic
 			animwidth = background->GetScaledWidthDouble();
 			animheight = background->GetScaledHeightDouble();
-			screen->FillBorder (NULL);
+			screen->FillBorder (nullptr);
 			screen->DrawTexture(background, 0, 0, DTA_Fullscreen, true, TAG_DONE);
 		}
 		else 
@@ -671,12 +671,12 @@ void WI_drawBackground()
 		{
 		case ANIM_IFVISITED:
 			li = FindLevelInfo(a->levelname);
-			if (li == NULL || !(li->flags & LEVEL_VISITED)) continue;
+			if (li == nullptr || !(li->flags & LEVEL_VISITED)) continue;
 			break;
 
 		case ANIM_IFNOTVISITED:
 			li = FindLevelInfo(a->levelname);
-			if (li == NULL || (li->flags & LEVEL_VISITED)) continue;
+			if (li == nullptr || (li->flags & LEVEL_VISITED)) continue;
 			break;
 
 			// StatCount means 'leaving' - everything else means 'entering'!
@@ -829,7 +829,7 @@ int WI_DrawPatchText(int y, FPatchInfo *pinfo, const char *stringname)
 	const char *string = GStrings(stringname);
 	int midx = screen->GetWidth() / 2;
 
-	if (pinfo->mPatch != NULL)
+	if (pinfo->mPatch != nullptr)
 	{
 		screen->DrawTexture(pinfo->mPatch, midx - pinfo->mPatch->GetScaledWidth()*CleanXfac/2, y, DTA_CleanNoMove, true, TAG_DONE);
 		return y + (pinfo->mPatch->GetScaledHeight() * CleanYfac);
@@ -1051,7 +1051,7 @@ void WI_drawTime (int x, int y, int t, bool no_sucks=false)
 
 	if (sucky)
 	{ // "sucks"
-		if (sucks != NULL)
+		if (sucks != nullptr)
 		{
 			screen->DrawTexture (sucks, x - sucks->GetScaledWidth(), y - IntermissionFont->GetHeight() - 2,
 				DTA_Clean, true, TAG_DONE); 
@@ -1335,7 +1335,7 @@ void WI_updateDeathmatchStats ()
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
 			// If the player is in the game and not ready, stop checking
-			if (playeringame[i] && players[i].Bot == NULL && !playerready[i])
+			if (playeringame[i] && players[i].Bot == nullptr && !playerready[i])
 				break;
 		}
 
@@ -1427,14 +1427,14 @@ void WI_drawDeathmatchStats ()
 		if (!playeringame[pnum])
 			continue;
 
-		D_GetPlayerColor(pnum, &h, &s, &v, NULL);
+		D_GetPlayerColor(pnum, &h, &s, &v, nullptr);
 		HSVtoRGB(&r, &g, &b, h, s, v);
 
 		screen->Dim(MAKERGB(clamp(int(r*255.f), 0, 255), 
 			clamp(int(g*255.f), 0, 255), 
 			clamp(int(b*255.f), 0, 255)), 0.8f, x, y - ypadding, (deaths_x - x) + (8 * CleanXfac), lineheight);
 
-		if (playerready[pnum] || player->Bot != NULL) // Bots are automatically assumed ready, to prevent confusion
+		if (playerready[pnum] || player->Bot != nullptr) // Bots are automatically assumed ready, to prevent confusion
 			screen->DrawTexture(readyico, x - (readyico->GetWidth() * CleanXfac), y, DTA_CleanNoMove, true, TAG_DONE);
 
 		color = (EColorRange)HU_GetRowColor(player, pnum == consoleplayer);
@@ -1643,7 +1643,7 @@ void WI_updateNetgameStats ()
 		for (i = 0; i < MAXPLAYERS; i++)
 		{
 			// If the player is in the game and not ready, stop checking
-			if (playeringame[i] && players[i].Bot == NULL && !playerready[i])
+			if (playeringame[i] && players[i].Bot == nullptr && !playerready[i])
 				break;
 		}
 
@@ -1733,14 +1733,14 @@ void WI_drawNetgameStats ()
 
 		player = &players[i];
 
-		D_GetPlayerColor(i, &h, &s, &v, NULL);
+		D_GetPlayerColor(i, &h, &s, &v, nullptr);
 		HSVtoRGB(&r, &g, &b, h, s, v);
 
 		screen->Dim(MAKERGB(clamp(int(r*255.f), 0, 255),
 			clamp(int(g*255.f), 0, 255),
 			clamp(int(b*255.f), 0, 255)), 0.8f, x, y - ypadding, (secret_x - x) + (8 * CleanXfac), lineheight);
 
-		if (playerready[i] || player->Bot != NULL) // Bots are automatically assumed ready, to prevent confusion
+		if (playerready[i] || player->Bot != nullptr) // Bots are automatically assumed ready, to prevent confusion
 			screen->DrawTexture(readyico, x - (readyico->GetWidth() * CleanXfac), y, DTA_CleanNoMove, true, TAG_DONE);
 
 		color = (EColorRange)HU_GetRowColor(player, i == consoleplayer);
@@ -2013,7 +2013,7 @@ void WI_checkForAccelerate(void)
 		{
 			if ((player->cmd.ucmd.buttons ^ player->oldbuttons) &&
 				((players[i].cmd.ucmd.buttons & players[i].oldbuttons)
-					== players[i].oldbuttons) && player->Bot == NULL)
+					== players[i].oldbuttons) && player->Bot == nullptr)
 			{
 				acceleratestage = 1;
 				playerready[i] = true;
@@ -2104,13 +2104,13 @@ void WI_loadData(void)
 		}
 		else
 		{
-			star = BigFont->GetChar('*', NULL);
+			star = BigFont->GetChar('*', nullptr);
 			bstar = star;
 		}
 	}
 	else // Strife needs some handling, too!
 	{
-		star = BigFont->GetChar('*', NULL);
+		star = BigFont->GetChar('*', nullptr);
 		bstar = star;
 	}
 #endif

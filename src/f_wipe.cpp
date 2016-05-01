@@ -423,15 +423,15 @@ bool wipe_ScreenWipe (int ticks)
 // Final things for the wipe
 void wipe_Cleanup()
 {
-	if (wipe_scr_start != NULL)
+	if (wipe_scr_start != nullptr)
 	{
 		delete[] wipe_scr_start;
-		wipe_scr_start = NULL;
+		wipe_scr_start = nullptr;
 	}
-	if (wipe_scr_end != NULL)
+	if (wipe_scr_end != nullptr)
 	{
 		delete[] wipe_scr_end;
-		wipe_scr_end = NULL;
+		wipe_scr_end = nullptr;
 	}
 	if (CurrentWipeType > 0)
 	{

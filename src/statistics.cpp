@@ -260,7 +260,7 @@ static void SaveStatistics(const char *fn, TArray<FStatistics> &statlist)
 	unsigned int j;
 
 	FILE * f = fopen(fn, "wt");
-	if (f==NULL) return;
+	if (f==nullptr) return;
 
 	qsort(&statlist[0], statlist.Size(), sizeof(statlist[0]), compare_episode_names);
 	for(unsigned i=0;i<statlist.Size ();i++)
@@ -334,7 +334,7 @@ static FSessionStatistics *StatisticsEntry(FStatistics *stats, const char *text,
 	time (&clock);
 	lt = localtime (&clock);
 
-	if (lt != NULL)
+	if (lt != nullptr)
 		mysnprintf(s.name, countof(s.name), "%02d.%02d.%04d",lt->tm_mday, lt->tm_mon+1, lt->tm_year+1900);
 	else
 		strcpy(s.name,"00.00.0000");
@@ -389,7 +389,7 @@ void STAT_StartNewGame(const char *mapname)
 			}
 		}
 	}
-	StartEpisode = NULL;
+	StartEpisode = nullptr;
 }
 
 //==========================================================================
@@ -449,23 +449,23 @@ void STAT_ChangeLevel(const char *newl)
 	StoreLevelStats();
 
 	level_info_t *thisinfo = level.info;
-	level_info_t *nextinfo = NULL;
+	level_info_t *nextinfo = nullptr;
 	
 	if (strncmp(newl, "enDSeQ", 6))
 	{
 		level_info_t *l = FindLevelInfo (newl);
 		nextinfo = l->CheckLevelRedirect ();
-		if (nextinfo == NULL) nextinfo = l;
+		if (nextinfo == nullptr) nextinfo = l;
 	}
 
 	if (savestatistics == 1)
 	{
-		if ((nextinfo == NULL || (nextinfo->flags2 & LEVEL2_ENDGAME)) && StartEpisode != NULL)
+		if ((nextinfo == nullptr || (nextinfo->flags2 & LEVEL2_ENDGAME)) && StartEpisode != nullptr)
 		{
 			// we reached the end of this episode
 			int wad = 0;
 			MapData * map = P_OpenMapData(StartEpisode->mEpisodeMap, false);
-			if (map != NULL)
+			if (map != nullptr)
 			{
 				wad = Wads.GetLumpFile(map->lumpnum);
 				delete map;
@@ -526,7 +526,7 @@ static void SerializeStatistics(FArchive &arc)
 	if (arc.IsLoading()) 
 	{
 		arc << startlevel;
-		StartEpisode = NULL;
+		StartEpisode = nullptr;
 		for(unsigned int j=0;j<AllEpisodes.Size();j++)
 		{
 			if (!AllEpisodes[j].mEpisodeMap.CompareNoCase(startlevel))
@@ -539,7 +539,7 @@ static void SerializeStatistics(FArchive &arc)
 	}
 	else
 	{
-		if (StartEpisode != NULL) startlevel = StartEpisode->mEpisodeMap;
+		if (StartEpisode != nullptr) startlevel = StartEpisode->mEpisodeMap;
 		arc << startlevel;
 	}
 	for(int j = 0; j < i; j++)

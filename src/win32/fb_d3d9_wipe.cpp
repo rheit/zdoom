@@ -171,7 +171,7 @@ bool D3DFB::WipeStartScreen(int type)
 			if (FAILED(tsurf->GetDesc(&desc)) ||
 				FAILED(D3DDevice->CreateTexture(desc.Width, desc.Height,
 					1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT,
-					&FinalWipeScreen, NULL)))
+					&FinalWipeScreen, nullptr)))
 			{
 				(FinalWipeScreen = TempRenderTexture)->AddRef();
 			}
@@ -207,7 +207,7 @@ void D3DFB::WipeEndScreen()
 	}
 
 	// Don't do anything if there is no starting point.
-	if (InitialWipeScreen == NULL)
+	if (InitialWipeScreen == nullptr)
 	{
 		return;
 	}
@@ -222,7 +222,7 @@ void D3DFB::WipeEndScreen()
 	EndBatch();			// Make sure all batched primitives have been drawn.
 
 	// Don't do anything if there is no ending point.
-	if (OldRenderTarget == NULL)
+	if (OldRenderTarget == nullptr)
 	{
 		return;
 	}
@@ -260,7 +260,7 @@ bool D3DFB::WipeDo(int ticks)
 	}
 
 	// Sanity checks.
-	if (InitialWipeScreen == NULL || FinalWipeScreen == NULL)
+	if (InitialWipeScreen == nullptr || FinalWipeScreen == nullptr)
 	{
 		return true;
 	}
@@ -268,7 +268,7 @@ bool D3DFB::WipeDo(int ticks)
 	{ // This is the first time we've been called for this wipe.
 		GatheringWipeScreen = false;
 
-		if (OldRenderTarget == NULL)
+		if (OldRenderTarget == nullptr)
 		{
 			return true;
 		}
@@ -280,7 +280,7 @@ bool D3DFB::WipeDo(int ticks)
 		InScene = true;
 	}
 	SAFE_RELEASE( OldRenderTarget );
-	if (TempRenderTexture != NULL && TempRenderTexture != FinalWipeScreen)
+	if (TempRenderTexture != nullptr && TempRenderTexture != FinalWipeScreen)
 	{
 		IDirect3DSurface9 *targetsurf;
 		if (SUCCEEDED(TempRenderTexture->GetSurfaceLevel(0, &targetsurf)))
@@ -313,10 +313,10 @@ bool D3DFB::WipeDo(int ticks)
 
 void D3DFB::WipeCleanup()
 {
-	if (ScreenWipe != NULL)
+	if (ScreenWipe != nullptr)
 	{
 		delete ScreenWipe;
-		ScreenWipe = NULL;
+		ScreenWipe = nullptr;
 	}
 	SAFE_RELEASE( InitialWipeScreen );
 	SAFE_RELEASE( FinalWipeScreen );
@@ -473,7 +473,7 @@ bool D3DFB::Wiper_Melt::Run(int ticks, D3DFB *fb)
 					quad->Group1 = 0;
 					quad->Flags = BQF_DisableAlphaTest;
 					quad->ShaderNum = BQS_Plain;
-					quad->Palette = NULL;
+					quad->Palette = nullptr;
 					quad->Texture = fb->InitialWipeScreen;
 					quad->NumVerts = 4;
 					quad->NumTris = 2;
@@ -558,10 +558,10 @@ D3DFB::Wiper_Burn::Wiper_Burn(D3DFB *fb)
 	Density = 4;
 	BurnTime = 0;
 	memset(BurnArray, 0, sizeof(BurnArray));
-	if (fb->Shaders[SHADER_BurnWipe] == NULL || FAILED(fb->D3DDevice->CreateTexture(WIDTH, HEIGHT, 1,
-		D3DUSAGE_DYNAMIC, D3DFMT_L8, D3DPOOL_DEFAULT, &BurnTexture, NULL)))
+	if (fb->Shaders[SHADER_BurnWipe] == nullptr || FAILED(fb->D3DDevice->CreateTexture(WIDTH, HEIGHT, 1,
+		D3DUSAGE_DYNAMIC, D3DFMT_L8, D3DPOOL_DEFAULT, &BurnTexture, nullptr)))
 	{
-		BurnTexture = NULL;
+		BurnTexture = nullptr;
 	}
 }
 
@@ -599,7 +599,7 @@ bool D3DFB::Wiper_Burn::Run(int ticks, D3DFB *fb)
 
 	// Update the burn texture with the new burn data
 	D3DLOCKED_RECT lrect;
-	if (SUCCEEDED(BurnTexture->LockRect(0, &lrect, NULL, D3DLOCK_DISCARD)))
+	if (SUCCEEDED(BurnTexture->LockRect(0, &lrect, nullptr, D3DLOCK_DISCARD)))
 	{
 		const BYTE *src = BurnArray;
 		BYTE *dest = (BYTE *)lrect.pBits;

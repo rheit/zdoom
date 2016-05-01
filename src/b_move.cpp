@@ -313,7 +313,7 @@ void DBot::TurnToAng ()
 {
     double maxturn = MAXTURN;
 
-	if (player->ReadyWeapon != NULL)
+	if (player->ReadyWeapon != nullptr)
 	{
 		if (player->ReadyWeapon->WeaponFlags & WIF_BOT_EXPLOSIVE)
 		{
@@ -326,7 +326,7 @@ void DBot::TurnToAng ()
 
 		if(enemy)
 			if(!dest) //happens when running after item in combat situations, or normal, prevents weak turns
-				if(player->ReadyWeapon->ProjectileType == NULL && !(player->ReadyWeapon->WeaponFlags & WIF_MELEEWEAPON))
+				if(player->ReadyWeapon->ProjectileType == nullptr && !(player->ReadyWeapon->WeaponFlags & WIF_MELEEWEAPON))
 					if(Check_LOS(enemy, SHOOTFOV+5))
 						maxturn = 3;
 	}

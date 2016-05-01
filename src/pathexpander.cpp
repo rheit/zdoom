@@ -97,7 +97,7 @@ FileReader *PathExpander::openFileReader(const char *name, int *plumpnum)
 					return fp;
 				}
 			}
-			return NULL;
+			return nullptr;
 		}
 	}
 	if (plumpnum) *plumpnum = -1;
@@ -117,7 +117,7 @@ FileReader *PathExpander::openFileReader(const char *name, int *plumpnum)
 	delete fp;
 
 	/* Nothing could be opened. */
-	return NULL;
+	return nullptr;
 }
 
 /* This adds a directory to the path list */

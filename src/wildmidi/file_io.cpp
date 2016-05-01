@@ -64,7 +64,7 @@ unsigned char *_WM_BufferFile(const char *filename, unsigned long int *size, boo
 	}
 
 	if (!(fp = wmPathExpander.openFileReader(filename, &lumpnum)))
-		return NULL;
+		return nullptr;
 
 	if (ismain)
 	{
@@ -81,10 +81,10 @@ unsigned char *_WM_BufferFile(const char *filename, unsigned long int *size, boo
 
 
 
-	if (fp == NULL)
+	if (fp == nullptr)
 	{
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, errno);
-		return NULL;
+		return nullptr;
 	}
 
 	long fsize = fp->GetLength();
@@ -93,15 +93,15 @@ unsigned char *_WM_BufferFile(const char *filename, unsigned long int *size, boo
 	{
 		/* don't bother loading suspiciously long files */
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LONGFIL, filename, 0);
-		return NULL;
+		return nullptr;
 	}
 
 	unsigned char *data = (unsigned char*)malloc(fsize+1);
-	if (data == NULL)
+	if (data == nullptr)
 	{
-		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_MEM, NULL, errno);
+		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_MEM, nullptr, errno);
 		_WM_ERROR(__FUNCTION__, __LINE__, WM_ERR_LOAD, filename, errno);
-		return NULL;
+		return nullptr;
 	}
 
 	fp->Read(data, fsize);

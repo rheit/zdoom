@@ -245,7 +245,7 @@ static void I_SelectTimer()
 	assert(basetime == 0);
 
 	// Use a timer event if possible.
-	NewTicArrived = CreateEvent(NULL, FALSE, FALSE, NULL);
+	NewTicArrived = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	if (NewTicArrived)
 	{
 		UINT delay;
@@ -471,7 +471,7 @@ static void CALLBACK TimerTicked(UINT id, UINT msg, DWORD_PTR user, DWORD_PTR dw
 double I_GetTimeFrac(uint32 *ms)
 {
 	DWORD now = timeGetTime();
-	if (ms != NULL)
+	if (ms != nullptr)
 	{
 		*ms = TicNext;
 	}
@@ -630,7 +630,7 @@ static void SubsetLanguageIDs(LCID id, LCTYPE type, int idx)
 
 	if (!GetLocaleInfo(id, type, buf, 8))
 		return;
-	langid = MAKELCID(strtoul(buf, NULL, 16), SORT_DEFAULT);
+	langid = MAKELCID(strtoul(buf, nullptr, 16), SORT_DEFAULT);
 	if (!GetLocaleInfo(langid, LOCALE_SABBREVLANGNAME, buf, 8))
 		return;
 	idp = (char *)(&LanguageIDs[idx]);
@@ -762,7 +762,7 @@ void I_Quit()
 	{
 		timeKillEvent(TimerEventID);
 	}
-	if (NewTicArrived != NULL)
+	if (NewTicArrived != nullptr)
 	{
 		CloseHandle(NewTicArrived);
 	}
@@ -915,7 +915,7 @@ void ToEditControl(HWND edit, const char *buf, wchar_t *wbuf, int bpos)
 
 static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 {
-	if (edit == NULL && StdOut == NULL)
+	if (edit == nullptr && StdOut == nullptr)
 		return;
 
 	char buf[256];
@@ -926,7 +926,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 	LONG lines_before = 0, lines_after;
 	CHARFORMAT format;
 
-	if (edit != NULL)
+	if (edit != nullptr)
 	{
 		// Store the current selection and set it to the end so we can append text.
 		SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&selection);
@@ -947,14 +947,14 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 		if ((*cp == 28 && bpos != 0) || bpos == 255)
 		{
 			buf[bpos] = 0;
-			if (edit != NULL)
+			if (edit != nullptr)
 			{
 				ToEditControl(edit, buf, wbuf, bpos);
 			}
-			if (StdOut != NULL)
+			if (StdOut != nullptr)
 			{
 				DWORD bytes_written;
-				WriteFile(StdOut, buf, bpos, &bytes_written, NULL);
+				WriteFile(StdOut, buf, bpos, &bytes_written, nullptr);
 			}
 			bpos = 0;
 		}
@@ -972,7 +972,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 			{
 				// Change the color of future text added to the control.
 				PalEntry color = V_LogColorFromColorRange(range);
-				if (StdOut != NULL && FancyStdOut)
+				if (StdOut != nullptr && FancyStdOut)
 				{
 					// Unfortunately, we are pretty limited here: There are only
 					// eight basic colors, and each comes in a dark and a bright
@@ -997,7 +997,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 					}
 					SetConsoleTextAttribute(StdOut, attrib);
 				}
-				if (edit != NULL)
+				if (edit != nullptr)
 				{
 					// GDI uses BGR colors, but color is RGB, so swap the R and the B.
 					swapvalues(color.r, color.b);
@@ -1014,18 +1014,18 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 	if (bpos != 0)
 	{
 		buf[bpos] = 0;
-		if (edit != NULL)
+		if (edit != nullptr)
 		{
 			ToEditControl(edit, buf, wbuf, bpos);
 		}
-		if (StdOut != NULL)
+		if (StdOut != nullptr)
 		{
 			DWORD bytes_written;
-			WriteFile(StdOut, buf, bpos, &bytes_written, NULL);
+			WriteFile(StdOut, buf, bpos, &bytes_written, nullptr);
 		}
 	}
 
-	if (edit != NULL)
+	if (edit != nullptr)
 	{
 		// If the old selection was at the end of the text, keep it at the end and
 		// scroll. Don't scroll if the selection is anywhere else.
@@ -1043,7 +1043,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 		// Give the edit control a chance to redraw itself.
 		I_GetEvent();
 	}
-	if (StdOut != NULL && FancyStdOut)
+	if (StdOut != nullptr && FancyStdOut)
 	{ // Set text back to gray, in case it was changed.
 		SetConsoleTextAttribute(StdOut, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 	}
@@ -1086,7 +1086,7 @@ void I_PrintStr(const char *cp)
 	if (ConWindowHidden)
 	{
 		bufferedConsoleStuff.Push(cp);
-		DoPrintStr(cp, NULL, StdOut);
+		DoPrintStr(cp, nullptr, StdOut);
 	}
 	else
 	{
@@ -1098,7 +1098,7 @@ void I_FlushBufferedConsoleStuff()
 {
 	for (unsigned i = 0; i < bufferedConsoleStuff.Size(); i++)
 	{
-		DoPrintStr(bufferedConsoleStuff[i], ConWindow, NULL);
+		DoPrintStr(bufferedConsoleStuff[i], ConWindow, nullptr);
 	}
 	bufferedConsoleStuff.Clear();
 }
@@ -1161,7 +1161,7 @@ BOOL CALLBACK IWADBoxCallback(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			FString work;
 			const char *filepart = strrchr(WadList[i].Path, '/');
-			if (filepart == NULL)
+			if (filepart == nullptr)
 				filepart = WadList[i].Path;
 			else
 				filepart++;
@@ -1244,8 +1244,8 @@ bool I_SetCursor(FTexture *cursorpic)
 {
 	HCURSOR cursor;
 
-	if (cursorpic != NULL && cursorpic->UseType != FTexture::TEX_Null &&
-		(screen == NULL || !screen->Is8BitMode()))
+	if (cursorpic != nullptr && cursorpic->UseType != FTexture::TEX_Null &&
+		(screen == nullptr || !screen->Is8BitMode()))
 	{
 		// Must be no larger than 32x32.
 		if (cursorpic->GetWidth() > 32 || cursorpic->GetHeight() > 32)
@@ -1254,11 +1254,11 @@ bool I_SetCursor(FTexture *cursorpic)
 		}
 
 		cursor = CreateAlphaCursor(cursorpic);
-		if (cursor == NULL)
+		if (cursor == nullptr)
 		{
 			cursor = CreateCompatibleCursor(cursorpic);
 		}
-		if (cursor == NULL)
+		if (cursor == nullptr)
 		{
 			return false;
 		}
@@ -1270,7 +1270,7 @@ bool I_SetCursor(FTexture *cursorpic)
 	else
 	{
 		DestroyCustomCursor();
-		cursor = LoadCursor(NULL, IDC_ARROW);
+		cursor = LoadCursor(nullptr, IDC_ARROW);
 	}
 	SetClassLongPtr(Window, GCLP_HCURSOR, (LONG_PTR)cursor);
 	if (NativeMouse)
@@ -1307,8 +1307,8 @@ static HCURSOR CreateCompatibleCursor(FTexture *cursorpic)
 	int picheight = cursorpic->GetHeight();
 
 	// Create bitmap masks for the cursor from the texture.
-	HDC dc = GetDC(NULL);
-	if (dc == NULL)
+	HDC dc = GetDC(nullptr);
+	if (dc == nullptr)
 	{
 		return false;
 	}
@@ -1316,7 +1316,7 @@ static HCURSOR CreateCompatibleCursor(FTexture *cursorpic)
 	HDC xor_mask_dc = CreateCompatibleDC(dc);
 	HBITMAP and_mask = CreateCompatibleBitmap(dc, 32, 32);
 	HBITMAP xor_mask = CreateCompatibleBitmap(dc, 32, 32);
-	ReleaseDC(NULL, dc);
+	ReleaseDC(nullptr, dc);
 
 	SelectObject(and_mask_dc, and_mask);
 	SelectObject(xor_mask_dc, xor_mask);
@@ -1383,27 +1383,27 @@ static HCURSOR CreateAlphaCursor(FTexture *cursorpic)
 	bi.bV5BlueMask  = 0x000000FF;
 	bi.bV5AlphaMask = 0xFF000000;
 
-	dc = GetDC(NULL);
-	if (dc == NULL)
+	dc = GetDC(nullptr);
+	if (dc == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Create the DIB section with an alpha channel.
-	color = CreateDIBSection(dc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, &bits, NULL, 0);
-	ReleaseDC(NULL, dc);
+	color = CreateDIBSection(dc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+	ReleaseDC(nullptr, dc);
 
-	if (color == NULL)
+	if (color == nullptr)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Create an empty mask bitmap, since CreateIconIndirect requires this.
-	mono = CreateBitmap(32, 32, 1, 1, NULL);
-	if (mono == NULL)
+	mono = CreateBitmap(32, 32, 1, 1, nullptr);
+	if (mono == nullptr)
 	{
 		DeleteObject(color);
-		return NULL;
+		return nullptr;
 	}
 
 	// Copy cursor to the color bitmap. Note that GDI bitmaps are upside down compared
@@ -1450,10 +1450,10 @@ static HCURSOR CreateBitmapCursor(int xhot, int yhot, HBITMAP and_mask, HBITMAP 
 
 static void DestroyCustomCursor()
 {
-	if (CustomCursor != NULL)
+	if (CustomCursor != nullptr)
 	{
 		DestroyCursor(CustomCursor);
-		CustomCursor = NULL;
+		CustomCursor = nullptr;
 	}
 }
 
@@ -1473,12 +1473,12 @@ bool I_WriteIniFailed()
 	FormatMessageA (FORMAT_MESSAGE_ALLOCATE_BUFFER | 
 					FORMAT_MESSAGE_FROM_SYSTEM | 
 					FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
+		nullptr,
 		GetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
 		(LPSTR)&lpMsgBuf,
 		0,
-		NULL 
+		nullptr 
 	);
 	errortext.Format ("The config file %s could not be written:\n%s", GameConfig->GetPathName(), lpMsgBuf);
 	LocalFree (lpMsgBuf);
@@ -1541,12 +1541,12 @@ static bool QueryPathKey(HKEY key, const char *keypath, const char *valname, FSt
 
 	if(ERROR_SUCCESS == RegOpenKeyEx(key, keypath, 0, KEY_QUERY_VALUE, &pathkey))
 	{
-		if (ERROR_SUCCESS == RegQueryValueEx(pathkey, valname, 0, &pathtype, NULL, &pathlen) &&
+		if (ERROR_SUCCESS == RegQueryValueEx(pathkey, valname, 0, &pathtype, nullptr, &pathlen) &&
 			pathtype == REG_SZ && pathlen != 0)
 		{
 			// Don't include terminating null in count
 			char *chars = value.LockNewBuffer(pathlen - 1);
-			res = RegQueryValueEx(pathkey, valname, 0, NULL, (LPBYTE)chars, &pathlen);
+			res = RegQueryValueEx(pathkey, valname, 0, nullptr, (LPBYTE)chars, &pathlen);
 			value.UnlockBuffer();
 			if (res != ERROR_SUCCESS)
 			{
@@ -1667,11 +1667,11 @@ unsigned int I_MakeRNGSeed()
 	// If RtlGenRandom is available, use that to avoid increasing the
 	// working set by pulling in all of the crytographic API.
 	HMODULE advapi = GetModuleHandle("advapi32.dll");
-	if (advapi != NULL)
+	if (advapi != nullptr)
 	{
 		BOOLEAN (APIENTRY *RtlGenRandom)(void *, ULONG) =
 			(BOOLEAN (APIENTRY *)(void *, ULONG))GetProcAddress(advapi, "SystemFunction036");
-		if (RtlGenRandom != NULL)
+		if (RtlGenRandom != nullptr)
 		{
 			if (RtlGenRandom(&seed, sizeof(seed)))
 			{
@@ -1684,13 +1684,13 @@ unsigned int I_MakeRNGSeed()
 	// time() is used as a fallback.
 	HCRYPTPROV prov;
 
-	if (!CryptAcquireContext(&prov, NULL, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+	if (!CryptAcquireContext(&prov, nullptr, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
 	{
-		return (unsigned int)time(NULL);
+		return (unsigned int)time(nullptr);
 	}
 	if (!CryptGenRandom(prov, sizeof(seed), (BYTE *)&seed))
 	{
-		seed = (unsigned int)time(NULL);
+		seed = (unsigned int)time(nullptr);
 	}
 	CryptReleaseContext(prov, 0);
 	return seed;
@@ -1711,10 +1711,10 @@ FString I_GetLongPathName(FString shortpath)
 		GetLongPathNameA("kernel32.dll", "GetLongPathNameA");
 
 	// Doesn't exist on NT4
-	if (GetLongPathName == NULL)
+	if (GetLongPathName == nullptr)
 		return shortpath;
 
-	DWORD buffsize = GetLongPathNameA.Call(shortpath.GetChars(), NULL, 0);
+	DWORD buffsize = GetLongPathNameA.Call(shortpath.GetChars(), nullptr, 0);
 	if (buffsize == 0)
 	{ // nothing to change (it doesn't exist, maybe?)
 		return shortpath;

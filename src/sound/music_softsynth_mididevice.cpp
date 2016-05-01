@@ -70,12 +70,12 @@ CVAR(Bool, synth_watch, false, 0)
 
 SoftSynthMIDIDevice::SoftSynthMIDIDevice()
 {
-	Stream = NULL;
+	Stream = nullptr;
 	Tempo = 0;
 	Division = 0;
-	Events = NULL;
+	Events = nullptr;
 	Started = false;
-	SampleRate = GSnd != NULL ? (int)GSnd->GetOutputRate() : 44100;
+	SampleRate = GSnd != nullptr ? (int)GSnd->GetOutputRate() : 44100;
 }
 
 //==========================================================================
@@ -103,7 +103,7 @@ int SoftSynthMIDIDevice::OpenStream(int chunks, int flags, void (*callback)(unsi
 		chunksize *= 2;
 	}
 	Stream = GSnd->CreateStream(FillStream, chunksize, SoundStream::Float | flags, SampleRate, this);
-	if (Stream == NULL)
+	if (Stream == nullptr)
 	{
 		return 2;
 	}
@@ -124,10 +124,10 @@ int SoftSynthMIDIDevice::OpenStream(int chunks, int flags, void (*callback)(unsi
 
 void SoftSynthMIDIDevice::Close()
 {
-	if (Stream != NULL)
+	if (Stream != nullptr)
 	{
 		delete Stream;
-		Stream = NULL;
+		Stream = nullptr;
 	}
 	Started = false;
 }
@@ -140,7 +140,7 @@ void SoftSynthMIDIDevice::Close()
 
 bool SoftSynthMIDIDevice::IsOpen() const
 {
-	return Stream != NULL;
+	return Stream != nullptr;
 }
 
 //==========================================================================
@@ -257,8 +257,8 @@ int SoftSynthMIDIDevice::StreamOutSync(MIDIHDR *header)
 
 int SoftSynthMIDIDevice::StreamOut(MIDIHDR *header)
 {
-	header->lpNext = NULL;
-	if (Events == NULL)
+	header->lpNext = nullptr;
+	if (Events == nullptr)
 	{
 		Events = header;
 		NextTickIn = SamplesPerTick * *(DWORD *)header->lpData;
@@ -268,7 +268,7 @@ int SoftSynthMIDIDevice::StreamOut(MIDIHDR *header)
 	{
 		MIDIHDR **p;
 
-		for (p = &Events; *p != NULL; p = &(*p)->lpNext)
+		for (p = &Events; *p != nullptr; p = &(*p)->lpNext)
 		{ }
 		*p = header;
 	}
@@ -283,7 +283,7 @@ int SoftSynthMIDIDevice::StreamOut(MIDIHDR *header)
 
 bool SoftSynthMIDIDevice::Pause(bool paused)
 {
-	if (Stream != NULL)
+	if (Stream != nullptr)
 	{
 		return Stream->SetPaused(paused);
 	}
@@ -304,7 +304,7 @@ int SoftSynthMIDIDevice::PlayTick()
 {
 	DWORD delay = 0;
 
-	while (delay == 0 && Events != NULL)
+	while (delay == 0 && Events != nullptr)
 	{
 		DWORD *event = (DWORD *)(Events->lpData + Position);
 		if (MEVT_EVENTTYPE(event[2]) == MEVT_TEMPO)
@@ -361,13 +361,13 @@ int SoftSynthMIDIDevice::PlayTick()
 			Events = Events->lpNext;
 			Position = 0;
 
-			if (Callback != NULL)
+			if (Callback != nullptr)
 			{
 				Callback(MOM_DONE, CallbackData, 0, 0);
 			}
 		}
 
-		if (Events == NULL)
+		if (Events == nullptr)
 		{ // No more events. Just return something to keep the song playing
 		  // while we wait for more to be submitted.
 			return int(Division);
@@ -396,7 +396,7 @@ bool SoftSynthMIDIDevice::ServiceStream (void *buff, int numbytes)
 	memset(buff, 0, numbytes);
 
 	CritSec.Enter();
-	while (Events != NULL && numsamples > 0)
+	while (Events != nullptr && numsamples > 0)
 	{
 		double ticky = NextTickIn;
 		int tick_in = int(NextTickIn);
@@ -433,7 +433,7 @@ bool SoftSynthMIDIDevice::ServiceStream (void *buff, int numbytes)
 		}
 	}
 
-	if (Events == NULL)
+	if (Events == nullptr)
 	{
 		res = false;
 	}

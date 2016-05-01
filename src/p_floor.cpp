@@ -187,7 +187,7 @@ void DFloor::Tick ()
 				}
 			}
 
-			m_Sector->floordata = NULL; //jff 2/22/98
+			m_Sector->floordata = nullptr; //jff 2/22/98
 			StopInterpolation();
 
 			//jff 2/26/98 implement stair retrigger lockout while still building
@@ -424,7 +424,7 @@ bool P_CreateFloor(sector_t *sec, DFloor::EFloor floortype, line_t *line,
 		floor->m_Direction = 1;
 		newheight = sec->CenterFloor() + height;
 		floor->m_FloorDestDist = sec->floorplane.PointToDist(sec->centerspot, newheight);
-		if (line != NULL)
+		if (line != nullptr)
 		{
 			FTextureID oldpic = sec->GetTexture(sector_t::floor);
 			sec->SetTexture(sector_t::floor, line->frontsector->GetTexture(sector_t::floor));
@@ -448,7 +448,7 @@ bool P_CreateFloor(sector_t *sec, DFloor::EFloor floortype, line_t *line,
 		//jff 5/23/98 use model subroutine to unify fixes and handling
 		sector_t *modelsec;
 		modelsec = sec->FindModelFloorSector(newheight);
-		if (modelsec != NULL)
+		if (modelsec != nullptr)
 		{
 			floor->m_Texture = modelsec->GetTexture(sector_t::floor);
 			modelsec->GetSpecial(&floor->m_NewSpecial);
@@ -494,7 +494,7 @@ bool P_CreateFloor(sector_t *sec, DFloor::EFloor floortype, line_t *line,
 				sec->FindModelCeilingSector(-floor->m_FloorDestDist) :
 				sec->FindModelFloorSector(-floor->m_FloorDestDist);
 
-			if (modelsec != NULL)
+			if (modelsec != nullptr)
 			{
 				floor->SetFloorChangeType(modelsec, change);
 			}
@@ -552,7 +552,7 @@ bool EV_FloorCrushStop (int tag)
 		{
 			SN_StopSequence (sec, CHAN_FLOOR);
 			sec->floordata->Destroy ();
-			sec->floordata = NULL;
+			sec->floordata = nullptr;
 		}
 	}
 	return true;
@@ -584,8 +584,8 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 	bool 				rtn = false;
 	
 	sector_t*			sec;
-	sector_t*			tsec = NULL;
-	sector_t*			prev = NULL;
+	sector_t*			tsec = nullptr;
+	sector_t*			prev = nullptr;
 
 	DFloor*				floor;
 
@@ -649,7 +649,7 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 						sec->special == Stairs_Special1 ?
 							Stairs_Special2 : Stairs_Special1, prev);
 
-				if ( (ok = (tsec != NULL)) )
+				if ( (ok = (tsec != nullptr)) )
 				{
 					height += stairstep;
 
@@ -877,15 +877,15 @@ void DElevator::Serialize (FArchive &arc)
 
 void DElevator::Destroy()
 {
-	if (m_Interp_Ceiling != NULL)
+	if (m_Interp_Ceiling != nullptr)
 	{
 		m_Interp_Ceiling->DelRef();
-		m_Interp_Ceiling = NULL;
+		m_Interp_Ceiling = nullptr;
 	}
-	if (m_Interp_Floor != NULL)
+	if (m_Interp_Floor != nullptr)
 	{
 		m_Interp_Floor->DelRef();
-		m_Interp_Floor = NULL;
+		m_Interp_Floor = nullptr;
 	}
 	Super::Destroy();
 }
@@ -944,8 +944,8 @@ void DElevator::Tick ()
 		// make floor stop sound
 		SN_StopSequence (m_Sector, CHAN_FLOOR);
 
-		m_Sector->floordata = NULL;		//jff 2/22/98
-		m_Sector->ceilingdata = NULL;	//jff 2/22/98
+		m_Sector->floordata = nullptr;		//jff 2/22/98
+		m_Sector->ceilingdata = nullptr;	//jff 2/22/98
 		Destroy ();		// remove elevator from actives
 	}
 }
@@ -1169,10 +1169,10 @@ DWaggleBase::DWaggleBase (sector_t *sec)
 
 void DWaggleBase::Destroy()
 {
-	if (m_Interpolation != NULL)
+	if (m_Interpolation != nullptr)
 	{
 		m_Interpolation->DelRef();
-		m_Interpolation = NULL;
+		m_Interpolation = nullptr;
 	}
 	Super::Destroy();
 }
@@ -1219,11 +1219,11 @@ void DWaggleBase::DoWaggle (bool ceiling)
 			P_ChangeSector (m_Sector, true, dist, ceiling, false);
 			if (ceiling)
 			{
-				m_Sector->ceilingdata = NULL;
+				m_Sector->ceilingdata = nullptr;
 			}
 			else
 			{
-				m_Sector->floordata = NULL;
+				m_Sector->floordata = nullptr;
 			}
 			Destroy ();
 			return;

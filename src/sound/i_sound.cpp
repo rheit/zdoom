@@ -119,7 +119,7 @@ CUSTOM_CVAR (Float, snd_sfxvolume, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG|CVAR_NOIN
 		self = 0.f;
 	else if (self > 1.f)
 		self = 1.f;
-	else if (GSnd != NULL)
+	else if (GSnd != nullptr)
 	{
 		GSnd->SetSfxVolume (self);
 	}
@@ -137,12 +137,12 @@ public:
 	}
 	SoundHandle LoadSound(BYTE *sfxdata, int length)
 	{
-		SoundHandle retval = { NULL };
+		SoundHandle retval = { nullptr };
 		return retval;
 	}
 	SoundHandle LoadSoundRaw(BYTE *sfxdata, int length, int frequency, int channels, int bits, int loopstart, int loopend)
 	{
-		SoundHandle retval = { NULL };
+		SoundHandle retval = { nullptr };
 		return retval;
 	}
 	void UnloadSound (SoundHandle sfx)
@@ -172,22 +172,22 @@ public:
 	// Streaming sounds.
 	SoundStream *CreateStream (SoundStreamCallback callback, int buffbytes, int flags, int samplerate, void *userdata)
 	{
-		return NULL;
+		return nullptr;
 	}
 	SoundStream *OpenStream (FileReader *reader, int flags)
 	{
 		delete reader;
-		return NULL;
+		return nullptr;
 	}
 
 	// Starts a sound.
 	FISoundChannel *StartSound (SoundHandle sfx, float vol, int pitch, int chanflags, FISoundChannel *reuse_chan)
 	{
-		return NULL;
+		return nullptr;
 	}
 	FISoundChannel *StartSound3D (SoundHandle sfx, SoundListener *listener, float vol, FRolloffInfo *rolloff, float distscale, int pitch, int priority, const FVector3 &pos, const FVector3 &vel, int channum, int chanflags, FISoundChannel *reuse_chan)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Marks a channel's start time without actually playing it.
@@ -258,7 +258,7 @@ void I_InitSound ()
 	nosound = !!Args->CheckParm ("-nosound");
 	nosfx = !!Args->CheckParm ("-nosfx");
 
-	GSnd = NULL;
+	GSnd = nullptr;
 	if (nosound || batchrun)
 	{
 		GSnd = new NullSoundRenderer;
@@ -332,12 +332,12 @@ void I_CloseSound ()
 	}
 
 	delete GSnd;
-	GSnd = NULL;
+	GSnd = nullptr;
 }
 
 void I_ShutdownSound()
 {
-	if (GSnd != NULL)
+	if (GSnd != nullptr)
 	{
 		S_StopAllChannels();
 		I_CloseSound();
@@ -458,7 +458,7 @@ FString SoundStream::GetStats()
 
 SoundHandle SoundRenderer::LoadSoundVoc(BYTE *sfxdata, int length)
 {
-	BYTE * data = NULL;
+	BYTE * data = nullptr;
 	int len, frequency, channels, bits, loopstart, loopend;
 	len = frequency = channels = bits = 0;
 	loopstart = loopend = -1;
@@ -612,7 +612,7 @@ SoundStream *SoundRenderer::OpenStream(const char *url, int flags)
 
 SoundDecoder *SoundRenderer::CreateDecoder(FileReader *reader)
 {
-    SoundDecoder *decoder = NULL;
+    SoundDecoder *decoder = nullptr;
     int pos = reader->Tell();
 
 #ifdef HAVE_MPG123
@@ -622,7 +622,7 @@ SoundDecoder *SoundRenderer::CreateDecoder(FileReader *reader)
 		reader->Seek(pos, SEEK_SET);
 
 		delete decoder;
-		decoder = NULL;
+		decoder = nullptr;
 #endif
 #ifdef HAVE_SNDFILE
 		decoder = new SndFileDecoder;
@@ -631,7 +631,7 @@ SoundDecoder *SoundRenderer::CreateDecoder(FileReader *reader)
 		reader->Seek(pos, SEEK_SET);
 
 		delete decoder;
-		decoder = NULL;
+		decoder = nullptr;
 #endif
     return decoder;
 }

@@ -26,8 +26,8 @@ public:
 	~FEventTree ();
 
 	FEvent *GetMinimum ();
-	FEvent *GetSuccessor (FEvent *event) const { FEvent *node = Successor(event); return node == &Nil ? NULL : node; }
-	FEvent *GetPredecessor (FEvent *event) const { FEvent *node = Predecessor(event); return node == &Nil ? NULL : node; }
+	FEvent *GetSuccessor (FEvent *event) const { FEvent *node = Successor(event); return node == &Nil ? nullptr : node; }
+	FEvent *GetPredecessor (FEvent *event) const { FEvent *node = Predecessor(event); return node == &Nil ? nullptr : node; }
 
 	FEvent *GetNewNode ();
 	void Insert (FEvent *event);
