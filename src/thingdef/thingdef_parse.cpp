@@ -55,6 +55,7 @@
 #include "version.h"
 #include "v_text.h"
 #include "m_argv.h"
+#include "actorptrselect.h"
 
 void ParseOldDecoration(FScanner &sc, EDefinitionType def);
 
@@ -728,6 +729,33 @@ static int ParseThingActivation (FScanner &sc)
 	return ParseFlagExpressionString(sc, activationstyles);
 }
 
+static int ParseThingPointer(FScanner &sc)
+{
+	static const FParseValue pointers[] = {
+
+		{ "AAPTR_DEFAULT",					AAPTR_DEFAULT },
+		{ "AAPTR_NULL",						AAPTR_NULL },
+		{ "AAPTR_TARGET",					AAPTR_TARGET },
+		{ "AAPTR_MASTER",					AAPTR_MASTER },
+		{ "AAPTR_TRACER",					AAPTR_TRACER },
+		{ "AAPTR_PLAYER1",					AAPTR_PLAYER1 },
+		{ "AAPTR_PLAYER2",					AAPTR_PLAYER2 },
+		{ "AAPTR_PLAYER3",					AAPTR_PLAYER3 },
+		{ "AAPTR_PLAYER4",					AAPTR_PLAYER4 },
+		{ "AAPTR_PLAYER5",					AAPTR_PLAYER5 },
+		{ "AAPTR_PLAYER6",					AAPTR_PLAYER6 },
+		{ "AAPTR_PLAYER7",					AAPTR_PLAYER7 },
+		{ "AAPTR_PLAYER8",					AAPTR_PLAYER8 },
+		{ "AAPTR_PLAYER_GETTARGET",			AAPTR_PLAYER_GETTARGET },
+		{ "AAPTR_PLAYER_GETCONVERSATION",	AAPTR_PLAYER_GETCONVERSATION },
+		{ "AAPTR_FRIENDPLAYER",				AAPTR_FRIENDPLAYER },
+		{ "AAPTR_GET_LINETARGET",			AAPTR_GET_LINETARGET },
+		{ NULL, 0 }
+	};
+
+	return ParseFlagExpressionString(sc, pointers);
+}
+
 //==========================================================================
 //
 // For getting a state address from the parent
@@ -901,6 +929,10 @@ static bool ParsePropertyParams(FScanner &sc, FPropertyInfo *prop, AActor *defau
 				
 			case 'N':	// special case. An expression-aware parser will not need this.
 				conv.i = ParseThingActivation(sc);
+				break;
+
+			case 'P':	// special case. An expression-aware parser will not need this.
+				conv.i = ParseThingPointer(sc);
 				break;
 
 			case 'L':	// Either a number or a list of strings
