@@ -203,6 +203,7 @@ void ASSIGN_AAPTR(AActor *toActor, int toSlot, AActor *ptr, int flags)
 
 bool AAPTR_FILTER(AActor *context, AActor *target, int aaptr_filter)
 {
+	if (aaptr_filter & AAPTR_NULL)	return true;
 	if (target)
 	{
 		// Because we're going through the lot, and returning on first match (or after processing all) order has no impact on logic, only performance
@@ -219,10 +220,10 @@ bool AAPTR_FILTER(AActor *context, AActor *target, int aaptr_filter)
 				if ((aaptr_filter & AAPTR_PLAYER_GETCONVERSATION) && context->player->ConversationNPC == target) return true;
 				if (aaptr_filter & AAPTR_PLAYER_GETTARGET)
 				{
-					FTranslatedLineTarget gettarget;
-					gettarget.linetarget = NULL;
-					P_BulletSlope(context, &gettarget);
-					if (gettarget.linetarget == target) return true;
+					FTranslatedLineTarget get;
+					get.linetarget = nullptr;
+					P_BulletSlope(context, &get);
+					if (get.linetarget && get.linetarget == target) return true;
 				}
 			}
 		}

@@ -750,7 +750,8 @@ static int ParseThingPointer(FScanner &sc)
 		{ "AAPTR_PLAYER_GETCONVERSATION",	AAPTR_PLAYER_GETCONVERSATION },
 		{ "AAPTR_FRIENDPLAYER",				AAPTR_FRIENDPLAYER },
 		{ "AAPTR_GET_LINETARGET",			AAPTR_GET_LINETARGET },
-		{ NULL, 0 }
+		{ NULL, 0 },
+		{ nullptr, 0 },
 	};
 
 	return ParseFlagExpressionString(sc, pointers);

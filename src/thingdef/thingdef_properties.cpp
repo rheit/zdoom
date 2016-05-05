@@ -572,6 +572,8 @@ DEFINE_PROPERTY(threshold, I, Actor)
 DEFINE_PROPERTY(visiblefilter, P, Actor)
 {
 	PROP_INT_PARM(id, 0);
+	if (id < 0)
+		I_Error("VisibleFilter cannot be negative.");
 	defaults->VisibleFilter = id;
 }
 //==========================================================================

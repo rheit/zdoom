@@ -6903,7 +6903,10 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetVisibleFilter)
 
 	if (mobj)
 	{
-		mobj->VisibleFilter = visFilter;
+		if (visFilter >= 0)
+			mobj->VisibleFilter = visFilter;
+		else
+			mobj->VisibleFilter = AAPTR_DEFAULT;
 	}
 	return 0;
 }
