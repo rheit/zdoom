@@ -2522,22 +2522,24 @@ bool P_CheckMove(AActor *thing, const DVector2 &pos, int flags)
 			{ // [RH] Don't let normal missiles climb steps
 				return false;
 			}
-			else if (newz < tm.floorz)
+			if (newz < tm.floorz)
 			{ // [RH] Check to make sure there's nothing in the way for the step up
 				double savedz = thing->Z();
+				double savedz2 = newz;
 				thing->SetZ(newz = tm.floorz);
 				bool good = P_TestMobjZ(thing);
 				thing->SetZ(savedz);
+				newz = savedz2;
 				if (!good)
 				{
 					return false;
 				}
 			}
-			else if (flags & PCM_DROPOFF)
+			if (flags & PCM_DROPOFF)
 			{
 				const DVector3 oldpos = thing->Pos();
 				thing->SetOrigin(pos.X, pos.Y, newz, true);
-				bool hcheck = (newz - thing->MaxDropOffHeight > thing->dropoffz);
+				bool hcheck = (newz - tm.dropoffz > thing->MaxDropOffHeight);
 				thing->SetOrigin(oldpos, true);
 				if (hcheck && !(thing->flags & MF_FLOAT) && !(i_compatflags & COMPATF_DROPOFF))
 				{
