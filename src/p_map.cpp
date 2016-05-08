@@ -2525,17 +2525,15 @@ bool P_CheckMove(AActor *thing, const DVector2 &pos, int flags)
 			if (newz < tm.floorz)
 			{ // [RH] Check to make sure there's nothing in the way for the step up
 				double savedz = thing->Z();
-				double savedz2 = newz;
 				thing->SetZ(newz = tm.floorz);
 				bool good = P_TestMobjZ(thing);
 				thing->SetZ(savedz);
-				newz = savedz2;
 				if (!good)
 				{
 					return false;
 				}
 			}
-			if (flags & PCM_DROPOFF)
+			else if (flags & PCM_DROPOFF)
 			{
 				const DVector3 oldpos = thing->Pos();
 				thing->SetOrigin(pos.X, pos.Y, newz, true);
