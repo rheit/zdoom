@@ -158,6 +158,29 @@ DPSprite *player_t::GetPSprite(psprnum_t layer)
 	return pspr;
 }
 
+//------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------
+
+DPSprite *player_t::FindPSprite(int layer)
+{
+	if (layer == 0)
+		return nullptr;
+
+	DPSprite *pspr = psprites;
+	while (pspr)
+	{
+		if (pspr->ID == layer)
+			break;
+
+		pspr = pspr->Next;
+	}
+
+	return pspr;
+}
+
 //---------------------------------------------------------------------------
 //
 // PROC P_NewPspriteTick
@@ -863,7 +886,7 @@ DEFINE_ACTION_FUNCTION(AInventory, A_CheckReload)
 
 //---------------------------------------------------------------------------
 //
-// PROC A_WeaponOffset
+// PROC A_OverlayOffset
 //
 //---------------------------------------------------------------------------
 enum WOFFlags
@@ -873,9 +896,10 @@ enum WOFFlags
 	WOF_ADD =		1 << 2,
 };
 
-DEFINE_ACTION_FUNCTION(AInventory, A_WeaponOffset)
+DEFINE_ACTION_FUNCTION(AInventory, A_OverlayOffset)
 {
 	PARAM_ACTION_PROLOGUE;
+	PARAM_INT_OPT(layer)	{ layer = ps_weapon; }
 	PARAM_FLOAT_OPT(wx)		{ wx = 0.; }
 	PARAM_FLOAT_OPT(wy)		{ wy = 32.; }
 	PARAM_INT_OPT(flags)	{ flags = 0; }
@@ -890,7 +914,11 @@ DEFINE_ACTION_FUNCTION(AInventory, A_WeaponOffset)
 
 	if (player && (player->playerstate != PST_DEAD))
 	{
-		psp = player->GetPSprite(ps_weapon);
+		psp = player->FindPSprite(layer);
+
+		if (psp == nullptr)
+			return 0;
+
 		if (!(flags & WOF_KEEPX))
 		{
 			if (flags & WOF_ADD)
