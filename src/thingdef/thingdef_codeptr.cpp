@@ -6972,3 +6972,32 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FaceMovementDirection)
 	}
 	ACTION_RETURN_BOOL(true);
 }
+
+//===========================================================================
+//
+// A_SetVisibleFilter
+//
+// Sets the visible filter of ptr. A player who is that pointer is the only
+// one who can see that actor. The FILTERHIDES flag inverses this ability:
+// Only to that player is the actor invisible to.
+//
+// Note, this has no effect on if the actor is 'truly' invisible. This simply
+// prevents the sprite from being drawn, and nothing more.
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetVisibleFilter)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_INT_OPT(visFilter)		{ visFilter = AAPTR_DEFAULT; }
+	PARAM_INT_OPT(ptr)				{ ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (mobj)
+	{
+		if (visFilter >= 0)
+			mobj->VisibleFilter = visFilter;
+		else
+			mobj->VisibleFilter = AAPTR_DEFAULT;
+	}
+	return 0;
+}
