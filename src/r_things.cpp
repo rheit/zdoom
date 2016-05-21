@@ -1599,7 +1599,7 @@ void R_DrawPlayerSprites ()
 			// [RH] Don't draw the targeter's crosshair if the player already has a crosshair set.
 			if (psp->state && (i != ps_targetcenter || CrosshairImage == NULL))
 			{
-				R_DrawPSprite (psp, i, camera, psp->sx + ofsx, psp->sy + ofsy);
+				R_DrawPSprite (psp, i, camera, psp->sx + ofsx + psp->ox, psp->sy + ofsy + psp->oy);
 			}
 			// [RH] Don't bob the targeter.
 			if (i == ps_flash)

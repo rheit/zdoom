@@ -793,6 +793,7 @@ enum WOFFlags
 	WOF_KEEPX =		1,
 	WOF_KEEPY =		1 << 1,
 	WOF_ADD =		1 << 2,
+	WOF_OFFSET =    1 << 3,
 };
 
 DEFINE_ACTION_FUNCTION(AInventory, A_WeaponOffset)
@@ -817,22 +818,34 @@ DEFINE_ACTION_FUNCTION(AInventory, A_WeaponOffset)
 		{
 			if (flags & WOF_ADD)
 			{
-				psp->sx += wx;
+				if (flags & WOF_OFFSET)
+					psp->ox += wx;
+				else
+					psp->sx += wx;
 			}
 			else
 			{
-				psp->sx = wx;
+				if (flags & WOF_OFFSET)
+					psp->ox = wx;
+				else
+					psp->sx = wx;
 			}
 		}
 		if (!(flags & WOF_KEEPY))
 		{
 			if (flags & WOF_ADD)
 			{
-				psp->sy += wy;
+				if (flags & WOF_OFFSET)
+					psp->oy += wy - 32;
+				else
+					psp->sy += wy;
 			}
 			else
 			{
-				psp->sy = wy;
+				if (flags & WOF_OFFSET)
+					psp->oy = wy - 32;
+				else
+					psp->sy = wy;
 			}
 		}
 	}
