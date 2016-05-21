@@ -728,6 +728,22 @@ bool PIT_CheckLine(FMultiBlockLinesIterator &mit, FMultiBlockLinesIterator::Chec
 			// Since a one-sided line does not have an opening there's nothing left to do about it.
 			return true;
 		}
+
+		// check if the actor can step through the ceiling portal. In this case one-sided lines in the current area should not block
+		if (!cres.line->frontsector->PortalBlocksMovement(sector_t::ceiling))
+		{
+			double portz = cres.line->frontsector->GetPortalPlaneZ(sector_t::ceiling);
+			if (tm.thing->Z() < portz && tm.thing->Z() + tm.thing->MaxStepHeight >= portz && tm.floorz < portz)
+			{
+				tm.floorz = portz;
+				tm.floorsector = cres.line->frontsector;
+				tm.floorpic = cres.line->sidedef[0]->GetTexture(side_t::mid);
+				tm.floorterrain = 0;
+				tm.portalstep = true;
+				return true;
+			}
+		}
+
 		if (tm.thing->flags2 & MF2_BLASTED)
 		{
 			P_DamageMobj(tm.thing, NULL, NULL, tm.thing->Mass >> 5, NAME_Melee);
@@ -1140,7 +1156,7 @@ bool PIT_CheckThing(FMultiBlockThingsIterator &it, FMultiBlockThingsIterator::Ch
 			DVector3 oldpos = tm.thing->PosRelative(thing);
 			// Both actors already overlap. To prevent them from remaining stuck allow the move if it
 			// takes them further apart or the move does not change the position (when called from P_ChangeSector.)
-			if (oldpos.X == thing->X() && oldpos.Y == thing->Y())
+			if (tm.pos.X == tm.thing->X() && tm.pos.Y == tm.thing->Y())
 			{
 				unblocking = true;
 			}
@@ -1974,6 +1990,7 @@ bool P_TryMove(AActor *thing, const DVector2 &pos,
 	sector_t*	newsec;
 
 	tm.floatok = false;
+	tm.portalstep = false;
 	oldz = thing->Z();
 	if (onfloor)
 	{
@@ -2246,6 +2263,7 @@ bool P_TryMove(AActor *thing, const DVector2 &pos,
 				thing->LinkToWorld();
 				P_FindFloorCeiling(thing);
 				portalcrossed = true;
+				tm.portalstep = false;
 			}
 			else if (!portalcrossed)
 			{
@@ -2271,6 +2289,7 @@ bool P_TryMove(AActor *thing, const DVector2 &pos,
 				P_FindFloorCeiling(thing);
 				thing->ClearInterpolation();
 				portalcrossed = true;
+				tm.portalstep = false;
 			}
 			// if this is the current camera we need to store the point where the portal was crossed and the exit
 			// so that the renderer can properly calculate an interpolated position along the movement path.
@@ -2410,6 +2429,20 @@ bool P_TryMove(AActor *thing, const DVector2 &pos,
 		}
 	}
 
+	// If the actor stepped through a ceiling portal we need to reacquire the actual position info after the transition
+	if (tm.portalstep)
+	{
+		DVector3 oldpos = thing->Pos();
+		thing->UnlinkFromWorld();
+		thing->SetXYZ(thing->PosRelative(thing->Sector->GetOppositePortalGroup(sector_t::ceiling)));
+		thing->Prev = thing->Pos() - oldpos;
+		thing->Sector = P_PointInSector(thing->Pos());
+		thing->PrevPortalGroup = thing->Sector->PortalGroup;
+		thing->LinkToWorld();
+
+		P_FindFloorCeiling(thing);
+	}
+
 	// [RH] If changing sectors, trigger transitions
 	thing->CheckSectorTransition(oldsec);
 	thing->flags6 &= ~MF6_INTRYMOVE;
@@ -2533,13 +2566,9 @@ bool P_CheckMove(AActor *thing, const DVector2 &pos, int flags)
 					return false;
 				}
 			}
-			else if (flags & PCM_DROPOFF)
+			else if ((flags & PCM_DROPOFF) && !(thing->flags & (MF_FLOAT|MF_DROPOFF)))
 			{
-				const DVector3 oldpos = thing->Pos();
-				thing->SetOrigin(pos.X, pos.Y, newz, true);
-				bool hcheck = (newz - thing->MaxDropOffHeight > thing->dropoffz);
-				thing->SetOrigin(oldpos, true);
-				if (hcheck && !(thing->flags & MF_FLOAT) && !(i_compatflags & COMPATF_DROPOFF))
+				if (newz - tm.dropoffz > thing->MaxDropOffHeight)
 				{
 					return false;
 				}
@@ -4844,7 +4873,7 @@ void P_AimCamera(AActor *t1, DVector3 &campos, DAngle &camangle, sector_t *&Came
 	}
 	else
 	{
-		campos = trace.HitPos;
+		campos = trace.HitPos - trace.HitVector * 1/256.;
 	}
 	CameraSector = trace.Sector;
 	unlinked = trace.unlinked;
@@ -5325,7 +5354,7 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 									vz *= 0.8;
 								}
 								thing->Thrust(bombspot->AngleTo(thing), thrust);
-								if (!(flags & RADF_NODAMAGE))
+								if (!(flags & RADF_NODAMAGE) || (flags & RADF_THRUSTZ))
 									thing->Vel.Z += vz;	// this really doesn't work well
 							}
 						}
@@ -5491,7 +5520,7 @@ void P_FindAboveIntersectors(AActor *actor)
 			// not what is wanted here.
 			continue;
 		}
-		if (thing->Z() >= actor->Z() &&
+		if (thing->Z() > actor->Z() &&
 			thing->Z() <= actor->Top())
 		{ // Thing intersects above the base
 			intersectors.Push(thing);

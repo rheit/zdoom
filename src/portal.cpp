@@ -231,6 +231,10 @@ FArchive &operator<< (FArchive &arc, FSectorPortal &port)
 		<< port.mDestination
 		<< port.mDisplacement
 		<< port.mPlaneZ;
+	if (arc.IsLoading())
+	{
+		port.mSkybox = nullptr;
+	}
 	return arc;
 }
 
@@ -620,7 +624,7 @@ void P_TranslatePortalVXVY(line_t* src, double &velx, double &vely)
 	double orig_velx = velx;
 	double orig_vely = vely;
 	velx = orig_velx * port->mCosRot - orig_vely * port->mSinRot;
-	vely = orig_vely * port->mCosRot - orig_velx * port->mSinRot;
+	vely = orig_vely * port->mCosRot + orig_velx * port->mSinRot;
 }
 
 //============================================================================

@@ -343,6 +343,7 @@ enum
 	RADF_NOIMPACTDAMAGE = 2,
 	RADF_SOURCEISSPOT = 4,
 	RADF_NODAMAGE = 8,
+	RADF_THRUSTZ = 16,
 };
 void	P_RadiusAttack (AActor *spot, AActor *source, int damage, int distance, 
 						FName damageType, int flags, int fulldamagedistance=0);
@@ -354,7 +355,6 @@ msecnode_t*	P_DelSecnode(msecnode_t *, msecnode_t *sector_t::*head);
 void	P_CreateSecNodeList(AActor*);		// phares 3/14/98
 double	P_GetMoveFactor(const AActor *mo, double *frictionp);	// phares  3/6/98
 double		P_GetFriction(const AActor *mo, double *frictionfactor);
-bool	Check_Sides(AActor *, int, int);					// phares
 
 // [RH] 
 const secplane_t * P_CheckSlopeWalk(AActor *actor, DVector2 &move);
