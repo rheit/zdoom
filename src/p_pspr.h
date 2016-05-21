@@ -65,8 +65,8 @@ struct pspdef_t
 {
 	FState*		state;	// a NULL state means not active
 	int 		tics;
-	double	 	sx;
-	double 		sy;
+	double	 	sx, ox;
+	double 		sy, oy;
 	int			sprite;
 	int			frame;
 	bool		processPending; // true: waiting for periodic processing on this tick
