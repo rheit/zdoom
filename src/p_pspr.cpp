@@ -836,14 +836,14 @@ DEFINE_ACTION_FUNCTION(AInventory, A_WeaponOffset)
 			if (flags & WOF_ADD)
 			{
 				if (flags & WOF_OFFSET)
-					psp->oy += wy - 32;
+					psp->oy += wy;
 				else
 					psp->sy += wy;
 			}
 			else
 			{
 				if (flags & WOF_OFFSET)
-					psp->oy = wy - 32;
+					psp->oy = wy;
 				else
 					psp->sy = wy;
 			}
