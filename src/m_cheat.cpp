@@ -314,7 +314,7 @@ void cht_DoCheat (player_t *player, int cheat)
 
 	// [GRB]
 	case CHT_RESSURECT:
-		if (player->playerstate != PST_LIVE && player->mo != NULL)
+		if (player->playerstate != PST_LIVE && player->mo != nullptr)
 		{
 			if (player->mo->IsKindOf(RUNTIME_CLASS(APlayerChunk)))
 			{
@@ -343,7 +343,7 @@ void cht_DoCheat (player_t *player, int cheat)
 					player->mo->Translation = TRANSLATION(TRANSLATION_Players, BYTE(player-players));
 				}
 				player->mo->DamageType = NAME_None;
-				if (player->ReadyWeapon != NULL)
+				if (player->ReadyWeapon != nullptr)
 				{
 					P_SetPsprite(player, ps_weapon, player->ReadyWeapon->GetUpState());
 				}
@@ -932,10 +932,10 @@ void cht_Take (player_t *player, const char *name, int amount)
 				if (weapon)
 					weapon->Destroy ();
 
-				player->ReadyWeapon = NULL;
+				player->ReadyWeapon = nullptr;
 				player->PendingWeapon = WP_NOCHANGE;
-				player->psprites[ps_weapon].state = NULL;
-				player->psprites[ps_flash].state = NULL;
+				P_SetPsprite(player, ps_weapon, nullptr);
+				P_SetPsprite(player, ps_flash, nullptr);
 			}
 		}
 
