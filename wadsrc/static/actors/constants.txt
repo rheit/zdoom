@@ -568,4 +568,5 @@ enum
 	WOF_KEEPX =		1,
 	WOF_KEEPY =		1 << 1,
 	WOF_ADD =		1 << 2,
+	WOF_NOFOLLOW =	1 << 3,
 };

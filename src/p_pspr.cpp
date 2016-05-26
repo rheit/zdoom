@@ -913,6 +913,7 @@ enum WOFFlags
 	WOF_KEEPX =		1,
 	WOF_KEEPY =		1 << 1,
 	WOF_ADD =		1 << 2,
+	WOF_NOFOLLOW =	1 << 3,
 };
 
 void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
@@ -928,7 +929,7 @@ void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
 	if (player && (player->playerstate != PST_DEAD))
 	{
 		psp = player->FindPSprite(layer);
-
+		psp->NoFollow = !!(WOF_NOFOLLOW);
 		if (psp == nullptr)
 			return;
 
@@ -988,13 +989,19 @@ DEFINE_ACTION_FUNCTION_PARAMS(AInventory, A_Overlay)
 	PARAM_ACTION_PROLOGUE;
 	PARAM_INT(layer);
 	PARAM_STATE_OPT(state)	{ state = nullptr; }
-
+	PARAM_INT_OPT(flags)	{ flags = 0; }
 	player_t *player = self->player;
 
 	if (player)
 	{
 		DPSprite *pspr;
 		pspr = new DPSprite(player, reinterpret_cast<AInventory *>(stateowner), layer);
+		pspr->NoFollow = !!(flags & WOF_NOFOLLOW);
+		if (pspr->NoFollow)
+		{
+			pspr->x = 0;
+			pspr->y = 0;
+		}
 		pspr->SetState(state);
 	}
 	return 0;
