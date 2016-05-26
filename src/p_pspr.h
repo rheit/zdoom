@@ -45,8 +45,8 @@ class FArchive;
 enum psprnum_t // These are all called by the owner's ReadyWeapon.
 {
 	ps_weapon = 1,
-	ps_flash,
-	ps_targetcenter,
+	ps_flash = 10000,
+	ps_targetcenter = INT_MAX-3,
 	ps_targetleft,
 	ps_targetright,
 	NUMPSPRITES
@@ -70,8 +70,10 @@ public:
 	AInventory*			GetCaller()	      { return Caller; }
 
 	double x, y;
+	double ax, ay;		//Anchor position to keep with a weapon
 	double oldx, oldy;
 	bool firstTic;
+	bool NoFollow;
 	int Tics;
 
 private:

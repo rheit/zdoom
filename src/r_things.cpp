@@ -1619,12 +1619,34 @@ void R_DrawPlayerSprites ()
 
 		// add all active psprites
 		psp = camera->player->psprites;
+		DPSprite *weapon = camera->player->FindPSprite(ps_weapon);
 		while (psp)
 		{
+			if (psp->GetID() != ps_weapon)
+			{
+				if (!weapon || psp->NoFollow)
+				{
+					psp->ax = psp->x;
+					psp->ay = psp->y;
+				}
+				else
+				{
+					psp->ax = weapon->x + psp->x;
+					psp->ay = weapon->y + psp->y;
+				}
+			}
 			// [RH] Don't draw the targeter's crosshair if the player already has a crosshair set.
 			if (psp->GetID() != ps_targetcenter || CrosshairImage == nullptr)
 			{
-				R_DrawPSprite(psp, camera, ofsx, ofsy, r_TicFracF);
+				// [MC] Always treat the weapon as its own.
+				if ((psp->GetID() == ps_weapon) || (psp->GetID() == ps_flash))
+				{
+					R_DrawPSprite(psp, camera, ofsx, ofsy, r_TicFracF);
+				}
+				else
+				{
+					R_DrawPSprite(psp, camera, ofsx + psp->ax, ofsy + psp->ay, r_TicFracF);
+				}
 			}
 
 			psp = psp->GetNext();
