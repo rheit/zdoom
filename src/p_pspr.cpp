@@ -980,6 +980,28 @@ DEFINE_ACTION_FUNCTION(AInventory, A_WeaponOffset)
 
 //---------------------------------------------------------------------------
 //
+// PROC A_Overlay
+//
+//---------------------------------------------------------------------------
+DEFINE_ACTION_FUNCTION_PARAMS(AInventory, A_Overlay)
+{
+	PARAM_ACTION_PROLOGUE;
+	PARAM_INT(layer);
+	PARAM_STATE_OPT(state)	{ state = nullptr; }
+
+	player_t *player = self->player;
+
+	if (player)
+	{
+		DPSprite *pspr;
+		pspr = new DPSprite(player, reinterpret_cast<AInventory *>(stateowner), layer);
+		pspr->SetState(state);
+	}
+	return 0;
+}
+
+//---------------------------------------------------------------------------
+//
 // PROC A_Lower
 //
 //---------------------------------------------------------------------------
@@ -1063,29 +1085,6 @@ DEFINE_ACTION_FUNCTION(AInventory, A_Raise)
 	{
 		psp->SetState(nullptr);
 	}
-	return 0;
-}
-
-//---------------------------------------------------------------------------
-//
-// PROC A_Overlay
-//
-//---------------------------------------------------------------------------
-
-DEFINE_ACTION_FUNCTION_PARAMS(AInventory, A_Overlay)
-{
-	PARAM_ACTION_PROLOGUE;
-	PARAM_INT		(layer);
-	PARAM_STATE_OPT	(state) { state = nullptr; }
-
-	player_t *player = self->player;
-
-	if (player == nullptr)
-		return 0;
-
-	DPSprite *pspr;
-	pspr = new DPSprite(player, reinterpret_cast<AInventory *>(stateowner), layer);
-	pspr->SetState(state);
 	return 0;
 }
 
@@ -1299,11 +1298,6 @@ void player_t::TickPSprites()
 	}
 	else
 	{
-		if (weapon && flash)
-		{
-			flash->x = weapon->x;
-			flash->y = weapon->y;
-		}
 		P_CheckWeaponSwitch(this);
 		if (WeaponState & (WF_WEAPONREADY | WF_WEAPONREADYALT))
 		{
@@ -1328,7 +1322,7 @@ void DPSprite::Tick()
 	if (processPending)
 	{
 		// drop tic count and possibly change state
-		if (Tics != -1)	// a -1 tic count never changes
+		if (Tics >= 0)	// a -1 tic count never changes
 		{
 			Tics--;
 
@@ -1356,7 +1350,7 @@ void DPSprite::Serialize(FArchive &arc)
 
 	arc << Next << Caller << Owner
 		<< State << Tics << Sprite << Frame
-		<< ID << x << y << oldx << oldy;
+		<< ID << x << y << oldx << oldy << ax << ay;
 }
 
 //------------------------------------------------------------------------
