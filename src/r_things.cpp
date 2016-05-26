@@ -1639,7 +1639,7 @@ void R_DrawPlayerSprites ()
 			if (psp->GetID() != ps_targetcenter || CrosshairImage == nullptr)
 			{
 				// [MC] Always treat the weapon as its own.
-				if ((psp->GetID() == ps_weapon))
+				if ((psp->GetID() == ps_weapon) || (psp->GetID() == ps_flash))
 				{
 					R_DrawPSprite(psp, camera, ofsx, ofsy, r_TicFracF);
 				}
