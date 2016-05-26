@@ -1624,7 +1624,7 @@ void R_DrawPlayerSprites ()
 		{
 			if (psp->GetID() != ps_weapon)
 			{
-				if (psp->NoFollow)
+				if (!weapon || psp->NoFollow)
 				{
 					psp->ax = psp->x;
 					psp->ay = psp->y;
