@@ -604,7 +604,7 @@ CCMD(printstats)
 CCMD(finishgame)
 {
 	// This CCMD simulates an end-of-game action and exists to end mods that never exit their last level.
-	Net_WriteByte(DEM_FINISHGAME);
+	FNetCommand netcmd(DEM_FINISHGAME);
 }
 
 ADD_STAT(statistics)

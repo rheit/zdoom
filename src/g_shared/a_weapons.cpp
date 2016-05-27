@@ -1397,20 +1397,21 @@ void FWeaponSlots::SendDifferences(int playernum, const FWeaponSlots &other)
 			}
 		}
 		// The slots differ. Send mine.
+		FNetCommand netcmd;
 		if (playernum == consoleplayer)
 		{
-			Net_WriteByte(DEM_SETSLOT);
+			netcmd.AddHeader(DEM_SETSLOT);
 		}
 		else
 		{
-			Net_WriteByte(DEM_SETSLOTPNUM);
-			Net_WriteByte(playernum);
+			netcmd.AddHeader(DEM_SETSLOTPNUM);
+			netcmd.AddByte(playernum);
 		}
-		Net_WriteByte(i);
-		Net_WriteByte(Slots[i].Size());
+		netcmd.AddByte(i);
+		netcmd.AddByte(Slots[i].Size());
 		for (j = 0; j < Slots[i].Size(); ++j)
 		{
-			Net_WriteWeapon(Slots[i].GetWeapon(j));
+			Net_WriteWeapon(netcmd, Slots[i].GetWeapon(j));
 		}
 	}
 }
@@ -1536,12 +1537,12 @@ CCMD (setslot)
 			Printf ("Slot %d cleared\n", slot);
 		}
 
-		Net_WriteByte(DEM_SETSLOT);
-		Net_WriteByte(slot);
-		Net_WriteByte(argv.argc()-2);
+		FNetCommand netcmd(DEM_SETSLOT);
+		netcmd.AddByte(slot);
+		netcmd.AddByte(argv.argc()-2);
 		for (int i = 2; i < argv.argc(); i++)
 		{
-			Net_WriteWeapon(dyn_cast<PClassWeapon>(PClass::FindClass(argv[i])));
+			Net_WriteWeapon(netcmd, dyn_cast<PClassWeapon>(PClass::FindClass(argv[i])));
 		}
 	}
 }
@@ -1587,9 +1588,9 @@ CCMD (addslot)
 	}
 	else
 	{
-		Net_WriteByte(DEM_ADDSLOT);
-		Net_WriteByte(slot);
-		Net_WriteWeapon(type);
+		FNetCommand netcmd(DEM_ADDSLOT);
+		netcmd.AddByte(slot);
+		Net_WriteWeapon(netcmd, type);
 	}
 }
 
@@ -1663,9 +1664,9 @@ CCMD (addslotdefault)
 	}
 	else
 	{
-		Net_WriteByte(DEM_ADDSLOTDEFAULT);
-		Net_WriteByte(slot);
-		Net_WriteWeapon(type);
+		FNetCommand netcmd(DEM_ADDSLOTDEFAULT);
+		netcmd.AddByte(slot);
+		Net_WriteWeapon(netcmd, type);
 	}
 }
 
@@ -1812,7 +1813,7 @@ void P_ReadDemoWeaponsChunk(BYTE **demo)
 //
 //===========================================================================
 
-void Net_WriteWeapon(PClassWeapon *type)
+void Net_WriteWeapon(FNetCommand &netcmd, PClassWeapon *type)
 {
 	int index, *index_p;
 
@@ -1829,12 +1830,12 @@ void Net_WriteWeapon(PClassWeapon *type)
 	assert(index >= 0 && index <= 32767);
 	if (index < 128)
 	{
-		Net_WriteByte(index);
+		netcmd.AddByte(index);
 	}
 	else
 	{
-		Net_WriteByte(0x80 | index);
-		Net_WriteByte(index >> 7);
+		netcmd.AddByte(0x80 | index);
+		netcmd.AddByte(index >> 7);
 	}
 }
 

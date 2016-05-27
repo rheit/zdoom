@@ -282,8 +282,8 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 
 	thebot->inuse = BOTINUSE_Waiting;
 
-	Net_WriteByte (DEM_ADDBOT);
-	Net_WriteByte (botshift);
+	FNetCommand netcmd(DEM_ADDBOT);
+	netcmd.AddByte(botshift);
 	{
 		//Set color.
 		char concat[512];
@@ -297,12 +297,12 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 			mysnprintf (concat + strlen(concat), countof(concat) - strlen(concat),
 				"\\team\\%d\n", thebot->lastteam);
 		}
-		Net_WriteString (concat);
+		netcmd.AddString(concat);
 	}
-	Net_WriteByte(thebot->skill.aiming);
-	Net_WriteByte(thebot->skill.perfection);
-	Net_WriteByte(thebot->skill.reaction);
-	Net_WriteByte(thebot->skill.isp);
+	netcmd.AddByte(thebot->skill.aiming);
+	netcmd.AddByte(thebot->skill.perfection);
+	netcmd.AddByte(thebot->skill.reaction);
+	netcmd.AddByte(thebot->skill.isp);
 
 	return true;
 }
