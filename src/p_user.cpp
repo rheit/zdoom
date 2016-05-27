@@ -605,9 +605,10 @@ void player_t::SendPitchLimits() const
 {
 	if (this - players == consoleplayer)
 	{
-		Net_WriteByte(DEM_SETPITCHLIMIT);
+		Net_NewCommand(DEM_SETPITCHLIMIT);
 		Net_WriteByte(Renderer->GetMaxViewPitch(false));	// up
 		Net_WriteByte(Renderer->GetMaxViewPitch(true));		// down
+		Net_FinalizeCommand();
 	}
 }
 

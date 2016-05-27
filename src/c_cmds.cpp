@@ -120,8 +120,9 @@ CCMD (god)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_GOD);
+	Net_FinalizeCommand();
 }
 
 CCMD(god2)
@@ -129,8 +130,9 @@ CCMD(god2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_NewCommand(DEM_GENERICCHEAT);
 	Net_WriteByte(CHT_GOD2);
+	Net_FinalizeCommand();
 }
 
 CCMD (iddqd)
@@ -138,8 +140,9 @@ CCMD (iddqd)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_IDDQD);
+	Net_FinalizeCommand();
 }
 
 CCMD (buddha)
@@ -147,8 +150,9 @@ CCMD (buddha)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_NewCommand(DEM_GENERICCHEAT);
 	Net_WriteByte(CHT_BUDDHA);
+	Net_FinalizeCommand();
 }
 
 CCMD(buddha2)
@@ -156,8 +160,9 @@ CCMD(buddha2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_NewCommand(DEM_GENERICCHEAT);
 	Net_WriteByte(CHT_BUDDHA2);
+	Net_FinalizeCommand();
 }
 
 CCMD (notarget)
@@ -165,8 +170,9 @@ CCMD (notarget)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_NOTARGET);
+	Net_FinalizeCommand();
 }
 
 CCMD (fly)
@@ -174,8 +180,9 @@ CCMD (fly)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_FLY);
+	Net_FinalizeCommand();
 }
 
 /*
@@ -190,8 +197,9 @@ CCMD (noclip)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_NOCLIP);
+	Net_FinalizeCommand();
 }
 
 CCMD (noclip2)
@@ -199,8 +207,9 @@ CCMD (noclip2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_NOCLIP2);
+	Net_FinalizeCommand();
 }
 
 CCMD (powerup)
@@ -208,8 +217,9 @@ CCMD (powerup)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_POWER);
+	Net_FinalizeCommand();
 }
 
 CCMD (morphme)
@@ -219,14 +229,15 @@ CCMD (morphme)
 
 	if (argv.argc() == 1)
 	{
-		Net_WriteByte (DEM_GENERICCHEAT);
+		Net_NewCommand (DEM_GENERICCHEAT);
 		Net_WriteByte (CHT_MORPH);
 	}
 	else
 	{
-		Net_WriteByte (DEM_MORPHEX);
+		Net_NewCommand (DEM_MORPHEX);
 		Net_WriteString (argv[1]);
 	}
+	Net_FinalizeCommand();
 }
 
 CCMD (anubis)
@@ -234,8 +245,9 @@ CCMD (anubis)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_ANUBIS);
+	Net_FinalizeCommand();
 }
 
 // [GRB]
@@ -244,8 +256,9 @@ CCMD (resurrect)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_RESSURECT);
+	Net_FinalizeCommand();
 }
 
 EXTERN_CVAR (Bool, chasedemo)
@@ -276,8 +289,9 @@ CCMD (chase)
 		if (gamestate != GS_LEVEL || (!(dmflags2 & DF2_CHASECAM) && deathmatch && CheckCheatmode ()))
 			return;
 
-		Net_WriteByte (DEM_GENERICCHEAT);
+		Net_NewCommand (DEM_GENERICCHEAT);
 		Net_WriteByte (CHT_CHASECAM);
+		Net_FinalizeCommand();
 	}
 }
 
@@ -372,14 +386,15 @@ CCMD (changemap)
 			{
 				if (argv.argc() > 2)
 				{
-					Net_WriteByte (DEM_CHANGEMAP2);
+					Net_NewCommand (DEM_CHANGEMAP2);
 					Net_WriteByte (atoi(argv[2]));
 				}
 				else
 				{
-					Net_WriteByte (DEM_CHANGEMAP);
+					Net_NewCommand (DEM_CHANGEMAP);
 				}
 				Net_WriteString (argv[1]);
+				Net_FinalizeCommand();
 			}
 		}
 		catch(CRecoverableError &error)
@@ -399,12 +414,13 @@ CCMD (give)
 	if (CheckCheatmode () || argv.argc() < 2)
 		return;
 
-	Net_WriteByte (DEM_GIVECHEAT);
+	Net_NewCommand (DEM_GIVECHEAT);
 	Net_WriteString (argv[1]);
 	if (argv.argc() > 2)
 		Net_WriteWord (clamp (atoi (argv[2]), 1, 32767));
 	else
 		Net_WriteWord (0);
+	Net_FinalizeCommand();
 }
 
 CCMD (take)
@@ -412,12 +428,13 @@ CCMD (take)
 	if (CheckCheatmode () || argv.argc() < 2)
 		return;
 
-	Net_WriteByte (DEM_TAKECHEAT);
+	Net_NewCommand (DEM_TAKECHEAT);
 	Net_WriteString (argv[1]);
 	if (argv.argc() > 2)
 		Net_WriteWord (clamp (atoi (argv[2]), 1, 32767));
 	else
 		Net_WriteWord (0);
+	Net_FinalizeCommand();
 }
 
 CCMD (gameversion)
@@ -514,12 +531,12 @@ CCMD (puke)
 
 		if (script > 0)
 		{
-			Net_WriteByte (DEM_RUNSCRIPT);
+			Net_NewCommand (DEM_RUNSCRIPT);
 			Net_WriteWord (script);
 		}
 		else
 		{
-			Net_WriteByte (DEM_RUNSCRIPT2);
+			Net_NewCommand (DEM_RUNSCRIPT2);
 			Net_WriteWord (-script);
 		}
 		Net_WriteByte (argn);
@@ -527,6 +544,7 @@ CCMD (puke)
 		{
 			Net_WriteLong (arg[i]);
 		}
+		Net_FinalizeCommand();
 	}
 }
 
@@ -558,13 +576,14 @@ CCMD (pukename)
 				arg[i] = atoi(argv[argstart + i]);
 			}
 		}
-		Net_WriteByte(DEM_RUNNAMEDSCRIPT);
+		Net_NewCommand(DEM_RUNNAMEDSCRIPT);
 		Net_WriteString(argv[1]);
 		Net_WriteByte(argn | (always << 7));
 		for (i = 0; i < argn; ++i)
 		{
 			Net_WriteLong(arg[i]);
 		}
+		Net_FinalizeCommand();
 	}
 }
 
@@ -604,13 +623,14 @@ CCMD (special)
 				return;
 			}
 		}
-		Net_WriteByte(DEM_RUNSPECIAL);
+		Net_NewCommand(DEM_RUNSPECIAL);
 		Net_WriteWord(specnum);
 		Net_WriteByte(argc - 2);
 		for (int i = 2; i < argc; ++i)
 		{
 			Net_WriteLong(atoi(argv[i]));
 		}
+		Net_FinalizeCommand();
 	}
 }
 
@@ -743,7 +763,7 @@ CCMD (fov)
 	{
 		if (consoleplayer == Net_Arbitrator)
 		{
-			Net_WriteByte (DEM_FOV);
+			Net_NewCommand (DEM_FOV);
 		}
 		else
 		{
@@ -753,9 +773,10 @@ CCMD (fov)
 	}
 	else
 	{
-		Net_WriteByte (DEM_MYFOV);
+		Net_NewCommand (DEM_MYFOV);
 	}
 	Net_WriteByte (clamp (atoi (argv[1]), 5, 179));
+	Net_FinalizeCommand();
 }
 
 //==========================================================================
@@ -783,10 +804,11 @@ CCMD (warp)
 	}
 	else
 	{
-		Net_WriteByte (DEM_WARPCHEAT);
+		Net_NewCommand (DEM_WARPCHEAT);
 		Net_WriteWord (atoi (argv[1]));
 		Net_WriteWord (atoi (argv[2]));
 		Net_WriteWord (argv.argc() == 3 ? ONFLOORZ/65536 : atoi (argv[3]));
+		Net_FinalizeCommand();
 	}
 }
 
@@ -1022,8 +1044,9 @@ CCMD(thaw)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_CLEARFROZENPROPS);
+	Net_FinalizeCommand();
 }
 
 //-----------------------------------------------------------------------------

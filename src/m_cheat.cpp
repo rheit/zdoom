@@ -1060,6 +1060,7 @@ CCMD (mdk)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (CHT_MDK);
+	Net_FinalizeCommand();
 }

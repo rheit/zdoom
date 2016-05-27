@@ -314,6 +314,114 @@ static struct TicSpecial
 
 } specials;
 
+
+// [EP] Network command buffer. The DEM_ data is stored here before going to the 'specials'.
+class FNetCommand
+{
+public:
+	void NewCommand(EDemoCommand header)
+	{
+		CheckSpace(1);
+
+		m_BufPtr = m_CmdBuf;
+
+		WriteByte(header, &m_BufPtr);
+	}
+
+	void AddByte(BYTE val)
+	{
+		CheckSpace(1);
+
+		WriteByte(val, &m_BufPtr);
+	}
+
+	void AddWord(short val)
+	{
+		CheckSpace(2);
+
+		WriteWord(val, &m_BufPtr);
+	}
+
+	void AddLong(int val)
+	{
+		CheckSpace(4);
+
+		WriteLong(val, &m_BufPtr);
+	}
+
+	void AddFloat(float val)
+	{
+		CheckSpace(4);
+
+		WriteFloat(val, &m_BufPtr);
+	}
+
+	void AddString(const char *val)
+	{
+		CheckSpace((val ? strlen(val) : 0) + 1);
+
+		WriteString(val, &m_BufPtr);
+	}
+
+
+	void FinalizeCommand()
+	{
+		BYTE *bufpos = m_CmdBuf;
+
+		while(bufpos != m_BufPtr)
+			specials << *bufpos++;
+
+		Clear();
+	}
+
+
+	void InitBuffer()
+	{
+		m_BufPtr = m_CmdBuf = NULL;
+		m_BufLen = 0;
+	}
+
+	void DeleteBuffer()
+	{
+		M_Free(m_CmdBuf);
+		InitBuffer();
+	}
+
+private:
+	void CheckSpace(int len)
+	{
+		if (len <= 0 || len >= MAX_MSGLEN)
+			I_Error("FNetCommand::CheckSpace called with invalid length: %d\n", len);
+
+		unsigned currentCommandLen = m_BufPtr - m_CmdBuf;
+
+		if (m_CmdBuf != NULL && m_BufPtr != NULL && currentCommandLen + len >= MAX_MSGLEN)
+			I_Error("FNetCommand buffer grew too much.\n");
+
+		if (m_CmdBuf == NULL || currentCommandLen + len > m_BufLen)
+		{
+			Expand(len);
+		}
+	}
+
+	void Expand(int len)
+	{
+		m_BufLen = (m_BufLen + len + 255) & ~255;
+		m_CmdBuf = (BYTE *)M_Realloc(m_CmdBuf, m_BufLen);
+	}
+
+	void Clear()
+	{
+		memset(m_CmdBuf, 0, m_BufPtr-m_CmdBuf);
+	}
+
+	BYTE *m_CmdBuf;
+	unsigned m_BufLen;
+	BYTE *m_BufPtr;
+};
+
+static FNetCommand		netcommand;
+
 void Net_ClearBuffers ()
 {
 	int i, j;
@@ -345,6 +453,8 @@ void Net_ClearBuffers ()
 	maketic = 0;
 
 	lastglobalrecvtime = 0;
+
+	netcommand.DeleteBuffer();
 }
 
 //
@@ -1679,6 +1789,8 @@ void D_CheckNetGame (void)
 			"\nIf the game is running well below expected speeds, use netmode 0 (P2P) instead.\n");
 	}
 
+	netcommand.InitBuffer();
+
 	// I_InitNetwork sets doomcom and netgame
 	if (I_InitNetwork ())
 	{
@@ -1995,35 +2107,45 @@ void Net_NewMakeTic (void)
 	specials.NewMakeTic ();
 }
 
+void Net_NewCommand(EDemoCommand header)
+{
+	netcommand.NewCommand(header);
+}
+
 void Net_WriteByte (BYTE it)
 {
-	specials << it;
+	netcommand.AddByte(it);
 }
 
 void Net_WriteWord (short it)
 {
-	specials << it;
+	netcommand.AddWord(it);
 }
 
 void Net_WriteLong (int it)
 {
-	specials << it;
+	netcommand.AddLong(it);
 }
 
 void Net_WriteFloat (float it)
 {
-	specials << it;
+	netcommand.AddFloat(it);
 }
 
 void Net_WriteString (const char *it)
 {
-	specials << it;
+	netcommand.AddString(it);
 }
 
 void Net_WriteBytes (const BYTE *block, int len)
 {
 	while (len--)
-		specials << *block++;
+		netcommand.AddByte(*block++);
+}
+
+void Net_FinalizeCommand()
+{
+	netcommand.FinalizeCommand();
 }
 
 //==========================================================================
@@ -2448,7 +2570,8 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		{
 			break;
 		}
-		Net_WriteByte (DEM_DOAUTOSAVE);
+		Net_NewCommand (DEM_DOAUTOSAVE);
+		Net_FinalizeCommand();
 		break;
 
 	case DEM_DOAUTOSAVE:
@@ -2892,11 +3015,12 @@ static void Network_Controller (int playernum, bool add)
 	}
 
 	if (add)
-		Net_WriteByte (DEM_ADDCONTROLLER);
+		Net_NewCommand (DEM_ADDCONTROLLER);
 	else
-		Net_WriteByte (DEM_DELCONTROLLER);
+		Net_NewCommand (DEM_DELCONTROLLER);
 
 	Net_WriteByte (playernum);
+	Net_FinalizeCommand();
 }
 
 //==========================================================================

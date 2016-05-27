@@ -812,7 +812,8 @@ public:
 		}
 		else if (mkey == MKEY_Back)
 		{
-			Net_WriteByte (DEM_CONVNULL);
+			Net_NewCommand (DEM_CONVNULL);
+			Net_FinalizeCommand();
 			Close();
 			return true;
 		}
@@ -820,16 +821,18 @@ public:
 		{
 			if ((unsigned)mSelection >= mResponses.Size())
 			{
-				Net_WriteByte(DEM_CONVCLOSE);
+				Net_NewCommand(DEM_CONVCLOSE);
+				Net_FinalizeCommand();
 			}
 			else
 			{
 				// Send dialogue and reply numbers across the wire.
 				assert((unsigned)mCurNode->ThisNodeNum < StrifeDialogues.Size());
 				assert(StrifeDialogues[mCurNode->ThisNodeNum] == mCurNode);
-				Net_WriteByte(DEM_CONVREPLY);
+				Net_NewCommand(DEM_CONVREPLY);
 				Net_WriteWord(mCurNode->ThisNodeNum);
 				Net_WriteByte(mSelection);
+				Net_FinalizeCommand();
 			}
 			Close();
 			return true;
