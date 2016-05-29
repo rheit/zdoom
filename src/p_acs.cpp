@@ -5473,7 +5473,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 
 		case ACSF_PlaySound:
 		case ACSF_PlayActorSound:
-			// PlaySound(tid, "SoundName", channel, volume, looping, attenuation)
+			// PlaySound(tid, "SoundName", channel, volume, looping, attenuation, local)
 			{
 				FSoundID sid;
 
@@ -5494,6 +5494,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 					float vol = argCount > 3 ? ACSToFloat(args[3]) : 1.f;
 					INTBOOL looping = argCount > 4 ? args[4] : false;
 					float atten = argCount > 5 ? ACSToFloat(args[5]) : ATTN_NORM;
+					INTBOOL local = argCount > 6 ? args[6] : false;
 
 					if (args[0] == 0)
 					{
@@ -5510,11 +5511,27 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 						{
 							if (!looping)
 							{
-								S_Sound(spot, chan, sid, vol, atten);
+								if (!local)
+								{
+									S_Sound(spot, chan, sid, vol, atten);
+								}
+								else
+								{
+									if (activator->CheckLocalView(consoleplayer))
+										S_Sound(chan, sid, vol, ATTN_NONE);
+								}
 							}
 							else if (!S_IsActorPlayingSomething(spot, chan & 7, sid))
 							{
-								S_Sound(spot, chan | CHAN_LOOP, sid, vol, atten);
+								if (!local)
+								{
+									S_Sound(spot, chan | CHAN_LOOP, sid, vol, atten);
+								}
+								else
+								{
+									if (activator->CheckLocalView(consoleplayer))
+										S_Sound(chan | CHAN_LOOP, sid, vol, ATTN_NONE);
+								}
 							}
 						}
 					}
