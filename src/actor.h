@@ -380,6 +380,7 @@ enum ActorFlag7
 	MF7_LAXTELEFRAGDMG	= 0x00100000,	// [MC] Telefrag damage can be reduced.
 	MF7_ICESHATTER		= 0x00200000,	// [MC] Shatters ice corpses regardless of damagetype.
 	MF7_ALLOWTHRUFLAGS	= 0x00400000,	// [MC] Allow THRUACTORS and the likes on puffs to prevent mod breakage.
+	MF7_FILTERHIDES		= 0x00800000,	// [MC] Show the actor to anything not covered by the filter
 };
 
 // --- mobj.renderflags ---
@@ -1019,6 +1020,8 @@ public:
 	// [BB] If 0, everybody can see the actor, if > 0, only members of team (VisibleToTeam-1) can see it.
 	DWORD			VisibleToTeam;
 
+	// Inclusive filter (AAPTR_ bitmask) to tell who can see this actor; inverted by MF6_FILTERHIDES
+	int				VisibleFilter;
 	int				special1;		// Special info
 	int				special2;		// Special info
 	double			specialf1;		// With floats we cannot use the int versions for storing position or angle data without reverting to fixed point (which we do not want.)
