@@ -1527,8 +1527,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 		{
 			DAngle angle = bangle;
 			DAngle slope = bslope;
-			DAngle tempangle = (pr_cwbullet.Random2() / 255.);
-			DAngle tempslope = (pr_cwbullet.Random2() / 255.);
 
 			if (flags & CBAF_EXPLICITANGLE)
 			{
@@ -1537,8 +1535,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 			}
 			else
 			{
-				angle += spread_xy * tempangle;
-				slope += spread_z * tempslope;
+				angle += spread_xy * (pr_cwbullet.Random2() / 255.);
+				slope += spread_z * (pr_cwbullet.Random2() / 255.);
 			}
 
 			int damage = damageperbullet;
@@ -1700,7 +1698,6 @@ static void FireBulletMissile(AActor *self, PClassActor *missile, AActor *puff, 
 		double y = Spawnofs_xy * angle.Sin();
 		DAngle ang = self->Angles.Yaw - 90;
 		DVector2 ofs = ang.ToVector(Spawnofs_xy);
-		//AActor *proj = P_SpawnMissileXYZ(self->Vec3Offset(x, y, z + self->GetBobOffset()), self, puff, missile, false);
 
 		AActor *proj = P_SpawnPlayerMissile(self, ofs.X, ofs.Y, Spawnheight, missile, angle, nullptr, nullptr, false, true);
 		if (proj)
