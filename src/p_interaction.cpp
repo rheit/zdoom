@@ -1806,13 +1806,15 @@ CCMD (kill)
 			if (CheckCheatmode ())
 				return;
 
-			Net_WriteByte (DEM_GENERICCHEAT);
+			Net_NewCommand (DEM_GENERICCHEAT);
 			Net_WriteByte (CHT_MASSACRE);
+			Net_FinalizeCommand();
 		}
 		else
 		{
-			Net_WriteByte (DEM_KILLCLASSCHEAT);
+			Net_NewCommand (DEM_KILLCLASSCHEAT);
 			Net_WriteString (argv[1]);
+			Net_FinalizeCommand();
 		}
 	}
 	else
@@ -1822,7 +1824,8 @@ CCMD (kill)
 			return;
 
 		// Kill the player
-		Net_WriteByte (DEM_SUICIDE);
+		Net_NewCommand (DEM_SUICIDE);
+		Net_FinalizeCommand();
 	}
 	C_HideConsole ();
 }
@@ -1834,8 +1837,9 @@ CCMD(remove)
 		if (CheckCheatmode())
 			return;
 
-		Net_WriteByte(DEM_REMOVE);
+		Net_NewCommand(DEM_REMOVE);
 		Net_WriteString(argv[1]);
+		Net_FinalizeCommand();
 		C_HideConsole();
 	}
 	else

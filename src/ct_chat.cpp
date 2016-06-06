@@ -357,7 +357,7 @@ static void ShoveChatStr (const char *str, BYTE who)
 		who |= 2;
 	}
 
-	Net_WriteByte (DEM_SAY);
+	Net_NewCommand (DEM_SAY);
 	Net_WriteByte (who);
 
 	if (!chat_substitution || !DoSubstitution (substBuff, str))
@@ -368,6 +368,7 @@ static void ShoveChatStr (const char *str, BYTE who)
 	{
 		Net_WriteString (substBuff);
 	}
+	Net_FinalizeCommand();
 }
 
 //===========================================================================

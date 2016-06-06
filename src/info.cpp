@@ -606,7 +606,7 @@ int DmgFactors::Apply(FName type, int damage)
 }
 
 
-static void SummonActor (int command, int command2, FCommandLine argv)
+static void SummonActor (EDemoCommand command, EDemoCommand command2, FCommandLine argv)
 {
 	if (CheckCheatmode ())
 		return;
@@ -619,7 +619,7 @@ static void SummonActor (int command, int command2, FCommandLine argv)
 			Printf ("Unknown actor '%s'\n", argv[1]);
 			return;
 		}
-		Net_WriteByte (argv.argc() > 2 ? command2 : command);
+		Net_NewCommand (argv.argc() > 2 ? command2 : command);
 		Net_WriteString (type->TypeName.GetChars());
 
 		if (argv.argc () > 2)
@@ -632,6 +632,7 @@ static void SummonActor (int command, int command2, FCommandLine argv)
 				Net_WriteLong((i < argv.argc()) ? atoi(argv[i]) : 0);
 			}
 		}
+		Net_FinalizeCommand();
 	}
 }
 

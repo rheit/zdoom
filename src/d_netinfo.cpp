@@ -532,8 +532,9 @@ void D_UserInfoChanged (FBaseCVar *cvar)
 
 	mysnprintf (foo, countof(foo), "\\%s\\%s", cvar->GetName(), escaped_val.GetChars());
 
-	Net_WriteByte (DEM_UINFCHANGED);
+	Net_NewCommand (DEM_UINFCHANGED);
 	Net_WriteString (foo);
+	Net_FinalizeCommand();
 }
 
 static const char *SetServerVar (char *name, ECVarType type, BYTE **stream, bool singlebit)
@@ -616,7 +617,7 @@ void D_SendServerInfoChange (const FBaseCVar *cvar, UCVarValue value, ECVarType 
 
 	namelen = strlen (cvar->GetName ());
 
-	Net_WriteByte (DEM_SINFCHANGED);
+	Net_NewCommand (DEM_SINFCHANGED);
 	Net_WriteByte ((BYTE)(namelen | (type << 6)));
 	Net_WriteBytes ((BYTE *)cvar->GetName (), (int)namelen);
 	switch (type)
@@ -627,6 +628,7 @@ void D_SendServerInfoChange (const FBaseCVar *cvar, UCVarValue value, ECVarType 
 	case CVAR_String:	Net_WriteString (value.String);	break;
 	default: break; // Silence GCC
 	}
+	Net_FinalizeCommand();
 }
 
 void D_SendServerFlagChange (const FBaseCVar *cvar, int bitnum, bool set)
@@ -635,10 +637,11 @@ void D_SendServerFlagChange (const FBaseCVar *cvar, int bitnum, bool set)
 
 	namelen = (int)strlen (cvar->GetName ());
 
-	Net_WriteByte (DEM_SINFCHANGEDXOR);
+	Net_NewCommand (DEM_SINFCHANGEDXOR);
 	Net_WriteByte ((BYTE)namelen);
 	Net_WriteBytes ((BYTE *)cvar->GetName (), namelen);
 	Net_WriteByte (BYTE(bitnum | (set << 5)));
+	Net_FinalizeCommand();
 }
 
 void D_DoServerInfoChange (BYTE **stream, bool singlebit)

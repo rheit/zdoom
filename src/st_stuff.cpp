@@ -428,8 +428,9 @@ static bool CheatAddKey (cheatseq_t *cheat, BYTE key, bool *eat)
 
 static bool Cht_Generic (cheatseq_t *cheat)
 {
-	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_NewCommand (DEM_GENERICCHEAT);
 	Net_WriteByte (cheat->Args[0]);
+	Net_FinalizeCommand();
 	return true;
 }
 

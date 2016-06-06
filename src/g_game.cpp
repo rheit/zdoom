@@ -308,12 +308,14 @@ CCMD (slot)
 
 CCMD (centerview)
 {
-	Net_WriteByte (DEM_CENTERVIEW);
+	Net_NewCommand (DEM_CENTERVIEW);
+	Net_FinalizeCommand();
 }
 
 CCMD(crouch)
 {
-	Net_WriteByte(DEM_CROUCH);
+	Net_NewCommand(DEM_CROUCH);
+	Net_FinalizeCommand();
 }
 
 CCMD (land)
@@ -731,31 +733,36 @@ void G_BuildTiccmd (ticcmd_t *cmd)
 	if (sendpause)
 	{
 		sendpause = false;
-		Net_WriteByte (DEM_PAUSE);
+		Net_NewCommand (DEM_PAUSE);
+		Net_FinalizeCommand();
 	}
 	if (sendsave)
 	{
 		sendsave = false;
-		Net_WriteByte (DEM_SAVEGAME);
+		Net_NewCommand (DEM_SAVEGAME);
 		Net_WriteString (savegamefile);
 		Net_WriteString (savedescription);
+		Net_FinalizeCommand();
 		savegamefile = "";
 	}
 	if (SendItemUse == (const AInventory *)1)
 	{
-		Net_WriteByte (DEM_INVUSEALL);
+		Net_NewCommand (DEM_INVUSEALL);
+		Net_FinalizeCommand();
 		SendItemUse = NULL;
 	}
 	else if (SendItemUse != NULL)
 	{
-		Net_WriteByte (DEM_INVUSE);
+		Net_NewCommand (DEM_INVUSE);
 		Net_WriteLong (SendItemUse->InventoryID);
+		Net_FinalizeCommand();
 		SendItemUse = NULL;
 	}
 	if (SendItemDrop != NULL)
 	{
-		Net_WriteByte (DEM_INVDROP);
+		Net_NewCommand (DEM_INVDROP);
 		Net_WriteLong (SendItemDrop->InventoryID);
+		Net_FinalizeCommand();
 		SendItemDrop = NULL;
 	}
 
@@ -859,7 +866,8 @@ static void ChangeSpy (int changespy)
 		// has done this for you, since it could desync otherwise.
 		if (!demoplayback)
 		{
-			Net_WriteByte(DEM_REVERTCAMERA);
+			Net_NewCommand(DEM_REVERTCAMERA);
+			Net_FinalizeCommand();
 		}
 		return;
 	}

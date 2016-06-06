@@ -1385,11 +1385,11 @@ void FWeaponSlots::SendDifferences(int playernum, const FWeaponSlots &other)
 		// The slots differ. Send mine.
 		if (playernum == consoleplayer)
 		{
-			Net_WriteByte(DEM_SETSLOT);
+			Net_NewCommand(DEM_SETSLOT);
 		}
 		else
 		{
-			Net_WriteByte(DEM_SETSLOTPNUM);
+			Net_NewCommand(DEM_SETSLOTPNUM);
 			Net_WriteByte(playernum);
 		}
 		Net_WriteByte(i);
@@ -1398,6 +1398,7 @@ void FWeaponSlots::SendDifferences(int playernum, const FWeaponSlots &other)
 		{
 			Net_WriteWeapon(Slots[i].GetWeapon(j));
 		}
+		Net_FinalizeCommand();
 	}
 }
 
@@ -1522,13 +1523,14 @@ CCMD (setslot)
 			Printf ("Slot %d cleared\n", slot);
 		}
 
-		Net_WriteByte(DEM_SETSLOT);
+		Net_NewCommand(DEM_SETSLOT);
 		Net_WriteByte(slot);
 		Net_WriteByte(argv.argc()-2);
 		for (int i = 2; i < argv.argc(); i++)
 		{
 			Net_WriteWeapon(dyn_cast<PClassWeapon>(PClass::FindClass(argv[i])));
 		}
+		Net_FinalizeCommand();
 	}
 }
 
@@ -1573,9 +1575,10 @@ CCMD (addslot)
 	}
 	else
 	{
-		Net_WriteByte(DEM_ADDSLOT);
+		Net_NewCommand(DEM_ADDSLOT);
 		Net_WriteByte(slot);
 		Net_WriteWeapon(type);
+		Net_FinalizeCommand();
 	}
 }
 
@@ -1649,9 +1652,10 @@ CCMD (addslotdefault)
 	}
 	else
 	{
-		Net_WriteByte(DEM_ADDSLOTDEFAULT);
+		Net_NewCommand(DEM_ADDSLOTDEFAULT);
 		Net_WriteByte(slot);
 		Net_WriteWeapon(type);
+		Net_FinalizeCommand();
 	}
 }
 

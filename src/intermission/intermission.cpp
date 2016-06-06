@@ -816,7 +816,8 @@ bool DIntermissionController::Responder (event_t *ev)
 		int res = mScreen->Responder(ev);
 		if (res == -1 && !mSentAdvance)
 		{
-			Net_WriteByte(DEM_ADVANCEINTER);
+			Net_NewCommand(DEM_ADVANCEINTER);
+			Net_FinalizeCommand();
 			mSentAdvance = true;
 		}
 		return !!res;

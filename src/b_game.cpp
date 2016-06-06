@@ -282,7 +282,7 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 
 	thebot->inuse = BOTINUSE_Waiting;
 
-	Net_WriteByte (DEM_ADDBOT);
+	Net_NewCommand (DEM_ADDBOT);
 	Net_WriteByte (botshift);
 	{
 		//Set color.
@@ -303,6 +303,7 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 	Net_WriteByte(thebot->skill.perfection);
 	Net_WriteByte(thebot->skill.reaction);
 	Net_WriteByte(thebot->skill.isp);
+	Net_FinalizeCommand();
 
 	return true;
 }

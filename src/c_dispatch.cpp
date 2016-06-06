@@ -598,7 +598,8 @@ void C_DoCommand (const char *cmd, int keynum)
 				button->ReleaseKey (keynum);
 				if (button == &Button_Mlook && lookspring)
 				{
-					Net_WriteByte (DEM_CENTERVIEW);
+					Net_NewCommand (DEM_CENTERVIEW);
+					Net_FinalizeCommand();
 				}
 			}
 			return;

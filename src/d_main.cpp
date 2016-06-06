@@ -374,14 +374,15 @@ CUSTOM_CVAR (Int, dmflags, 0, CVAR_SERVERINFO)
 
 	if (self & DF_NO_FREELOOK)
 	{
-		Net_WriteByte (DEM_CENTERVIEW);
+		Net_NewCommand (DEM_CENTERVIEW);
+		Net_FinalizeCommand();
 	}
 	// If nofov is set, force everybody to the arbitrator's FOV.
 	if ((self & DF_NO_FOV) && consoleplayer == Net_Arbitrator)
 	{
 		BYTE fov;
 
-		Net_WriteByte (DEM_FOV);
+		Net_NewCommand (DEM_FOV);
 
 		// If the game is started with DF_NO_FOV set, the arbitrator's
 		// DesiredFOV will not be set when this callback is run, so
@@ -392,6 +393,7 @@ CUSTOM_CVAR (Int, dmflags, 0, CVAR_SERVERINFO)
 			fov = 90;
 		}
 		Net_WriteByte (fov);
+		Net_FinalizeCommand();
 	}
 }
 

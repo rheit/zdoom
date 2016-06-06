@@ -119,12 +119,16 @@ void Net_CheckLastReceived(int);
 
 // [RH] Functions for making and using special "ticcmds"
 void Net_NewMakeTic ();
+// [EP] Now these commands are saved in a separate buffer.
+void Net_NewCommand(EDemoCommand header);
 void Net_WriteByte (BYTE);
 void Net_WriteWord (short);
 void Net_WriteLong (int);
 void Net_WriteFloat (float);
 void Net_WriteString (const char *);
 void Net_WriteBytes (const BYTE *, int len);
+// [EP] The saved commands are sent to the 'specials'.
+void Net_FinalizeCommand();
 
 void Net_DoCommand (int type, BYTE **stream, int player);
 void Net_SkipCommand (int type, BYTE **stream);
