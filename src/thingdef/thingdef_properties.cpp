@@ -69,6 +69,7 @@
 #include "teaminfo.h"
 #include "v_video.h"
 #include "r_data/colormaps.h"
+#include "actorptrselect.h"
 
 
 //==========================================================================
@@ -565,7 +566,16 @@ DEFINE_PROPERTY(threshold, I, Actor)
 		I_Error("Threshold cannot be negative.");
 	defaults->threshold = id;
 }
-
+//==========================================================================
+// [FDARI]
+//==========================================================================
+DEFINE_PROPERTY(visiblefilter, P, Actor)
+{
+	PROP_INT_PARM(id, 0);
+	if (id < 0)
+		I_Error("VisibleFilter cannot be negative.");
+	defaults->VisibleFilter = id;
+}
 //==========================================================================
 //
 //==========================================================================

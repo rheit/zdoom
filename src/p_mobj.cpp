@@ -70,6 +70,7 @@
 #include "po_man.h"
 #include "p_spec.h"
 #include "p_checkposition.h"
+#include "actorptrselect.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -263,6 +264,10 @@ void AActor::Serialize(FArchive &arc)
 		<< Vel
 		<< tics
 		<< state;
+	if (SaveVersion >= 4549)
+	{
+		arc << VisibleFilter;
+	}
 	if (arc.IsStoring())
 	{
 		int dmg;
@@ -1132,6 +1137,13 @@ bool AActor::IsVisibleToPlayer() const
 		}
 		if (!visible)
 			return false;
+	}
+
+	// [FDARI] Passed all checks but the filter
+	if (VisibleFilter > 0)
+	{
+		bool visible = AAPTR_FILTER(const_cast<AActor *>(this), pPlayer->mo, VisibleFilter);
+		return (flags7 & MF7_FILTERHIDES) ? !visible : visible;
 	}
 
 	// [BB] Passed all checks.
