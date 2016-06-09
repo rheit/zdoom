@@ -58,6 +58,7 @@ void R_InitRenderer();
 
 void FSoftwareRenderer::Init()
 {
+	r_swtruecolor = screen->IsBgra();
 	R_InitRenderer();
 }
 
@@ -155,9 +156,16 @@ void FSoftwareRenderer::Precache(BYTE *texhitlist, TMap<PClassActor*, bool> &act
 
 void FSoftwareRenderer::RenderView(player_t *player)
 {
+	if (r_swtruecolor != screen->IsBgra())
+	{
+		r_swtruecolor = screen->IsBgra();
+		R_InitColumnDrawers();
+	}
+
 	R_RenderActorView (player->mo);
 	// [RH] Let cameras draw onto textures that were visible this frame.
 	FCanvasTextureInfo::UpdateAll ();
+	R_FinishDrawerCommands();
 }
 
 //==========================================================================
@@ -182,7 +190,7 @@ void FSoftwareRenderer::RemapVoxels()
 
 void FSoftwareRenderer::WriteSavePic (player_t *player, FILE *file, int width, int height)
 {
-	DCanvas *pic = new DSimpleCanvas (width, height);
+	DCanvas *pic = new DSimpleCanvas (width, height, false);
 	PalEntry palette[256];
 
 	// Take a snapshot of the player's view
@@ -316,7 +324,7 @@ void FSoftwareRenderer::RenderTextureView (FCanvasTexture *tex, AActor *viewpoin
 
 	// curse Doom's overuse of global variables in the renderer.
 	// These get clobbered by rendering to a camera texture but they need to be preserved so the final rendering can be done with the correct palette.
-	unsigned char *savecolormap = fixedcolormap;
+	FColormap *savecolormap = fixedcolormap;
 	FSpecialColormap *savecm = realfixedcolormap;
 
 	DAngle savedfov = FieldOfView;

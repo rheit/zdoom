@@ -65,7 +65,6 @@
 #include "menu/menu.h"
 #include "r_data/voxels.h"
 
-
 FRenderer *Renderer;
 
 IMPLEMENT_ABSTRACT_CLASS (DCanvas)
@@ -82,7 +81,7 @@ class DDummyFrameBuffer : public DFrameBuffer
 	DECLARE_CLASS (DDummyFrameBuffer, DFrameBuffer);
 public:
 	DDummyFrameBuffer (int width, int height)
-		: DFrameBuffer (0, 0)
+		: DFrameBuffer (0, 0, false)
 	{
 		Width = width;
 		Height = height;
@@ -207,13 +206,14 @@ DCanvas *DCanvas::CanvasChain = NULL;
 //
 //==========================================================================
 
-DCanvas::DCanvas (int _width, int _height)
+DCanvas::DCanvas (int _width, int _height, bool _bgra)
 {
 	// Init member vars
 	Buffer = NULL;
 	LockCount = 0;
 	Width = _width;
 	Height = _height;
+	Bgra = _bgra;
 
 	// Add to list of active canvases
 	Next = CanvasChain;
@@ -343,10 +343,7 @@ void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
 	if (damount == 0.f)
 		return;
 
-	DWORD *bg2rgb;
-	DWORD fg;
 	int gap;
-	BYTE *spot;
 	int x, y;
 
 	if (x1 >= Width || y1 >= Height)
@@ -366,31 +363,73 @@ void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
 		return;
 	}
 
-	{
-		int amount;
-
-		amount = (int)(damount * 64);
-		bg2rgb = Col2RGB8[64-amount];
-
-		fg = (((color.r * amount) >> 4) << 20) |
-			  ((color.g * amount) >> 4) |
-			 (((color.b * amount) >> 4) << 10);
-	}
-
-	spot = Buffer + x1 + y1*Pitch;
 	gap = Pitch - w;
-	for (y = h; y != 0; y--)
-	{
-		for (x = w; x != 0; x--)
-		{
-			DWORD bg;
 
-			bg = bg2rgb[(*spot)&0xff];
-			bg = (fg+bg) | 0x1f07c1f;
-			*spot = RGB32k.All[bg&(bg>>15)];
-			spot++;
+	if (IsBgra())
+	{
+		uint32_t *spot = (uint32_t*)Buffer + x1 + y1*Pitch;
+
+		uint32_t fg = color.d;
+		uint32_t fg_red = (fg >> 16) & 0xff;
+		uint32_t fg_green = (fg >> 8) & 0xff;
+		uint32_t fg_blue = fg & 0xff;
+
+		uint32_t alpha = (uint32_t)clamp(damount * 256 + 0.5f, 0.0f, 256.0f);
+		uint32_t inv_alpha = 256 - alpha;
+
+		fg_red *= alpha;
+		fg_green *= alpha;
+		fg_blue *= alpha;
+
+		for (y = h; y != 0; y--)
+		{
+			for (x = w; x != 0; x--)
+			{
+				uint32_t bg_red = (*spot >> 16) & 0xff;
+				uint32_t bg_green = (*spot >> 8) & 0xff;
+				uint32_t bg_blue = (*spot) & 0xff;
+
+				uint32_t red = (fg_red + bg_red * inv_alpha) / 256;
+				uint32_t green = (fg_green + bg_green * inv_alpha) / 256;
+				uint32_t blue = (fg_blue + bg_blue * inv_alpha) / 256;
+
+				*spot = 0xff000000 | (red << 16) | (green << 8) | blue;
+				spot++;
+			}
+			spot += gap;
 		}
-		spot += gap;
+	}
+	else
+	{
+		BYTE *spot = Buffer + x1 + y1*Pitch;
+
+		DWORD *bg2rgb;
+		DWORD fg;
+
+		{
+			int amount;
+
+			amount = (int)(damount * 64);
+			bg2rgb = Col2RGB8[64-amount];
+
+			fg = (((color.r * amount) >> 4) << 20) |
+				  ((color.g * amount) >> 4) |
+				 (((color.b * amount) >> 4) << 10);
+		}
+
+		for (y = h; y != 0; y--)
+		{
+			for (x = w; x != 0; x--)
+			{
+				DWORD bg;
+
+				bg = bg2rgb[(*spot)&0xff];
+				bg = (fg+bg) | 0x1f07c1f;
+				*spot = RGB32k.All[bg&(bg>>15)];
+				spot++;
+			}
+			spot += gap;
+		}
 	}
 }
 
@@ -408,7 +447,7 @@ void DCanvas::GetScreenshotBuffer(const BYTE *&buffer, int &pitch, ESSType &colo
 	Lock(true);
 	buffer = GetBuffer();
 	pitch = GetPitch();
-	color_type = SS_PAL;
+	color_type = IsBgra() ? SS_BGRA : SS_PAL;
 }
 
 //==========================================================================
@@ -721,8 +760,8 @@ void DCanvas::CalcGamma (float gamma, BYTE gammalookup[256])
 //
 //==========================================================================
 
-DSimpleCanvas::DSimpleCanvas (int width, int height)
-	: DCanvas (width, height)
+DSimpleCanvas::DSimpleCanvas (int width, int height, bool bgra)
+	: DCanvas (width, height, bgra)
 {
 	// Making the pitch a power of 2 is very bad for performance
 	// Try to maximize the number of cache lines that can be filled
@@ -759,8 +798,9 @@ DSimpleCanvas::DSimpleCanvas (int width, int height)
 			Pitch = width + MAX(0, CPU.DataL1LineSize - 8);
 		}
 	}
-	MemBuffer = new BYTE[Pitch * height];
-	memset (MemBuffer, 0, Pitch * height);
+	int bytes_per_pixel = bgra ? 4 : 1;
+	MemBuffer = new BYTE[Pitch * height * bytes_per_pixel];
+	memset (MemBuffer, 0, Pitch * height * bytes_per_pixel);
 }
 
 //==========================================================================
@@ -829,8 +869,8 @@ void DSimpleCanvas::Unlock ()
 //
 //==========================================================================
 
-DFrameBuffer::DFrameBuffer (int width, int height)
-	: DSimpleCanvas (width, height)
+DFrameBuffer::DFrameBuffer (int width, int height, bool bgra)
+	: DSimpleCanvas (width, height, bgra)
 {
 	LastMS = LastSec = FrameCount = LastCount = LastTic = 0;
 	Accel2D = false;
@@ -887,10 +927,21 @@ void DFrameBuffer::DrawRateStuff ()
 		// Buffer can be NULL if we're doing hardware accelerated 2D
 		if (buffer != NULL)
 		{
-			buffer += (GetHeight()-1) * GetPitch();
-			
-			for (i = 0; i < tics*2; i += 2)		buffer[i] = 0xff;
-			for ( ; i < 20*2; i += 2)			buffer[i] = 0x00;
+			if (IsBgra())
+			{
+				uint32_t *buffer32 = (uint32_t*)buffer;
+				buffer32 += (GetHeight() - 1) * GetPitch();
+
+				for (i = 0; i < tics * 2; i += 2)	buffer32[i] = 0xffffffff;
+				for (; i < 20 * 2; i += 2)			buffer32[i] = 0xff000000;
+			}
+			else
+			{
+				buffer += (GetHeight() - 1) * GetPitch();
+
+				for (i = 0; i < tics * 2; i += 2)	buffer[i] = 0xff;
+				for (; i < 20 * 2; i += 2)			buffer[i] = 0x00;
+			}
 		}
 		else
 		{

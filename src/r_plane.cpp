@@ -227,12 +227,11 @@ void R_MapPlane (int y, int x1)
 	if (plane_shade)
 	{
 		// Determine lighting based on the span's distance from the viewer.
-		ds_colormap = basecolormap->Maps + (GETPALOOKUP (
-			GlobVis * fabs(CenterY - y), planeshade) << COLORMAPSHIFT);
+		R_SetDSColorMapLight(basecolormap, GlobVis * fabs(CenterY - y), planeshade);
 	}
 
 #ifdef X86_ASM
-	if (ds_colormap != ds_curcolormap)
+	if (!r_swtruecolor && ds_colormap != ds_curcolormap)
 		R_SetSpanColormap_ASM (ds_colormap);
 #endif
 
@@ -355,7 +354,7 @@ void R_CalcTiltedLighting (double lval, double lend, int width)
 //
 //==========================================================================
 
-void R_MapTiltedPlane (int y, int x1)
+void R_MapTiltedPlane_C (int y, int x1)
 {
 	int x2 = spanend[y];
 	int width = x2 - x1;
@@ -392,7 +391,130 @@ void R_MapTiltedPlane (int y, int x1)
 
 		u = SQWORD(uz*z) + pviewx;
 		v = SQWORD(vz*z) + pviewy;
-		ds_colormap = tiltlighting[i];
+		R_SetDSColorMapLight(tiltlighting[i], 0, 0);
+		fb[i++] = ds_colormap[ds_source[(v >> vshift) | ((u >> ushift) & umask)]];
+		iz += plane_sz[0];
+		uz += plane_su[0];
+		vz += plane_sv[0];
+	} while (--width >= 0);
+#else
+//#define SPANSIZE 32
+//#define INVSPAN 0.03125f
+//#define SPANSIZE 8
+//#define INVSPAN 0.125f
+#define SPANSIZE 16
+#define INVSPAN	0.0625f
+
+	double startz = 1.f/iz;
+	double startu = uz*startz;
+	double startv = vz*startz;
+	double izstep, uzstep, vzstep;
+
+	izstep = plane_sz[0] * SPANSIZE;
+	uzstep = plane_su[0] * SPANSIZE;
+	vzstep = plane_sv[0] * SPANSIZE;
+	x1 = 0;
+	width++;
+
+	while (width >= SPANSIZE)
+	{
+		iz += izstep;
+		uz += uzstep;
+		vz += vzstep;
+
+		double endz = 1.f/iz;
+		double endu = uz*endz;
+		double endv = vz*endz;
+		DWORD stepu = SQWORD((endu - startu) * INVSPAN);
+		DWORD stepv = SQWORD((endv - startv) * INVSPAN);
+		u = SQWORD(startu) + pviewx;
+		v = SQWORD(startv) + pviewy;
+
+		for (i = SPANSIZE-1; i >= 0; i--)
+		{
+			fb[x1] = *(tiltlighting[x1] + ds_source[(v >> vshift) | ((u >> ushift) & umask)]);
+			x1++;
+			u += stepu;
+			v += stepv;
+		}
+		startu = endu;
+		startv = endv;
+		width -= SPANSIZE;
+	}
+	if (width > 0)
+	{
+		if (width == 1)
+		{
+			u = SQWORD(startu);
+			v = SQWORD(startv);
+			fb[x1] = *(tiltlighting[x1] + ds_source[(v >> vshift) | ((u >> ushift) & umask)]);
+		}
+		else
+		{
+			double left = width;
+			iz += plane_sz[0] * left;
+			uz += plane_su[0] * left;
+			vz += plane_sv[0] * left;
+
+			double endz = 1.f/iz;
+			double endu = uz*endz;
+			double endv = vz*endz;
+			left = 1.f/left;
+			DWORD stepu = SQWORD((endu - startu) * left);
+			DWORD stepv = SQWORD((endv - startv) * left);
+			u = SQWORD(startu) + pviewx;
+			v = SQWORD(startv) + pviewy;
+
+			for (; width != 0; width--)
+			{
+				fb[x1] = *(tiltlighting[x1] + ds_source[(v >> vshift) | ((u >> ushift) & umask)]);
+				x1++;
+				u += stepu;
+				v += stepv;
+			}
+		}
+	}
+#endif
+}
+
+void R_MapTiltedPlane_RGBA (int y, int x1)
+{
+	int x2 = spanend[y];
+	int width = x2 - x1;
+	double iz, uz, vz;
+	uint32_t *fb;
+	DWORD u, v;
+	int i;
+
+	iz = plane_sz[2] + plane_sz[1]*(centery-y) + plane_sz[0]*(x1-centerx);
+
+	// Lighting is simple. It's just linear interpolation from start to end
+	if (plane_shade)
+	{
+		uz = (iz + plane_sz[0]*width) * planelightfloat;
+		vz = iz * planelightfloat;
+		R_CalcTiltedLighting (vz, uz, width);
+	}
+
+	uz = plane_su[2] + plane_su[1]*(centery-y) + plane_su[0]*(x1-centerx);
+	vz = plane_sv[2] + plane_sv[1]*(centery-y) + plane_sv[0]*(x1-centerx);
+
+	fb = ylookup[y] + x1 + (uint32_t*)dc_destorg;
+
+	BYTE vshift = 32 - ds_ybits;
+	BYTE ushift = vshift - ds_xbits;
+	int umask = ((1 << ds_xbits) - 1) << ds_ybits;
+
+#if 0		// The "perfect" reference version of this routine. Pretty slow.
+			// Use it only to see how things are supposed to look.
+	i = 0;
+	do
+	{
+		double z = 1.f/iz;
+
+		u = SQWORD(uz*z) + pviewx;
+		v = SQWORD(vz*z) + pviewy;
+		R_SetDSColorMapLight(tiltlighting[i], 0, 0);
 		fb[i++] = ds_colormap[ds_source[(v >> vshift) | ((u >> ushift) & umask)]];
 		iz += plane_sz[0];
 		uz += plane_su[0];
@@ -484,9 +606,19 @@ void R_MapTiltedPlane (int y, int x1)
 //
 //==========================================================================
 
-void R_MapColoredPlane (int y, int x1)
+void R_MapColoredPlane_C (int y, int x1)
 {
-	memset (ylookup[y] + x1 + dc_destorg, ds_color, spanend[y] - x1 + 1);
+	memset (ylookup[y] + x1 + dc_destorg, ds_color, (spanend[y] - x1 + 1));
+}
+
+void R_MapColoredPlane_RGBA(int y, int x1)
+{
+	uint32_t *dest = ylookup[y] + x1 + (uint32_t*)dc_destorg;
+	int count = (spanend[y] - x1 + 1);
+	uint32_t light = calc_light_multiplier(ds_light);
+	uint32_t color = shade_pal_index_simple(ds_color, light);
+	for (int i = 0; i < count; i++)
+		dest[i] = color;
 }
 
 //==========================================================================
@@ -1461,12 +1593,13 @@ void R_DrawSkyPlane (visplane_t *pl)
 	bool fakefixed = false;
 	if (fixedcolormap)
 	{
-		dc_colormap = fixedcolormap;
+		R_SetColorMapLight(fixedcolormap, 0, 0);
 	}
 	else
 	{
 		fakefixed = true;
-		fixedcolormap = dc_colormap = NormalLight.Maps;
+		fixedcolormap = &NormalLight;
+		R_SetColorMapLight(fixedcolormap, 0, 0);
 	}
 
 	R_DrawSky (pl);
@@ -1484,7 +1617,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 void R_DrawNormalPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t alpha, bool additive, bool masked)
 {
 #ifdef X86_ASM
-	if (ds_source != ds_cursource)
+	if (!r_swtruecolor && ds_source != ds_cursource)
 	{
 		R_SetSpanSource_ASM (ds_source);
 	}
@@ -1547,12 +1680,21 @@ void R_DrawNormalPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 	planeheight = fabs(pl->height.Zat0() - ViewPos.Z);
 
 	GlobVis = r_FloorVisibility / planeheight;
+	ds_light = 0;
 	if (fixedlightlev >= 0)
-		ds_colormap = basecolormap->Maps + fixedlightlev, plane_shade = false;
+	{
+		R_SetDSColorMapLight(basecolormap, 0, FIXEDLIGHT2SHADE(fixedlightlev));
+		plane_shade = false;
+	}
 	else if (fixedcolormap)
-		ds_colormap = fixedcolormap, plane_shade = false;
+	{
+		R_SetDSColorMapLight(fixedcolormap, 0, 0);
+		plane_shade = false;
+	}
 	else
+	{
 		plane_shade = true;
+	}
 
 	if (spanfunc != R_FillSpan)
 	{
@@ -1565,12 +1707,16 @@ void R_DrawNormalPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 					spanfunc = R_DrawSpanMaskedTranslucent;
 					dc_srcblend = Col2RGB8[alpha>>10];
 					dc_destblend = Col2RGB8[(OPAQUE-alpha)>>10];
+					dc_srcalpha = alpha;
+					dc_destalpha = OPAQUE - alpha;
 				}
 				else
 				{
 					spanfunc = R_DrawSpanMaskedAddClamp;
 					dc_srcblend = Col2RGB8_LessPrecision[alpha>>10];
 					dc_destblend = Col2RGB8_LessPrecision[FRACUNIT>>10];
+					dc_srcalpha = alpha;
+					dc_destalpha = OPAQUE - alpha;
 				}
 			}
 			else
@@ -1587,12 +1733,16 @@ void R_DrawNormalPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 					spanfunc = R_DrawSpanTranslucent;
 					dc_srcblend = Col2RGB8[alpha>>10];
 					dc_destblend = Col2RGB8[(OPAQUE-alpha)>>10];
+					dc_srcalpha = alpha;
+					dc_destalpha = OPAQUE - alpha;
 				}
 				else
 				{
 					spanfunc = R_DrawSpanAddClamp;
 					dc_srcblend = Col2RGB8_LessPrecision[alpha>>10];
 					dc_destblend = Col2RGB8_LessPrecision[FRACUNIT>>10];
+					dc_srcalpha = alpha;
+					dc_destalpha = OPAQUE - alpha;
 				}
 			}
 			else
@@ -1610,7 +1760,7 @@ void R_DrawNormalPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 //
 //==========================================================================
 
-void R_DrawTiltedPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t alpha, bool additive, bool masked)
+void R_DrawTiltedPlane(visplane_t *pl, double _xscale, double _yscale, fixed_t alpha, bool additive, bool masked)
 {
 	static const float ifloatpow2[16] =
 	{
@@ -1645,7 +1795,7 @@ void R_DrawTiltedPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 	// p is the texture origin in view space
 	// Don't add in the offsets at this stage, because doing so can result in
 	// errors if the flat is rotated.
-	ang = M_PI*3/2 - ViewAngle.Radians();
+	ang = M_PI * 3 / 2 - ViewAngle.Radians();
 	cosine = cos(ang), sine = sin(ang);
 	p[0] = ViewPos.X * cosine - ViewPos.Y * sine;
 	p[2] = ViewPos.X * sine + ViewPos.Y * cosine;
@@ -1656,25 +1806,25 @@ void R_DrawTiltedPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 	cosine = cos(ang), sine = sin(ang);
 	m[0] = yscale * cosine;
 	m[2] = yscale * sine;
-//	m[1] = pl->height.ZatPointF (0, iyscale) - pl->height.ZatPointF (0,0));
-//	VectorScale2 (m, 64.f/VectorLength(m));
+	//	m[1] = pl->height.ZatPointF (0, iyscale) - pl->height.ZatPointF (0,0));
+	//	VectorScale2 (m, 64.f/VectorLength(m));
 
-	// n is the u direction vector in view space
+		// n is the u direction vector in view space
 #if 0
 	//let's use the sin/cosine we already know instead of computing new ones
-	ang += M_PI/2
-	n[0] = -xscale * cos(ang);
+	ang += M_PI / 2
+		n[0] = -xscale * cos(ang);
 	n[2] = -xscale * sin(ang);
 #else
 	n[0] = xscale * sine;
 	n[2] = -xscale * cosine;
 #endif
-//	n[1] = pl->height.ZatPointF (ixscale, 0) - pl->height.ZatPointF (0,0));
-//	VectorScale2 (n, 64.f/VectorLength(n));
+	//	n[1] = pl->height.ZatPointF (ixscale, 0) - pl->height.ZatPointF (0,0));
+	//	VectorScale2 (n, 64.f/VectorLength(n));
 
-	// This code keeps the texture coordinates constant across the x,y plane no matter
-	// how much you slope the surface. Use the commented-out code above instead to keep
-	// the textures a constant size across the surface's plane instead.
+		// This code keeps the texture coordinates constant across the x,y plane no matter
+		// how much you slope the surface. Use the commented-out code above instead to keep
+		// the textures a constant size across the surface's plane instead.
 	cosine = cos(planeang), sine = sin(planeang);
 	m[1] = pl->height.ZatPoint(ViewPos.X + yscale * sine, ViewPos.Y + yscale * cosine) - zeroheight;
 	n[1] = pl->height.ZatPoint(ViewPos.X - xscale * cosine, ViewPos.Y + xscale * sine) - zeroheight;
@@ -1707,12 +1857,22 @@ void R_DrawTiltedPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 	if (pl->height.fC() > 0)
 		planelightfloat = -planelightfloat;
 
+	ds_light = 0;
 	if (fixedlightlev >= 0)
-		ds_colormap = basecolormap->Maps + fixedlightlev, plane_shade = false;
+	{
+		R_SetDSColorMapLight(basecolormap, 0, FIXEDLIGHT2SHADE(fixedlightlev));
+		plane_shade = false;
+	}
 	else if (fixedcolormap)
-		ds_colormap = fixedcolormap, plane_shade = false;
+	{
+		R_SetDSColorMapLight(fixedcolormap, 0, 0);
+		plane_shade = false;
+	}
 	else
-		ds_colormap = basecolormap->Maps, plane_shade = true;
+	{
+		R_SetDSColorMapLight(basecolormap, 0, 0);
+		plane_shade = true;
+	}
 
 	if (!plane_shade)
 	{
@@ -1723,9 +1883,16 @@ void R_DrawTiltedPlane (visplane_t *pl, double _xscale, double _yscale, fixed_t 
 	}
 
 #if defined(X86_ASM)
-	if (ds_source != ds_curtiltedsource)
-		R_SetTiltedSpanSource_ASM (ds_source);
-	R_MapVisPlane (pl, R_DrawTiltedPlane_ASM);
+	if (!r_swtruecolor)
+	{
+		if (ds_source != ds_curtiltedsource)
+			R_SetTiltedSpanSource_ASM(ds_source);
+		R_MapVisPlane(pl, R_DrawTiltedPlane_ASM);
+	}
+	else
+	{
+		R_MapVisPlane(pl, R_MapTiltedPlane);
+	}
 #else
 	R_MapVisPlane (pl, R_MapTiltedPlane);
 #endif

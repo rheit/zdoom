@@ -103,9 +103,10 @@ const BYTE *FCanvasTexture::GetPixels ()
 
 void FCanvasTexture::MakeTexture ()
 {
-	Canvas = new DSimpleCanvas (Width, Height);
+	Canvas = new DSimpleCanvas (Width, Height, false);
 	Canvas->Lock ();
 	GC::AddSoftRoot(Canvas);
+
 	if (Width != Height || Width != Canvas->GetPitch())
 	{
 		Pixels = new BYTE[Width*Height];
@@ -113,9 +114,10 @@ void FCanvasTexture::MakeTexture ()
 	}
 	else
 	{
-		Pixels = Canvas->GetBuffer();
+		Pixels = (BYTE*)Canvas->GetBuffer();
 		bPixelsAllocated = false;
 	}
+
 	// Draw a special "unrendered" initial texture into the buffer.
 	memset (Pixels, 0, Width*Height/2);
 	memset (Pixels+Width*Height/2, 255, Width*Height/2);

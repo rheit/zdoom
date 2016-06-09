@@ -129,6 +129,12 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 	static short bottomclipper[MAXWIDTH], topclipper[MAXWIDTH];
 	const BYTE *translation = NULL;
 
+	if (r_swtruecolor != IsBgra())
+	{
+		r_swtruecolor = IsBgra();
+		R_InitColumnDrawers();
+	}
+
 	if (parms.masked)
 	{
 		spanptr = &spans;
@@ -165,14 +171,14 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 
 	if (translation != NULL)
 	{
-		dc_colormap = (lighttable_t *)translation;
+		R_SetTranslationMap((lighttable_t *)translation);
 	}
 	else
 	{
-		dc_colormap = identitymap;
+		R_SetTranslationMap(identitymap);
 	}
 
-	fixedcolormap = dc_colormap;
+	fixedcolormap = dc_fcolormap;
 	ESPSResult mode = R_SetPatchStyle (parms.style, parms.Alpha, 0, parms.fillcolor);
 
 	BYTE *destorgsave = dc_destorg;
@@ -298,7 +304,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 
 			while (dc_x < stop4)
 			{
-				rt_initcols();
+				rt_initcols(nullptr);
 				for (int zz = 4; zz; --zz)
 				{
 					pixels = img->GetColumn(frac >> FRACBITS, spanptr);
@@ -1015,13 +1021,35 @@ void DCanvas::PUTTRANSDOT (int xx, int yy, int basecolor, int level)
 		oldyyshifted = yy * GetPitch();
 	}
 
-	BYTE *spot = GetBuffer() + oldyyshifted + xx;
-	DWORD *bg2rgb = Col2RGB8[1+level];
-	DWORD *fg2rgb = Col2RGB8[63-level];
-	DWORD fg = fg2rgb[basecolor];
-	DWORD bg = bg2rgb[*spot];
-	bg = (fg+bg) | 0x1f07c1f;
-	*spot = RGB32k.All[bg&(bg>>15)];
+	if (IsBgra())
+	{
+		uint32_t *spot = (uint32_t*)GetBuffer() + oldyyshifted + xx;
+
+		uint32_t fg = shade_pal_index_simple(basecolor, calc_light_multiplier(0));
+		uint32_t fg_red = (fg >> 16) & 0xff;
+		uint32_t fg_green = (fg >> 8) & 0xff;
+		uint32_t fg_blue = fg & 0xff;
+
+		uint32_t bg_red = (*spot >> 16) & 0xff;
+		uint32_t bg_green = (*spot >> 8) & 0xff;
+		uint32_t bg_blue = (*spot) & 0xff;
+
+		uint32_t red = (fg_red + bg_red + 1) / 2;
+		uint32_t green = (fg_green + bg_green + 1) / 2;
+		uint32_t blue = (fg_blue + bg_blue + 1) / 2;
+
+		*spot = 0xff000000 | (red << 16) | (green << 8) | blue;
+	}
+	else
+	{
+		BYTE *spot = GetBuffer() + oldyyshifted + xx;
+		DWORD *bg2rgb = Col2RGB8[1+level];
+		DWORD *fg2rgb = Col2RGB8[63-level];
+		DWORD fg = fg2rgb[basecolor];
+		DWORD bg = bg2rgb[*spot];
+		bg = (fg+bg) | 0x1f07c1f;
+		*spot = RGB32k.All[bg&(bg>>15)];
+	}
 }
 
 void DCanvas::DrawLine(int x0, int y0, int x1, int y1, int palColor, uint32 realcolor)
@@ -1065,27 +1093,62 @@ void DCanvas::DrawLine(int x0, int y0, int x1, int y1, int palColor, uint32 real
 		{
 			swapvalues (x0, x1);
 		}
-		memset (GetBuffer() + y0*GetPitch() + x0, palColor, deltaX+1);
+		if (IsBgra())
+		{
+			uint32_t *spot = (uint32_t*)GetBuffer() + y0*GetPitch() + x0;
+			for (int i = 0; i <= deltaX; i++)
+				spot[i] = palColor;
+		}
+		else
+		{
+			memset (GetBuffer() + y0*GetPitch() + x0, palColor, deltaX+1);
+		}
 	}
 	else if (deltaX == 0)
 	{ // vertical line
-		BYTE *spot = GetBuffer() + y0*GetPitch() + x0;
-		int pitch = GetPitch ();
-		do
+		if (IsBgra())
 		{
-			*spot = palColor;
-			spot += pitch;
-		} while (--deltaY != 0);
+			uint32_t *spot = (uint32_t*)GetBuffer() + y0*GetPitch() + x0;
+			int pitch = GetPitch();
+			do
+			{
+				*spot = palColor;
+				spot += pitch;
+			} while (--deltaY != 0);
+		}
+		else
+		{
+			BYTE *spot = GetBuffer() + y0*GetPitch() + x0;
+			int pitch = GetPitch();
+			do
+			{
+				*spot = palColor;
+				spot += pitch;
+			} while (--deltaY != 0);
+		}
 	}
 	else if (deltaX == deltaY)
 	{ // diagonal line.
-		BYTE *spot = GetBuffer() + y0*GetPitch() + x0;
-		int advance = GetPitch() + xDir;
-		do
+		if (IsBgra())
 		{
-			*spot = palColor;
-			spot += advance;
-		} while (--deltaY != 0);
+			uint32_t *spot = (uint32_t*)GetBuffer() + y0*GetPitch() + x0;
+			int advance = GetPitch() + xDir;
+			do
+			{
+				*spot = palColor;
+				spot += advance;
+			} while (--deltaY != 0);
+		}
+		else
+		{
+			BYTE *spot = GetBuffer() + y0*GetPitch() + x0;
+			int advance = GetPitch() + xDir;
+			do
+			{
+				*spot = palColor;
+				spot += advance;
+			} while (--deltaY != 0);
+		}
 	}
 	else
 	{
@@ -1205,7 +1268,6 @@ void DCanvas::DrawPixel(int x, int y, int palColor, uint32 realcolor)
 void DCanvas::Clear (int left, int top, int right, int bottom, int palcolor, uint32 color)
 {
 	int x, y;
-	BYTE *dest;
 
 	if (left == right || top == bottom)
 	{
@@ -1235,12 +1297,26 @@ void DCanvas::Clear (int left, int top, int right, int bottom, int palcolor, uin
 		palcolor = PalFromRGB(color);
 	}
 
-	dest = Buffer + top * Pitch + left;
-	x = right - left;
-	for (y = top; y < bottom; y++)
+	if (IsBgra())
 	{
-		memset(dest, palcolor, x);
-		dest += Pitch;
+		uint32_t *dest = (uint32_t*)Buffer + top * Pitch + left;
+		x = right - left;
+		for (y = top; y < bottom; y++)
+		{
+			for (int i = 0; i < x; i++)
+				dest[i] = palcolor;
+			dest += Pitch;
+		}
+	}
+	else
+	{
+		BYTE *dest = Buffer + top * Pitch + left;
+		x = right - left;
+		for (y = top; y < bottom; y++)
+		{
+			memset(dest, palcolor, x);
+			dest += Pitch;
+		}
 	}
 }
 
@@ -1318,7 +1394,10 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 
 	// Setup constant texture mapping parameters.
 	R_SetupSpanBits(tex);
-	R_SetSpanColormap(colormap != NULL ? &colormap->Maps[clamp(shade >> FRACBITS, 0, NUMCOLORMAPS-1) * 256] : identitymap);
+	if (colormap)
+		R_SetSpanColormap(colormap, clamp(shade >> FRACBITS, 0, NUMCOLORMAPS - 1));
+	else
+		R_SetSpanColormap(&identitycolormap, 0);
 	R_SetSpanSource(tex->GetPixels());
 	scalex = double(1u << (32 - ds_xbits)) / scalex;
 	scaley = double(1u << (32 - ds_ybits)) / scaley;
@@ -1428,6 +1507,9 @@ void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 //
 void DCanvas::DrawBlock (int x, int y, int _width, int _height, const BYTE *src) const
 {
+	if (IsBgra())
+		return;
+
 	int srcpitch = _width;
 	int destpitch;
 	BYTE *dest;
@@ -1454,6 +1536,9 @@ void DCanvas::DrawBlock (int x, int y, int _width, int _height, const BYTE *src)
 //
 void DCanvas::GetBlock (int x, int y, int _width, int _height, BYTE *dest) const
 {
+	if (IsBgra())
+		return;
+
 	const BYTE *src;
 
 #ifdef RANGECHECK 

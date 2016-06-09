@@ -104,6 +104,8 @@ bool r_dontmaplines;
 CVAR (String, r_viewsize, "", CVAR_NOSET)
 CVAR (Bool, r_shadercolormaps, true, CVAR_ARCHIVE)
 
+bool			r_swtruecolor;
+
 double			r_BaseVisibility;
 double			r_WallVisibility;
 double			r_FloorVisibility;
@@ -117,7 +119,7 @@ double			FocalLengthX;
 double			FocalLengthY;
 FDynamicColormap*basecolormap;		// [RH] colormap currently drawing with
 int				fixedlightlev;
-lighttable_t	*fixedcolormap;
+FColormap		*fixedcolormap;
 FSpecialColormap *realfixedcolormap;
 double			WallTMapScale2;
 
@@ -397,16 +399,6 @@ void R_InitRenderer()
 	R_InitPlanes ();
 	R_InitShadeMaps();
 	R_InitColumnDrawers ();
-
-	colfunc = basecolfunc = R_DrawColumn;
-	fuzzcolfunc = R_DrawFuzzColumn;
-	transcolfunc = R_DrawTranslatedColumn;
-	spanfunc = R_DrawSpan;
-
-	// [RH] Horizontal column drawers
-	hcolfunc_pre = R_DrawColumnHoriz;
-	hcolfunc_post1 = rt_map1col;
-	hcolfunc_post4 = rt_map4cols;
 }
 
 //==========================================================================
@@ -472,11 +464,11 @@ void R_SetupColormap(player_t *player)
 				// Render everything fullbright. The copy to video memory will
 				// apply the special colormap, so it won't be restricted to the
 				// palette.
-				fixedcolormap = realcolormaps;
+				fixedcolormap = &realcolormaps;
 			}
 			else
 			{
-				fixedcolormap = SpecialColormaps[player->fixedcolormap].Colormap;
+				fixedcolormap = &SpecialColormaps[player->fixedcolormap];
 			}
 		}
 		else if (player->fixedlightlevel >= 0 && player->fixedlightlevel < NUMCOLORMAPS)
@@ -487,7 +479,7 @@ void R_SetupColormap(player_t *player)
 	// [RH] Inverse light for shooting the Sigil
 	if (fixedcolormap == NULL && extralight == INT_MIN)
 	{
-		fixedcolormap = SpecialColormaps[INVERSECOLORMAP].Colormap;
+		fixedcolormap = &SpecialColormaps[INVERSECOLORMAP];
 		extralight = 0;
 	}
 }
@@ -576,6 +568,9 @@ void R_HighlightPortal (PortalDrawseg* pds)
 	// [ZZ] NO OVERFLOW CHECKS HERE
 	//      I believe it won't break. if it does, blame me. :(
 
+	if (r_swtruecolor) // Assuming this is just a debug function
+		return;
+
 	BYTE color = (BYTE)BestColor((DWORD *)GPalette.BaseColors, 255, 0, 0, 0, 255);
 
 	BYTE* pixels = RenderTarget->GetBuffer();
@@ -623,12 +618,26 @@ void R_EnterPortal (PortalDrawseg* pds, int depth)
 			int Ytop = pds->ceilingclip[x-pds->x1];
 			int Ybottom = pds->floorclip[x-pds->x1];
 
-			BYTE *dest = RenderTarget->GetBuffer() + x + Ytop * spacing;
-
-			for (int y = Ytop; y <= Ybottom; y++)
+			if (r_swtruecolor)
 			{
-				*dest = color;
-				dest += spacing;
+				uint32_t *dest = (uint32_t*)RenderTarget->GetBuffer() + x + Ytop * spacing;
+
+				uint32_t c = GPalette.BaseColors[color].d;
+				for (int y = Ytop; y <= Ybottom; y++)
+				{
+					*dest = c;
+					dest += spacing;
+				}
+			}
+			else
+			{
+				BYTE *dest = RenderTarget->GetBuffer() + x + Ytop * spacing;
+
+				for (int y = Ytop; y <= Ybottom; y++)
+				{
+					*dest = color;
+					dest += spacing;
+				}
 			}
 		}
 
@@ -797,7 +806,8 @@ void R_SetupBuffer ()
 	static BYTE *lastbuff = NULL;
 
 	int pitch = RenderTarget->GetPitch();
-	BYTE *lineptr = RenderTarget->GetBuffer() + viewwindowy*pitch + viewwindowx;
+	int pixelsize = r_swtruecolor ? 4 : 1;
+	BYTE *lineptr = RenderTarget->GetBuffer() + (viewwindowy*pitch + viewwindowx) * pixelsize;
 
 	if (dc_pitch != pitch || lineptr != lastbuff)
 	{
@@ -847,10 +857,10 @@ void R_RenderActorView (AActor *actor, bool dontmaplines)
 	// [RH] Show off segs if r_drawflat is 1
 	if (r_drawflat)
 	{
-		hcolfunc_pre = R_FillColumnHorizP;
+		hcolfunc_pre = R_FillColumnHoriz;
 		hcolfunc_post1 = rt_copy1col;
 		hcolfunc_post4 = rt_copy4cols;
-		colfunc = R_FillColumnP;
+		colfunc = R_FillColumn;
 		spanfunc = R_FillSpan;
 	}
 	else
@@ -943,6 +953,13 @@ void R_RenderViewToCanvas (AActor *actor, DCanvas *canvas,
 	int x, int y, int width, int height, bool dontmaplines)
 {
 	const bool savedviewactive = viewactive;
+	const bool savedoutputformat = r_swtruecolor;
+
+	if (r_swtruecolor != canvas->IsBgra())
+	{
+		r_swtruecolor = canvas->IsBgra();
+		R_InitColumnDrawers();
+	}
 
 	viewwidth = width;
 	RenderTarget = canvas;
@@ -961,7 +978,16 @@ void R_RenderViewToCanvas (AActor *actor, DCanvas *canvas,
 	screen->Lock (true);
 	R_SetupBuffer ();
 	screen->Unlock ();
+
+	R_FinishDrawerCommands();
+
 	viewactive = savedviewactive;
+	r_swtruecolor = savedoutputformat;
+
+	if (r_swtruecolor != canvas->IsBgra())
+	{
+		R_InitColumnDrawers();
+	}
 }
 
 //==========================================================================
