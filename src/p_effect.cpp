@@ -337,7 +337,7 @@ void P_SpawnParticle(const DVector3 &pos, const DVector3 &vel, const DVector3 &a
 		particle->ttl = lifetime;
 		particle->bright = !!(flags & PS_FULLBRIGHT);
 		particle->size = size;
-		particle->sizestep = (lifetime == 0) ? 0 : ((endsize - size) / lifetime);
+		particle->sizestep = (lifetime == 0 || endsize < 0) ? 0 : ((endsize - size) / lifetime);
 		particle->notimefreeze = !!(flags & PS_NOTIMEFREEZE);
 	}
 }
