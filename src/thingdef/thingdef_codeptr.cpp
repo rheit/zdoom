@@ -1514,6 +1514,9 @@ enum CBA_Flags
 	CBAF_EXPLICITANGLE = 4,
 	CBAF_NOPITCH = 8,
 	CBAF_NORANDOMPUFFZ = 16,
+	CBAF_PUFFTARGET = 32,
+	CBAF_PUFFMASTER = 64,
+	CBAF_PUFFTRACER = 128,
 };
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
@@ -1527,6 +1530,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 	PARAM_FLOAT_OPT	(range)			   { range = 0; }
 	PARAM_INT_OPT	(flags)			   { flags = 0; }
 	PARAM_INT_OPT	(ptr)			   { ptr = AAPTR_TARGET; }
+	PARAM_CLASS_OPT (missile, AActor)	{ missile = nullptr; }
+	PARAM_FLOAT_OPT (Spawnheight)		{ Spawnheight = 32; }
+	PARAM_FLOAT_OPT (Spawnofs_xy)		{ Spawnofs_xy = 0; }
 
 	AActor *ref = COPY_AAPTR(self, ptr);
 
@@ -1571,7 +1577,25 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 			if (!(flags & CBAF_NORANDOM))
 				damage *= ((pr_cabullet()%3)+1);
 
-			P_LineAttack(self, angle, range, slope, damage, NAME_Hitscan, pufftype, laflags);
+			AActor *puff = P_LineAttack(self, angle, range, slope, damage, NAME_Hitscan, pufftype, laflags);
+
+			if (puff && missile)
+			{
+				double x = Spawnofs_xy * angle.Cos();
+				double y = Spawnofs_xy * angle.Sin();
+				AActor *proj = P_SpawnMissileXYZ(self->Vec3Offset(x, y, self->GetBobOffset() + Spawnheight), self, puff, missile, false);
+				if (proj)
+				{
+					if (flags & CBAF_PUFFTARGET)	proj->target = puff;
+					if (flags & CBAF_PUFFMASTER)	proj->master = puff;
+					if (flags & CBAF_PUFFTRACER)	proj->tracer = puff;
+					double missilespeed;
+					A_Face(proj, puff, 0., 0.);
+					missilespeed = fabs(proj->Angles.Pitch.Cos() * proj->Speed);
+					proj->Vel.Z = proj->Angles.Pitch.Sin() * proj->Speed;
+					proj->VelFromAngle(missilespeed);
+				}
+			}
 		}
     }
 	return 0;
@@ -1700,7 +1724,32 @@ enum FB_Flags
 	FBF_NOPITCH = 8,
 	FBF_NOFLASH = 16,
 	FBF_NORANDOMPUFFZ = 32,
+	FBF_PUFFTARGET = 64,
+	FBF_PUFFMASTER = 128,
+	FBF_PUFFTRACER = 256,
 };
+
+static void FireBulletMissile(AActor *self, PClassActor *missile, AActor *puff, DAngle angle, double Spawnheight, double Spawnofs_xy, int flags)
+{
+	if (self && missile && puff)
+	{
+		DAngle ang = self->Angles.Yaw - 90;
+		DVector2 ofs = ang.ToVector(Spawnofs_xy);
+
+		AActor *proj = P_SpawnPlayerMissile(self, ofs.X, ofs.Y, Spawnheight, missile, angle, nullptr, nullptr, false, true);
+		if (proj)
+		{
+			if (flags & FBF_PUFFTARGET)	proj->target = puff;
+			if (flags & FBF_PUFFMASTER)	proj->master = puff;
+			if (flags & FBF_PUFFTRACER)	proj->tracer = puff;
+			double missilespeed;
+			A_Face(proj, puff, 0., 0.);
+			missilespeed = fabs(proj->Angles.Pitch.Cos() * proj->Speed);
+			proj->Vel.Z = proj->Angles.Pitch.Sin() * proj->Speed;
+			proj->VelFromAngle(missilespeed);
+		}
+	}
+}
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireBullets)
 {
@@ -1709,9 +1758,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireBullets)
 	PARAM_ANGLE		(spread_z);
 	PARAM_INT		(numbullets);
 	PARAM_INT		(damageperbullet);
-	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = NULL; }
+	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = nullptr; }
 	PARAM_INT_OPT	(flags)				{ flags = FBF_USEAMMO; }
 	PARAM_FLOAT_OPT	(range)				{ range = 0; }
+	PARAM_CLASS_OPT (missile, AActor)	{ missile = nullptr; }
+	PARAM_FLOAT_OPT (Spawnheight)		{ Spawnheight = 0; }
+	PARAM_FLOAT_OPT (Spawnofs_xy)		{ Spawnofs_xy = 0; }
 
 	if (!self->player) return 0;
 
@@ -1750,7 +1802,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireBullets)
 		if (!(flags & FBF_NORANDOM))
 			damage *= ((pr_cwbullet()%3)+1);
 
-		P_LineAttack(self, bangle, range, bslope, damage, NAME_Hitscan, pufftype, laflags);
+		AActor *puff = P_LineAttack(self, bangle, range, bslope, damage, NAME_Hitscan, pufftype, laflags);
+		FireBulletMissile(self, missile, puff, bangle, Spawnheight, Spawnofs_xy, flags);
+
 	}
 	else 
 	{
@@ -1777,7 +1831,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireBullets)
 			if (!(flags & FBF_NORANDOM))
 				damage *= ((pr_cwbullet()%3)+1);
 
-			P_LineAttack(self, angle, range, slope, damage, NAME_Hitscan, pufftype, laflags);
+			AActor *puff = P_LineAttack(self, angle, range, slope, damage, NAME_Hitscan, pufftype, laflags);
+			FireBulletMissile(self, missile, puff, angle, Spawnheight, Spawnofs_xy, flags);
 		}
 	}
 	return 0;
