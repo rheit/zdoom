@@ -937,9 +937,10 @@ DEFINE_ACTION_FUNCTION(AInventory, A_CheckReload)
 //---------------------------------------------------------------------------
 enum WOFFlags
 {
-	WOF_KEEPX =		1,
-	WOF_KEEPY =		1 << 1,
-	WOF_ADD =		1 << 2,
+	WOF_KEEPX =			1,
+	WOF_KEEPY =			1 << 1,
+	WOF_ADD =			1 << 2,
+	WOF_AUTOADJUST =	1 << 3,
 };
 
 void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
@@ -955,6 +956,10 @@ void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
 	if (player && (player->playerstate != PST_DEAD))
 	{
 		psp = player->FindPSprite(layer);
+		if ((flags & WOF_AUTOADJUST) && (psp->Flags & PSPF_ADDWEAPON) && (psp->GetID() != PSP_WEAPON))
+		{
+			wy -= 32;
+		}
 
 		if (psp == nullptr)
 			return;
