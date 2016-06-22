@@ -1184,8 +1184,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 				continue;
 		}
 
-		P_SetPsprite(player, PSPLayers(i), nullptr);
-		count++;
+		if (player->FindPSprite(i) != nullptr)
+		{
+			P_SetPsprite(player, PSPLayers(i), nullptr);
+			count++;
+		}
 	}
 	ACTION_RETURN_INT(count);
 }
