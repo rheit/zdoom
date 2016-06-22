@@ -1169,28 +1169,23 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 
 	int count = 0;
 	DPSprite *pspr = player->psprites;
-	while (pspr != nullptr)
+	for (int i = start; i < stop; i++)
 	{
-		int id = pspr->GetID();
-
 		//Do not wipe out layer 0. Ever.
-		if (!id || id < start)
+		if (!i)
 			continue;
-		if (id > stop)
-			break;
 
+		// [MC]Don't affect non-hardcoded layers unless it's really desired.
 		if (safety)
 		{
-			if (id >= PSP_TARGETCENTER)
+			if (i >= PSP_TARGETCENTER)
 				break;
-			else if ((id >= PSP_STRIFEHANDS && id <= PSP_WEAPON) || (id == PSP_FLASH))
+			else if ((i >= PSP_STRIFEHANDS && i <= PSP_WEAPON) || (i == PSP_FLASH))
 				continue;
 		}
 
-		// [MC]Don't affect non-hardcoded layers unless it's really desired.
-		pspr->SetState(nullptr);
+		P_SetPsprite(player, PSPLayers(i), nullptr);
 		count++;
-		pspr = pspr->GetNext();
 	}
 	ACTION_RETURN_INT(count);
 }
