@@ -1554,7 +1554,7 @@ void R_DrawPlayerSprites ()
 
 	if (!r_drawplayersprites ||
 		!camera ||
-		!camera->player ||
+		//!camera->player ||
 		(players[consoleplayer].cheats & CF_CHASECAM) ||
 		(r_deathcamera && camera->health <= 0))
 		return;
@@ -1608,7 +1608,7 @@ void R_DrawPlayerSprites ()
 	mfloorclip = screenheightarray;
 	mceilingclip = zeroarray;
 
-	if (camera->player != NULL)
+	if (camera->player != nullptr)
 	{
 		double centerhack = CenterY;
 		double wx, wy;
@@ -1638,7 +1638,7 @@ void R_DrawPlayerSprites ()
 			wy = 0;
 		}
 
-		// add all active psprites
+		// add all active psprites from the player if they're in their body
 		psp = camera->player->psprites;
 		while (psp)
 		{
@@ -1655,6 +1655,32 @@ void R_DrawPlayerSprites ()
 		}
 
 		CenterY = centerhack;
+	}
+	else if (camera)
+	{
+		//Draw any psprites a camera might have, provided it's not NULL.
+		psp = camera->psprites;
+		double wx, wy;
+		while (psp)
+		{
+			if ((psp->GetID() != PSP_TARGETCENTER || CrosshairImage == nullptr) && psp->GetCaller() != nullptr)
+			{
+				int id = psp->GetID();
+				if (psp->firstTic)
+				{
+					wx = psp->x;
+					wy = psp->y;
+				}
+				else
+				{
+					wx = psp->oldx + (psp->x - psp->oldx) * r_TicFracF;
+					wy = psp->oldy + (psp->y - psp->oldy) * r_TicFracF;
+				}
+				R_DrawPSprite(psp, camera, 0, 0, wx, wy, r_TicFracF);
+			}
+
+			psp = psp->GetNext();
+		}
 	}
 }
 
