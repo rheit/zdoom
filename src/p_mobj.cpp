@@ -70,6 +70,7 @@
 #include "po_man.h"
 #include "p_spec.h"
 #include "p_checkposition.h"
+#include "p_pspr.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -3347,7 +3348,7 @@ void AActor::Tick ()
 				return;
 			}
 		}
-
+		TickPSprites();
 		UnlinkFromWorld ();
 		flags |= MF_NOBLOCKMAP;
 		SetXYZ(Vec3Offset(Vel));
@@ -3390,7 +3391,7 @@ void AActor::Tick ()
 				return;
 			}
 		}
-
+		TickPSprites();
 
 		if (effects & FX_ROCKET) 
 		{
@@ -6592,5 +6593,123 @@ void PrintMiscActorInfo(AActor *query)
 			query->floorz, query->ceilingz);
 		Printf("\nSpeed= %f, velocity= x:%f, y:%f, z:%f, combined:%f.\n",
 			query->Speed, query->Vel.X, query->Vel.Y, query->Vel.Z, query->Vel.Length());
+	}
+}
+
+//===============================================================================================================
+
+DPSprite::DPSprite(AActor *aowner, AActor *caller, int id)
+	: x(.0), y(.0),
+	oldx(.0), oldy(.0),
+	firstTic(true),
+	Flags(0),
+	Caller(caller),
+	AOwner(aowner),
+	Owner(nullptr),
+	isPlayer(false),
+	ID(id),
+	processPending(true)
+{
+	DPSprite *prev = nullptr;
+	DPSprite *next = AOwner->psprites;
+	while (next != nullptr && next->ID < ID)
+	{
+		prev = next;
+		next = next->Next;
+	}
+	Next = next;
+	GC::WriteBarrier(this, next);
+	if (prev == nullptr)
+	{
+		AOwner->psprites = this;
+		GC::WriteBarrier(this);
+	}
+	else
+	{
+		prev->Next = this;
+		GC::WriteBarrier(prev, this);
+	}
+
+	if (Next && Next->ID == ID && ID != 0)
+		Next->Destroy(); // Replace it.
+}
+
+//------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------
+DPSprite *AActor::FindPSprite(int layer)
+{
+	DPSprite *pspr = psprites;
+	while (pspr)
+	{
+		if (pspr->ID == layer)
+			break;
+
+		pspr = pspr->Next;
+	}
+
+	return pspr;
+}
+//------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------
+void P_SetPsprite(AActor *actor, int id, FState *state, bool pending)
+{
+	if (actor == nullptr) return;
+	actor->GetPSprite(id)->SetState(state, pending);
+}
+
+DPSprite *AActor::GetPSprite(int layer)
+{
+	DPSprite *pspr = FindPSprite(layer);
+	if (pspr == nullptr)
+	{
+		pspr = new DPSprite(this, this, layer);
+	}
+	return pspr;
+}
+//------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------
+void AActor::TickPSprites()
+{
+	DPSprite *pspr = psprites;
+	while (pspr)
+	{
+		// Destroy the psprite if it's from a weapon that isn't currently selected by the player
+		// or if it's from an inventory item that the player no longer owns. 
+		if (pspr->Caller == nullptr)
+		{
+			pspr->Destroy();
+		}
+		else
+		{
+			pspr->Tick();
+		}
+
+		pspr = pspr->Next;
+	}
+}
+//------------------------------------------------------------------------
+//
+// Destroys all PSprites on an actor (not player_t). 
+//
+//------------------------------------------------------------------------
+void AActor::DestroyPSprites()
+{
+	DPSprite *pspr = psprites;
+	psprites = nullptr;
+	while (pspr)
+	{
+		DPSprite *next = pspr->Next;
+		pspr->Next = nullptr;
+		pspr->Destroy();
+		pspr = next;
 	}
 }
