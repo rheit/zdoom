@@ -1199,17 +1199,21 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 		int id = pspr->GetID();
 
 		//Do not wipe out layer 0. Ever.
-		if ((!id && plr) || id < start)
+		if ((!id && plr) || id < start || id > stop)
+		{
+			pspr = pspr->GetNext();
 			continue;
-		if (id > stop)
-			continue;
-
+		}
+		
 		if (safety)
 		{
 			if (id >= PSP_TARGETCENTER)
 				break;
 			else if ((id >= PSP_STRIFEHANDS && id <= PSP_WEAPON) || (id == PSP_FLASH))
+			{
+				pspr = pspr->GetNext();
 				continue;
+			}
 		}
 
 		// [MC]Don't affect non-hardcoded layers unless it's really desired.
