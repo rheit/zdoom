@@ -1554,7 +1554,7 @@ void R_DrawPlayerSprites ()
 
 	if (!r_drawplayersprites ||
 		!camera ||
-		//!camera->player ||
+		//!camera->player ||		// With overlays on actors, settling with just the camera actor alone is required for ChangeCamera.
 		(players[consoleplayer].cheats & CF_CHASECAM) ||
 		(r_deathcamera && camera->health <= 0))
 		return;
@@ -1608,38 +1608,46 @@ void R_DrawPlayerSprites ()
 	mfloorclip = screenheightarray;
 	mceilingclip = zeroarray;
 
-	if (camera->player != nullptr)
+	// [MC] Since cameras can now have overlays, just make sure the camera isn't null and use a special
+	// check for just the weapon.
+	if (camera != nullptr)
 	{
 		double centerhack = CenterY;
 		double wx, wy;
-		float bobx, boby;
+		float bobx = 0.0f, boby = 0.0f;
 
 		CenterY = viewheight / 2;
-
-		P_BobWeapon (camera->player, &bobx, &boby, r_TicFracF);
-
-		// Interpolate the main weapon layer once so as to be able to add it to other layers.
-		if ((weapon = camera->player->FindPSprite(PSP_WEAPON)) != nullptr)
+		if (camera->player != nullptr)
 		{
-			if (weapon->firstTic)
+			P_BobWeapon(camera->player, &bobx, &boby, r_TicFracF);
+
+			// Interpolate the main weapon layer once so as to be able to add it to other layers.
+			if ((weapon = camera->player->FindPSprite(PSP_WEAPON)) != nullptr)
 			{
-				wx = weapon->x;
-				wy = weapon->y;
+				if (weapon->firstTic)
+				{
+					wx = weapon->x;
+					wy = weapon->y;
+				}
+				else
+				{
+					wx = weapon->oldx + (weapon->x - weapon->oldx) * r_TicFracF;
+					wy = weapon->oldy + (weapon->y - weapon->oldy) * r_TicFracF;
+				}
 			}
 			else
 			{
-				wx = weapon->oldx + (weapon->x - weapon->oldx) * r_TicFracF;
-				wy = weapon->oldy + (weapon->y - weapon->oldy) * r_TicFracF;
+				wx = 0;
+				wy = 0;
 			}
 		}
-		else
-		{
-			wx = 0;
-			wy = 0;
-		}
-
-		// add all active psprites from the player if they're in their body
-		psp = camera->player->psprites;
+		
+		bool plr = (camera->player != nullptr);
+		// add all active psprites from the player if they're in their body, else get the camera actor's psprites.
+		if (plr)
+			psp = camera->player->psprites;
+		else	
+			psp = camera->psprites;
 		while (psp)
 		{
 			// [RH] Don't draw the targeter's crosshair if the player already has a crosshair set.
@@ -1648,6 +1656,20 @@ void R_DrawPlayerSprites ()
 			// In this case let's simply not draw it to avoid crashing.
 			if ((psp->GetID() != PSP_TARGETCENTER || CrosshairImage == nullptr) && psp->GetCaller() != nullptr)
 			{
+				// [MC] Since we're not inside a player here, perform interpolation on the camera's psprites.
+				if (!plr)
+				{
+					if (psp->firstTic)
+					{
+						wx = psp->x;
+						wy = psp->y;
+					}
+					else
+					{
+						wx = psp->oldx + (psp->x - psp->oldx) * r_TicFracF;
+						wy = psp->oldy + (psp->y - psp->oldy) * r_TicFracF;
+					}
+				}
 				R_DrawPSprite(psp, camera, bobx, boby, wx, wy, r_TicFracF);
 			}
 
@@ -1655,32 +1677,6 @@ void R_DrawPlayerSprites ()
 		}
 
 		CenterY = centerhack;
-	}
-	else if (camera)
-	{
-		//Draw any psprites a camera might have, provided it's not NULL.
-		psp = camera->psprites;
-		double wx, wy;
-		while (psp)
-		{
-			if ((psp->GetID() != PSP_TARGETCENTER || CrosshairImage == nullptr) && psp->GetCaller() != nullptr)
-			{
-				int id = psp->GetID();
-				if (psp->firstTic)
-				{
-					wx = psp->x;
-					wy = psp->y;
-				}
-				else
-				{
-					wx = psp->oldx + (psp->x - psp->oldx) * r_TicFracF;
-					wy = psp->oldy + (psp->y - psp->oldy) * r_TicFracF;
-				}
-				R_DrawPSprite(psp, camera, 0, 0, wx, wy, r_TicFracF);
-			}
-
-			psp = psp->GetNext();
-		}
 	}
 }
 

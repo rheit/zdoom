@@ -6597,7 +6597,13 @@ void PrintMiscActorInfo(AActor *query)
 }
 
 //===============================================================================================================
-
+// [MC]
+// DPSprites for Actors
+//
+// This version is distinct from the player_t version with the use of isPlayer boolean defaulting to false.
+// This also doesn't do any special weapon processing or special layer checking as actors never had them before
+// now.
+//===============================================================================================================
 DPSprite::DPSprite(AActor *aowner, AActor *caller, int id)
 	: x(.0), y(.0),
 	oldx(.0), oldy(.0),
@@ -6682,8 +6688,7 @@ void AActor::TickPSprites()
 	DPSprite *pspr = psprites;
 	while (pspr)
 	{
-		// Destroy the psprite if it's from a weapon that isn't currently selected by the player
-		// or if it's from an inventory item that the player no longer owns. 
+		// Destroy the psprite if it's from an inventory item that this actor no longer has.
 		if (pspr->Caller == nullptr ||
 			pspr->Caller->IsKindOf(RUNTIME_CLASS(AInventory)) && barrier_cast<AInventory *>(pspr->Caller) != pspr->AOwner)
 		{

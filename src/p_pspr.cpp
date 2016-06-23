@@ -319,9 +319,10 @@ void DPSprite::SetState(FState *newstate, bool pending)
 				y = newstate->GetMisc2();
 			}
 		}
+		// Determine if this was made by a player or an actor, and check if the appropriate one exists.
 		if ((isPlayer ? (Owner->mo != nullptr) : (AOwner != nullptr)))
 		{
-			FState *nextstate;
+			FState *nextstate;	//STATE_Psprite = player layers. STATE_Asprite = actor layers.
 			FStateParamInfo stp = { newstate, (isPlayer ? STATE_Psprite : STATE_Asprite), ID };
 			if (newstate->CallAction((isPlayer ? Owner->mo : AOwner), Caller, &stp, &nextstate))
 			{
@@ -1170,8 +1171,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	PARAM_INT_OPT(stop) { stop = 0; }
 	PARAM_BOOL_OPT(safety) { safety = true; }
 
-	if (!self->player)
-		ACTION_RETURN_INT(0);
+	bool plr = (self->player != nullptr);
+	if (!plr)
+		safety = false;
 
 	player_t *player = self->player;
 	if (!start && !stop)
@@ -1181,16 +1183,26 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	}
 
 	int count = 0;
-	DPSprite *pspr = player->psprites;
+	DPSprite *pspr = plr ? player->psprites : self->psprites;
+	const int startID = (pspr != nullptr) ? pspr->GetID() : start;
+	bool first = true;
 	while (pspr != nullptr)
 	{
+		if (pspr->GetID() == startID)
+		{
+			if (first)
+				first = false;
+			else
+				break;
+		}
+		
 		int id = pspr->GetID();
 
 		//Do not wipe out layer 0. Ever.
-		if (!id || id < start)
+		if ((!id && plr) || id < start)
 			continue;
 		if (id > stop)
-			break;
+			continue;
 
 		if (safety)
 		{
