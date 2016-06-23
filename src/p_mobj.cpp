@@ -6684,7 +6684,8 @@ void AActor::TickPSprites()
 	{
 		// Destroy the psprite if it's from a weapon that isn't currently selected by the player
 		// or if it's from an inventory item that the player no longer owns. 
-		if (pspr->Caller == nullptr)
+		if (pspr->Caller == nullptr ||
+			pspr->Caller->IsKindOf(RUNTIME_CLASS(AInventory)) && barrier_cast<AInventory *>(pspr->Caller) != pspr->AOwner)
 		{
 			pspr->Destroy();
 		}

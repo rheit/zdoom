@@ -952,9 +952,9 @@ void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
 	player_t *player = self->player;
 	DPSprite *psp;
 
-	if (player && (player->playerstate != PST_DEAD))
+	if (self || player)
 	{
-		psp = player->FindPSprite(layer);
+		psp = (player != nullptr) ? (player->FindPSprite(layer)) : (self->FindPSprite(layer));
 
 		if (psp == nullptr)
 			return;
@@ -1017,6 +1017,9 @@ DEFINE_ACTION_FUNCTION(AActor, A_OverlayFlags)
 	PARAM_INT(layer);
 	PARAM_INT(flags);
 	PARAM_BOOL(set);
+
+	// [MC] Currently there are no flags to be had with actors.
+	// Until that time comes, I see no reason to modify this now.
 
 	if (self->player == nullptr)
 		return 0;
