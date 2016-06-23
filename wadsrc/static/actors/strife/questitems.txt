@@ -44,6 +44,16 @@ ACTOR QuestItem : Inventory
 	}
 }
 
+ACTOR QuestItemThatDoesNotExist : CustomInventory
+{
+	States
+	{
+	Pickup:
+		TNT1 A 0
+		Fail
+	}
+}
+
 // Quest Items -------------------------------------------------------------
 
 ACTOR QuestItem1 : QuestItem
