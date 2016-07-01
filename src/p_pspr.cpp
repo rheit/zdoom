@@ -1088,7 +1088,7 @@ DEFINE_ACTION_FUNCTION(AInventory, A_Lower)
 		psp->y = WEAPONBOTTOM;
 	
 		// Player is dead, so keep the weapon off screen
-		psp->SetState(nullptr);
+		psp->SetState(player->ReadyWeapon->FindState(NAME_DeadLowered));
 		return 0;
 	}
 	// [RH] Clear the flash state. Only needed for Strife.
