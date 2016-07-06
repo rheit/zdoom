@@ -60,6 +60,7 @@ enum EStateType
 	STATE_Actor,
 	STATE_Psprite,
 	STATE_StateChain,
+	STATE_Asprite,
 };
 
 struct FStateParamInfo

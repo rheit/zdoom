@@ -46,6 +46,7 @@ struct subsector_t;
 class PClassAmmo;
 struct FBlockNode;
 struct FPortalGroupArray;
+class DPSprite;
 
 //
 // NOTES: AActor
@@ -980,6 +981,7 @@ public:
 	double			Speed;
 	double			FloatSpeed;
 
+	TObjPtr<DPSprite> psprites;			// view sprites
 	WORD			sprite;				// used to find patch_t and flip value
 	BYTE			frame;				// sprite frame to draw
 	DVector2		Scale;				// Scaling values; 1 is normal size
@@ -1374,6 +1376,83 @@ public:
 
 	int ApplyDamageFactor(FName damagetype, int damage) const;
 
+	// PSprite layers
+	void TickPSprites();
+	void DestroyPSprites();
+	DPSprite *FindPSprite(int layer);
+	DPSprite *GetPSprite(int layer);
+};
+void P_SetPsprite(AActor *actor, int id, FState *state, bool pending = false);
+
+
+//
+// Overlay psprites are scaled shapes
+// drawn directly on the view screen,
+// coordinates are given for a 320*200 view screen.
+//
+enum PSPLayers // These are all called by the owner's ReadyWeapon.
+{
+	PSP_STRIFEHANDS = -1,
+	PSP_WEAPON = 1,
+	PSP_FLASH = 1000,
+	PSP_TARGETCENTER = INT_MAX - 2,
+	PSP_TARGETLEFT,
+	PSP_TARGETRIGHT,
+};
+
+enum PSPFlags
+{
+	PSPF_ADDWEAPON =		1 << 0,
+	PSPF_ADDBOB =			1 << 1,
+	PSPF_POWDOUBLE =		1 << 2,
+	PSPF_CVARFAST =			1 << 3,
+	PSPF_NODEATHDESTROY =	1 << 4,
+};
+
+class DPSprite : public DObject
+{
+	DECLARE_CLASS(DPSprite, DObject)
+	HAS_OBJECT_POINTERS
+public:
+	DPSprite(player_t *owner, AActor *caller, int id);
+	DPSprite(AActor *aowner, AActor *caller, int id);
+
+	static void NewTick();
+	void SetState(FState *newstate, bool pending = false);
+
+	int			GetID()		const { return ID; }
+	int			GetSprite()	const { return Sprite; }
+	int			GetFrame()	const { return Frame; }
+	FState*		GetState()	const { return State; }
+	DPSprite*	GetNext() { return Next; }
+	AActor*		GetCaller() { return Caller; }
+
+	double x, y;
+	double oldx, oldy;
+	bool firstTic, isPlayer;
+	int Tics;
+	int Flags;
+
+private:
+	DPSprite() {}
+
+	void Serialize(FArchive &arc);
+	void Tick();
+	void Destroy();
+
+	AActor *AOwner;
+	TObjPtr<AActor> Caller;
+	TObjPtr<DPSprite> Next;
+	player_t *Owner;
+	FState *State;
+	int Sprite;
+	int Frame;
+	int ID;
+	bool processPending; // true: waiting for periodic processing on this tick
+
+	friend class player_t;
+	friend class AActor;
+	friend void CopyPlayer(player_t *dst, player_t *src, const char *name);
 };
 
 class FActorIterator
