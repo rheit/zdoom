@@ -1172,10 +1172,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	PARAM_BOOL_OPT(safety) { safety = true; }
 
 	bool plr = (self->player != nullptr);
-	if (!plr)
-		safety = false;
 
-	player_t *player = self->player;
 	if (!start && !stop)
 	{
 		start = INT_MIN;
@@ -1183,7 +1180,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	}
 
 	int count = 0;
-	DPSprite *pspr = plr ? player->psprites : self->psprites;
+	DPSprite *pspr = plr ? self->player->psprites : self->psprites;
 	const int startID = (pspr != nullptr) ? pspr->GetID() : start;
 	bool first = true;
 	while (pspr != nullptr)
@@ -1198,14 +1195,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 		
 		int id = pspr->GetID();
 
-		//Do not wipe out layer 0. Ever.
+		// Skip layers above start and stop thresholds.
+		// Do not wipe out layer 0 on players. Ever.
+		// Actors on the other hand, it's a different story.
 		if ((!id && plr) || id < start || id > stop)
 		{
 			pspr = pspr->GetNext();
 			continue;
 		}
 		
-		if (safety)
+		//No need to be safe with actors. It's only players this function must worry about.
+		if (plr && safety)
 		{
 			if (id >= PSP_TARGETCENTER)
 				break;
@@ -1216,7 +1216,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 			}
 		}
 
-		// [MC]Don't affect non-hardcoded layers unless it's really desired.
+		// [MC] Count up the result.
 		pspr->SetState(nullptr);
 		count++;
 		pspr = pspr->GetNext();
