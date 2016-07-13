@@ -117,6 +117,8 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
   Flags(0),
   Caller(caller),
   Owner(owner),
+  AOwner(nullptr),
+  isPlayer(true),
   ID(id),
   processPending(true)
 {
@@ -176,13 +178,13 @@ DPSprite *player_t::FindPSprite(int layer)
 //
 //------------------------------------------------------------------------
 
-void P_SetPsprite(player_t *player, PSPLayers id, FState *state, bool pending)
+void P_SetPsprite(player_t *player, int id, FState *state, bool pending)
 {
-	if (player == nullptr) return;
+	if (player == nullptr)	return;
 	player->GetPSprite(id)->SetState(state, pending);
 }
 
-DPSprite *player_t::GetPSprite(PSPLayers layer)
+DPSprite *player_t::GetPSprite(int layer)
 {
 	AActor *oldcaller = nullptr;
 	AActor *newcaller = nullptr;
@@ -251,7 +253,6 @@ void DPSprite::NewTick()
 				pspr->processPending = true;
 				pspr->oldx = pspr->x;
 				pspr->oldy = pspr->y;
-
 				pspr = pspr->Next;
 			}
 		}
@@ -266,7 +267,7 @@ void DPSprite::NewTick()
 
 void DPSprite::SetState(FState *newstate, bool pending)
 {
-	if (ID == PSP_WEAPON)
+	if (isPlayer && ID == PSP_WEAPON)
 	{ // A_WeaponReady will re-set these as needed
 		Owner->WeaponState &= ~(WF_WEAPONREADY | WF_WEAPONREADYALT | WF_WEAPONBOBBING | WF_WEAPONSWITCHOK | WF_WEAPONRELOADOK | WF_WEAPONZOOMOK |
 								WF_USER1OK | WF_USER2OK | WF_USER3OK | WF_USER4OK);
@@ -297,7 +298,7 @@ void DPSprite::SetState(FState *newstate, bool pending)
 
 		Tics = newstate->GetTics(); // could be 0
 
-		if (Flags & PSPF_CVARFAST)
+		if (isPlayer && Flags & PSPF_CVARFAST)
 		{
 			if (sv_fastweapons == 2 && ID == PSP_WEAPON)
 				Tics = newstate->ActionFunc == nullptr ? 0 : 1;
@@ -307,7 +308,7 @@ void DPSprite::SetState(FState *newstate, bool pending)
 				Tics = 1;		// great for producing decals :)
 		}
 
-		if (ID != PSP_FLASH)
+		if (isPlayer && ID != PSP_FLASH)
 		{ // It's still possible to set the flash layer's offsets with the action function.
 			if (newstate->GetMisc1())
 			{ // Set coordinates.
@@ -318,12 +319,12 @@ void DPSprite::SetState(FState *newstate, bool pending)
 				y = newstate->GetMisc2();
 			}
 		}
-
-		if (Owner->mo != nullptr)
+		// Determine if this was made by a player or an actor, and check if the appropriate one exists.
+		if ((isPlayer ? (Owner->mo != nullptr) : (AOwner != nullptr)))
 		{
-			FState *nextstate;
-			FStateParamInfo stp = { newstate, STATE_Psprite, ID };
-			if (newstate->CallAction(Owner->mo, Caller, &stp, &nextstate))
+			FState *nextstate;	//STATE_Psprite = player layers. STATE_Asprite = actor layers.
+			FStateParamInfo stp = { newstate, (isPlayer ? STATE_Psprite : STATE_Asprite), ID };
+			if (newstate->CallAction((isPlayer ? Owner->mo : AOwner), Caller, &stp, &nextstate))
 			{
 				// It's possible this call resulted in this very layer being replaced.
 				if (ObjectFlags & OF_EuthanizeMe)
@@ -952,9 +953,9 @@ void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
 	player_t *player = self->player;
 	DPSprite *psp;
 
-	if (player && (player->playerstate != PST_DEAD))
+	if (self || player)
 	{
-		psp = player->FindPSprite(layer);
+		psp = (player != nullptr) ? (player->FindPSprite(layer)) : (self->FindPSprite(layer));
 
 		if (psp == nullptr)
 			return;
@@ -1017,6 +1018,9 @@ DEFINE_ACTION_FUNCTION(AActor, A_OverlayFlags)
 	PARAM_INT(layer);
 	PARAM_INT(flags);
 	PARAM_BOOL(set);
+
+	// [MC] Currently there are no flags to be had with actors.
+	// Until that time comes, I see no reason to modify this now.
 
 	if (self->player == nullptr)
 		return 0;
@@ -1139,13 +1143,23 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Overlay)
 
 	player_t *player = self->player;
 
-	if (player == nullptr || (dontoverride && (player->FindPSprite(layer) != nullptr)))
+	if (dontoverride)
 	{
-		ACTION_RETURN_BOOL(false);
+		if (player && (player->FindPSprite(layer) != nullptr))
+		{
+			ACTION_RETURN_BOOL(false);
+		}
+		else if (self->FindPSprite(layer) != nullptr)
+		{
+			ACTION_RETURN_BOOL(false);
+		}
 	}
 
 	DPSprite *pspr;
-	pspr = new DPSprite(player, stateowner, layer);
+	if (player == nullptr)
+		pspr = new DPSprite(self, stateowner, layer);
+	else
+		pspr = new DPSprite(player, stateowner, layer);
 	pspr->SetState(state);
 	ACTION_RETURN_BOOL(true);
 }
@@ -1157,10 +1171,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	PARAM_INT_OPT(stop) { stop = 0; }
 	PARAM_BOOL_OPT(safety) { safety = true; }
 
-	if (!self->player)
-		ACTION_RETURN_INT(0);
+	bool plr = (self->player != nullptr);
 
-	player_t *player = self->player;
 	if (!start && !stop)
 	{
 		start = INT_MIN;
@@ -1168,8 +1180,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	}
 
 	int count = 0;
-	DPSprite *pspr = player->psprites;
-	int startID = (pspr != nullptr) ? pspr->GetID() : start;
+	DPSprite *pspr = plr ? self->player->psprites : self->psprites;
+	const int startID = (pspr != nullptr) ? pspr->GetID() : start;
 	bool first = true;
 	while (pspr != nullptr)
 	{
@@ -1180,23 +1192,31 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 			else
 				break;
 		}
+		
 		int id = pspr->GetID();
 
-		//Do not wipe out layer 0. Ever.
-		if (!id || id < start)
+		// Skip layers above start and stop thresholds.
+		// Do not wipe out layer 0 on players. Ever.
+		// Actors on the other hand, it's a different story.
+		if ((!id && plr) || id < start || id > stop)
+		{
+			pspr = pspr->GetNext();
 			continue;
-		if (id > stop)
-			break;
-
-		if (safety)
+		}
+		
+		//No need to be safe with actors. It's only players this function must worry about.
+		if (plr && safety)
 		{
 			if (id >= PSP_TARGETCENTER)
 				break;
 			else if ((id >= PSP_STRIFEHANDS && id <= PSP_WEAPON) || (id == PSP_FLASH))
+			{
+				pspr = pspr->GetNext();
 				continue;
+			}
 		}
 
-		// [MC]Don't affect non-hardcoded layers unless it's really desired.
+		// [MC] Count up the result.
 		pspr->SetState(nullptr);
 		count++;
 		pspr = pspr->GetNext();
@@ -1419,6 +1439,12 @@ void player_t::TickPSprites()
 
 void DPSprite::Tick()
 {
+	if (!isPlayer)
+	{
+		processPending = true;
+		oldx = x;
+		oldy = y;
+	}
 	if (processPending)
 	{
 		// drop tic count and possibly change state
@@ -1449,6 +1475,10 @@ void DPSprite::Serialize(FArchive &arc)
 	arc << Next << Caller << Owner << Flags
 		<< State << Tics << Sprite << Frame
 		<< ID << x << y << oldx << oldy;
+	if (SaveVersion >= 4549)
+	{
+		arc << AOwner << isPlayer;
+	}
 }
 
 //------------------------------------------------------------------------
@@ -1479,11 +1509,11 @@ void player_t::DestroyPSprites()
 void DPSprite::Destroy()
 {
 	// Do not crash if this gets called on partially initialized objects.
-	if (Owner != nullptr && Owner->psprites != nullptr)
+	if (isPlayer ? (Owner != nullptr && Owner->psprites != nullptr) : (AOwner && AOwner->psprites))
 	{
-		if (Owner->psprites != this)
+		if (isPlayer ? (Owner->psprites != this) : (AOwner->psprites != this))
 		{
-			DPSprite *prev = Owner->psprites;
+			DPSprite *prev = isPlayer ? (Owner->psprites) : (AOwner->psprites);
 			while (prev != nullptr && prev->Next != this)
 				prev = prev->Next;
 
@@ -1495,7 +1525,10 @@ void DPSprite::Destroy()
 		}
 		else
 		{
-			Owner->psprites = Next;
+			if (isPlayer)
+				Owner->psprites = Next;
+			else
+				AOwner->psprites = Next;
 			GC::WriteBarrier(Next);
 		}
 	}
