@@ -1447,7 +1447,19 @@ void DPSprite::Serialize(FArchive &arc)
 {
 	Super::Serialize(arc);
 
-	arc << Next << Caller << Owner << Flags
+	arc << Next << Caller;
+
+	if (SaveVersion < 4549)
+	{
+		player_t *player;
+		arc << player; // This pointer is unfortunately useless right now.
+	}
+	else
+	{
+		arc << Owner;
+	}
+
+	arc << Flags
 		<< State << Tics << Sprite << Frame
 		<< ID << x << y << oldx << oldy;
 }

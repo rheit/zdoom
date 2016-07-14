@@ -325,6 +325,8 @@ void AActor::Serialize(FArchive &arc)
 		<< SpawnFlags
 		<< Inventory
 		<< InventoryID;
+	if (SaveVersion >= 4549)
+		arc << PSprites;
 	arc << FloatBobPhase
 		<< Translation
 		<< SeeSound

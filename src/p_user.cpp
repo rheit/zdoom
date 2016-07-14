@@ -3091,7 +3091,7 @@ void player_t::Serialize (FArchive &arc)
 				pspr->Tics = tics;
 				pspr->Sprite = sprite;
 				pspr->Frame = frame;
-				pspr->Owner = this;
+				pspr->Owner = mo;
 
 				if (layer == PSP_FLASH)
 				{
@@ -3113,8 +3113,19 @@ void player_t::Serialize (FArchive &arc)
 				layer++;
 		}
 	}
-	else
-		arc << psprites;
+	else if (SaveVersion < 4549)
+	{
+		arc << mo->PSprites;
+		
+		// We need to set the owner pointer ourselves because it can't be retrieved from the saved data.
+		DPSprite *pspr = mo->PSprites;
+		while (pspr != nullptr)
+		{
+			pspr->Owner = mo;
+
+			pspr = pspr->Next;
+		}
+	}
 
 	arc << CurrentPlayerClass;
 
