@@ -380,7 +380,6 @@ class player_t
 {
 public:
 	player_t();
-	~player_t();
 	player_t &operator= (const player_t &p);
 
 	void Serialize (FArchive &arc);
@@ -436,7 +435,6 @@ public:
 
 	AWeapon	   *ReadyWeapon;
 	AWeapon	   *PendingWeapon;			// WP_NOCHANGE if not changing
-	TObjPtr<DPSprite> psprites; // view sprites (gun, etc)
 
 	int			cheats;					// bit flags
 	int			timefreezer;			// Player has an active time freezer
@@ -528,10 +526,6 @@ public:
 
 	int GetSpawnClass();
 
-	// PSprite layers
-	void TickPSprites();
-	void DestroyPSprites();
-	DPSprite *FindPSprite(int layer);
 	// Used ONLY for compatibility with the old hardcoded layers.
 	// Make sure that a state is properly set after calling this unless
 	// you are 100% sure the context already implies the layer exists.

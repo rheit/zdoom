@@ -1292,6 +1292,7 @@ void R_DrawPSprite(DPSprite *pspr, AActor *owner, float bobx, float boby, double
 	FTexture*			tex;
 	vissprite_t*		vis;
 	bool				noaccel;
+	bool				targeter;
 	static TArray<vissprite_t> avis;
 
 	if (avis.Size() < vispspindex + 1)
@@ -1340,6 +1341,8 @@ void R_DrawPSprite(DPSprite *pspr, AActor *owner, float bobx, float boby, double
 		sy += wy;
 	}
 
+	targeter = (pspr->GetID() >= PSP_TARGETCENTER && camera->player != nullptr);
+
 	// calculate edges of the shape
 	tx = sx - BASEXCENTER;
 
@@ -1381,7 +1384,7 @@ void R_DrawPSprite(DPSprite *pspr, AActor *owner, float bobx, float boby, double
 			}
 		}
 	}
-	if (pspr->GetID() < PSP_TARGETCENTER)
+	if (!targeter)
 	{ // Move the weapon down for 1280x1024.
 		vis->texturemid -= BaseRatioSizes[WidescreenRatio][2];
 	}
@@ -1409,7 +1412,7 @@ void R_DrawPSprite(DPSprite *pspr, AActor *owner, float bobx, float boby, double
 
 	noaccel = false;
 	FDynamicColormap *colormap_to_use = nullptr;
-	if (pspr->GetID() < PSP_TARGETCENTER)
+	if (!targeter)
 	{
 		vis->Style.Alpha = float(owner->Alpha);
 		vis->Style.RenderStyle = owner->RenderStyle;
@@ -1554,7 +1557,6 @@ void R_DrawPlayerSprites ()
 
 	if (!r_drawplayersprites ||
 		!camera ||
-		!camera->player ||
 		(players[consoleplayer].cheats & CF_CHASECAM) ||
 		(r_deathcamera && camera->health <= 0))
 		return;
@@ -1608,54 +1610,54 @@ void R_DrawPlayerSprites ()
 	mfloorclip = screenheightarray;
 	mceilingclip = zeroarray;
 
-	if (camera->player != NULL)
+	double centerhack = CenterY;
+	double wx, wy;
+	float bobx, boby;
+
+	CenterY = viewheight / 2;
+
+	if (camera->player != nullptr)
+		P_BobWeapon(camera->player, &bobx, &boby, r_TicFracF);
+	else
+		bobx = boby = 0.f;
+
+	// Interpolate the main weapon layer once so as to be able to add it to other layers if it's a player.
+	if (camera->player != nullptr && (weapon = camera->FindPSprite(PSP_WEAPON)) != nullptr)
 	{
-		double centerhack = CenterY;
-		double wx, wy;
-		float bobx, boby;
-
-		CenterY = viewheight / 2;
-
-		P_BobWeapon (camera->player, &bobx, &boby, r_TicFracF);
-
-		// Interpolate the main weapon layer once so as to be able to add it to other layers.
-		if ((weapon = camera->player->FindPSprite(PSP_WEAPON)) != nullptr)
+		if (weapon->firstTic)
 		{
-			if (weapon->firstTic)
-			{
-				wx = weapon->x;
-				wy = weapon->y;
-			}
-			else
-			{
-				wx = weapon->oldx + (weapon->x - weapon->oldx) * r_TicFracF;
-				wy = weapon->oldy + (weapon->y - weapon->oldy) * r_TicFracF;
-			}
+			wx = weapon->x;
+			wy = weapon->y;
 		}
 		else
 		{
-			wx = 0;
-			wy = 0;
+			wx = weapon->oldx + (weapon->x - weapon->oldx) * r_TicFracF;
+			wy = weapon->oldy + (weapon->y - weapon->oldy) * r_TicFracF;
 		}
-
-		// add all active psprites
-		psp = camera->player->psprites;
-		while (psp)
-		{
-			// [RH] Don't draw the targeter's crosshair if the player already has a crosshair set.
-			// It's possible this psprite's caller is now null but the layer itself hasn't been destroyed
-			// because it didn't tick yet (if we typed 'take all' while in the console for example).
-			// In this case let's simply not draw it to avoid crashing.
-			if ((psp->GetID() != PSP_TARGETCENTER || CrosshairImage == nullptr) && psp->GetCaller() != nullptr)
-			{
-				R_DrawPSprite(psp, camera, bobx, boby, wx, wy, r_TicFracF);
-			}
-
-			psp = psp->GetNext();
-		}
-
-		CenterY = centerhack;
 	}
+	else
+	{
+		wx = 0;
+		wy = 0;
+	}
+
+	// add all active psprites
+	psp = camera->PSprites;
+	while (psp)
+	{
+		// [RH] Don't draw the targeter's crosshair if the player already has a crosshair set.
+		// It's possible this psprite's caller is now null but the layer itself hasn't been destroyed
+		// because it didn't tick yet (if we typed 'take all' while in the console for example).
+		// In this case let's simply not draw it to avoid crashing.
+		if (!(camera->player && CrosshairImage && psp->GetID() == PSP_TARGETCENTER) && psp->GetCaller() != nullptr)
+		{
+			R_DrawPSprite(psp, camera, bobx, boby, wx, wy, r_TicFracF);
+		}
+
+		psp = psp->GetNext();
+	}
+
+	CenterY = centerhack;
 }
 
 //==========================================================================

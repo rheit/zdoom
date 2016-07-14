@@ -270,7 +270,6 @@ player_t::player_t()
   WeaponState(0),
   ReadyWeapon(0),
   PendingWeapon(0),
-  psprites(0),
   cheats(0),
   timefreezer(0),
   refire(0),
@@ -316,11 +315,6 @@ player_t::player_t()
 {
 	memset (&cmd, 0, sizeof(cmd));
 	memset (frags, 0, sizeof(frags));
-}
-
-player_t::~player_t()
-{
-	DestroyPSprites();
 }
 
 player_t &player_t::operator=(const player_t &p)
@@ -376,7 +370,6 @@ player_t &player_t::operator=(const player_t &p)
 	extralight = p.extralight;
 	fixedcolormap = p.fixedcolormap;
 	fixedlightlevel = p.fixedlightlevel;
-	psprites = p.psprites;
 	morphTics = p.morphTics;
 	MorphedPlayerClass = p.MorphedPlayerClass;
 	MorphStyle = p.MorphStyle;
@@ -438,7 +431,6 @@ size_t player_t::FixPointers (const DObject *old, DObject *rep)
 	if (ReadyWeapon == old)			ReadyWeapon = static_cast<AWeapon *>(rep), changed++;
 	if (PendingWeapon == old)		PendingWeapon = static_cast<AWeapon *>(rep), changed++;
 	if (*&PremorphWeapon == old)	PremorphWeapon = static_cast<AWeapon *>(rep), changed++;
-	if (psprites == old)			psprites = static_cast<DPSprite *>(rep), changed++;
 	if (*&ConversationNPC == old)	ConversationNPC = replacement, changed++;
 	if (*&ConversationPC == old)	ConversationPC = replacement, changed++;
 	if (*&MUSINFOactor == old)		MUSINFOactor = replacement, changed++;
@@ -457,7 +449,6 @@ size_t player_t::PropagateMark()
 	GC::Mark(ConversationPC);
 	GC::Mark(MUSINFOactor);
 	GC::Mark(PremorphWeapon);
-	GC::Mark(psprites);
 	if (PendingWeapon != WP_NOCHANGE)
 	{
 		GC::Mark(PendingWeapon);
@@ -2124,7 +2115,7 @@ void P_DeathThink (player_t *player)
 	int dir;
 	DAngle delta;
 
-	player->TickPSprites();
+	P_TickWeapons(player);
 
 	player->onground = (player->mo->Z() <= player->mo->floorz);
 	if (player->mo->IsKindOf (RUNTIME_CLASS(APlayerChunk)))
@@ -2643,8 +2634,8 @@ void P_PlayerThink (player_t *player)
 				P_UndoPlayerMorph (player, player, MORPH_UNDOBYTIMEOUT);
 			}
 		}
-		// Cycle psprites
-		player->TickPSprites();
+
+		P_TickWeapons(player);
 
 		// Other Counters
 		if (player->damagecount)

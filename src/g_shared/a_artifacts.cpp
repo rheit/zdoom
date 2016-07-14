@@ -1135,7 +1135,7 @@ void APowerWeaponLevel2::InitEffect ()
 	}
 	else
 	{
-		DPSprite *psp = Owner->player->FindPSprite(PSP_WEAPON);
+		DPSprite *psp = Owner->FindPSprite(PSP_WEAPON);
 		if (psp != nullptr && psp->GetCaller() == Owner->player->ReadyWeapon)
 		{
 			// If the weapon changes but the state does not, we have to manually change the PSprite's caller here.
@@ -1396,9 +1396,9 @@ void APowerTargeter::EndEffect ()
 		// However P_SetupLevel is only called after G_NewInit which calls
 		// every player's dtor which destroys all their psprites.
 		DPSprite *pspr;
-		if ((pspr = Owner->player->FindPSprite(PSP_TARGETCENTER)) != nullptr) pspr->SetState(nullptr);
-		if ((pspr = Owner->player->FindPSprite(PSP_TARGETLEFT)) != nullptr) pspr->SetState(nullptr);
-		if ((pspr = Owner->player->FindPSprite(PSP_TARGETRIGHT)) != nullptr) pspr->SetState(nullptr);
+		if ((pspr = Owner->FindPSprite(PSP_TARGETCENTER)) != nullptr) pspr->SetState(nullptr);
+		if ((pspr = Owner->FindPSprite(PSP_TARGETLEFT)) != nullptr) pspr->SetState(nullptr);
+		if ((pspr = Owner->FindPSprite(PSP_TARGETRIGHT)) != nullptr) pspr->SetState(nullptr);
 	}
 }
 

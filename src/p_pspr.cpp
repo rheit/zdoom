@@ -100,6 +100,7 @@ static const FGenericButtons ButtonChecks[] =
 //------------------------------------------------------------------------
 
 IMPLEMENT_POINTY_CLASS(DPSprite)
+	DECLARE_POINTER(Owner)
 	DECLARE_POINTER(Caller)
 	DECLARE_POINTER(Next)
 END_POINTERS
@@ -110,7 +111,7 @@ END_POINTERS
 //
 //------------------------------------------------------------------------
 
-DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
+DPSprite::DPSprite(AActor *owner, AActor *caller, int id)
 : x(.0), y(.0),
   oldx(.0), oldy(.0),
   firstTic(true),
@@ -121,7 +122,7 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
   processPending(true)
 {
 	DPSprite *prev = nullptr;
-	DPSprite *next = Owner->psprites;
+	DPSprite *next = Owner->PSprites;
 	while (next != nullptr && next->ID < ID)
 	{
 		prev = next;
@@ -131,7 +132,7 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
 	GC::WriteBarrier(this, next);
 	if (prev == nullptr)
 	{
-		Owner->psprites = this;
+		Owner->PSprites = this;
 		GC::WriteBarrier(this);
 	}
 	else
@@ -143,7 +144,7 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
 	if (Next && Next->ID == ID && ID != 0)
 		Next->Destroy(); // Replace it.
 
-	if (Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) || Caller->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
+	if (Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) || (Caller->IsKindOf(RUNTIME_CLASS(AActor)) && !Caller->IsKindOf(RUNTIME_CLASS(AInventory))))
 		Flags = (PSPF_ADDWEAPON|PSPF_ADDBOB|PSPF_POWDOUBLE|PSPF_CVARFAST);
 }
 
@@ -153,12 +154,12 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
 //
 //------------------------------------------------------------------------
 
-DPSprite *player_t::FindPSprite(int layer)
+DPSprite *AActor::FindPSprite(int layer)
 {
 	if (layer == 0)
 		return nullptr;
 
-	DPSprite *pspr = psprites;
+	DPSprite *pspr = PSprites;
 	while (pspr)
 	{
 		if (pspr->ID == layer)
@@ -184,15 +185,14 @@ void P_SetPsprite(player_t *player, PSPLayers id, FState *state, bool pending)
 
 DPSprite *player_t::GetPSprite(PSPLayers layer)
 {
+	assert(mo != nullptr);
+
 	AActor *oldcaller = nullptr;
 	AActor *newcaller = nullptr;
 
 	if (layer >= PSP_TARGETCENTER)
 	{
-		if (mo != nullptr)
-		{
-			newcaller = mo->FindInventory(RUNTIME_CLASS(APowerTargeter), true);
-		}
+		newcaller = mo->FindInventory(RUNTIME_CLASS(APowerTargeter), true);
 	}
 	else if (layer == PSP_STRIFEHANDS)
 	{
@@ -205,10 +205,10 @@ DPSprite *player_t::GetPSprite(PSPLayers layer)
 
 	assert(newcaller != nullptr);
 
-	DPSprite *pspr = FindPSprite(layer);
+	DPSprite *pspr = mo->FindPSprite(layer);
 	if (pspr == nullptr)
 	{
-		pspr = new DPSprite(this, newcaller, layer);
+		pspr = new DPSprite(mo, newcaller, layer);
 	}
 	else
 	{
@@ -248,26 +248,30 @@ DPSprite *player_t::GetPSprite(PSPLayers layer)
 //
 // PROC P_NewPspriteTick
 //
+// This function should be called after the beginning of a tick, before any
+// possible prprite-event, or near the end, after any possible psprite event.
+// Because data is reset for every tick (which it must be) this has no impact
+// on savegames.
+//
 //---------------------------------------------------------------------------
 
 void DPSprite::NewTick()
 {
-	// This function should be called after the beginning of a tick, before any possible
-	// prprite-event, or near the end, after any possible psprite event.
-	// Because data is reset for every tick (which it must be) this has no impact on savegames.
-	for (int i = 0; i < MAXPLAYERS; i++)
-	{
-		if (playeringame[i])
-		{
-			DPSprite *pspr = players[i].psprites;
-			while (pspr)
-			{
-				pspr->processPending = true;
-				pspr->oldx = pspr->x;
-				pspr->oldy = pspr->y;
+	TThinkerIterator<AActor> it;
+	DPSprite *pspr;
+	AActor *owner;
 
-				pspr = pspr->Next;
-			}
+	// I can't think of a better way to do this.
+	while ((owner = it.Next()) != nullptr)
+	{
+		pspr = owner->PSprites;
+		while (pspr)
+		{
+			pspr->processPending = true;
+			pspr->oldx = pspr->x;
+			pspr->oldy = pspr->y;
+
+			pspr = pspr->Next;
 		}
 	}
 }
@@ -280,9 +284,9 @@ void DPSprite::NewTick()
 
 void DPSprite::SetState(FState *newstate, bool pending)
 {
-	if (ID == PSP_WEAPON)
+	if (Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) && ID == PSP_WEAPON)
 	{ // A_WeaponReady will re-set these as needed
-		Owner->WeaponState &= ~(WF_WEAPONREADY | WF_WEAPONREADYALT | WF_WEAPONBOBBING | WF_WEAPONSWITCHOK | WF_WEAPONRELOADOK | WF_WEAPONZOOMOK |
+		Owner->player->WeaponState &= ~(WF_WEAPONREADY | WF_WEAPONREADYALT | WF_WEAPONBOBBING | WF_WEAPONSWITCHOK | WF_WEAPONRELOADOK | WF_WEAPONZOOMOK |
 								WF_USER1OK | WF_USER2OK | WF_USER3OK | WF_USER4OK);
 	}
 
@@ -321,7 +325,7 @@ void DPSprite::SetState(FState *newstate, bool pending)
 				Tics = 1;		// great for producing decals :)
 		}
 
-		if (ID != PSP_FLASH)
+		if (ID != PSP_FLASH || !Caller->IsKindOf(RUNTIME_CLASS(AWeapon)))
 		{ // It's still possible to set the flash layer's offsets with the action function.
 			if (newstate->GetMisc1())
 			{ // Set coordinates.
@@ -333,28 +337,26 @@ void DPSprite::SetState(FState *newstate, bool pending)
 			}
 		}
 
-		if (Owner->mo != nullptr)
+
+		FState *nextstate;
+		FStateParamInfo stp = { newstate, STATE_Psprite, ID };
+		if (newstate->CallAction(Owner, Caller, &stp, &nextstate))
 		{
-			FState *nextstate;
-			FStateParamInfo stp = { newstate, STATE_Psprite, ID };
-			if (newstate->CallAction(Owner->mo, Caller, &stp, &nextstate))
+			// It's possible this call resulted in this very layer being replaced.
+			if (ObjectFlags & OF_EuthanizeMe)
 			{
-				// It's possible this call resulted in this very layer being replaced.
-				if (ObjectFlags & OF_EuthanizeMe)
-				{
-					return;
-				}
-				if (nextstate != nullptr)
-				{
-					newstate = nextstate;
-					Tics = 0;
-					continue;
-				}
-				if (State == nullptr)
-				{
-					Destroy();
-					return;
-				}
+				return;
+			}
+			if (nextstate != nullptr)
+			{
+				newstate = nextstate;
+				Tics = 0;
+				continue;
+			}
+			if (State == nullptr)
+			{
+				Destroy();
+				return;
 			}
 		}
 
@@ -963,37 +965,31 @@ void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
 		return;
 	}
 
-	player_t *player = self->player;
-	DPSprite *psp;
+	DPSprite *psp = self->FindPSprite(layer);
 
-	if (player && (player->playerstate != PST_DEAD))
+	if (psp == nullptr)
+		return;
+
+	if (!(flags & WOF_KEEPX))
 	{
-		psp = player->FindPSprite(layer);
-
-		if (psp == nullptr)
-			return;
-
-		if (!(flags & WOF_KEEPX))
+		if (flags & WOF_ADD)
 		{
-			if (flags & WOF_ADD)
-			{
-				psp->x += wx;
-			}
-			else
-			{
-				psp->x = wx;
-			}
+			psp->x += wx;
 		}
-		if (!(flags & WOF_KEEPY))
+		else
 		{
-			if (flags & WOF_ADD)
-			{
-				psp->y += wy;
-			}
-			else
-			{
-				psp->y = wy;
-			}
+			psp->x = wx;
+		}
+	}
+	if (!(flags & WOF_KEEPY))
+	{
+		if (flags & WOF_ADD)
+		{
+			psp->y += wy;
+		}
+		else
+		{
+			psp->y = wy;
 		}
 	}
 }
@@ -1032,10 +1028,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_OverlayFlags)
 	PARAM_INT(flags);
 	PARAM_BOOL(set);
 
-	if (self->player == nullptr)
-		return 0;
-
-	DPSprite *pspr = self->player->FindPSprite(layer);
+	DPSprite *pspr = self->FindPSprite(layer);
 
 	if (pspr == nullptr)
 		return 0;
@@ -1150,15 +1143,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Overlay)
 	PARAM_STATE_OPT	(state) { state = nullptr; }
 	PARAM_BOOL_OPT	(dontoverride)	{ dontoverride = false; }
 
-	player_t *player = self->player;
-
-	if (player == nullptr || (dontoverride && (player->FindPSprite(layer) != nullptr)))
+	if (dontoverride && self->FindPSprite(layer) != nullptr)
 	{
 		ACTION_RETURN_BOOL(false);
 	}
 
-	DPSprite *pspr;
-	pspr = new DPSprite(player, stateowner, layer);
+	DPSprite *pspr = new DPSprite(self, stateowner, layer);
 	pspr->SetState(state);
 	ACTION_RETURN_BOOL(true);
 }
@@ -1171,7 +1161,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	PARAM_BOOL_OPT(safety) { safety = true; }
 
 	if (self->player == nullptr)
-		ACTION_RETURN_INT(0);
+		safety = false;
 
 	if (!start && !stop)
 	{
@@ -1182,7 +1172,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_ClearOverlays)
 	unsigned int count = 0;
 	int id;
 
-	for (DPSprite *pspr = self->player->psprites; pspr != nullptr; pspr = pspr->GetNext())
+	for (DPSprite *pspr = self->PSprites; pspr != nullptr; pspr = pspr->GetNext())
 	{
 		id = pspr->GetID();
 
@@ -1359,9 +1349,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AInventory, A_Light)
 
 void P_SetupPsprites(player_t *player, bool startweaponup)
 {
-	// Remove all psprites
-	player->DestroyPSprites();
-
 	// Spawn the ready weapon
 	player->PendingWeapon = !startweaponup ? player->ReadyWeapon : WP_NOCHANGE;
 	P_BringUpWeapon (player);
@@ -1369,22 +1356,20 @@ void P_SetupPsprites(player_t *player, bool startweaponup)
 
 //------------------------------------------------------------------------
 //
-// PROC P_MovePsprites
 //
-// Called every tic by player thinking routine
 //
 //------------------------------------------------------------------------
 
-void player_t::TickPSprites()
+void AActor::TickPSprites()
 {
-	DPSprite *pspr = psprites;
+	DPSprite *pspr = PSprites;
 	while (pspr)
 	{
-		// Destroy the psprite if it's from a weapon that isn't currently selected by the player
-		// or if it's from an inventory item that the player no longer owns. 
+		// Destroy the psprite if it's from an inventory item that the actor no longer owns
+		// or if the player selected something else in case it's a weapon.
 		if ((pspr->Caller == nullptr ||
-			(pspr->Caller->IsKindOf(RUNTIME_CLASS(AInventory)) && barrier_cast<AInventory *>(pspr->Caller)->Owner != pspr->Owner->mo) ||
-			(pspr->Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) && pspr->Caller != pspr->Owner->ReadyWeapon)))
+			(pspr->Caller->IsKindOf(RUNTIME_CLASS(AInventory)) && barrier_cast<AInventory *>(pspr->Caller)->Owner != pspr->Owner) ||
+			(pspr->Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) && pspr->Caller != pspr->Owner->player->ReadyWeapon)))
 		{
 			pspr->Destroy();
 		}
@@ -1395,23 +1380,34 @@ void player_t::TickPSprites()
 
 		pspr = pspr->Next;
 	}
+}
 
-	if ((health > 0) || (ReadyWeapon != nullptr && !(ReadyWeapon->WeaponFlags & WIF_NODEATHINPUT)))
+//------------------------------------------------------------------------
+//
+// PROC P_MovePsprites
+//
+// Called every tic by player thinking routine
+//
+//------------------------------------------------------------------------
+
+void P_TickWeapons(player_t *player)
+{
+	if ((player->health > 0) || (player->ReadyWeapon != nullptr && !(player->ReadyWeapon->WeaponFlags & WIF_NODEATHINPUT)))
 	{
-		if (ReadyWeapon == nullptr)
+		if (player->ReadyWeapon == nullptr)
 		{
-			if (PendingWeapon != WP_NOCHANGE)
-				P_BringUpWeapon(this);
+			if (player->PendingWeapon != WP_NOCHANGE)
+				P_BringUpWeapon(player);
 		}
 		else
 		{
-			P_CheckWeaponSwitch(this);
-			if (WeaponState & (WF_WEAPONREADY | WF_WEAPONREADYALT))
+			P_CheckWeaponSwitch(player);
+			if (player->WeaponState & (WF_WEAPONREADY | WF_WEAPONREADYALT))
 			{
-				P_CheckWeaponFire(this);
+				P_CheckWeaponFire(player);
 			}
 			// Check custom buttons
-			P_CheckWeaponButtons(this);
+			P_CheckWeaponButtons(player);
 		}
 	}
 }
@@ -1432,7 +1428,7 @@ void DPSprite::Tick()
 			Tics--;
 
 			// [BC] Apply double firing speed.
-			if ((Flags & PSPF_POWDOUBLE) && Tics && (Owner->cheats & CF_DOUBLEFIRINGSPEED))
+			if ((Flags & PSPF_POWDOUBLE) && Tics && Owner->player != nullptr && (Owner->player->cheats & CF_DOUBLEFIRINGSPEED))
 				Tics--;
 
 			if (!Tics)
@@ -1462,10 +1458,10 @@ void DPSprite::Serialize(FArchive &arc)
 //
 //------------------------------------------------------------------------
 
-void player_t::DestroyPSprites()
+void AActor::DestroyPSprites()
 {
-	DPSprite *pspr = psprites;
-	psprites = nullptr;
+	DPSprite *pspr = PSprites;
+	PSprites = nullptr;
 	while (pspr)
 	{
 		DPSprite *next = pspr->Next;
@@ -1484,11 +1480,11 @@ void player_t::DestroyPSprites()
 void DPSprite::Destroy()
 {
 	// Do not crash if this gets called on partially initialized objects.
-	if (Owner != nullptr && Owner->psprites != nullptr)
+	if (Owner != nullptr && Owner->PSprites != nullptr)
 	{
-		if (Owner->psprites != this)
+		if (Owner->PSprites != this)
 		{
-			DPSprite *prev = Owner->psprites;
+			DPSprite *prev = Owner->PSprites;
 			while (prev != nullptr && prev->Next != this)
 				prev = prev->Next;
 
@@ -1500,7 +1496,7 @@ void DPSprite::Destroy()
 		}
 		else
 		{
-			Owner->psprites = Next;
+			Owner->PSprites = Next;
 			GC::WriteBarrier(Next);
 		}
 	}
@@ -1515,25 +1511,23 @@ void DPSprite::Destroy()
 
 ADD_STAT(psprites)
 {
-	FString out;
+	AActor *owner;
 	DPSprite *pspr;
-	for (int i = 0; i < MAXPLAYERS; i++)
+
+	FString out("Current layers: ");
+
+	if ((owner = players[consoleplayer].camera) != nullptr)
 	{
-		if (!playeringame[i])
-			continue;
-
-		out.AppendFormat("[psprites] player: %d | layers: ", i);
-
-		pspr = players[i].psprites;
+		pspr = owner->PSprites;
 		while (pspr)
 		{
 			out.AppendFormat("%d, ", pspr->GetID());
 
 			pspr = pspr->GetNext();
 		}
-
-		out.AppendFormat("\n");
 	}
+
+	out.AppendFormat("\n");
 
 	return out;
 }

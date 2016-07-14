@@ -65,7 +65,7 @@ class DPSprite : public DObject
 	DECLARE_CLASS (DPSprite, DObject)
 	HAS_OBJECT_POINTERS
 public:
-	DPSprite(player_t *owner, AActor *caller, int id);
+	DPSprite(AActor *owner, AActor *caller, int id);
 
 	static void NewTick();
 	void SetState(FState *newstate, bool pending = false);
@@ -91,17 +91,17 @@ private:
 	void Tick();
 	void Destroy();
 
+	TObjPtr<AActor> Owner;
 	TObjPtr<AActor> Caller;
 	TObjPtr<DPSprite> Next;
-	player_t *Owner;
 	FState *State;
 	int Sprite;
 	int Frame;
 	int ID;
 	bool processPending; // true: waiting for periodic processing on this tick
 
+	friend class AActor;
 	friend class player_t;
-	friend void CopyPlayer(player_t *dst, player_t *src, const char *name);
 };
 
 void P_NewPspriteTick();

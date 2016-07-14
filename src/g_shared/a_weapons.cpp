@@ -642,7 +642,7 @@ void AWeapon::EndPowerup ()
 		}
 		else
 		{
-			DPSprite *psp = Owner->player->FindPSprite(PSP_WEAPON);
+			DPSprite *psp = Owner->FindPSprite(PSP_WEAPON);
 			if (psp != nullptr && psp->GetCaller() == Owner->player->ReadyWeapon)
 			{
 				// If the weapon changes but the state does not, we have to manually change the PSprite's caller here.

@@ -5990,7 +5990,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTics)
 
 	if (ACTION_CALL_FROM_PSPRITE())
 	{
-		DPSprite *pspr = self->player->FindPSprite(stateinfo->mPSPIndex);
+		DPSprite *pspr = self->FindPSprite(stateinfo->mPSPIndex);
 		if (pspr != nullptr)
 		{
 			pspr->Tics = tics_to_set;

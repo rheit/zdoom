@@ -301,18 +301,6 @@ void CopyPlayer (player_t *dst, player_t *src, const char *name)
 		dst->mo->player = dst;
 	}
 
-	// Same for the psprites.
-	DPSprite *pspr = dst->psprites;
-	while (pspr)
-	{
-		pspr->Owner = dst;
-
-		pspr = pspr->Next;
-	}
-
-	// Don't let the psprites be destroyed when src is destroyed.
-	src->psprites = nullptr;
-
 	// These 2 variables may not be overwritten.
 	dst->attackdown = attackdown;
 	dst->usedown = usedown;
