@@ -875,13 +875,11 @@ int P_Thing_Warp(AActor *caller, AActor *reference, double xofs, double yofs, do
 		}
 	}
 
-	P_TryMove(caller, caller->Pos(), false);
 	if ((flags & WARPF_NOCHECKPOSITION) || P_TestMobjLocation(caller))
 	{
 		if (flags & WARPF_TESTONLY)
 		{
 			caller->SetOrigin(old, true);
-			P_TryMove(caller, caller->Pos(), false);
 		}
 		else
 		{
@@ -927,10 +925,10 @@ int P_Thing_Warp(AActor *caller, AActor *reference, double xofs, double yofs, do
 			{
 				caller->AddZ(reference->GetBobOffset());
 			}
+			P_TryMove(caller, caller->Pos(), false);
 		}
 		return true;
 	}
 	caller->SetOrigin(old, true);
-	P_TryMove(caller, caller->Pos(), false);
 	return false;
 }
