@@ -7210,7 +7210,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopySpriteFrame)
 	AActor *copyfrom = COPY_AAPTR(self, from);
 	AActor *copyto = COPY_AAPTR(self, to);
 
-	if (copyfrom == copyto || copyfrom == nullptr || copyto == nullptr || (flags & (CPSF_NOSPRITE & CPSF_NOFRAME)))
+	if (copyfrom == copyto || copyfrom == nullptr || copyto == nullptr || ((flags & CPSF_NOSPRITE) && (flags & CPSF_NOFRAME)))
 	{
 		ACTION_RETURN_BOOL(false);
 	}
