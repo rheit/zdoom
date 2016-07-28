@@ -1348,6 +1348,26 @@ DEFINE_PROPERTY(gravity, F, Actor)
 //==========================================================================
 //
 //==========================================================================
+DEFINE_PROPERTY(spriteangle, F, Actor)
+{
+	PROP_DOUBLE_PARM(i, 0);
+	if (i < 0 || i >= 360.0)	I_Error("SpriteAngle must be within range [0,359].");
+	defaults->SpriteAngle = i;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(spriterotation, F, Actor)
+{
+	PROP_DOUBLE_PARM(i, 0);
+	if (i < 0 || i >= 360.0)	I_Error("SpriteRotation must be within range [0,359].");
+	defaults->SpriteRotation = i;
+}
+
+//==========================================================================
+//
+//==========================================================================
 DEFINE_PROPERTY(friction, F, Actor)
 {
 	PROP_DOUBLE_PARM(i, 0);

@@ -397,6 +397,58 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetGibHealth)
 
 //==========================================================================
 //
+// GetSpriteAngle
+//
+// NON-ACTION function returns the sprite angle of a pointer.
+//==========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpriteAngle)
+{
+	if (numret > 0)
+	{
+		PARAM_SELF_PROLOGUE(AActor);
+		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
+
+		AActor *target = COPY_AAPTR(self, ptr);
+		if (target == nullptr)
+		{
+			ret->SetFloat(0.0);
+		}
+
+		const double ang = target->SpriteAngle.Degrees;
+		ret->SetFloat(ang);
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
+// GetSpriteAngle
+//
+// NON-ACTION function returns the sprite rotation of a pointer.
+//==========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpriteRotation)
+{
+	if (numret > 0)
+	{
+		PARAM_SELF_PROLOGUE(AActor);
+		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
+
+		AActor *target = COPY_AAPTR(self, ptr);
+		if (target == nullptr)
+		{
+			ret->SetFloat(0.0);
+		}
+
+		const double ang = target->SpriteRotation.Degrees;
+		ret->SetFloat(ang);
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
 // GetZAt
 //
 // NON-ACTION function to get the floor or ceiling z at (x, y) with 
@@ -7217,5 +7269,70 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopySpriteFrame)
 	
 	if (!(flags & CPSF_NOSPRITE))	copyto->sprite = copyfrom->sprite;
 	if (!(flags & CPSF_NOFRAME))	copyto->frame = copyfrom->frame;
+	ACTION_RETURN_BOOL(true);
+}
+
+//==========================================================================
+//
+// A_SetSpriteAngle(angle, ptr)
+//
+// Specifies which angle the actor must always draw its sprite from.
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpriteAngle)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_FLOAT_OPT(angle)	{ angle = 0.; }
+	PARAM_INT_OPT(ptr)		{ ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (mobj == nullptr)
+	{
+		ACTION_RETURN_BOOL(false);
+	}
+
+	//Modulus doesn't exactly work on doubles...
+	if (angle >= 360.0 || angle < 0.0)
+	{
+		double n = angle / 360.0;
+
+		if (angle < 0.0)	angle += 360.0 * ceil(n);
+		else				angle -= 360.0 * floor(n);
+	}
+
+	mobj->SpriteAngle = angle;
+	ACTION_RETURN_BOOL(true);
+}
+
+//==========================================================================
+//
+// A_SetSpriteRotation(angle, ptr)
+//
+// Specifies how much to fake a sprite rotation.
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpriteRotation)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_FLOAT_OPT(angle) { angle = 0.; }
+	PARAM_INT_OPT(ptr) { ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (mobj == nullptr)
+	{
+		ACTION_RETURN_BOOL(false);
+	}
+
+	if (angle >= 360.0 || angle < 0.0)
+	{
+		double n = angle / 360.0;
+
+		if (angle < 0.0)	angle += 360.0 * ceil(n);
+		else				angle -= 360.0 * floor(n);
+	}
+
+	mobj->SpriteRotation = angle;
 	ACTION_RETURN_BOOL(true);
 }
