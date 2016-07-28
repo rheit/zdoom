@@ -7219,3 +7219,64 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CopySpriteFrame)
 	if (!(flags & CPSF_NOFRAME))	copyto->frame = copyfrom->frame;
 	ACTION_RETURN_BOOL(true);
 }
+
+//==========================================================================
+//
+// A_SetSpriteAngle(angle, ptr)
+//
+// Specifies which angle the actor must always draw its sprite from.
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpriteAngle)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_FLOAT_OPT(angle)	{ angle = 0.; }
+	PARAM_INT_OPT(ptr)		{ ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (mobj == nullptr)
+	{
+		ACTION_RETURN_BOOL(false);
+	}
+
+	//Modulus doesn't exactly work on doubles...
+	if (angle >= 360.0 || angle < 0.0)
+	{
+		double n = angle / 360.0;
+		angle -= 360.0 * floor(n);
+	}
+
+	mobj->SpriteAngle = angle;
+	ACTION_RETURN_BOOL(true);
+}
+
+//==========================================================================
+//
+// A_SetSpriteRotation(angle, ptr)
+//
+// Specifies how much to fake a sprite rotation.
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpriteRotation)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_FLOAT_OPT(angle) { angle = 0.; }
+	PARAM_INT_OPT(ptr) { ptr = AAPTR_DEFAULT; }
+
+	AActor *mobj = COPY_AAPTR(self, ptr);
+
+	if (mobj == nullptr)
+	{
+		ACTION_RETURN_BOOL(false);
+	}
+
+	if (angle >= 360.0 || angle < 0.0)
+	{
+		double n = angle / 360.0;
+		angle -= 360.0 * floor(n);
+	}
+
+	mobj->SpriteRotation = angle;
+	ACTION_RETURN_BOOL(true);
+}
