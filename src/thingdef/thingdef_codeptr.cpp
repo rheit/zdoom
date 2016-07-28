@@ -7296,7 +7296,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpriteAngle)
 	if (angle >= 360.0 || angle < 0.0)
 	{
 		double n = angle / 360.0;
-		angle -= 360.0 * floor(n);
+
+		if (angle < 0.0)	angle += 360.0 * ceil(n);
+		else				angle -= 360.0 * floor(n);
 	}
 
 	mobj->SpriteAngle = angle;
@@ -7326,7 +7328,9 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSpriteRotation)
 	if (angle >= 360.0 || angle < 0.0)
 	{
 		double n = angle / 360.0;
-		angle -= 360.0 * floor(n);
+
+		if (angle < 0.0)	angle += 360.0 * ceil(n);
+		else				angle -= 360.0 * floor(n);
 	}
 
 	mobj->SpriteRotation = angle;
