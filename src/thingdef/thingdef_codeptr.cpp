@@ -405,6 +405,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpriteAngle)
 {
 	if (numret > 0)
 	{
+		assert(ret != NULL);
 		PARAM_SELF_PROLOGUE(AActor);
 		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
 
@@ -431,6 +432,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpriteRotation)
 {
 	if (numret > 0)
 	{
+		assert(ret != NULL);
 		PARAM_SELF_PROLOGUE(AActor);
 		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
 
