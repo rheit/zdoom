@@ -397,6 +397,58 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetGibHealth)
 
 //==========================================================================
 //
+// GetSpriteAngle
+//
+// NON-ACTION function returns the sprite angle of a pointer.
+//==========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpriteAngle)
+{
+	if (numret > 0)
+	{
+		PARAM_SELF_PROLOGUE(AActor);
+		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
+
+		AActor *target = COPY_AAPTR(self, ptr);
+		if (target == nullptr)
+		{
+			ret->SetFloat(0.0);
+		}
+
+		const double ang = target->SpriteAngle.Degrees;
+		ret->SetFloat(ang);
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
+// GetSpriteAngle
+//
+// NON-ACTION function returns the sprite rotation of a pointer.
+//==========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, GetSpriteRotation)
+{
+	if (numret > 0)
+	{
+		PARAM_SELF_PROLOGUE(AActor);
+		PARAM_INT_OPT(ptr) { ptr = AAPTR_TARGET; }
+
+		AActor *target = COPY_AAPTR(self, ptr);
+		if (target == nullptr)
+		{
+			ret->SetFloat(0.0);
+		}
+
+		const double ang = target->SpriteRotation.Degrees;
+		ret->SetFloat(ang);
+		return 1;
+	}
+	return 0;
+}
+
+//==========================================================================
+//
 // GetZAt
 //
 // NON-ACTION function to get the floor or ceiling z at (x, y) with 
