@@ -48,6 +48,7 @@ ACTOR Actor native //: Thinker
 	native float GetCrouchFactor(int ptr = AAPTR_PLAYER1);
 	native float GetCVar(string cvar);
 	native int GetPlayerInput(int inputnum, int ptr = AAPTR_DEFAULT);
+	native int GetProximity(class<Actor> classname, float distance, int flags = 0, int ptr = AAPTR_DEFAULT);
 
 	// Action functions
 	// Meh, MBF redundant functions. Only for DeHackEd support.
