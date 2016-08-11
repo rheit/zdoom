@@ -3586,23 +3586,23 @@ ExpEmit FxArrayElement::Emit(VMFunctionBuilder *build)
 		if (indexval >= arraytype->ElementCount)
 		{
 			ScriptPosition.Message(MSG_ERROR, "Array index out of bounds");
-			start.Free(build);
-			dest.Free(build);
-			return ExpEmit();
-		}
-		indexval *= arraytype->ElementSize;
-
-		if (AddressRequested)
-		{
-			if (indexval != 0)
-			{
-				build->Emit(OP_ADDA_RK, start.RegNum, start.RegNum, build->GetConstantInt(indexval));
-			}
 		}
 		else
 		{
-			build->Emit(arraytype->ElementType->GetLoadOp(), dest.RegNum,
-				start.RegNum, build->GetConstantInt(indexval));
+			indexval *= arraytype->ElementSize;
+
+			if (AddressRequested)
+			{
+				if (indexval != 0)
+				{
+					build->Emit(OP_ADDA_RK, start.RegNum, start.RegNum, build->GetConstantInt(indexval));
+				}
+			}
+			else
+			{
+				build->Emit(arraytype->ElementType->GetLoadOp(), dest.RegNum,
+					start.RegNum, build->GetConstantInt(indexval));
+			}
 		}
 	}
 	else
