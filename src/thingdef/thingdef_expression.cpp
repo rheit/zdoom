@@ -3585,7 +3585,8 @@ ExpEmit FxArrayElement::Emit(VMFunctionBuilder *build)
 		unsigned indexval = static_cast<FxConstant *>(index)->GetValue().GetInt();
 		if (indexval >= arraytype->ElementCount)
 		{
-			I_Error("Array index out of bounds");
+			I_Error("Array index out of bounds, \"%s\" line %d\n",
+				ScriptPosition.FileName.GetChars(), ScriptPosition.ScriptLine);
 		}
 		indexval *= arraytype->ElementSize;
 
