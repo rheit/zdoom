@@ -76,6 +76,7 @@ extern int bmapnegy;
 // P_PSPR
 //
 void P_SetupPsprites (player_t* curplayer, bool startweaponup);
+void P_TickWeapons(player_t* player);
 void P_DropWeapon (player_t* player);
 
 

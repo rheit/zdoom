@@ -136,6 +136,7 @@ IMPLEMENT_POINTY_CLASS (AActor)
  DECLARE_POINTER (goal)
  DECLARE_POINTER (LastLookActor)
  DECLARE_POINTER (Inventory)
+ DECLARE_POINTER (PSprites)
  DECLARE_POINTER (LastHeard)
  DECLARE_POINTER (master)
  DECLARE_POINTER (Poisoner)
@@ -324,6 +325,8 @@ void AActor::Serialize(FArchive &arc)
 		<< SpawnFlags
 		<< Inventory
 		<< InventoryID;
+	if (SaveVersion >= 4549)
+		arc << PSprites;
 	arc << FloatBobPhase
 		<< Translation
 		<< SeeSound
@@ -3337,6 +3340,8 @@ void AActor::Tick ()
 	// like from an ActorMover
 	ClearInterpolation();
 
+	TickPSprites();
+
 	if (flags5 & MF5_NOINTERACTION)
 	{
 		// only do the minimally necessary things here to save time:
@@ -4406,6 +4411,9 @@ void AActor::Destroy ()
 
 	// [RH] Destroy any inventory this actor is carrying
 	DestroyAllInventory ();
+
+	// Destroy all its psprites
+	DestroyPSprites();
 
 	// [RH] Unlink from tid chain
 	RemoveFromHash ();

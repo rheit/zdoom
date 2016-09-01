@@ -1267,6 +1267,10 @@ void G_FinishTravel ()
 		pawn->player->viewheight = pawn->ViewHeight;
 		pawn->flags2 &= ~MF2_BLASTED;
 		DObject::StaticPointerSubstitution (oldpawn, pawn);
+		pawn->DestroyPSprites();			// We keep our inventory but not our psprites.
+		pawn->PSprites = oldpawn->PSprites;	// Use the pawn the player was supposed to spawn with since P_SetupPsprites was called.
+											// The pointer substitution already took care of the owner pointer change in DPSprites.
+		oldpawn->PSprites = nullptr;		// Prevent them from being destroyed with the old pawn.
 		oldpawn->Destroy();
 		if (pawndup != NULL)
 		{

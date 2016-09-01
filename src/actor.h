@@ -535,6 +535,7 @@ enum EThingSpecialActivationType
 
 class FDecalBase;
 class AInventory;
+class DPSprite;
 
 inline AActor *GetDefaultByName (const char *name)
 {
@@ -710,6 +711,15 @@ public:
 
 	// Destroys all the inventory the actor is holding.
 	void DestroyAllInventory ();
+
+	// Destroys all the psprites this actor owns.
+	void DestroyPSprites();
+
+	// Ticks all the psprites this actor owns.
+	void TickPSprites();
+
+	// Finds the psprite with the given index.
+	DPSprite *FindPSprite(int layer);
 
 	// Set the alphacolor field properly
 	void SetShade (DWORD rgb);
@@ -1116,6 +1126,8 @@ public:
 
 	TObjPtr<AInventory>	Inventory;		// [RH] This actor's inventory
 	DWORD			InventoryID;	// A unique ID to keep track of inventory items
+
+	TObjPtr<DPSprite> PSprites;		// The actor's psprites
 
 	BYTE smokecounter;
 	BYTE FloatBobPhase;
