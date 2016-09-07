@@ -1406,12 +1406,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Explode)
 
 	if (nails)
 	{
+		AActor *shooter = self;
+
+		if (self->target != nullptr && !(flags & XF_NOTMISSILE))
+			shooter = self->target;
+
 		DAngle ang;
 		for (int i = 0; i < nails; i++)
 		{
 			ang = i*360./nails;
 			// Comparing the results of a test wad with Eternity, it seems A_NailBomb does not aim
-			P_LineAttack (self, ang, MISSILERANGE, 0.,
+			P_LineAttack (shooter, ang, MISSILERANGE, 0.,
 				//P_AimLineAttack (self, ang, MISSILERANGE), 
 				naildamage, NAME_Hitscan, pufftype);
 		}
