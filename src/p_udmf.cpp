@@ -471,6 +471,7 @@ public:
 		th->Alpha = -1;
 		th->health = 1;
 		th->FloatbobPhase = -1;
+		th->ClassType = NAME_None;
 		sc.MustGetToken('{');
 		while (!sc.CheckToken('}'))
 		{
@@ -500,6 +501,11 @@ public:
 			case NAME_Type:
 				th->EdNum = (short)CheckInt(key);
 				th->info = DoomEdMap.CheckKey(th->EdNum);
+				break;
+
+			case NAME_ClassType:
+				CHECK_N(Zd | Zdt)
+				th->ClassType = CheckString(key);
 				break;
 
 			case NAME_Conversation:

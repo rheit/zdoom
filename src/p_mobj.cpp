@@ -4760,17 +4760,42 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 	int mask;
 	AActor *mobj;
 
-	if (mthing->EdNum == 0 || mthing->EdNum == -1)
-		return NULL;
-
 	// find which type to spawn
 	FDoomEdEntry *mentry = mthing->info;
+
+	FDoomEdEntry udmfent;
+	if (mthing->ClassType != NAME_None)
+	{
+		PClassActor *cls = PClass::FindActor(mthing->ClassType);
+		if (cls != NULL)
+		{
+			memset(&udmfent, 0, sizeof(udmfent));
+			udmfent.Type = cls;
+			mentry = &udmfent;
+		}
+		else
+		{
+			mentry = NULL;
+		}
+	}
+	else if(mthing->EdNum == 0 || mthing->EdNum == -1)
+	{
+		return NULL;
+	}
 
 	if (mentry == NULL)
 	{
 		// [RH] Don't die if the map tries to spawn an unknown thing
-		Printf("Unknown type %i at (%.1f, %.1f)\n",
-			mthing->EdNum, mthing->pos.X, mthing->pos.Y);
+		if (mthing->ClassType != NAME_None)
+		{
+			Printf("Unknown type %s at (%.1f, %.1f)\n",
+				mthing->ClassType.GetChars(), mthing->pos.X, mthing->pos.Y);
+		}
+		else
+		{
+			Printf("Unknown type %i at (%.1f, %.1f)\n",
+				mthing->EdNum, mthing->pos.X, mthing->pos.Y);
+		}
 		mentry = DoomEdMap.CheckKey(0);
 		if (mentry == NULL)	// we need a valid entry for the rest of this function so if we can't find a default, let's exit right away.
 		{

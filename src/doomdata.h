@@ -351,6 +351,7 @@ struct FMapThing
 	WORD		SkillFilter;
 	WORD		ClassFilter;
 	short		EdNum;
+	FName		ClassType;
 	FDoomEdEntry *info;
 	DWORD		flags;
 	int			special;

@@ -250,6 +250,7 @@ Note: All <bool> fields default to false unless mentioned otherwise.
 	  scaley = <float>;         // Horizontal scaling on thing. Default = 0 (ignored).
 	  scale = <float>;        	// Vertical and horizontal scaling on thing. Default = 0 (ignored).
 	  floatbobphase = <int>;	// Sets the thing's floatbobphase. Valid phase values are 0-63. Default = -1 (use actor class default).
+	  classtype = <string>;     // Overrides the thing's Doomednum ('type' field) by specifying the class name directly.
 
       * Note about arg0str
 

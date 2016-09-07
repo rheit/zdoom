@@ -432,6 +432,7 @@ xx(Scale)
 xx(ScaleX)
 xx(ScaleY)
 xx(Floatbobphase)
+xx(ClassType)
 
 xx(Blocking)
 xx(Blockmonsters)
