@@ -1752,6 +1752,7 @@ void P_LoadThings (MapData * map)
 		mti[i].Alpha = -1;
 		mti[i].health = 1;
 		mti[i].FloatbobPhase = -1;
+		mti[i].ClassType = NAME_None;
 
 		mti[i].pos.X = LittleShort(mt->x);
 		mti[i].pos.Y = LittleShort(mt->y);
@@ -1848,6 +1849,7 @@ void P_LoadThings2 (MapData * map)
 		mti[i].Alpha = -1;
 		mti[i].health = 1;
 		mti[i].FloatbobPhase = -1;
+		mti[i].ClassType = NAME_None;
 	}
 	delete[] mtp;
 }
