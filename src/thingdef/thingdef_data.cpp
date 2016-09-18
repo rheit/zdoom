@@ -372,6 +372,8 @@ static FFlagDef WeaponFlagDefs[] =
 	DEFINE_DUMMY_FLAG(NOLMS),
 	DEFINE_FLAG(WIF, ALT_USES_BOTH, AWeapon, WeaponFlags),
 	DEFINE_DUMMY_FLAG(ALLOW_WITH_RESPAWN_INVUL),
+
+	DEFINE_FLAG(WIF, MULTIPICKUP, AWeapon, WeaponFlags), //[SP] multi-pickup, allow count++ when <INVENTORY.MAXAMOUNT
 };
 
 static FFlagDef PlayerPawnFlagDefs[] =
