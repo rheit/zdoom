@@ -275,6 +275,9 @@ static FFlagDef ActorFlagDefs[]=
 	DEFINE_FLAG(RF, WALLSPRITE, AActor, renderflags),
 	DEFINE_FLAG(RF, DONTFLIP, AActor, renderflags),
 	DEFINE_FLAG(RF, ROLLCENTER, AActor, renderflags),
+	DEFINE_FLAG(RF, MASKROTATION, AActor, renderflags),
+	DEFINE_FLAG(RF, ABSMASKANGLE, AActor, renderflags),
+	DEFINE_FLAG(RF, ABSMASKPITCH, AActor, renderflags),
 
 	// Bounce flags
 	DEFINE_FLAG2(BOUNCE_Walls, BOUNCEONWALLS, AActor, BounceFlags),
@@ -666,4 +669,8 @@ void InitThingdef()
 	symt.AddSymbol(new PField(NAME_Speed,			TypeFloat64,	VARF_Native,				myoffsetof(AActor, Speed)));
 	symt.AddSymbol(new PField(NAME_Threshold,		TypeSInt32,		VARF_Native|VARF_ReadOnly,	myoffsetof(AActor, threshold)));
 	symt.AddSymbol(new PField(NAME_DefThreshold,	TypeSInt32,		VARF_Native|VARF_ReadOnly,	myoffsetof(AActor, DefThreshold)));
+	symt.AddSymbol(new PField(NAME_VisibleStartAngle, TypeFloat64,	VARF_Native,				myoffsetof(AActor, VisibleStartAngle)));
+	symt.AddSymbol(new PField(NAME_VisibleStartPitch, TypeFloat64,	VARF_Native,				myoffsetof(AActor, VisibleStartPitch)));
+	symt.AddSymbol(new PField(NAME_VisibleEndAngle,	TypeFloat64,	VARF_Native,				myoffsetof(AActor, VisibleEndAngle)));
+	symt.AddSymbol(new PField(NAME_VisibleEndPitch, TypeFloat64,	VARF_Native,				myoffsetof(AActor, VisibleEndPitch)));
 }
