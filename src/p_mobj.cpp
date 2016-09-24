@@ -70,6 +70,7 @@
 #include "p_spec.h"
 #include "p_checkposition.h"
 #include "serializer.h"
+#include "r_utility.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -1059,12 +1060,12 @@ bool AActor::IsInsideVisibleAngles() const
 		pitchend = temp;
 	}
 
-	player_t* pPlayer = players[consoleplayer].camera->player;
+	AActor *mo = players[consoleplayer].camera;
 
-	if (pPlayer && pPlayer->mo)
+	if (mo != nullptr)
 	{
-		AActor *mo = pPlayer->mo;
-		DVector3 diffang = Vec3To(mo);
+		
+		DVector3 diffang = mo->PosRelative(this) - ViewPos;
 		DAngle to = diffang.Angle();
 
 		if (!(renderflags & RF_ABSMASKANGLE)) 
