@@ -159,7 +159,6 @@ class FScanner;
 class FBitmap;
 struct FCopyInfo;
 class DInterpolation;
-class FArchive;
 
 enum
 {
@@ -272,14 +271,13 @@ class ASkyViewpoint;
 
 struct secplane_t
 {
-	friend FArchive &operator<< (FArchive &arc, secplane_t &plane);
 	// the plane is defined as a*x + b*y + c*z + d = 0
 	// ic is 1/c, for faster Z calculations
 
-private:
 	DVector3 normal;
 	double  D, negiC;	// negative iC because that also saves a negation in all methods using this.
 public:
+	friend FSerializer &Serialize(FSerializer &arc, const char *key, secplane_t &p, secplane_t *def);
 
 	void set(double aa, double bb, double cc, double dd)
 	{
@@ -437,9 +435,6 @@ public:
 
 };
 
-FArchive &operator<< (FArchive &arc, secplane_t &plane);
-
-
 #include "p_3dfloors.h"
 // Ceiling/floor flags
 enum
@@ -544,8 +539,6 @@ struct extsector_t
 		TArray<lightlist_t>				lightlist;		// 3D light list
 		TArray<sector_t*>				attached;		// 3D floors attached to this sector
 	} XFloor;
-	
-	void Serialize(FArchive &arc);
 };
 
 struct FTransform
@@ -591,7 +584,7 @@ struct secspecial_t
 	}
 };
 
-FArchive &operator<< (FArchive &arc, secspecial_t &p);
+FSerializer &Serialize(FSerializer &arc, const char *key, secspecial_t &spec, secspecial_t *def);
 
 enum class EMoveResult { ok, crushed, pastdest };
 
@@ -1033,9 +1026,6 @@ public:
 	extsector_t	*				e;		// This stores data that requires construction/destruction. Such data must not be copied by R_FakeFlat.
 };
 
-FArchive &operator<< (FArchive &arc, sector_t::splane &p);
-
-
 struct ReverbContainer;
 struct zone_t
 {
@@ -1198,16 +1188,14 @@ struct side_t
 	vertex_t *V2() const;
 };
 
-FArchive &operator<< (FArchive &arc, side_t::part &p);
-
 struct line_t
 {
 	vertex_t	*v1, *v2;	// vertices, from v1 to v2
 private:
 	DVector2	delta;		// precalculated v2 - v1 for side checking
 public:
-	DWORD		flags;
-	DWORD		activation;	// activation type
+	uint32_t	flags;
+	uint32_t	activation;	// activation type
 	int			special;
 	int			args[5];	// <--- hexen-style arguments (expanded to ZDoom's full width)
 	double		alpha;		// <--- translucency (0=invisibile, FRACUNIT=opaque)

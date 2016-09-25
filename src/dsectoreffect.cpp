@@ -28,7 +28,7 @@
 #include "p_3dmidtex.h"
 #include "r_data/r_interpolate.h"
 #include "statnums.h"
-#include "farchive.h"
+#include "serializer.h"
 #include "doomstat.h"
 
 IMPLEMENT_CLASS (DSectorEffect)
@@ -60,14 +60,15 @@ void DSectorEffect::Destroy()
 }
 
 DSectorEffect::DSectorEffect (sector_t *sector)
+	: DThinker(STAT_SECTOREFFECT)
 {
 	m_Sector = sector;
 }
 
-void DSectorEffect::Serialize (FArchive &arc)
+void DSectorEffect::Serialize(FSerializer &arc)
 {
 	Super::Serialize (arc);
-	arc << m_Sector;
+	arc("sector", m_Sector);
 }
 
 IMPLEMENT_POINTY_CLASS (DMover)
@@ -90,10 +91,10 @@ void DMover::Destroy()
 	Super::Destroy();
 }
 
-void DMover::Serialize (FArchive &arc)
+void DMover::Serialize(FSerializer &arc)
 {
 	Super::Serialize (arc);
-	arc << interpolation;
+	arc("interpolation", interpolation);
 }
 
 void DMover::StopInterpolation(bool force)

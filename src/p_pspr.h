@@ -35,7 +35,6 @@
 #define WEAPONTOP				(32+6./16)
 
 class AInventory;
-class FArchive;
 
 //
 // Overlay psprites are scaled shapes
@@ -87,7 +86,7 @@ public:
 private:
 	DPSprite () {}
 
-	void Serialize(FArchive &arc);
+	void Serialize(FSerializer &arc);
 	void Tick();
 	void Destroy();
 
