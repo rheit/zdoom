@@ -1850,8 +1850,8 @@ void P_CalcHeight (player_t *player)
 	{
 		if (player->health > 0)
 		{
-			angle = level.time / (120 * TICRATE / 35.) * 360. * player->mo->ViewBob;
-			bob = player->userinfo.GetStillBob() * angle.Sin();
+			angle = level.time / (120 * TICRATE / 35.) * 360.;
+			bob = player->userinfo.GetStillBob() * angle.Sin() * player->mo->ViewBob;
 		}
 		else
 		{
@@ -1860,8 +1860,8 @@ void P_CalcHeight (player_t *player)
 	}
 	else
 	{
-		angle = level.time / (20 * TICRATE / 35.) * 360. * player->mo->ViewBob;
-		bob = player->bob * angle.Sin() * (player->mo->waterlevel > 1 ? 0.25f : 0.5f);
+		angle = level.time / (20 * TICRATE / 35.) * 360.;
+		bob = player->bob * angle.Sin() * (player->mo->waterlevel > 1 ? 0.25f : 0.5f) * player->mo->ViewBob;
 	}
 
 	// move viewheight
