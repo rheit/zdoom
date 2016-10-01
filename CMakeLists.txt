@@ -322,11 +322,25 @@ endif()
 # Install the entire docs directory in the distributed zip package
 install(DIRECTORY docs/ DESTINATION docs)
 
+# Construct a compact name for the build target, to use in the package file name
+set(ZDOOM_TARGET_ARCHITECTURE_BITS 32)
+if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+	set(ZDOOM_TARGET_ARCHITECTURE_BITS 64)
+endif()
+if( WIN32 )
+	set(ZDOOM_TARGET_OS_NAME win)
+elseif( APPLE )
+	set(ZDOOM_TARGET_OS_NAME mac)
+else()
+	set(ZDOOM_TARGET_OS_NAME linux)
+endif()
+set(ZDOOM_TARGET_ARCHITECTURE "${ZDOOM_TARGET_OS_NAME}${ZDOOM_TARGET_ARCHITECTURE_BITS}") # e.g. "win32", "win64", "linux32" etc.
+
 # Install fmod shared library
 # fixme: create rules for whatever shared libraries are needed in the zdoom package distributed on Mac and Linux
 if (FMOD_LIBRARY AND WIN32)
 	get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
-	if (${CMAKE_GENERATOR} MATCHES Win64) # e.g. "Visual Studio 14 Win64"
+	if (${ZDOOM_TARGET_ARCHITECTURE_BITS} MATCHES 64)
 		file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex64.dll")
 	else()
 		file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex.dll")
@@ -338,23 +352,60 @@ endif()
 
 # Package rules, for creating distributed zip file (or whatever)
 
-# PACKAGE installer
-set(INSTALL_PROGRAM_NAME ${ZDOOM_EXE_NAME})
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${INSTALL_PROGRAM_NAME} game")
+# Parse zdoom version number and other attributes from header files.
+function( parse_header_define SRC_FILE DEFINE_NAME OUTPUT_VAR )
+	set(MYREGEX "^\#define ${DEFINE_NAME} \"?([^\"]+)\"?")
+	file(STRINGS ${SRC_FILE} PARSED_LINE REGEX ${MYREGEX}) # fetch one line of source code
+	string(REGEX MATCH ${MYREGEX} MATCH_RESULT ${PARSED_LINE}) # extract the one field we want
+	if(MATCH_RESULT)
+		set(${OUTPUT_VAR} ${CMAKE_MATCH_1} PARENT_SCOPE)
+	endif()
+endfunction()
+
+parse_header_define(src/version.h VERSIONSTR ZDOOM_VERSIONSTR)
+parse_header_define(src/version.h GAMENAME ZDOOM_GAMENAME)
+parse_header_define(src/gitinfo.h GIT_DESCRIPTION ZDOOM_GIT_DESCRIPTION)
+
+# Populate special CPACK variables for PACKAGE installer
+set(CPACK_PACKAGE_NAME ${ZDOOM_GAMENAME})
 set(CPACK_PACKAGE_VENDOR "zdoom.org")
-set(CPACK_PACKAGE_EXECUTABLES ${ZDOOM_EXE_NAME} ${INSTALL_PROGRAM_NAME})
-# fixme: read actual zdoom version from somewhere
-set(CPACK_PACKAGE_VERSION_MAJOR "2")
-set(CPACK_PACKAGE_VERSION_MINOR "9")
-set(CPACK_PACKAGE_VERSION_PATCH "pre")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${ZDOOM_GAMENAME} game")
+set(CPACK_PACKAGE_DESCRIPTION "${ZDOOM_GAMENAME} is an enhanced port of the original DOOM game source code")
+# split zdoom version string into its component parts
+set(ZDOOM_VERSION_LIST ${ZDOOM_VERSIONSTR})
+string(REPLACE "." ";" ZDOOM_VERSION_LIST ${ZDOOM_VERSION_LIST}) # Convert string to list
+list(GET ZDOOM_VERSION_LIST 0 CPACK_PACKAGE_VERSION_MAJOR)
+list(GET ZDOOM_VERSION_LIST 1 CPACK_PACKAGE_VERSION_MINOR)
+list(LENGTH ZDOOM_VERSION_LIST ZDOOM_VERSION_LIST_LENGTH)
+if(${ZDOOM_VERSION_LIST_LENGTH} GREATER 2)
+	list(GET ZDOOM_VERSION_LIST 2 CPACK_PACKAGE_VERSION_PATCH)
+	set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
+else()
+	set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
+endif()
+if (NOT CPACK_SYSTEM_NAME)
+	set(CPACK_SYSTEM_NAME "${ZDOOM_TARGET_ARCHITECTURE}")
+endif ()
+set(ZDOOM_BUILD_OFFICIAL_RELEASE OFF CACHE BOOL "Creates package name with a compact version number")
+if (ZDOOM_BUILD_OFFICIAL_RELEASE)
+	# Use a more compact version string
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_SYSTEM_NAME}-${ZDOOM_VERSIONSTR}") # without extension
+else()
+	# Use a more explicit version string
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_SYSTEM_NAME}-${ZDOOM_GIT_DESCRIPTION}") # without extension
+endif()
+
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/docs/licenses/README.TXT")
-set(CPACK_PACKAGE_NAME ${INSTALL_PROGRAM_NAME})
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/docs/zdoom.txt")
+set(CPACK_PACKAGE_EXECUTABLES ${ZDOOM_EXE_NAME} ${ZDOOM_GAMENAME}) # for menu shortcuts
 
 if(WIN32)
 	set(DEFAULT_CPACK_GENERATOR ZIP) # ZIP is the standard way to distribute zdoom.
 else()
 	set(DEFAULT_CPACK_GENERATOR TGZ)
 endif()
+# fixme: the fancier package formats, such as DEB and DragNDrop, will likely 
+# require additional CPack configuration here in this CMakeLists.txt file
 set(CPACK_GENERATOR ${DEFAULT_CPACK_GENERATOR} CACHE STRING "File format for distribution package archive (ZIP, NSIS, TGZ, BUNDLE, DEB, etc.)")
 
 # "include(CPack)" must appear only after all the build and install rules have been defined
