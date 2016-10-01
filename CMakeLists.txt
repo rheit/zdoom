@@ -336,20 +336,6 @@ else()
 endif()
 set(ZDOOM_TARGET_ARCHITECTURE "${ZDOOM_TARGET_OS_NAME}${ZDOOM_TARGET_ARCHITECTURE_BITS}") # e.g. "win32", "win64", "linux32" etc.
 
-# Install fmod shared library
-# fixme: create rules for whatever shared libraries are needed in the zdoom package distributed on Mac and Linux
-if (FMOD_LIBRARY AND WIN32)
-	get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
-	if (${ZDOOM_TARGET_ARCHITECTURE_BITS} MATCHES 64)
-		file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex64.dll")
-	else()
-		file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex.dll")
-	endif()
-	foreach(FMOD_SHLIB "" ${FMOD_SHLIBS})
-	    install(PROGRAMS ${FMOD_SHLIB} DESTINATION ".")
-	endforeach()
-endif()
-
 # Package rules, for creating distributed zip file (or whatever)
 
 # Parse zdoom version number and other attributes from header files.
