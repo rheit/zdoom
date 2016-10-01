@@ -96,7 +96,7 @@ function( add_pk3 PK3_NAME PK3_DIR )
 	assort_pk3_source_folder("Source Files" ${PK3_DIR})
 	
 	# Create install rule for this PK3 archive, for use in CMake INSTALL
-    # and PACKAGE targets
+	# and PACKAGE targets
 	# "." means the top level installation folder
 	install(FILES ${ZDOOM_OUTPUT_DIR}/${PK3_NAME} DESTINATION ".")
 
