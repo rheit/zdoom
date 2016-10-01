@@ -386,7 +386,7 @@ endif()
 if (NOT CPACK_SYSTEM_NAME)
 	set(CPACK_SYSTEM_NAME "${ZDOOM_TARGET_ARCHITECTURE}")
 endif ()
-set(ZDOOM_BUILD_OFFICIAL_RELEASE OFF CACHE BOOL "Creates package name with a compact version number")
+option(ZDOOM_BUILD_OFFICIAL_RELEASE "Creates package name with a compact version number" OFF)
 if (ZDOOM_BUILD_OFFICIAL_RELEASE)
 	# Use a more compact version string
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_SYSTEM_NAME}-${ZDOOM_VERSIONSTR}") # without extension
