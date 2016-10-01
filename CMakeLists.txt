@@ -94,6 +94,12 @@ function( add_pk3 PK3_NAME PK3_DIR )
 		SOURCES ${PK3_SRCS})
 	# Phase 3: Assign source files to a nice folder structure in the IDE
 	assort_pk3_source_folder("Source Files" ${PK3_DIR})
+	
+	# Create install rule for this PK3 archive, for use in CMake INSTALL
+	# and PACKAGE targets
+	# "." means the top level installation folder
+	install(FILES ${ZDOOM_OUTPUT_DIR}/${PK3_NAME} DESTINATION ".")
+
 endfunction()
 
 # Macro for building libraries without debugging information
@@ -252,6 +258,7 @@ if( ZLIB_FOUND AND NOT FORCE_INTERNAL_ZLIB )
 	message( STATUS "Using system zlib, includes found at ${ZLIB_INCLUDE_DIR}" )
 else()
 	message( STATUS "Using internal zlib" )
+	set( SKIP_INSTALL_ALL TRUE ) # Avoid installing zlib alongside zdoom
 	add_subdirectory( zlib )
 	set( ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib )
 	set( ZLIB_LIBRARIES z )
@@ -309,3 +316,46 @@ endif()
 if( NOT CMAKE_CROSSCOMPILING )
 	export(TARGETS ${CROSS_EXPORTS} FILE "${CMAKE_BINARY_DIR}/ImportExecutables.cmake" )
 endif()
+
+# Install rules below, used by CMake INSTALL and PACKAGE targets
+
+# Install the entire docs directory in the distributed zip package
+install(DIRECTORY docs/ DESTINATION docs)
+
+# Install fmod shared library
+# fixme: create rules for whatever shared libraries are needed in the zdoom package distributed on Mac and Linux
+if (FMOD_LIBRARY AND WIN32)
+	get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
+	if (${CMAKE_GENERATOR} MATCHES Win64) # e.g. "Visual Studio 14 Win64"
+		file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex64.dll")
+	else()
+		file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex.dll")
+	endif()
+	foreach(FMOD_SHLIB "" ${FMOD_SHLIBS})
+	    install(PROGRAMS ${FMOD_SHLIB} DESTINATION ".")
+	endforeach()
+endif()
+
+# Package rules, for creating distributed zip file (or whatever)
+
+# PACKAGE installer
+set(INSTALL_PROGRAM_NAME ${ZDOOM_EXE_NAME})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${INSTALL_PROGRAM_NAME} game")
+set(CPACK_PACKAGE_VENDOR "zdoom.org")
+set(CPACK_PACKAGE_EXECUTABLES ${ZDOOM_EXE_NAME} ${INSTALL_PROGRAM_NAME})
+# fixme: read actual zdoom version from somewhere
+set(CPACK_PACKAGE_VERSION_MAJOR "2")
+set(CPACK_PACKAGE_VERSION_MINOR "9")
+set(CPACK_PACKAGE_VERSION_PATCH "pre")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/docs/licenses/README.TXT")
+set(CPACK_PACKAGE_NAME ${INSTALL_PROGRAM_NAME})
+
+if(WIN32)
+	set(DEFAULT_CPACK_GENERATOR ZIP) # ZIP is the standard way to distribute zdoom.
+else()
+	set(DEFAULT_CPACK_GENERATOR TGZ)
+endif()
+set(CPACK_GENERATOR ${DEFAULT_CPACK_GENERATOR} CACHE STRING "File format for distribution package archive (ZIP, NSIS, TGZ, BUNDLE, DEB, etc.)")
+
+# "include(CPack)" must appear only after all the build and install rules have been defined
+include(CPack)

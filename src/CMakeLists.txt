@@ -1402,6 +1402,11 @@ if( APPLE )
 	endif()
 endif()
 
+# Create install rule for zdoom game program, for use in CMake INSTALL 
+# and PACKAGE targets.
+# "." means the top level installation folder
+install(TARGETS zdoom DESTINATION ".")
+
 source_group("Assembly Files\\ia32" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_ia32/.+")
 source_group("Assembly Files\\x86_64" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_x86_64/.+")
 source_group("Audio Files" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/sound/.+")
