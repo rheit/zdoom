@@ -317,6 +317,18 @@ if( NOT NO_FMOD )
 	if( FMOD_LIBRARY )
 		message( STATUS "FMOD library found at ${FMOD_LIBRARY}" )
 		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FMOD_LIBRARY}" )
+		# Install shared fmod library for PACKAGE target
+		if (WIN32) # fixme: also install for non-Windows platforms
+			get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
+			if (${CMAKE_GENERATOR} MATCHES Win64) # e.g. "Visual Studio 14 Win64"
+				file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex64.dll")
+			else()
+				file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex.dll")
+			endif()
+			foreach(FMOD_SHLIB "" ${FMOD_SHLIBS})
+				install(PROGRAMS ${FMOD_SHLIB} DESTINATION ".")
+			endforeach()
+		endif()
 	else()
 		message( STATUS "Could not find FMOD library" )
 		set( NO_FMOD ON )
