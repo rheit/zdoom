@@ -317,17 +317,15 @@ if( NOT NO_FMOD )
 	if( FMOD_LIBRARY )
 		message( STATUS "FMOD library found at ${FMOD_LIBRARY}" )
 		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FMOD_LIBRARY}" )
-		# Install shared fmod library for PACKAGE target
-		if (WIN32) # fixme: also install for non-Windows platforms
+		if (ZDOOM_ENABLE_PACKAGE_TARGET)
+			# Install shared fmod library for PACKAGE target
 			get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
-			if (${CMAKE_GENERATOR} MATCHES Win64) # e.g. "Visual Studio 14 Win64"
-				file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex64.dll")
-			else()
-				file(GLOB FMOD_SHLIBS "${FMOD_DIR}/../fmodex.dll")
-			endif()
-			foreach(FMOD_SHLIB "" ${FMOD_SHLIBS})
-				install(PROGRAMS ${FMOD_SHLIB} DESTINATION ".")
-			endforeach()
+			find_file(FMOD_SHARED_LIBRARY
+				NAMES fmodex${X64}.dll fmod${X64}.dll
+				PATHS "${FMOD_DIR}/.."
+				DOC "Path to FMOD shared library, e.g. fmodex.dll"
+			)
+			install(PROGRAMS ${FMOD_SHARED_LIBRARY} DESTINATION ".")
 		endif()
 	else()
 		message( STATUS "Could not find FMOD library" )
@@ -351,6 +349,36 @@ else()
 	# Search for libmpg123
 
 	find_package( MPG123 )
+	
+	if (ZDOOM_ENABLE_PACKAGE_TARGET)
+		# Create install rules for dlls, for use in PACKAGE target
+		find_file(MPG123_SHARED_LIBRARY
+			NAMES libmpg123-0.dll
+			PATHS ${MPG123_INCLUDE_DIR}
+			DOC "Path to mpg124 shared library, e.g. libmpg123-0.dll"
+		)
+		install(PROGRAMS ${MPG123_SHARED_LIBRARY} DESTINATION ".")
+	
+		find_file(SNDFILE_SHARED_LIBRARY
+			NAMES libsndfile-1.dll
+			PATHS "${SNDFILE_INCLUDE_DIR}/../bin"
+			DOC "Path to sndfile shared library, e.g. libsndfile-1.dll"
+		)
+		install(PROGRAMS ${SNDFILE_SHARED_LIBRARY} DESTINATION ".")
+		
+		if (X64)
+			set(OAL_SUBFOLDER Win64)
+		else()
+			set(OAL_SUBFOLDER Win32)
+		endif()
+		find_file(OPENAL_SHARED_LIBRARY
+			NAMES soft_oal.dll
+			PATHS "C:/Program Files (x86)/openal-soft-1.17.2-bin/bin"
+			PATH_SUFFIXES ${OAL_SUBFOLDER}
+			DOC "Path to OpenAL shared library, e.g. soft_oal.dll"
+		)
+		install(PROGRAMS ${OPENAL_SHARED_LIBRARY} RENAME OpenAL32.dll DESTINATION ".")
+	endif()
 endif()
 
 # Search for FluidSynth
