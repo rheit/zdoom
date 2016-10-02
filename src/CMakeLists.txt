@@ -337,14 +337,24 @@ else()
 		# Create install rules for dlls, for use in PACKAGE target
 		find_file(MPG123_SHARED_LIBRARY
 			NAMES libmpg123-0.dll
-			PATHS ${MPG123_INCLUDE_DIR}
+			PATHS 
+				${CMAKE_BINARY_DIR}
+				${MPG123_INCLUDE_DIR}
+			PATH_SUFFIXES 
+				Release
+				Debug
 			DOC "Path to mpg124 shared library, e.g. libmpg123-0.dll"
 		)
 		install(PROGRAMS ${MPG123_SHARED_LIBRARY} DESTINATION ".")
 	
 		find_file(SNDFILE_SHARED_LIBRARY
 			NAMES libsndfile-1.dll
-			PATHS "${SNDFILE_INCLUDE_DIR}/../bin"
+			PATHS 
+				${CMAKE_BINARY_DIR}
+				"${SNDFILE_INCLUDE_DIR}/../bin"
+			PATH_SUFFIXES 
+				Release
+				Debug
 			DOC "Path to sndfile shared library, e.g. libsndfile-1.dll"
 		)
 		install(PROGRAMS ${SNDFILE_SHARED_LIBRARY} DESTINATION ".")
@@ -355,9 +365,14 @@ else()
 			set(OAL_SUBFOLDER Win32)
 		endif()
 		find_file(OPENAL_SHARED_LIBRARY
-			NAMES soft_oal.dll
-			PATHS "C:/Program Files (x86)/openal-soft-1.17.2-bin/bin"
-			PATH_SUFFIXES ${OAL_SUBFOLDER}
+			NAMES soft_oal.dll OpenAL32.dll
+			PATHS
+				${CMAKE_BINARY_DIR} 
+				"C:/Program Files (x86)/openal-soft-1.17.2-bin/bin"
+			PATH_SUFFIXES 
+				Release
+				Debug
+				${OAL_SUBFOLDER}
 			DOC "Path to OpenAL shared library, e.g. soft_oal.dll"
 		)
 		install(PROGRAMS ${OPENAL_SHARED_LIBRARY} RENAME OpenAL32.dll DESTINATION ".")
