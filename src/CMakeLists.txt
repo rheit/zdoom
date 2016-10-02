@@ -317,6 +317,16 @@ if( NOT NO_FMOD )
 	if( FMOD_LIBRARY )
 		message( STATUS "FMOD library found at ${FMOD_LIBRARY}" )
 		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FMOD_LIBRARY}" )
+		if (ZDOOM_ENABLE_PACKAGE_TARGET)
+			# Install shared fmod library for PACKAGE target
+			get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
+			find_file(FMOD_SHARED_LIBRARY
+				NAMES fmodex${X64}.dll fmod${X64}.dll
+				PATHS "${FMOD_DIR}/.."
+				DOC "Path to FMOD shared library, e.g. fmodex.dll"
+			)
+			install(PROGRAMS ${FMOD_SHARED_LIBRARY} DESTINATION ".")
+		endif()
 	else()
 		message( STATUS "Could not find FMOD library" )
 		set( NO_FMOD ON )
@@ -339,6 +349,51 @@ else()
 	# Search for libmpg123
 
 	find_package( MPG123 )
+	
+	if (ZDOOM_ENABLE_PACKAGE_TARGET)
+		# Create install rules for dlls, for use in PACKAGE target
+		find_file(MPG123_SHARED_LIBRARY
+			NAMES libmpg123-0.dll
+			PATHS 
+				${CMAKE_BINARY_DIR}
+				${MPG123_INCLUDE_DIR}
+			PATH_SUFFIXES 
+				Release
+				Debug
+			DOC "Path to mpg124 shared library, e.g. libmpg123-0.dll"
+		)
+		install(PROGRAMS ${MPG123_SHARED_LIBRARY} DESTINATION ".")
+	
+		find_file(SNDFILE_SHARED_LIBRARY
+			NAMES libsndfile-1.dll
+			PATHS 
+				${CMAKE_BINARY_DIR}
+				"${SNDFILE_INCLUDE_DIR}/../bin"
+			PATH_SUFFIXES 
+				Release
+				Debug
+			DOC "Path to sndfile shared library, e.g. libsndfile-1.dll"
+		)
+		install(PROGRAMS ${SNDFILE_SHARED_LIBRARY} DESTINATION ".")
+		
+		if (X64)
+			set(OAL_SUBFOLDER Win64)
+		else()
+			set(OAL_SUBFOLDER Win32)
+		endif()
+		find_file(OPENAL_SHARED_LIBRARY
+			NAMES soft_oal.dll OpenAL32.dll
+			PATHS
+				${CMAKE_BINARY_DIR} 
+				"C:/Program Files (x86)/openal-soft-1.17.2-bin/bin"
+			PATH_SUFFIXES 
+				Release
+				Debug
+				${OAL_SUBFOLDER}
+			DOC "Path to OpenAL shared library, e.g. soft_oal.dll"
+		)
+		install(PROGRAMS ${OPENAL_SHARED_LIBRARY} RENAME OpenAL32.dll DESTINATION ".")
+	endif()
 endif()
 
 # Search for FluidSynth
@@ -1418,6 +1473,11 @@ if( APPLE )
 			COMMENT "Relinking FMOD Ex" )
 	endif()
 endif()
+
+# Create install rule for zdoom game program, for use in CMake INSTALL 
+# and PACKAGE targets.
+# "." means the top level installation folder
+install(TARGETS zdoom DESTINATION ".")
 
 source_group("Assembly Files\\ia32" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_ia32/.+")
 source_group("Assembly Files\\x86_64" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_x86_64/.+")
