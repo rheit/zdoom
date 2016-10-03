@@ -1350,10 +1350,10 @@ void R_DrawPSprite(DPSprite *pspr, AActor *owner, float bobx, float boby, double
 		sx += wx;
 		sy += wy;
 	}
-
+	
 	// calculate edges of the shape
 	tx = sx - BASEXCENTER;
-
+	
 	tx -= tex->GetScaledLeftOffset();
 	x1 = xs_RoundToInt(CenterX + tx * pspritexscale);
 
@@ -1363,10 +1363,10 @@ void R_DrawPSprite(DPSprite *pspr, AActor *owner, float bobx, float boby, double
 
 	tx += tex->GetScaledWidth();
 	x2 = xs_RoundToInt(CenterX + tx * pspritexscale);
-
+	
 	// off the left side
 	if (x2 <= 0)
-		return;
+		return;	
 
 	// store information in a vissprite
 	vis = &avis[vispspindex];
