@@ -38,6 +38,8 @@ endif()
 
 if( CMAKE_SIZEOF_VOID_P MATCHES "8" )
 	set( X64 64 )
+else()
+	set( X32 32 )
 endif()
 
 # You can either use "make install" on the FMOD distribution to put it
@@ -322,10 +324,19 @@ if( NOT NO_FMOD )
 			get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
 			find_file(FMOD_SHARED_LIBRARY
 				NAMES fmodex${X64}.dll fmod${X64}.dll
-				PATHS "${FMOD_DIR}/.."
+				PATHS 
+					${CMAKE_BINARY_DIR}
+					"${FMOD_DIR}/.."
+				PATH_SUFFIXES 
+					Release
+					Debug
 				DOC "Path to FMOD shared library, e.g. fmodex.dll"
 			)
-			install(PROGRAMS ${FMOD_SHARED_LIBRARY} DESTINATION ".")
+			if( FMOD_SHARED_LIBRARY )
+				install(PROGRAMS ${FMOD_SHARED_LIBRARY} DESTINATION ".")
+			else()
+				message(WARNING "FMOD shared library was not found and will be neither installed nor packaged")
+			endif()
 		endif()
 	else()
 		message( STATUS "Could not find FMOD library" )
@@ -362,7 +373,11 @@ else()
 				Debug
 			DOC "Path to mpg124 shared library, e.g. libmpg123-0.dll"
 		)
-		install(PROGRAMS ${MPG123_SHARED_LIBRARY} DESTINATION ".")
+		if( MPG123_SHARED_LIBRARY )
+			install(PROGRAMS ${MPG123_SHARED_LIBRARY} DESTINATION ".")
+		else()
+			message(WARNING "MPG123 shared library was not found and will be neither installed nor packaged")
+		endif()
 	
 		find_file(SNDFILE_SHARED_LIBRARY
 			NAMES libsndfile-1.dll
@@ -374,7 +389,11 @@ else()
 				Debug
 			DOC "Path to sndfile shared library, e.g. libsndfile-1.dll"
 		)
-		install(PROGRAMS ${SNDFILE_SHARED_LIBRARY} DESTINATION ".")
+		if( SNDFILE_SHARED_LIBRARY )
+			install(PROGRAMS ${SNDFILE_SHARED_LIBRARY} DESTINATION ".")
+		else()
+			message(WARNING "SNDFILE shared library was not found and will be neither installed nor packaged")
+		endif()
 		
 		if (X64)
 			set(OAL_SUBFOLDER Win64)
@@ -385,14 +404,17 @@ else()
 			NAMES soft_oal.dll OpenAL32.dll
 			PATHS
 				${CMAKE_BINARY_DIR} 
-				"C:/Program Files (x86)/openal-soft-1.17.2-bin/bin"
+				"C:/Program Files (x86)/openal-soft-1.17.2-bin/bin/Win${X32}${X64}"
 			PATH_SUFFIXES 
 				Release
 				Debug
-				${OAL_SUBFOLDER}
 			DOC "Path to OpenAL shared library, e.g. soft_oal.dll"
 		)
-		install(PROGRAMS ${OPENAL_SHARED_LIBRARY} RENAME OpenAL32.dll DESTINATION ".")
+		if( OPENAL_SHARED_LIBRARY )
+			install(PROGRAMS ${OPENAL_SHARED_LIBRARY} DESTINATION ".")
+		else()
+			message(WARNING "OPENAL shared library was not found and will be neither installed nor packaged")
+		endif()
 	endif()
 endif()
 
