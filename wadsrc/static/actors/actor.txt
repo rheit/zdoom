@@ -210,6 +210,7 @@ ACTOR Actor native //: Thinker
 	native state A_JumpIfInventory(class<Inventory> itemtype, int itemamount, state label, int owner = AAPTR_DEFAULT);
 	native state A_JumpIfArmorType(name Type, state label, int amount = 1);
 	native bool A_GiveInventory(class<Inventory> itemtype, int amount = 0, int giveto = AAPTR_DEFAULT);
+	native bool A_SetInventory(class<Inventory> itemtype, int amount = 0, int giveto = AAPTR_DEFAULT);
 	native bool A_TakeInventory(class<Inventory> itemtype, int amount = 0, int flags = 0, int giveto = AAPTR_DEFAULT);
 	action native bool A_SpawnItem(class<Actor> itemtype = "Unknown", float distance = 0, float zheight = 0, bool useammo = true, bool transfer_translation = false);
 	native bool A_SpawnItemEx(class<Actor> itemtype, float xofs = 0, float yofs = 0, float zofs = 0, float xvel = 0, float yvel = 0, float zvel = 0, float angle = 0, int flags = 0, int failchance = 0, int tid=0);
@@ -249,6 +250,7 @@ ACTOR Actor native //: Thinker
 	native void A_Recoil(float xyvel);
 	native state A_JumpIfInTargetInventory(class<Inventory> itemtype, int amount, state label, int forward_ptr = AAPTR_DEFAULT);
 	native bool A_GiveToTarget(class<Inventory> itemtype, int amount = 0, int forward_ptr = AAPTR_DEFAULT);
+	native bool A_SetTargetInventory(class<Inventory> itemtype, int amount = 0, int forward_ptr = AAPTR_DEFAULT);
 	native bool A_TakeFromTarget(class<Inventory> itemtype, int amount = 0, int flags = 0, int forward_ptr = AAPTR_DEFAULT);
 	native int A_RadiusGive(class<Inventory> itemtype, float distance, int flags, int amount = 0, class<Actor> filter = "None", name species = "None", float mindist = 0, int limit = 0);
 	native state A_CheckSpecies(state jump, name species = "", int ptr = AAPTR_DEFAULT);
@@ -322,6 +324,8 @@ ACTOR Actor native //: Thinker
 	native void A_Remove(int removee, int flags = 0, class<Actor> filter = "None", name species = "None");
 	native int A_GiveToChildren(class<Inventory> itemtype, int amount = 0);
 	native int A_GiveToSiblings(class<Inventory> itemtype, int amount = 0);
+	native int A_SetChildrenInventory(class<Inventory> itemtype, int amount = 0);
+	native int A_SetSiblingsInventory(class<Inventory> itemtype, int amount = 0);
 	native int A_TakeFromChildren(class<Inventory> itemtype, int amount = 0);
 	native int A_TakeFromSiblings(class<Inventory> itemtype, int amount = 0);
 	native void A_SetTeleFog(class<Actor> oldpos, class<Actor> newpos);
