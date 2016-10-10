@@ -2517,6 +2517,138 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomRailgun)
 
 //===========================================================================
 //
+// [SP] DoSetInventory
+//
+//===========================================================================
+
+static bool DoSetInventory(AActor *receiver, bool orresult, VM_ARGS)
+{
+	int paramnum = 0;
+	PARAM_CLASS		(mi, AInventory);
+	PARAM_INT_OPT	(amount)			{ amount = 0; }
+
+	if (!orresult)
+	{
+		PARAM_INT_OPT(setreceiver)	{ setreceiver = AAPTR_DEFAULT; }
+		receiver = COPY_AAPTR(receiver, setreceiver);
+	}
+	if (receiver == NULL)
+	{ // If there's nothing to receive it, it's obviously a fail, right?
+		return false;
+	}
+
+	receiver->TakeInventory(mi, 0x7FFFFFFF, true, false);		// Yeah, take everything!
+
+	if (amount >= 0)			// Note this cannot be negative.
+	{
+		if (mi) 
+		{
+			// ... and now we give it back
+			// This is copy-pasted from GiveInventory. If there's a better way to do this,
+			//   be my guest...
+			AInventory *item = static_cast<AInventory *>(Spawn(mi));
+			if (item == NULL)
+			{
+				return false;
+			}
+
+			// [SP] If this is a health item, just modify health directly.
+			if (item->IsKindOf(RUNTIME_CLASS(AHealth)))
+			{
+				player_t *player = receiver->player;
+				if (player)
+				{
+					if (amount <= 0)
+						player->mo->health = receiver->health = player->health = 1; //Copied from the buddha cheat.
+					else
+						player->mo->health = receiver->health = player->health = amount;
+					return true;
+				}
+				else if (receiver)
+				{
+					if (amount <= 0)
+						receiver->health = 1;
+					else
+						receiver->health = amount;
+					return true;
+				}
+				return false;
+			}
+
+			item->Amount = amount;
+
+			item->flags |= MF_DROPPED;
+			item->ItemFlags |= IF_IGNORESKILL; // do not double on easy/nightmare modes
+
+			item->ClearCounters();
+			if (!item->CallTryPickup(receiver))
+			{
+				item->Destroy();
+				return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	return true; // [SP] fall-through - if amount==0 always return true
+}
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetInventory)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	ACTION_RETURN_BOOL(DoSetInventory(self, false, VM_ARGS_NAMES));
+}	
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTargetInventory)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	ACTION_RETURN_BOOL(DoSetInventory(self->target, false, VM_ARGS_NAMES));
+}
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetChildrenInventory)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+
+	TThinkerIterator<AActor> it;
+	AActor *mo;
+	int count = 0;
+
+	while ((mo = it.Next()))
+	{
+		if (mo->master == self)
+		{
+			count += DoSetInventory(mo, true, VM_ARGS_NAMES);
+		}
+	}
+	ACTION_RETURN_INT(count);
+}
+
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetSiblingsInventory)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+
+	TThinkerIterator<AActor> it;
+	AActor *mo;
+	int count = 0;
+
+	if (self->master != NULL)
+	{
+		while ((mo = it.Next()))
+		{
+			if (mo->master == self->master && mo != self)
+			{
+				count += DoSetInventory(mo, true, VM_ARGS_NAMES);
+			}
+		}
+	}
+	ACTION_RETURN_INT(count);
+}
+
+//===========================================================================
+//
 // DoGiveInventory
 //
 //===========================================================================
