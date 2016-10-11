@@ -98,7 +98,9 @@ function( add_pk3 PK3_NAME PK3_DIR )
 	# Create install rule for this PK3 archive, for use in CMake INSTALL
 	# and PACKAGE targets
 	# "." means the top level installation folder
-	install(FILES ${ZDOOM_OUTPUT_DIR}/${PK3_NAME} DESTINATION ".")
+	install(FILES ${ZDOOM_OUTPUT_DIR}/${PK3_NAME} 
+		DESTINATION "."
+		COMPONENT "PK3 Archives")
 
 endfunction()
 
@@ -319,7 +321,9 @@ endif()
 
 # Install rules below, used by CMake INSTALL and PACKAGE targets
 # Install the entire docs directory in the distributed zip package
-install(DIRECTORY docs/ DESTINATION docs)
+install(DIRECTORY docs/ 
+	DESTINATION docs
+	COMPONENT "Documentation")
 
 option(ZDOOM_ENABLE_PACKAGE_TARGET "Enables creations of game distribution packages" ON)
 
