@@ -1821,7 +1821,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 			if (!(flags & CBAF_NORANDOM))
 				damage *= ((pr_cabullet()%3)+1);
 
-			AActor *puff = P_LineAttack(self, angle, range, slope, damage, NAME_Hitscan, pufftype, laflags);
+			AActor *puff = P_LineAttack(self, angle, range, -slope, damage, NAME_Hitscan, pufftype, laflags);
 			if (missile != nullptr && pufftype != nullptr)
 			{
 				double x = Spawnofs_xy * angle.Cos();
@@ -1837,7 +1837,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomBulletAttack)
 					bool temp = (puff == nullptr);
 					if (!puff)
 					{
-						puff = P_LineAttack(self, angle, range, slope, 0, NAME_Hitscan, pufftype, laflags | LAF_NOINTERACT);
+						puff = P_LineAttack(self, angle, range, -slope, 0, NAME_Hitscan, pufftype, laflags | LAF_NOINTERACT);
 					}
 					if (puff)
 					{			
