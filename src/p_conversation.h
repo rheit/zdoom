@@ -30,7 +30,7 @@ struct FStrifeDialogueNode
 	FSoundID SpeakerVoice;
 	FTextureID Backdrop;
 	char *Dialogue;
-	char *Goodbye = NULL; // must init to NULL for binary scripts to work as intended
+	char *Goodbye = nullptr; // must init to nullptr for binary scripts to work as intended
 
 	FStrifeDialogueReply *Children;
 };
