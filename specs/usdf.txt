@@ -92,7 +92,7 @@ conversation // Starts a dialog.
         voice   = <string>;  // Narration sound lump.
         dialog  = <string>;  // Dialog of the page.
 		goodbye = <string>;  // Custom goodbye message. If ommited then the
-		                     // generic goodbyes will be displayed instead.
+							 // generic goodbyes will be displayed instead.
         drop    = <integer>; // mobj for the object to drop if the actor is 
                              // killed.
         link    = <integer>; // Page to jump to if all ifitem conditions are
