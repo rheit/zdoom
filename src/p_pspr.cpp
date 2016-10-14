@@ -1103,6 +1103,23 @@ DEFINE_ACTION_FUNCTION(AActor, OverlayY)
 // Because non-action functions cannot acquire the ID of the overlay...
 //---------------------------------------------------------------------------
 
+DEFINE_ACTION_FUNCTION(AActor, OverlayID)
+{
+	PARAM_ACTION_PROLOGUE;
+
+	if (ACTION_CALL_FROM_PSPRITE())
+	{
+		ACTION_RETURN_INT(stateinfo->mPSPIndex);
+	}
+	ACTION_RETURN_INT(0);
+}
+
+//---------------------------------------------------------------------------
+//
+// PROC A_OverlayAlpha
+//
+//---------------------------------------------------------------------------
+
 DEFINE_ACTION_FUNCTION(AActor, A_OverlayAlpha)
 {
 	PARAM_ACTION_PROLOGUE;
