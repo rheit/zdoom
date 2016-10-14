@@ -64,14 +64,14 @@ class USDFParser : public UDMFParserBase
 		else if (namespace_bits == Zd)
 		{
 			PClassActor *cls = PClass::FindActor(CheckString(key));
-			if (cls == NULL)
+			if (cls == nullptr)
 			{
 				sc.ScriptMessage("Unknown actor class '%s'", key);
-				return NULL;
+				return nullptr;
 			}
 			return cls;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	//===========================================================================
@@ -83,7 +83,7 @@ class USDFParser : public UDMFParserBase
 	bool ParseCost(FStrifeDialogueReply *response)
 	{
 		FStrifeDialogueItemCheck check;
-		check.Item = NULL;
+		check.Item = nullptr;
 		check.Amount = -1;
 
 		while (!sc.CheckToken('}'))
@@ -223,13 +223,13 @@ class USDFParser : public UDMFParserBase
 
 		reply->Reply = ncopystring(ReplyString);
 		reply->QuickYes = ncopystring(QuickYes);
-		if (reply->ItemCheck.Size() > 0 && reply->ItemCheck[0].Item != NULL)
+		if (reply->ItemCheck.Size() > 0 && reply->ItemCheck[0].Item != nullptr)
 		{
 			reply->QuickNo = ncopystring(QuickNo);
 		}
 		else
 		{
-			reply->QuickNo = NULL;
+			reply->QuickNo = nullptr;
 		}
 		reply->LogString = ncopystring(LogString);
 		if(!closeDialog) reply->NextNode *= -1;
@@ -245,7 +245,7 @@ class USDFParser : public UDMFParserBase
 	bool ParseIfItem(FStrifeDialogueNode *node)
 	{
 		FStrifeDialogueItemCheck check;
-		check.Item = NULL;
+		check.Item = nullptr;
 		check.Amount = -1;
 
 		while (!sc.CheckToken('}'))
@@ -286,6 +286,7 @@ class USDFParser : public UDMFParserBase
 
 		FString SpeakerName;
 		FString Dialogue;
+		FString Goodbye;
 
 		while (!sc.CheckToken('}'))
 		{
@@ -331,7 +332,9 @@ class USDFParser : public UDMFParserBase
 					node->ItemCheckNode = CheckInt(key);
 					break;
 
-
+				case NAME_Goodbye:
+					Goodbye = CheckString(key);
+					break;
 				}
 			}
 			else
@@ -354,6 +357,7 @@ class USDFParser : public UDMFParserBase
 		}
 		node->SpeakerName = ncopystring(SpeakerName);
 		node->Dialogue = ncopystring(Dialogue);
+		node->Goodbye = ncopystring(Goodbye);
 		return true;
 	}
 
@@ -366,7 +370,7 @@ class USDFParser : public UDMFParserBase
 
 	bool ParseConversation()
 	{
-		PClassActor *type = NULL;
+		PClassActor *type = nullptr;
 		int dlgid = -1;
 		unsigned int startpos = StrifeDialogues.Size();
 
@@ -408,7 +412,7 @@ class USDFParser : public UDMFParserBase
 				}
 			}
 		}
-		if (type == NULL && dlgid == 0)
+		if (type == nullptr && dlgid == 0)
 		{
 			sc.ScriptMessage("No valid actor type defined in conversation.");
 			return false;
