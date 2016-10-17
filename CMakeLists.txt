@@ -95,7 +95,11 @@ function( add_pk3 PK3_NAME PK3_DIR )
 	# Phase 3: Assign source files to a nice folder structure in the IDE
 	assort_pk3_source_folder("Source Files" ${PK3_DIR})
 	# Phase 4: Add the resulting PK3 to the install target.
-	set( INSTALL_PK3_PATH share/games/doom CACHE STRING "Directory where zdoom.pk3 will be placed during install." )
+	if( WIN32 )
+		set( INSTALL_PK3_PATH . CACHE STRING "Directory where zdoom.pk3 will be placed during install." )
+	else()
+		set( INSTALL_PK3_PATH share/games/doom CACHE STRING "Directory where zdoom.pk3 will be placed during install." )
+	endif()
 	install ( FILES "${PROJECT_BINARY_DIR}/${PK3_NAME}" DESTINATION ${INSTALL_PK3_PATH} )
 endfunction()
 
