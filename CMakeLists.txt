@@ -100,7 +100,9 @@ function( add_pk3 PK3_NAME PK3_DIR )
 	else()
 		set( INSTALL_PK3_PATH share/games/doom CACHE STRING "Directory where zdoom.pk3 will be placed during install." )
 	endif()
-	install ( FILES "${PROJECT_BINARY_DIR}/${PK3_NAME}" DESTINATION ${INSTALL_PK3_PATH} )
+	install(FILES "${PROJECT_BINARY_DIR}/${PK3_NAME}"
+			DESTINATION ${INSTALL_PK3_PATH}
+			COMPONENT "Game resources")
 endfunction()
 
 # Macro for building libraries without debugging information
