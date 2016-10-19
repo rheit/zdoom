@@ -261,6 +261,7 @@ if( ZLIB_FOUND AND NOT FORCE_INTERNAL_ZLIB )
 	message( STATUS "Using system zlib, includes found at ${ZLIB_INCLUDE_DIR}" )
 else()
 	message( STATUS "Using internal zlib" )
+	set( SKIP_INSTALL_ALL TRUE ) # Avoid installing zlib alongside zdoom
 	add_subdirectory( zlib )
 	set( ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib )
 	set( ZLIB_LIBRARIES z )
