@@ -307,7 +307,7 @@ endif()
 
 # Install the entire docs directory in the distributed zip package
 if( WIN32 )
-	set( INSTALL_DOCS_PATH . CACHE STRING "Directory where the documentation will be placed during install." )
+	set( INSTALL_DOCS_PATH docs CACHE STRING "Directory where the documentation will be placed during install." )
 else()
 	set( INSTALL_DOCS_PATH share/doc/zdoom CACHE STRING "Directory where the zdoom documentation will be placed during install." )
 endif()
