@@ -38,6 +38,8 @@ endif()
 
 if( CMAKE_SIZEOF_VOID_P MATCHES "8" )
 	set( X64 64 )
+else()
+	set( X32 32 )
 endif()
 
 # You can either use "make install" on the FMOD distribution to put it
@@ -317,6 +319,27 @@ if( NOT NO_FMOD )
 	if( FMOD_LIBRARY )
 		message( STATUS "FMOD library found at ${FMOD_LIBRARY}" )
 		set( ZDOOM_LIBS ${ZDOOM_LIBS} "${FMOD_LIBRARY}" )
+		if (ZDOOM_ENABLE_PACKAGE_TARGET)
+			# Install shared fmod library for PACKAGE target
+			get_filename_component(FMOD_DIR "${FMOD_LIBRARY}" PATH)
+			find_file(FMOD_SHARED_LIBRARY
+				NAMES fmodex${X64}.dll fmod${X64}.dll
+				PATHS 
+					${CMAKE_BINARY_DIR}
+					"${FMOD_DIR}/.."
+				PATH_SUFFIXES 
+					Release
+					Debug
+				DOC "Path to FMOD shared library, e.g. fmodex.dll"
+			)
+			if( FMOD_SHARED_LIBRARY )
+				install(PROGRAMS ${FMOD_SHARED_LIBRARY} 
+					DESTINATION "."
+					COMPONENT "Shared Libraries")
+			else()
+				message(WARNING "FMOD shared library was not found and will be neither installed nor packaged")
+			endif()
+		endif()
 	else()
 		message( STATUS "Could not find FMOD library" )
 		set( NO_FMOD ON )
@@ -339,6 +362,85 @@ else()
 	# Search for libmpg123
 
 	find_package( MPG123 )
+	
+	if (ZDOOM_ENABLE_PACKAGE_TARGET)
+		# Create install rules for dlls, for use in PACKAGE target
+		find_file(MPG123_SHARED_LIBRARY
+			NAMES libmpg123-0.dll
+			PATHS 
+				${CMAKE_BINARY_DIR}
+				${MPG123_INCLUDE_DIR}
+			PATH_SUFFIXES 
+				Release
+				Debug
+			DOC "Path to mpg124 shared library, e.g. libmpg123-0.dll"
+		)
+		if( MPG123_SHARED_LIBRARY )
+			install(PROGRAMS ${MPG123_SHARED_LIBRARY} 
+				DESTINATION "."
+				COMPONENT "Shared Libraries")
+		else()
+			message(WARNING "MPG123 shared library was not found and will be neither installed nor packaged")
+		endif()
+	
+		find_file(SNDFILE_SHARED_LIBRARY
+			NAMES libsndfile-1.dll
+			PATHS 
+				${CMAKE_BINARY_DIR}
+				"${SNDFILE_INCLUDE_DIR}/../bin"
+			PATH_SUFFIXES 
+				Release
+				Debug
+			DOC "Path to sndfile shared library, e.g. libsndfile-1.dll"
+		)
+		if( SNDFILE_SHARED_LIBRARY )
+			install(PROGRAMS ${SNDFILE_SHARED_LIBRARY} 
+				DESTINATION "."
+				COMPONENT "Shared Libraries")
+		else()
+			message(WARNING "SNDFILE shared library was not found and will be neither installed nor packaged")
+		endif()
+		
+		if (X64)
+			set(OAL_SUBFOLDER Win64)
+		else()
+			set(OAL_SUBFOLDER Win32)
+		endif()
+		find_file(OPENAL_SHARED_LIBRARY
+			NAMES soft_oal.dll OpenAL32.dll
+			PATHS
+				${CMAKE_BINARY_DIR} 
+				"C:/Program Files (x86)/openal-soft-1.17.2-bin/bin/Win${X32}${X64}"
+			PATH_SUFFIXES 
+				Release
+				Debug
+			DOC "Path to OpenAL shared library, e.g. soft_oal.dll"
+		)
+		if( OPENAL_SHARED_LIBRARY )
+			install(PROGRAMS ${OPENAL_SHARED_LIBRARY} 
+				DESTINATION "."
+				RENAME OpenAL32.dll
+				COMPONENT "Shared Libraries")
+		else()
+			message(WARNING "OPENAL shared library was not found and will be neither installed nor packaged")
+		endif()
+	endif()
+endif()
+
+# install all shared libraries dev has placed in the executable output folder(s)
+# because I have no idea what else to do about libgcc_s_sjlj-1.dll
+if (ZDOOM_ENABLE_PACKAGE_TARGET)
+	file(GLOB DEV_SHARED_LIBRARIES 
+		"${CMAKE_BINARY_DIR}/Release/*.dll"
+		"${CMAKE_BINARY_DIR}/Debug/*.dll"
+		"${CMAKE_BINARY_DIR}/*.so"
+		"${CMAKE_BINARY_DIR}/*.dylib"
+	)
+	if (DEV_SHARED_LIBRARIES)
+		install(PROGRAMS ${DEV_SHARED_LIBRARIES} 
+			DESTINATION "."
+			COMPONENT "Shared Libraries")
+	endif()
 endif()
 
 # Search for FluidSynth
@@ -1418,6 +1520,13 @@ if( APPLE )
 			COMMENT "Relinking FMOD Ex" )
 	endif()
 endif()
+
+# Create install rule for zdoom game program, for use in CMake INSTALL 
+# and PACKAGE targets.
+# "." means the top level installation folder
+install(TARGETS zdoom 
+	DESTINATION "."
+	COMPONENT "Game Program")
 
 source_group("Assembly Files\\ia32" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_ia32/.+")
 source_group("Assembly Files\\x86_64" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/asm_x86_64/.+")
