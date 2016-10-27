@@ -585,6 +585,8 @@ xx(Ifitem)
 xx(Choice)
 xx(Link)
 xx(Goodbye)
+xx(Require)
+xx(HideIfMetRequirements)
 
 // Special menus
 xx(Mainmenu)
