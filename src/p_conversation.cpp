@@ -516,6 +516,7 @@ static void ParseReplies (FStrifeDialogueReply **replyptr, Response *responses)
 			reply->ItemCheck[k].Item = dyn_cast<PClassInventory>(GetStrifeType(rsp->Item[k]));
 			reply->ItemCheck[k].Amount = rsp->Count[k];
 		}
+		reply->ItemCheck2.Clear();
 
 		// If the first item check has a positive amount required, then
 		// add that to the reply string. Otherwise, use the reply as-is.
@@ -658,6 +659,33 @@ CUSTOM_CVAR(Float, dlg_musicvolume, 1.0f, CVAR_ARCHIVE)
 
 //============================================================================
 //
+// ShouldSkipReply
+//
+// Determines whether this reply should be skipped or not.
+//
+//============================================================================
+
+static bool ShouldSkipReply(FStrifeDialogueReply *reply, player_t *player)
+{
+	if (reply->Reply == nullptr)
+		return true;
+
+	if (!reply->ItemCheck2.Size())
+		return false;
+
+	bool hidereply = reply->Hide;
+	for (int i = 0; i < (int)reply->ItemCheck2.Size(); ++i)
+	{
+		if (!CheckStrifeItem(player, reply->ItemCheck2[i].Item, reply->ItemCheck2[i].Amount))
+		{
+			return !hidereply;
+		}
+	}
+	return hidereply;
+}
+
+//============================================================================
+//
 // The conversation menu
 //
 //============================================================================
@@ -673,6 +701,7 @@ class DConversationMenu : public DMenu
 	bool mShowGold;
 	FStrifeDialogueNode *mCurNode;
 	int mYpos;
+	player_t *mPlayer;
 
 public:
 	static int mSelection;
@@ -683,9 +712,10 @@ public:
 	//
 	//=============================================================================
 
-	DConversationMenu(FStrifeDialogueNode *CurNode) 
+	DConversationMenu(FStrifeDialogueNode *CurNode, player_t *player)
 	{
 		mCurNode = CurNode;
+		mPlayer = player;
 		mDialogueLines = NULL;
 		mShowGold = false;
 
@@ -720,7 +750,7 @@ public:
 		int i,j;
 		for (reply = CurNode->Children, i = 1; reply != NULL; reply = reply->Next)
 		{
-			if (reply->Reply == NULL)
+			if (ShouldSkipReply(reply, mPlayer))
 			{
 				continue;
 			}
@@ -778,6 +808,13 @@ public:
 		}
 		ConversationMenuY = mYpos;
 		//ConversationMenu.indent = 50;
+
+		// Because replies can be selectively hidden mResponses.Size() won't be consistent.
+		// So make sure mSelection doesn't exceed mResponses.Size(). [FishyClockwork]
+		if (mSelection >= (int)mResponses.Size())
+		{
+			mSelection = mResponses.Size() - 1;
+		}
 	}
 
 	//=============================================================================
@@ -839,12 +876,24 @@ public:
 			}
 			else
 			{
-				// Send dialogue and reply numbers across the wire.
 				assert((unsigned)mCurNode->ThisNodeNum < StrifeDialogues.Size());
 				assert(StrifeDialogues[mCurNode->ThisNodeNum] == mCurNode);
+
+				// This is needed because mSelection represents the replies currently being displayed which will
+				// not match up with what's supposed to be selected if there are any hidden/skipped replies. [FishyClockwork]
+				FStrifeDialogueReply *reply = mCurNode->Children;
+				int replynum = mSelection;
+				for (int i = 0; i <= mSelection && reply != nullptr; reply = reply->Next)
+				{
+					if (ShouldSkipReply(reply, mPlayer))
+						replynum++;
+					else
+						i++;
+				}
+				// Send dialogue and reply numbers across the wire.
 				Net_WriteByte(DEM_CONVREPLY);
 				Net_WriteWord(mCurNode->ThisNodeNum);
-				Net_WriteByte(mSelection);
+				Net_WriteByte(replynum);
 			}
 			Close();
 			return true;
@@ -1169,7 +1218,7 @@ void P_StartConversation (AActor *npc, AActor *pc, bool facetalker, bool saveang
 			S_Sound (npc, CHAN_VOICE|CHAN_NOPAUSE, CurNode->SpeakerVoice, 1, ATTN_NORM);
 		}
 
-		DConversationMenu *cmenu = new DConversationMenu(CurNode);
+		DConversationMenu *cmenu = new DConversationMenu(CurNode, pc->player);
 
 
 		if (CurNode != PrevNode)

@@ -76,11 +76,11 @@ class USDFParser : public UDMFParserBase
 
 	//===========================================================================
 	//
-	// Parse a cost block
+	// Parse a cost/require block
 	//
 	//===========================================================================
 
-	bool ParseCost(FStrifeDialogueReply *response)
+	bool ParseCostOrRequire(FStrifeDialogueReply *response, bool require)
 	{
 		FStrifeDialogueItemCheck check;
 		check.Item = NULL;
@@ -101,7 +101,14 @@ class USDFParser : public UDMFParserBase
 			}
 		}
 
-		response->ItemCheck.Push(check);
+		if (!require)
+		{
+			response->ItemCheck.Push(check); // it's a cost block
+		}
+		else
+		{
+			response->ItemCheck2.Push(check); // it's a require block
+		}
 		return true;
 	}
 
@@ -128,6 +135,7 @@ class USDFParser : public UDMFParserBase
 
 
 		reply->NeedsGold = false;
+		reply->Hide = false;
 		while (!sc.CheckToken('}'))
 		{
 			bool block = false;
@@ -184,6 +192,10 @@ class USDFParser : public UDMFParserBase
 					closeDialog = CheckBool(key);
 					break;
 
+				case NAME_HideIfMetRequirements:
+					reply->Hide = CheckBool(key);
+					break;
+
 				case NAME_Special:
 					reply->ActionSpecial = CheckInt(key);
 					if (reply->ActionSpecial < 0 || reply->ActionSpecial > 255)
@@ -206,7 +218,11 @@ class USDFParser : public UDMFParserBase
 				switch(key)
 				{
 				case NAME_Cost:
-					ParseCost(reply);
+					ParseCostOrRequire(reply, false);
+					break;
+
+				case NAME_Require:
+					ParseCostOrRequire(reply, true);
 					break;
 
 				default:
