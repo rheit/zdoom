@@ -122,6 +122,21 @@ conversation // Starts a dialog.
                 amount = <integer>; // Minimum amount of the item needed.
             }
 
+            // If specified, this choice will not be shown until all 'require'
+            // blocks are satisfied. If 'hideifmetrequirements' is set to true
+            // then this is inversed.
+            require
+            {
+                item   = <integer>; // Item that is required for this option.
+                amount = <integer>; // Minimum amount of the item needed.
+            }
+
+            hideifmetrequirements = <bool>; // Determines behavior of 'require' blocks.
+					    // If true then the choice will be hidden if
+					    // all 'require' blocks are satisfied.
+					    // This is ignored if there are no 'require' blocks.
+					    // Default value is false.
+
             displaycost     = <bool>;    // Whether the cost should be
                                          // displayed with the option.
                                          // If no cost is specified this should
