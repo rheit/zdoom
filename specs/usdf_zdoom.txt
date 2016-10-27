@@ -50,6 +50,11 @@ conversation
                 item   = <string>;
             }
 
+            require
+            {
+                item   = <string>;
+            }
+
             giveitem        = <string>;
         }
     }
