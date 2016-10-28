@@ -1071,10 +1071,18 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 					}
 				}
 
-				damage = inflictor->DoSpecialDamage(target, damage, mod);
-				if (damage < 0)
+				// [EP] Allied players should not morph when team damage is off and the damage is not forced.
+				if (!inflictor->IsKindOf(RUNTIME_CLASS(AMorphProjectile)) ||
+					!(!(flags & DMG_FORCED) && source != NULL &&
+					  ((player && player != source->player) || (!player && target != source)) &&
+					  target->IsTeammate (source)) ||
+					level.teamdamage > 0.)
 				{
-					return -1;
+					damage = inflictor->DoSpecialDamage(target, damage, mod);
+					if (damage < 0)
+					{
+						return -1;
+					}
 				}
 			}
 
