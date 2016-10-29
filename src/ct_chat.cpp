@@ -369,16 +369,16 @@ static void ShoveChatStr (const char *str, BYTE who)
 		who |= 2;
 	}
 
-	Net_WriteByte (DEM_SAY);
-	Net_WriteByte (who);
+	FNetCommand netcmd(DEM_SAY);
+	netcmd.AddByte(who);
 
 	if (!chat_substitution || !DoSubstitution (substBuff, str))
 	{
-		Net_WriteString (str);
+		netcmd.AddString(str);
 	}
 	else
 	{
-		Net_WriteString (substBuff);
+		netcmd.AddString(substBuff);
 	}
 }
 

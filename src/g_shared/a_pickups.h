@@ -9,6 +9,7 @@
 
 class player_t;
 class FConfigFile;
+class FNetCommand;
 class AWeapon;
 class PClassWeapon;
 class PClassPlayerPawn;
@@ -88,7 +89,7 @@ struct FWeaponSlots
 };
 
 void P_PlaybackKeyConfWeapons(FWeaponSlots *slots);
-void Net_WriteWeapon(PClassWeapon *type);
+void Net_WriteWeapon(FNetCommand &netcmd, PClassWeapon *type);
 PClassWeapon *Net_ReadWeapon(BYTE **stream);
 
 void P_SetupWeapons_ntohton();

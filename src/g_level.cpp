@@ -874,7 +874,7 @@ IMPLEMENT_CLASS (DAutosaver)
 
 void DAutosaver::Tick ()
 {
-	Net_WriteByte (DEM_CHECKAUTOSAVE);
+	FNetCommand netcmd(DEM_CHECKAUTOSAVE);
 	Destroy ();
 }
 

@@ -697,8 +697,8 @@ CCMD (spray)
 		return;
 	}
 
-	Net_WriteByte (DEM_SPRAY);
-	Net_WriteString (argv[1]);
+	FNetCommand netcmd(DEM_SPRAY);
+	netcmd.AddString(argv[1]);
 }
 
 DBaseDecal *ShootDecal(const FDecalTemplate *tpl, AActor *basisactor, sector_t *sec, double x, double y, double z, DAngle angle, double tracedist, bool permanent)

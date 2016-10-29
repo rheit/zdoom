@@ -120,8 +120,8 @@ CCMD (god)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_GOD);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_GOD);
 }
 
 CCMD(god2)
@@ -129,8 +129,8 @@ CCMD(god2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte(DEM_GENERICCHEAT);
-	Net_WriteByte(CHT_GOD2);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_GOD2);
 }
 
 CCMD (iddqd)
@@ -138,8 +138,8 @@ CCMD (iddqd)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_IDDQD);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_IDDQD);
 }
 
 CCMD (buddha)
@@ -147,8 +147,8 @@ CCMD (buddha)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte(DEM_GENERICCHEAT);
-	Net_WriteByte(CHT_BUDDHA);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_BUDDHA);
 }
 
 CCMD(buddha2)
@@ -156,8 +156,8 @@ CCMD(buddha2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte(DEM_GENERICCHEAT);
-	Net_WriteByte(CHT_BUDDHA2);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_BUDDHA2);
 }
 
 CCMD (notarget)
@@ -165,8 +165,8 @@ CCMD (notarget)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_NOTARGET);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_NOTARGET);
 }
 
 CCMD (fly)
@@ -174,8 +174,8 @@ CCMD (fly)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_FLY);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_FLY);
 }
 
 /*
@@ -190,8 +190,8 @@ CCMD (noclip)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_NOCLIP);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_NOCLIP);
 }
 
 CCMD (noclip2)
@@ -199,8 +199,8 @@ CCMD (noclip2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_NOCLIP2);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_NOCLIP2);
 }
 
 CCMD (powerup)
@@ -208,8 +208,8 @@ CCMD (powerup)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_POWER);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_POWER);
 }
 
 CCMD (morphme)
@@ -219,13 +219,13 @@ CCMD (morphme)
 
 	if (argv.argc() == 1)
 	{
-		Net_WriteByte (DEM_GENERICCHEAT);
-		Net_WriteByte (CHT_MORPH);
+		FNetCommand netcmd(DEM_GENERICCHEAT);
+		netcmd.AddByte(CHT_MORPH);
 	}
 	else
 	{
-		Net_WriteByte (DEM_MORPHEX);
-		Net_WriteString (argv[1]);
+		FNetCommand netcmd(DEM_MORPHEX);
+		netcmd.AddString(argv[1]);
 	}
 }
 
@@ -234,8 +234,8 @@ CCMD (anubis)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_ANUBIS);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_ANUBIS);
 }
 
 // [GRB]
@@ -244,8 +244,8 @@ CCMD (resurrect)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_RESSURECT);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_RESSURECT);
 }
 
 EXTERN_CVAR (Bool, chasedemo)
@@ -276,8 +276,8 @@ CCMD (chase)
 		if (gamestate != GS_LEVEL || (!(dmflags2 & DF2_CHASECAM) && deathmatch && CheckCheatmode ()))
 			return;
 
-		Net_WriteByte (DEM_GENERICCHEAT);
-		Net_WriteByte (CHT_CHASECAM);
+		FNetCommand netcmd(DEM_GENERICCHEAT);
+		netcmd.AddByte(CHT_CHASECAM);
 	}
 }
 
@@ -370,16 +370,17 @@ CCMD (changemap)
 			}
 			else
 			{
+				FNetCommand netcmd;
 				if (argv.argc() > 2)
 				{
-					Net_WriteByte (DEM_CHANGEMAP2);
-					Net_WriteByte (atoi(argv[2]));
+					netcmd.AddHeader(DEM_CHANGEMAP2);
+					netcmd.AddByte(atoi(argv[2]));
 				}
 				else
 				{
-					Net_WriteByte (DEM_CHANGEMAP);
+					netcmd.AddHeader(DEM_CHANGEMAP);
 				}
-				Net_WriteString (argv[1]);
+				netcmd.AddString(argv[1]);
 			}
 		}
 		catch(CRecoverableError &error)
@@ -399,12 +400,12 @@ CCMD (give)
 	if (CheckCheatmode () || argv.argc() < 2)
 		return;
 
-	Net_WriteByte (DEM_GIVECHEAT);
-	Net_WriteString (argv[1]);
+	FNetCommand netcmd(DEM_GIVECHEAT);
+	netcmd.AddString(argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteWord (clamp (atoi (argv[2]), 1, 32767));
+		netcmd.AddWord(clamp (atoi (argv[2]), 1, 32767));
 	else
-		Net_WriteWord (0);
+		netcmd.AddWord(0);
 }
 
 CCMD (take)
@@ -412,12 +413,12 @@ CCMD (take)
 	if (CheckCheatmode () || argv.argc() < 2)
 		return;
 
-	Net_WriteByte (DEM_TAKECHEAT);
-	Net_WriteString (argv[1]);
+	FNetCommand netcmd(DEM_TAKECHEAT);
+	netcmd.AddString(argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteWord (clamp (atoi (argv[2]), 1, 32767));
+		netcmd.AddWord(clamp (atoi (argv[2]), 1, 32767));
 	else
-		Net_WriteWord (0);
+		netcmd.AddWord(0);
 }
 
 CCMD (gameversion)
@@ -512,20 +513,21 @@ CCMD (puke)
 			arg[i] = atoi (argv[2+i]);
 		}
 
+		FNetCommand netcmd;
 		if (script > 0)
 		{
-			Net_WriteByte (DEM_RUNSCRIPT);
-			Net_WriteWord (script);
+			netcmd.AddHeader(DEM_RUNSCRIPT);
+			netcmd.AddWord(script);
 		}
 		else
 		{
-			Net_WriteByte (DEM_RUNSCRIPT2);
-			Net_WriteWord (-script);
+			netcmd.AddHeader(DEM_RUNSCRIPT2);
+			netcmd.AddWord(-script);
 		}
-		Net_WriteByte (argn);
+		netcmd.AddByte(argn);
 		for (i = 0; i < argn; ++i)
 		{
-			Net_WriteLong (arg[i]);
+			netcmd.AddLong(arg[i]);
 		}
 	}
 }
@@ -558,12 +560,12 @@ CCMD (pukename)
 				arg[i] = atoi(argv[argstart + i]);
 			}
 		}
-		Net_WriteByte(DEM_RUNNAMEDSCRIPT);
-		Net_WriteString(argv[1]);
-		Net_WriteByte(argn | (always << 7));
+		FNetCommand netcmd(DEM_RUNNAMEDSCRIPT);
+		netcmd.AddString(argv[1]);
+		netcmd.AddByte(argn | (always << 7));
 		for (i = 0; i < argn; ++i)
 		{
-			Net_WriteLong(arg[i]);
+			netcmd.AddLong(arg[i]);
 		}
 	}
 }
@@ -604,12 +606,12 @@ CCMD (special)
 				return;
 			}
 		}
-		Net_WriteByte(DEM_RUNSPECIAL);
-		Net_WriteWord(specnum);
-		Net_WriteByte(argc - 2);
+		FNetCommand netcmd(DEM_RUNSPECIAL);
+		netcmd.AddWord(specnum);
+		netcmd.AddByte(argc - 2);
 		for (int i = 2; i < argc; ++i)
 		{
-			Net_WriteLong(atoi(argv[i]));
+			netcmd.AddLong(atoi(argv[i]));
 		}
 	}
 }
@@ -734,6 +736,7 @@ CCMD (fov)
 {
 	player_t *player = who ? who->player : &players[consoleplayer];
 
+	FNetCommand netcmd;
 	if (argv.argc() != 2)
 	{
 		Printf ("fov is %g\n", player->DesiredFOV);
@@ -743,7 +746,7 @@ CCMD (fov)
 	{
 		if (consoleplayer == Net_Arbitrator)
 		{
-			Net_WriteByte (DEM_FOV);
+			netcmd.AddHeader(DEM_FOV);
 		}
 		else
 		{
@@ -753,9 +756,9 @@ CCMD (fov)
 	}
 	else
 	{
-		Net_WriteByte (DEM_MYFOV);
+		netcmd.AddHeader(DEM_MYFOV);
 	}
-	Net_WriteByte (clamp (atoi (argv[1]), 5, 179));
+	netcmd.AddByte(clamp (atoi (argv[1]), 5, 179));
 }
 
 //==========================================================================
@@ -783,10 +786,10 @@ CCMD (warp)
 	}
 	else
 	{
-		Net_WriteByte (DEM_WARPCHEAT);
-		Net_WriteWord (atoi (argv[1]));
-		Net_WriteWord (atoi (argv[2]));
-		Net_WriteWord (argv.argc() == 3 ? ONFLOORZ/65536 : atoi (argv[3]));
+		FNetCommand netcmd(DEM_WARPCHEAT);
+		netcmd.AddWord(atoi (argv[1]));
+		netcmd.AddWord(atoi (argv[2]));
+		netcmd.AddWord(argv.argc() == 3 ? ONFLOORZ/65536 : atoi (argv[3]));
 	}
 }
 
@@ -1076,8 +1079,8 @@ CCMD(thaw)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_CLEARFROZENPROPS);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_CLEARFROZENPROPS);
 }
 
 //-----------------------------------------------------------------------------

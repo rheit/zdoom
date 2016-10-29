@@ -88,6 +88,38 @@ struct doomcom_t
 };
 
 
+// [EP] Network command interface.
+class FNetCommand
+{
+public:
+	FNetCommand();
+	FNetCommand(EDemoCommand);
+	~FNetCommand();
+
+	void AddHeader (EDemoCommand);
+	void AddByte (BYTE);
+	void AddWord (short);
+	void AddLong (int);
+	void AddFloat (float);
+	void AddString (const char *);
+	void AddBytes (const BYTE *, int);
+private:
+	EDemoCommand m_Header;
+
+	FNetCommand(const FNetCommand &);
+	FNetCommand &operator=(const FNetCommand &);
+
+	void CheckHeader();
+	void CheckNoHeader();
+
+	void Lock();
+	void UnLock();
+	void CheckNoLock();
+
+	static bool lock;
+};
+
+
 class FDynamicBuffer
 {
 public:
@@ -119,12 +151,6 @@ void Net_CheckLastReceived(int);
 
 // [RH] Functions for making and using special "ticcmds"
 void Net_NewMakeTic ();
-void Net_WriteByte (BYTE);
-void Net_WriteWord (short);
-void Net_WriteLong (int);
-void Net_WriteFloat (float);
-void Net_WriteString (const char *);
-void Net_WriteBytes (const BYTE *, int len);
 
 void Net_DoCommand (int type, BYTE **stream, int player);
 void Net_SkipCommand (int type, BYTE **stream);

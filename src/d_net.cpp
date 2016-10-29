@@ -2026,6 +2026,112 @@ void Net_WriteBytes (const BYTE *block, int len)
 		specials << *block++;
 }
 
+
+//==========================================================================
+//
+// [EP] FNetCommand interface
+//
+//==========================================================================
+bool FNetCommand::lock = false;
+
+FNetCommand::FNetCommand ()
+	: m_Header(DEM_INVALID)
+{
+	CheckNoLock();
+	Lock();
+}
+
+FNetCommand::FNetCommand (EDemoCommand header)
+	: m_Header(header)
+{
+	CheckNoLock();
+	Lock();
+
+	Net_WriteByte(header);
+}
+
+FNetCommand::~FNetCommand()
+{
+	UnLock();
+}
+
+void FNetCommand::AddHeader (EDemoCommand header)
+{
+	CheckNoHeader();
+
+	Net_WriteByte(header);
+	m_Header = header;
+}
+
+void FNetCommand::AddByte (BYTE val)
+{
+	CheckHeader();
+
+	Net_WriteByte(val);
+}
+
+void FNetCommand::AddWord (short val)
+{
+	CheckHeader();
+
+	Net_WriteWord(val);
+}
+
+void FNetCommand::AddLong (int val)
+{
+	CheckHeader();
+
+	Net_WriteLong(val);
+}
+
+void FNetCommand::AddFloat (float val)
+{
+	CheckHeader();
+
+	Net_WriteFloat(val);
+}
+
+void FNetCommand::AddString (const char *val)
+{
+	CheckHeader();
+
+	Net_WriteString(val);
+}
+
+void FNetCommand::AddBytes (const BYTE *block, int len)
+{
+	CheckHeader();
+
+	Net_WriteBytes(block, len);
+}
+
+void FNetCommand::CheckHeader()
+{
+	assert(m_Header != DEM_INVALID &&
+		"FNetCommand: Attempt to add data without a header.");
+}
+
+void FNetCommand::CheckNoHeader()
+{
+	assert(m_Header == DEM_INVALID &&
+		"FNetCommand: Attempt to add a header to an already present header.\n");
+}
+
+void FNetCommand::Lock()
+{
+	lock = true;
+}
+
+void FNetCommand::UnLock()
+{
+	lock = false;
+}
+
+void FNetCommand::CheckNoLock()
+{
+	assert(!lock && "FNetCommand: Attempt to create two commands in the same scope.");
+}
+
 //==========================================================================
 //
 // Dynamic buffer interface
@@ -2440,15 +2546,14 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		// Do not autosave in multiplayer games or when dead.
 		// For demo playback, DEM_DOAUTOSAVE already exists in the demo if the
 		// autosave happened. And if it doesn't, we must not generate it.
-		if (multiplayer ||
-			demoplayback ||
-			players[consoleplayer].playerstate != PST_LIVE ||
-			disableautosave >= 2 ||
-			autosavecount == 0)
+		if (!multiplayer &&
+			!demoplayback &&
+			players[consoleplayer].playerstate == PST_LIVE &&
+			disableautosave < 2 &&
+			autosavecount != 0)
 		{
-			break;
+			FNetCommand netcmd(DEM_DOAUTOSAVE);
 		}
-		Net_WriteByte (DEM_DOAUTOSAVE);
 		break;
 
 	case DEM_DOAUTOSAVE:
@@ -2891,12 +2996,13 @@ static void Network_Controller (int playernum, bool add)
 		return;
 	}
 
+	FNetCommand netcmd;
 	if (add)
-		Net_WriteByte (DEM_ADDCONTROLLER);
+		netcmd.AddHeader(DEM_ADDCONTROLLER);
 	else
-		Net_WriteByte (DEM_DELCONTROLLER);
+		netcmd.AddHeader(DEM_DELCONTROLLER);
 
-	Net_WriteByte (playernum);
+	netcmd.AddByte(playernum);
 }
 
 //==========================================================================

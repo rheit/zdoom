@@ -1058,6 +1058,6 @@ CCMD (mdk)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteByte (DEM_GENERICCHEAT);
-	Net_WriteByte (CHT_MDK);
+	FNetCommand netcmd(DEM_GENERICCHEAT);
+	netcmd.AddByte(CHT_MDK);
 }
