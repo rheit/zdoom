@@ -76,8 +76,8 @@ namespace = "ZDoom";
 III.A : Conversations
 ---------------------
 
-This block only lists the newly added fields. Currently ZDoom only adds one
-field to the specification:
+This block only lists the newly added fields. Currently ZDoom only adds a few
+fields to the specification:
 
 conversation // Starts a dialog.
 {
@@ -86,6 +86,12 @@ conversation // Starts a dialog.
 				// the standard conversation ID ('actor' property) is used instead
 				// for this purpose but since 'ZDoom' namespace requires the actor
 				// to be a class name it needs a separate field for this.
+
+    page
+    {
+        goodbye = <string>; // Custom goodbye message. If omitted then the
+                            // generic goodbyes will be displayed instead.
+    }
 }
 
 ===============================================================================
