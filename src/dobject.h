@@ -574,6 +574,25 @@ protected:
 	}
 };
 
+template<class T>
+class DVMObject : public T
+{
+public:
+	virtual PClass *StaticType() const;
+	static ClassReg RegistrationInfo, * const RegistrationInfoPtr;
+private:
+	typedef T Super;
+	typedef DVMObject<T> ThisClass;
+	static void InPlaceConstructor (void *mem);
+
+public:
+	virtual void Destroy() override
+	{
+		Printf("success\n");
+		Super::Destroy();
+	}
+};
+
 // When you write to a pointer to an Object, you must call this for
 // proper bookkeeping in case the Object holding this pointer has
 // already been processed by the GC.

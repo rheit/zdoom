@@ -73,6 +73,30 @@ _DECLARE_TI(DObject)
 //
 //==========================================================================
 
+// Explicit instantiations
+template class DVMObject<AActor>;
+template class DVMObject<AInventory>;
+
+template<class T> void DVMObject<T>::InPlaceConstructor(void *mem) { new((EInPlace *)mem) DVMObject<T>; }
+template<class T> ClassReg DVMObject<T>::RegistrationInfo =
+{
+	nullptr,
+	copystring(FStringf("DVMObject<%s>", DVMObject<T>::Super::RegistrationInfo.Name).GetChars()),
+	&DVMObject<T>::Super::RegistrationInfo,
+	nullptr,
+	DVMObject<T>::InPlaceConstructor,
+	sizeof(DVMObject<T>),
+	DVMObject<T>::MetaClassNum
+};
+template<class T> __declspec(allocate(".creg$u")) ClassReg * const DVMObject<T>::RegistrationInfoPtr = &DVMObject<T>::RegistrationInfo;
+template<class T> PClass *DVMObject<T>::StaticType() const { return RegistrationInfo.MyClass; }
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
 CCMD (dumpactors)
 {
 	const char *const filters[32] =

@@ -445,6 +445,13 @@ void ZCCCompiler::CreateStructTypes()
 //
 //==========================================================================
 
+static PClassActor *CreateVMClass(PClassActor *cls)
+{
+			if (cls == static_cast<PClassActor *>(RUNTIME_CLASS(AActor)))		return static_cast<PClassActor *>(RUNTIME_CLASS(DVMObject<AActor>));
+	else	if (cls == static_cast<PClassActor *>(RUNTIME_CLASS(AInventory)))	return static_cast<PClassActor *>(RUNTIME_CLASS(DVMObject<AInventory>));
+	else return cls; // Todo support all native types.
+}
+
 void ZCCCompiler::CreateClassTypes()
 {
 	// we are going to sort the classes array so that entries are sorted in order of inheritance.
@@ -505,8 +512,26 @@ void ZCCCompiler::CreateClassTypes()
 				}
 				else
 				{
+					// The parent was the last native class in the inheritance tree.
+					// There is probably a better place for this somewhere else
+					// TODO: Do this somewhere else or find a less hackish way to do it
+					if (!parent->bRuntimeClass)
+					{
+						auto oldparent = parent;
+						parent = CreateVMClass(static_cast<PClassActor *>(parent));
+						if (oldparent != parent)
+						{
+							assert(parent->bRuntimeClass == false);
+							if (parent->Defaults == nullptr)
+							{
+								parent->Defaults = ((BYTE *)~0);
+							}
+						}
+					}
+
 					// We will never get here if the name is a duplicate, so we can just do the assignment.
 					c->cls->Type = parent->FindClassTentative(c->NodeName());
+					assert(c->cls->Type->bRuntimeClass == true);
 				}
 				c->Type()->bExported = true;	// this class is accessible to script side type casts. (The reason for this flag is that types like PInt need to be skipped.)
 				c->cls->Symbol = new PSymbolType(c->NodeName(), c->Type());
@@ -1892,6 +1917,16 @@ void ZCCCompiler::InitDefaults()
 			{
 				// Copy the parent's defaults and meta data.
 				auto ti = static_cast<PClassActor *>(c->Type());
+
+				// Hack for the DVMObjects as they weren't in the list originally
+				// TODO: process them in a non hackish way obviously
+				if (ti->ParentClass->Defaults == ((BYTE *)~0))
+				{
+					ti->ParentClass->Defaults = nullptr;
+					static_cast<PClassActor *>(ti->ParentClass)->InitializeNativeDefaults();
+					ti->ParentClass->ParentClass->DeriveData(ti->ParentClass);
+				}
+
 				ti->InitializeNativeDefaults();
 				ti->ParentClass->DeriveData(ti);
 
@@ -2244,6 +2279,20 @@ void ZCCCompiler::CompileStates()
 			if (c->States.Size()) Error(c->cls, "%s: States can only be defined for actors.", c->Type()->TypeName.GetChars());
 			continue;
 		}
+
+		// Same here, hack in the DVMObject as they weren't in the list originally
+		// TODO: process them in a non hackish way obviously
+		if (c->Type()->bRuntimeClass == true && c->Type()->ParentClass->bRuntimeClass == false)
+		{
+			auto vmtype = static_cast<PClassActor *>(c->Type()->ParentClass);
+			if (vmtype->StateList == nullptr)
+			{
+				FStateDefinitions vmstates;
+				vmstates.MakeStateDefines(dyn_cast<PClassActor>(vmtype->ParentClass));
+				vmtype->Finalize(vmstates);
+			}
+		}
+
 		FString statename;	// The state builder wants the label as one complete string, not separated into tokens.
 		FStateDefinitions statedef;
 		statedef.MakeStateDefines(dyn_cast<PClassActor>(c->Type()->ParentClass));
