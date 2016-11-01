@@ -2800,7 +2800,7 @@ PClass *ClassReg::RegisterClass()
 		assert(0 && "Class registry has an invalid meta class identifier");
 	}
 
-	if (metaclasses[MetaClassNum]->MyClass == NULL)
+	if (metaclasses[MetaClassNum]->MyClass == nullptr)
 	{ // Make sure the meta class is already registered before registering this one
 		metaclasses[MetaClassNum]->RegisterClass();
 	}
@@ -2808,9 +2808,13 @@ PClass *ClassReg::RegisterClass()
 
 	SetupClass(cls);
 	cls->InsertIntoHash();
-	if (ParentType != NULL)
+	if (ParentType != nullptr)
 	{
 		cls->ParentClass = ParentType->RegisterClass();
+	}
+	if (VMExport != nullptr)
+	{
+		cls->VMExported = VMExport->RegisterClass();
 	}
 	return cls;
 }

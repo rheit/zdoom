@@ -52,6 +52,7 @@
 #include "vmbuilder.h"
 
 #define DEFINING_CONST ((PSymbolConst *)(void *)1)
+#define DEFAULTS_VMEXPORT ((BYTE *)(void *)1)
 
 //==========================================================================
 //
@@ -445,13 +446,6 @@ void ZCCCompiler::CreateStructTypes()
 //
 //==========================================================================
 
-static PClassActor *CreateVMClass(PClassActor *cls)
-{
-			if (cls == static_cast<PClassActor *>(RUNTIME_CLASS(AActor)))		return static_cast<PClassActor *>(RUNTIME_CLASS(DVMObject<AActor>));
-	else	if (cls == static_cast<PClassActor *>(RUNTIME_CLASS(AInventory)))	return static_cast<PClassActor *>(RUNTIME_CLASS(DVMObject<AInventory>));
-	else return cls; // Todo support all native types.
-}
-
 void ZCCCompiler::CreateClassTypes()
 {
 	// we are going to sort the classes array so that entries are sorted in order of inheritance.
@@ -517,21 +511,23 @@ void ZCCCompiler::CreateClassTypes()
 					// TODO: Do this somewhere else or find a less hackish way to do it
 					if (!parent->bRuntimeClass)
 					{
-						auto oldparent = parent;
-						parent = CreateVMClass(static_cast<PClassActor *>(parent));
-						if (oldparent != parent)
+						//assert(parent->VMExported != nullptr); // Ideally the macro would be used on all inheritable-native classes
+						/**/ if (parent->VMExported != nullptr) { /**/ // remove the if condition when all done
+
+						parent = parent->VMExported;
+						assert(parent->bRuntimeClass == false);
+
+						if (parent->Defaults == nullptr)
 						{
-							assert(parent->bRuntimeClass == false);
-							if (parent->Defaults == nullptr)
-							{
-								parent->Defaults = ((BYTE *)~0);
-							}
+							// We have to manually do that since zscript knows nothing about these
+							parent->Defaults = DEFAULTS_VMEXPORT;
 						}
+
+						/**/ } /**/
 					}
 
 					// We will never get here if the name is a duplicate, so we can just do the assignment.
 					c->cls->Type = parent->FindClassTentative(c->NodeName());
-					assert(c->cls->Type->bRuntimeClass == true);
 				}
 				c->Type()->bExported = true;	// this class is accessible to script side type casts. (The reason for this flag is that types like PInt need to be skipped.)
 				c->cls->Symbol = new PSymbolType(c->NodeName(), c->Type());
@@ -1920,7 +1916,7 @@ void ZCCCompiler::InitDefaults()
 
 				// Hack for the DVMObjects as they weren't in the list originally
 				// TODO: process them in a non hackish way obviously
-				if (ti->ParentClass->Defaults == ((BYTE *)~0))
+				if (ti->ParentClass->Defaults == DEFAULTS_VMEXPORT)
 				{
 					ti->ParentClass->Defaults = nullptr;
 					static_cast<PClassActor *>(ti->ParentClass)->InitializeNativeDefaults();

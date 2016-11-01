@@ -109,6 +109,7 @@ struct ClassReg
 	PClass *MyClass;
 	const char *Name;
 	ClassReg *ParentType;
+	ClassReg *VMExport;
 	const size_t *Pointers;
 	void (*ConstructNative)(void *);
 	unsigned int SizeOf:28;
@@ -159,11 +160,12 @@ protected: \
 #	define _DECLARE_TI(cls) ClassReg * const cls::RegistrationInfoPtr __attribute__((section(SECTION_CREG))) = &cls::RegistrationInfo;
 #endif
 
-#define _IMP_PCLASS(cls,ptrs,create) \
+#define _IMP_PCLASS(cls,ptrs,create,vm) \
 	ClassReg cls::RegistrationInfo = {\
-		NULL, \
+		nullptr, \
 		#cls, \
 		&cls::Super::RegistrationInfo, \
+		vm, \
 		ptrs, \
 		create, \
 		sizeof(cls), \
@@ -174,20 +176,31 @@ protected: \
 #define _IMP_CREATE_OBJ(cls) \
 	void cls::InPlaceConstructor(void *mem) { new((EInPlace *)mem) cls; }
 
+#define IMPLEMENT_VMEXPORTED_CLASS(cls) \
+	_IMP_CREATE_OBJ(cls) \
+	template class DVMObject<cls>; \
+	_IMP_PCLASS(cls,nullptr,cls::InPlaceConstructor,&DVMObject<cls>::RegistrationInfo)
+
+#define IMPLEMENT_VMEXPORTED_POINTY_CLASS(cls) \
+	_IMP_CREATE_OBJ(cls) \
+	template class DVMObject<cls>; \
+	_IMP_PCLASS(cls,cls::PointerOffsets,cls::InPlaceConstructor,&DVMObject<cls>::RegistrationInfo) \
+	const size_t cls::PointerOffsets[] = {
+
 #define IMPLEMENT_POINTY_CLASS(cls) \
 	_IMP_CREATE_OBJ(cls) \
-	_IMP_PCLASS(cls,cls::PointerOffsets,cls::InPlaceConstructor) \
+	_IMP_PCLASS(cls,cls::PointerOffsets,cls::InPlaceConstructor,nullptr) \
 	const size_t cls::PointerOffsets[] = {
 
 #define IMPLEMENT_CLASS(cls) \
 	_IMP_CREATE_OBJ(cls) \
-	_IMP_PCLASS(cls,NULL,cls::InPlaceConstructor) 
+	_IMP_PCLASS(cls,nullptr,cls::InPlaceConstructor,nullptr) 
 
 #define IMPLEMENT_ABSTRACT_CLASS(cls) \
-	_IMP_PCLASS(cls,NULL,NULL)
+	_IMP_PCLASS(cls,nullptr,nullptr,nullptr)
 
 #define IMPLEMENT_ABSTRACT_POINTY_CLASS(cls) \
-	_IMP_PCLASS(cls,cls::PointerOffsets,NULL) \
+	_IMP_PCLASS(cls,cls::PointerOffsets,nullptr,nullptr) \
 	const size_t cls::PointerOffsets[] = {
 
 enum EObjectFlags
@@ -578,12 +591,19 @@ template<class T>
 class DVMObject : public T
 {
 public:
-	virtual PClass *StaticType() const;
-	static ClassReg RegistrationInfo, * const RegistrationInfoPtr;
+	virtual PClass *StaticType() const
+	{
+		return RegistrationInfo.MyClass;
+	}
+	static ClassReg RegistrationInfo;
+	static ClassReg * const RegistrationInfoPtr;
 private:
 	typedef T Super;
 	typedef DVMObject<T> ThisClass;
-	static void InPlaceConstructor (void *mem);
+	static void InPlaceConstructor(void *mem)
+	{
+		new((EInPlace *)mem) DVMObject<T>;
+	}
 
 public:
 	virtual void Destroy() override
@@ -592,6 +612,20 @@ public:
 		Super::Destroy();
 	}
 };
+
+extern char	*copystring(const char *s);
+template<class T> ClassReg DVMObject<T>::RegistrationInfo =
+{
+	nullptr,
+	copystring(FStringf("DVMObject<%s>", DVMObject<T>::Super::RegistrationInfo.Name).GetChars()),
+	&DVMObject<T>::Super::RegistrationInfo,
+	nullptr,
+	nullptr,
+	DVMObject<T>::InPlaceConstructor,
+	sizeof(DVMObject<T>),
+	DVMObject<T>::MetaClassNum
+};
+template<class T> _DECLARE_TI(DVMObject<T>)
 
 // When you write to a pointer to an Object, you must call this for
 // proper bookkeeping in case the Object holding this pointer has
