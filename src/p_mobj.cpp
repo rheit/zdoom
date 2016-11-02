@@ -131,7 +131,7 @@ CVAR (Int, cl_bloodtype, 0, CVAR_ARCHIVE);
 
 // CODE --------------------------------------------------------------------
 
-IMPLEMENT_POINTY_CLASS (AActor)
+IMPLEMENT_VMEXPORTED_POINTY_CLASS (AActor)
  DECLARE_POINTER (target)
  DECLARE_POINTER (lastenemy)
  DECLARE_POINTER (tracer)
