@@ -260,7 +260,7 @@ void AActor::InitNativeFields()
 	meta->AddNativeField("RipLevelMin",			TypeSInt32,		myoffsetof(AActor, RipLevelMin));
 	meta->AddNativeField("RipLevelMax",			TypeSInt32,		myoffsetof(AActor, RipLevelMax));
 	meta->AddNativeField("Species",				TypeName,		myoffsetof(AActor, Species));
-	meta->AddNativeField("Alternative",			TypeActor,		myoffsetof(AActor, alternative));
+	meta->AddNativeField("Alternative",			TypeActor,		myoffsetof(AActor, alternative), VARF_ReadOnly); // Messing with this can screw up morphs.
 	meta->AddNativeField("goal",				TypeActor,		myoffsetof(AActor, goal));
 	meta->AddNativeField("MinMissileChance",	TypeUInt8,		myoffsetof(AActor, MinMissileChance));
 	meta->AddNativeField("LastLookPlayerNumber",TypeSInt8,		myoffsetof(AActor, LastLookPlayerNumber));
