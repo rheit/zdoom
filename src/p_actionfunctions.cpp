@@ -2464,8 +2464,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetInventory)
 	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_CLASS(itemtype, AInventory);
 	PARAM_INT(amount);
-	PARAM_INT_DEF(ptr)			{ ptr = AAPTR_DEFAULT; }
-	PARAM_BOOL_DEF(beyondMax)	{ beyondMax = false; }
+	PARAM_INT_DEF(ptr);
+	PARAM_BOOL_DEF(beyondMax);
 
 	bool res = false;
 
@@ -2495,12 +2495,8 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetInventory)
 		}
 		else if (amount <= 0)
 		{
-			// Remove it all.
-			if (item)
-			{
-				item->DepleteOrDestroy();
-				res = true;
-			}
+			//Remove it all.
+			res = (mobj->TakeInventory(itemtype, item->Amount, true, false));
 			ACTION_RETURN_BOOL(res);
 		}
 		else if (amount < item->Amount)
