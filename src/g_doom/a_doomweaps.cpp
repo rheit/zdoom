@@ -540,7 +540,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePlasma)
 // [RH] A_FireRailgun
 // [TP] Now takes a puff class
 //
-static void FireRailgun(AActor *self, int offset_xy, bool fromweapon, PClassActor* puffType = NULL )
+static void FireRailgun(AActor *self, int offset_xy, bool fromweapon, PClassActor* puffType = NULL)
 {
 	int damage;
 	player_t *player;
@@ -578,8 +578,8 @@ static void FireRailgun(AActor *self, int offset_xy, bool fromweapon, PClassActo
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireRailgun)
 {
 	PARAM_ACTION_PROLOGUE;
-	PARAM_CLASS_OPT	(pufftype, AActor) { pufftype = PClass::FindActor(NAME_BulletPuff); }
-	FireRailgun(self, 0, ACTION_CALL_FROM_PSPRITE(), pufftype );
+	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = PClass::FindActor(NAME_BulletPuff); }
+	FireRailgun(self, 0, ACTION_CALL_FROM_PSPRITE(), pufftype);
 	return 0;
 }
 
