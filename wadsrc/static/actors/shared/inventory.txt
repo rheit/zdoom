@@ -30,7 +30,7 @@ ACTOR Inventory native
 	action native A_FireSTGrenade(class<Actor> grenadetype = "Grenade");
 	action native A_FireMissile();
 	action native A_FirePlasma();
-	action native A_FireRailgun();
+	action native A_FireRailgun( class<Actor> puffType = "None" ); // [TP] Now takes a puff parameter
 	action native A_FireRailgunLeft();
 	action native A_FireRailgunRight();
 	action native A_RailWait();
