@@ -6807,3 +6807,20 @@ DEFINE_ACTION_FUNCTION(AActor, A_SetTranslation)
 	self->SetTranslation(trname);
 	return 0;
 }
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION(AActor, A_SetTID)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_INT(newtid);
+
+	self->RemoveFromHash();
+	self->tid = newtid;
+	self->AddToHash();
+	return 0;
+}
