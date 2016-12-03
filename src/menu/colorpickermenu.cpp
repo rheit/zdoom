@@ -31,7 +31,6 @@
 **---------------------------------------------------------------------------
 **
 */
-#include <float.h>
 
 #include "menu/menu.h"
 #include "c_dispatch.h"
@@ -47,8 +46,6 @@
 #include "v_palette.h"
 #include "d_event.h"
 #include "d_gui.h"
-
-#define NO_IMP
 #include "menu/optionmenuitems.h"
 
 class DColorPickerMenu : public DOptionMenu
