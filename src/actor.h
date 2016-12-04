@@ -1170,6 +1170,7 @@ public:
 	int PainThreshold;
 	FNameNoInit DamageType;
 	FNameNoInit DamageTypeReceived;
+	int RawDamageReceived, ModDamageReceived;
 	double DamageFactor;
 	double DamageMultiply;
 

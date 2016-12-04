@@ -965,8 +965,6 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 	bool invulpain = false;
 	bool fakedPain = false;
 	bool forcedPain = false;
-	int fakeDamage = 0;
-	int holdDamage = 0;
 	const int rawdamage = damage;
 	const bool telefragDamage = (rawdamage >= TELEFRAG_DAMAGE);
 	
@@ -976,6 +974,9 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 	{ // Shouldn't happen
 		return -1;
 	}
+
+	target->RawDamageReceived = rawdamage;
+	target->ModDamageReceived = -1;
 
 	//Rather than unnecessarily call the function over and over again, let's be a little more efficient.
 	fakedPain = (isFakePain(target, inflictor, damage)); 
@@ -1401,6 +1402,7 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 	//
 	// the damage has been dealt; now deal with the consequences
 	//
+	target->ModDamageReceived = damage;
 	target->DamageTypeReceived = mod;
 
 	// If the damaging player has the power of drain, give the player 50% of the damage
