@@ -538,8 +538,9 @@ DEFINE_ACTION_FUNCTION(AActor, A_FirePlasma)
 
 //
 // [RH] A_FireRailgun
+// [TP] Now takes a puff class
 //
-static void FireRailgun(AActor *self, int offset_xy, bool fromweapon)
+static void FireRailgun(AActor *self, int offset_xy, bool fromweapon, PClassActor* puffType = NULL)
 {
 	int damage;
 	player_t *player;
@@ -568,14 +569,17 @@ static void FireRailgun(AActor *self, int offset_xy, bool fromweapon)
 	p.source = self;
 	p.damage = damage;
 	p.offset_xy = offset_xy;
+	// [TP] Now takes a puff too.
+	p.puff = puffType;
 	P_RailAttack (&p);
 }
 
-
-DEFINE_ACTION_FUNCTION(AActor, A_FireRailgun)
+// [TP] This now takes a puff type to retain Skulltag's railgun's ability to pierce armor.
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireRailgun)
 {
 	PARAM_ACTION_PROLOGUE;
-	FireRailgun(self, 0, ACTION_CALL_FROM_PSPRITE());
+	PARAM_CLASS_OPT	(pufftype, AActor)	{ pufftype = PClass::FindActor(NAME_BulletPuff); }
+	FireRailgun(self, 0, ACTION_CALL_FROM_PSPRITE(), pufftype);
 	return 0;
 }
 
