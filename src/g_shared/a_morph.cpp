@@ -624,6 +624,14 @@ int AMorphProjectile::DoSpecialDamage (AActor *target, int damage, FName damaget
 	PClassActor *unmorph_flash = PClass::FindActor(UnMorphFlash);
 	if (target->player)
 	{
+		// [EP] Allied players should not morph when team damage is off
+		AActor *source = this->target;
+		if (source &&
+			target->player != source->player &&
+			target->IsTeammate(source) &&
+			level.teamdamage == 0.)
+			return -1;
+
 		PClassPlayerPawn *player_class = dyn_cast<PClassPlayerPawn>(PClass::FindClass(PlayerClass));
 		P_MorphPlayer (NULL, target->player, player_class, Duration, MorphStyle, morph_flash, unmorph_flash);
 	}
