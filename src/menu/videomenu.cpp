@@ -33,8 +33,6 @@
 **
 */
 
-#include <float.h>
-
 #include "menu/menu.h"
 #include "c_dispatch.h"
 #include "w_wad.h"
@@ -53,8 +51,6 @@
 #include "m_joy.h"
 #include "sbar.h"
 #include "hardware.h"
-
-#define NO_IMP
 #include "optionmenuitems.h"
 
 
