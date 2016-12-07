@@ -2563,24 +2563,24 @@ namespace swrenderer
 
 	/////////////////////////////////////////////////////////////////////////
 
-	DrawSlabPalCommand::DrawSlabPalCommand(int dx, fixed_t v, int dy, fixed_t vi, const uint8_t *vptr, uint8_t *p, const uint8_t *colormap)
-		: _dx(dx), _v(v), _dy(dy), _vi(vi), _vptr(vptr), _p(p), _colormap(colormap)
+	DrawSlabPalCommand::DrawSlabPalCommand(int width, fixed_t fracpos, int count, fixed_t iscale, const uint8_t *source, uint8_t *dest, const uint8_t *colormap)
+		: _width(width), _fracpos(fracpos), _count(count), _iscale(iscale), _source(source), _dest(dest), _colormap(colormap)
 	{
 		using namespace drawerargs;
 		_pitch = dc_pitch;
-		_start_y = static_cast<int>((p - dc_destorg) / dc_pitch);
+		_start_y = static_cast<int>((dest - dc_destorg) / dc_pitch);
 	}
 
 	void DrawSlabPalCommand::Execute(DrawerThread *thread)
 	{
-		int count = _dy;
-		uint8_t *dest = _p;
+		int count = _count;
+		uint8_t *dest = _dest;
 		int pitch = _pitch;
-		int width = _dx;
+		int width = _width;
 		const uint8_t *colormap = _colormap;
-		const uint8_t *source = _vptr;
-		fixed_t fracpos = _v;
-		fixed_t iscale = _vi;
+		const uint8_t *source = _source;
+		fixed_t fracpos = _fracpos;
+		fixed_t iscale = _iscale;
 
 		count = thread->count_for_thread(_start_y, count);
 		dest = thread->dest_for_thread(_start_y, pitch, dest);

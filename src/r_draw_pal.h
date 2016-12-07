@@ -222,16 +222,16 @@ namespace swrenderer
 	class DrawSlabPalCommand : public PalSpanCommand
 	{
 	public:
-		DrawSlabPalCommand(int dx, fixed_t v, int dy, fixed_t vi, const uint8_t *vptr, uint8_t *p, const uint8_t *colormap);
+		DrawSlabPalCommand(int width, fixed_t fracpos, int count, fixed_t iscale, const uint8_t *source, uint8_t *p, const uint8_t *colormap);
 		void Execute(DrawerThread *thread) override;
 
 	private:
-		int _dx;
-		fixed_t _v;
-		int _dy;
-		fixed_t _vi;
-		const uint8_t *_vptr;
-		uint8_t *_p;
+		int _width;
+		fixed_t _fracpos;
+		int _count;
+		fixed_t _iscale;
+		const uint8_t *_source;
+		uint8_t *_dest;
 		const uint8_t *_colormap;
 		int _pitch;
 		int _start_y;
