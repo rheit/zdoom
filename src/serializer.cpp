@@ -1386,6 +1386,13 @@ FSerializer &Serialize(FSerializer &arc, const char *key, double &value, double 
 {
 	if (arc.isWriting())
 	{
+		const int fpclass = fpclassify(value);
+		if (FP_INFINITE == fpclass || FP_NAN == fpclass)
+		{
+			DPrintf(DMSG_ERROR, TEXTCOLOR_RED "Bad floating point value, serialization skipped\n");
+			return arc;
+		}
+
 		if (!arc.w->inObject() || defval == nullptr || value != *defval)
 		{
 			arc.WriteKey(key);
