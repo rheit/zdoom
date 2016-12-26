@@ -1363,11 +1363,11 @@ namespace swrenderer
 		}
 		else
 		{
+			int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
+			int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
+			int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 			do
 			{
-				int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
-				int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
-				int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 				int r = clamp((src_r + pal[*dest].r * _destalpha)>>18, 0, 255);
 				int g = clamp((src_g + pal[*dest].g * _destalpha)>>18, 0, 255);
 				int b = clamp((src_b + pal[*dest].b * _destalpha)>>18, 0, 255);
@@ -1419,11 +1419,11 @@ namespace swrenderer
 		}
 		else
 		{
+			int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
+			int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
+			int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 			do
 			{
-				int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
-				int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
-				int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 				int r = clamp((src_r + pal[*dest].r * _destalpha)>>18, 0, 255);
 				int g = clamp((src_g + pal[*dest].g * _destalpha)>>18, 0, 255);
 				int b = clamp((src_b + pal[*dest].b * _destalpha)>>18, 0, 255);
@@ -1472,11 +1472,11 @@ namespace swrenderer
 		}
 		else
 		{
+			int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
+			int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
+			int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 			do
 			{
-				int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
-				int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
-				int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 				int bg = *dest;
 				int r = MAX((src_r * _srcalpha - palette[bg].r * _destalpha)>>18, 0);
 				int g = MAX((src_g * _srcalpha - palette[bg].g * _destalpha)>>18, 0);
@@ -1529,11 +1529,11 @@ namespace swrenderer
 		}
 		else
 		{
+			int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
+			int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
+			int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 			do
 			{
-				int src_r = ((_srccolor >> 16) & 0xff) * _srcalpha;
-				int src_g = ((_srccolor >> 0) & 0xff) * _srcalpha;
-				int src_b = ((_srccolor >> 8) & 0xff) * _srcalpha;
 				int bg = *dest;
 				int r = MAX((src_r * _srcalpha - palette[bg].r * _destalpha)>>18, 0);
 				int g = MAX((src_g * _srcalpha - palette[bg].g * _destalpha)>>18, 0);
