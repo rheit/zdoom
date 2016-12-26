@@ -1478,9 +1478,9 @@ namespace swrenderer
 			do
 			{
 				int bg = *dest;
-				int r = MAX((src_r * _srcalpha - palette[bg].r * _destalpha)>>18, 0);
-				int g = MAX((src_g * _srcalpha - palette[bg].g * _destalpha)>>18, 0);
-				int b = MAX((src_b * _srcalpha - palette[bg].b * _destalpha)>>18, 0);
+				int r = MAX((src_r - palette[bg].r * _destalpha)>>18, 0);
+				int g = MAX((src_g - palette[bg].g * _destalpha)>>18, 0);
+				int b = MAX((src_b - palette[bg].b * _destalpha)>>18, 0);
 
 				*dest = RGB256k.RGB[r][g][b];
 				dest += pitch;
@@ -1535,9 +1535,9 @@ namespace swrenderer
 			do
 			{
 				int bg = *dest;
-				int r = MAX((src_r * _srcalpha - palette[bg].r * _destalpha)>>18, 0);
-				int g = MAX((src_g * _srcalpha - palette[bg].g * _destalpha)>>18, 0);
-				int b = MAX((src_b * _srcalpha - palette[bg].b * _destalpha)>>18, 0);
+				int r = MAX((src_r - palette[bg].r * _destalpha)>>18, 0);
+				int g = MAX((src_g - palette[bg].g * _destalpha)>>18, 0);
+				int b = MAX((src_b - palette[bg].b * _destalpha)>>18, 0);
 
 				*dest = RGB256k.RGB[r][g][b];
 				dest += pitch;
