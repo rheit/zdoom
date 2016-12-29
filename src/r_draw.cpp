@@ -448,7 +448,7 @@ namespace swrenderer
 			uint32_t g = GPART(color);
 			uint32_t b = BPART(color);
 			// dc_color is used by the rt_* routines. It is indexed into dc_srcblend.
-			dc_color = RGB32k.RGB[r >> 3][g >> 3][b >> 3];
+			dc_color = RGB256k.RGB[r >> 2][g >> 2][b >> 2];
 			if (style.Flags & STYLEF_InvertSource)
 			{
 				r = 255 - r;
@@ -1291,8 +1291,4 @@ namespace swrenderer
 		}
 	}
 
-	void R_DrawParticle(vissprite_t *sprite)
-	{
-		R_DrawParticle_C(sprite);
-	}
 }

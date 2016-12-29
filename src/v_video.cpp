@@ -66,6 +66,8 @@
 #include "menu/menu.h"
 #include "r_data/voxels.h"
 
+EXTERN_CVAR(Bool, r_blendmethod)
+
 int active_con_scale();
 
 FRenderer *Renderer;
@@ -383,18 +385,43 @@ void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
 
 	spot = Buffer + x1 + y1*Pitch;
 	gap = Pitch - w;
-	for (y = h; y != 0; y--)
-	{
-		for (x = w; x != 0; x--)
-		{
-			DWORD bg;
 
-			bg = bg2rgb[(*spot)&0xff];
-			bg = (fg+bg) | 0x1f07c1f;
-			*spot = RGB32k.All[bg&(bg>>15)];
-			spot++;
+	int alpha = (int)((float)64 * damount);
+	int ialpha = 64 - alpha;
+	int dimmedcolor_r = color.r * alpha;
+	int dimmedcolor_g = color.g * alpha;
+	int dimmedcolor_b = color.b * alpha;
+
+	if (!r_blendmethod)
+	{
+		for (y = h; y != 0; y--)
+		{
+			for (x = w; x != 0; x--)
+			{
+				DWORD bg;
+
+				bg = bg2rgb[(*spot)&0xff];
+				bg = (fg+bg) | 0x1f07c1f;
+				*spot = RGB32k.All[bg&(bg>>15)];
+				spot++;
+			}
+			spot += gap;
 		}
-		spot += gap;
+	}
+	else
+	{
+		for (y = h; y != 0; y--)
+		{
+			for (x = w; x != 0; x--)
+			{
+				uint32_t r = (dimmedcolor_r + GPalette.BaseColors[*spot].r * ialpha) >> 8;
+				uint32_t g = (dimmedcolor_g + GPalette.BaseColors[*spot].g * ialpha) >> 8;
+				uint32_t b = (dimmedcolor_b + GPalette.BaseColors[*spot].b * ialpha) >> 8;
+				*spot = (BYTE)RGB256k.RGB[r][g][b];
+				spot++;
+			}
+			spot += gap;
+		}
 	}
 }
 
