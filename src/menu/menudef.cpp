@@ -158,6 +158,54 @@ static bool CheckSkipGameBlock(FScanner &sc)
 //
 //=============================================================================
 
+static bool CheckSkipCvarBlock(FScanner &sc)
+{
+	bool filter = false;
+	sc.MustGetStringName("(");
+	sc.MustGetString();
+	FString name = sc.String;
+	FBaseCVar *cv = FindCVar(name, nullptr);
+
+	if (cv != nullptr)
+	{
+		ECVarType check = cv->GetRealType();
+
+		switch (check)
+		{
+		case CVAR_Int:
+			filter = (cv->GetGenericRep(CVAR_Int).Int != 0);
+			break;
+		case CVAR_Float:
+			filter = (cv->GetGenericRep(CVAR_Float).Float != 0.);
+			break;
+		case CVAR_Bool:
+			filter = cv->GetGenericRep(CVAR_Bool).Bool;
+			break;
+		default:
+			filter = false;
+			break;
+		}
+	}
+	else
+	{
+		filter = false;
+	}
+
+	sc.MustGetStringName(")");
+	if (!filter)
+	{
+		SkipSubBlock(sc);
+		return !sc.CheckString("else");
+	}
+	return false;
+}
+
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
 static bool CheckSkipOptionBlock(FScanner &sc)
 {
 	bool filter = false;
@@ -231,6 +279,14 @@ static void ParseListMenuBody(FScanner &sc, FListMenuDescriptor *desc)
 		else if (sc.Compare("ifoption"))
 		{
 			if (!CheckSkipOptionBlock(sc))
+			{
+				// recursively parse sub-block
+				ParseListMenuBody(sc, desc);
+			}
+		}
+		else if (sc.Compare("ifcvar"))
+		{
+			if (!CheckSkipCvarBlock(sc))
 			{
 				// recursively parse sub-block
 				ParseListMenuBody(sc, desc);
@@ -693,6 +749,14 @@ static void ParseOptionMenuBody(FScanner &sc, FOptionMenuDescriptor *desc)
 		else if (sc.Compare("ifoption"))
 		{
 			if (!CheckSkipOptionBlock(sc))
+			{
+				// recursively parse sub-block
+				ParseOptionMenuBody(sc, desc);
+			}
+		}
+		else if (sc.Compare("ifcvar"))
+		{
+			if (!CheckSkipCvarBlock(sc))
 			{
 				// recursively parse sub-block
 				ParseOptionMenuBody(sc, desc);
