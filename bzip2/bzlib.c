@@ -1234,7 +1234,7 @@ void BZ_API(BZ2_bzReadGetUnused)
 
    BZ_SETERR(BZ_OK);
    *nUnused = bzf->strm.avail_in;
-   *unused = (void **)bzf->strm.next_in;
+   *unused = bzf->strm.next_in;
 }
 #endif
 
@@ -1247,7 +1247,7 @@ void BZ_API(BZ2_bzReadGetUnused)
 int BZ_API(BZ2_bzBuffToBuffCompress) 
                          ( char*         dest, 
                            unsigned int* destLen,
-                           const char*   source, 
+                           char*         source, 
                            unsigned int  sourceLen,
                            int           blockSize100k, 
                            int           verbosity, 
@@ -1299,7 +1299,7 @@ int BZ_API(BZ2_bzBuffToBuffCompress)
 int BZ_API(BZ2_bzBuffToBuffDecompress) 
                            ( char*         dest, 
                              unsigned int* destLen,
-                             const char*   source, 
+                             char*         source, 
                              unsigned int  sourceLen,
                              int           small,
                              int           verbosity )

@@ -202,7 +202,7 @@ void generateMTFValues ( EState* s )
                *ryy_j = rtmp2;
             };
             yy[0] = rtmp;
-            j = (Int32)(ryy_j - &(yy[0]));
+            j = ryy_j - &(yy[0]);
             mtfv[wr] = j+1; wr++; s->mtfFreq[j+1]++;
          }
 
