@@ -1,0 +1,15 @@
+/* Default keybindings for Delaweare */
+
+w +forward
+a +moveleft
+s +back
+d +moveright
+
+' +moveup
+/ +movedown
+
+space +jump
+alt +crouch
+
+mouse2 +altattack
+enter +use
