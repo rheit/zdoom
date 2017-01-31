@@ -412,7 +412,8 @@ Lock 4 Strife
 {
 	//$Title "ID badge"
 	IDBadge
-	Message "$TXT_NEED_IDCARD"
+	RemoteMessage "$TXT_NEED_IDBADGE"
+	Message "$TXT_NEED_IDBADGE_DOOR"
 	Mapcolor 255 128 0
 }
 
@@ -475,8 +476,8 @@ Lock 11 Strife
 {
 	//$Title "ID card"
 	IDCard
-	RemoteMessage "$TXT_NEED_IDBADGE"
-	Message "$TXT_NEED_IDBADGE_DOOR"
+	RemoteMessage "$TXT_NEED_IDCARD"
+	Message "$TXT_NEED_IDCARD_DOOR"
 	Mapcolor 200 0 0
 }
 
