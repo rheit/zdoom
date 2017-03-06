@@ -6,7 +6,6 @@
 #include "m_bbox.h"
 
 struct FPortalGroupArray;
-class ASkyViewpoint;
 struct portnode_t;
 //============================================================================
 //
@@ -191,7 +190,7 @@ struct FLinePortal
 	DAngle mAngleDiff;
 	double mSinRot;
 	double mCosRot;
-	portnode_t *render_thinglist;
+	portnode_t *lineportal_thinglist;
 };
 
 extern TArray<FLinePortal> linePortals;
@@ -237,8 +236,6 @@ struct FSectorPortal
 	}
 };
 
-extern TArray<FSectorPortal> sectorPortals;
-
 //============================================================================
 //
 // Functions
@@ -256,7 +253,7 @@ inline int P_NumPortalGroups()
 {
 	return Displacements.size;
 }
-unsigned P_GetSkyboxPortal(ASkyViewpoint *actor);
+unsigned P_GetSkyboxPortal(AActor *actor);
 unsigned P_GetPortal(int type, int plane, sector_t *orgsec, sector_t *destsec, const DVector2 &displacement);
 unsigned P_GetStackPortal(AActor *point, int plane);
 

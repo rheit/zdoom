@@ -227,7 +227,12 @@ void MusInfo::Start(bool loop, float rel_vol, int subsong)
 {
 	if (nomusic) return;
 
-	if (rel_vol > 0.f) saved_relative_volume = relative_volume = rel_vol;
+	if (rel_vol > 0.f)
+	{
+		float factor = relative_volume / saved_relative_volume;
+		saved_relative_volume = rel_vol;
+		relative_volume = saved_relative_volume * factor;
+	}
 	Stop ();
 	Play (loop, subsong);
 	m_NotStartedYet = false;
@@ -271,6 +276,10 @@ void MusInfo::MusicVolumeChanged()
 }
 
 void MusInfo::TimidityVolumeChanged()
+{
+}
+
+void MusInfo::GMEDepthChanged(float val)
 {
 }
 
@@ -673,6 +682,14 @@ void I_SetMusicVolume (float factor)
 	factor = clamp<float>(factor, 0, 2.0f);
 	relative_volume = saved_relative_volume * factor;
 	snd_musicvolume.Callback();
+}
+
+DEFINE_ACTION_FUNCTION(DObject, SetMusicVolume)
+{
+	PARAM_PROLOGUE;
+	PARAM_FLOAT(vol);
+	I_SetMusicVolume((float)vol);
+	return 0;
 }
 
 //==========================================================================

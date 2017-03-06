@@ -54,6 +54,7 @@
 #include "thingdef.h"
 #include "d_player.h"
 #include "doomerrors.h"
+#include "events.h"
 
 extern void LoadActors ();
 extern void InitBotStuff();
@@ -110,7 +111,7 @@ bool FState::CallAction(AActor *self, AActor *stateowner, FStateParamInfo *info,
 			const char *callinfo = "";
 			if (info != nullptr && info->mStateType == STATE_Psprite)
 			{
-				if (stateowner->IsKindOf(RUNTIME_CLASS(AWeapon)) && stateowner != self) callinfo = "weapon ";
+				if (stateowner->IsKindOf(NAME_Weapon) && stateowner != self) callinfo = "weapon ";
 				else callinfo = "overlay ";
 			}
 			err.stacktrace.AppendFormat("Called from %sstate %s.%d in %s\n", callinfo, owner->TypeName.GetChars(), offs, stateowner->GetClass()->TypeName.GetChars());
@@ -176,11 +177,7 @@ DEFINE_ACTION_FUNCTION(AActor, GetSpriteIndex)
 	ACTION_RETURN_INT(GetSpriteIndex(sprt.GetChars(), false));
 }
 
-IMPLEMENT_CLASS(PClassActor, false, true)
-
-IMPLEMENT_POINTERS_START(PClassActor)
-	IMPLEMENT_POINTER(DropItems)
-IMPLEMENT_POINTERS_END
+IMPLEMENT_CLASS(PClassActor, false, false)
 
 //==========================================================================
 //
@@ -214,6 +211,9 @@ void PClassActor::StaticInit()
 	ClearStrifeTypes();
 	LoadActors ();
 	InitBotStuff();
+
+	// reinit GLOBAL static stuff from gameinfo, once classes are loaded.
+	E_InitStaticHandlers(false);
 }
 
 //==========================================================================
@@ -251,20 +251,7 @@ PClassActor::PClassActor()
 	DamageFactors = NULL;
 	PainChances = NULL;
 
-	DeathHeight = -1;
-	BurnHeight = -1;
-	GibHealth = INT_MIN;
-	WoundHealth = 6;
-	FastSpeed = -1.;
-	RDFactor = 1.;
-	CameraHeight = INT_MIN;
-
 	DropItems = NULL;
-
-	DontHurtShooter = false;
-	ExplosionRadius = -1;
-	MeleeDamage = 0;
-
 	// Record this in the master list.
 	AllActorClasses.Push(this);
 }
@@ -308,31 +295,9 @@ void PClassActor::DeriveData(PClass *newclass)
 	PClassActor *newa = static_cast<PClassActor *>(newclass);
 
 	newa->DefaultStateUsage = DefaultStateUsage;
-	newa->Obituary = Obituary;
-	newa->HitObituary = HitObituary;
-	newa->DeathHeight = DeathHeight;
-	newa->BurnHeight = BurnHeight;
-	newa->BloodColor = BloodColor;
-	newa->GibHealth = GibHealth;
-	newa->WoundHealth = WoundHealth;
-	newa->FastSpeed = FastSpeed;
-	newa->RDFactor = RDFactor;
-	newa->CameraHeight = CameraHeight;
-	newa->HowlSound = HowlSound;
-	newa->BloodType = BloodType;
-	newa->BloodType2 = BloodType2;
-	newa->BloodType3 = BloodType3;
 	newa->distancecheck = distancecheck;
 
 	newa->DropItems = DropItems;
-
-	newa->DontHurtShooter = DontHurtShooter;
-	newa->ExplosionRadius = ExplosionRadius;
-	newa->ExplosionDamage = ExplosionDamage;
-	newa->MeleeDamage = MeleeDamage;
-	newa->MeleeSound = MeleeSound;
-	newa->MissileName = MissileName;
-	newa->MissileHeight = MissileHeight;
 
 	newa->VisibleToPlayerClass = VisibleToPlayerClass;
 
@@ -349,32 +314,11 @@ void PClassActor::DeriveData(PClass *newclass)
 		*newa->PainChances = *PainChances;
 	}
 
-}
+	// Inventory stuff
+	newa->ForbiddenToPlayerClass = ForbiddenToPlayerClass;
+	newa->RestrictedToPlayerClass = RestrictedToPlayerClass;
 
-//==========================================================================
-//
-// PClassActor :: PropagateMark
-//
-//==========================================================================
-
-size_t PClassActor::PropagateMark()
-{
-	// Mark state functions
-	for (int i = 0; i < NumOwnedStates; ++i)
-	{
-		if (OwnedStates[i].ActionFunc != NULL)
-		{
-			GC::Mark(OwnedStates[i].ActionFunc);
-		}
-	}
-	// Mark damage function
-	if (Defaults != NULL)
-	{
-		GC::Mark(((AActor *)Defaults)->DamageFunc);
-	}
-
-//	marked += ActorInfo->NumOwnedStates * sizeof(FState);
-	return Super::PropagateMark();
+	newa->DisplayName = DisplayName;
 }
 
 //==========================================================================
@@ -414,10 +358,9 @@ bool PClassActor::SetReplacement(FName replaceName)
 //
 //==========================================================================
 
-void PClassActor::SetDropItems(DDropItem *drops)
+void PClassActor::SetDropItems(FDropItem *drops)
 {
 	DropItems = drops;
-	GC::WriteBarrier(this, DropItems);
 }
 
 
@@ -429,20 +372,20 @@ void PClassActor::SetDropItems(DDropItem *drops)
 //
 //==========================================================================
 
-void PClassActor::Finalize(FStateDefinitions &statedef)
+void AActor::Finalize(FStateDefinitions &statedef)
 {
-	AActor *defaults = (AActor*)Defaults;
+	AActor *defaults = this;
 
 	try
 	{
-		statedef.FinishStates(this, defaults);
+		statedef.FinishStates(GetClass(), defaults);
 	}
 	catch (CRecoverableError &)
 	{
 		statedef.MakeStateDefines(NULL);
 		throw;
 	}
-	statedef.InstallStates(this, defaults);
+	statedef.InstallStates(GetClass(), defaults);
 	statedef.MakeStateDefines(NULL);
 }
 
@@ -552,6 +495,13 @@ PClassActor *PClassActor::GetReplacement(bool lookskill)
 	return rep;
 }
 
+DEFINE_ACTION_FUNCTION(AActor, GetReplacement)
+{
+	PARAM_PROLOGUE;
+	PARAM_POINTER(c, PClassActor);
+	ACTION_RETURN_POINTER(c->GetReplacement());
+}
+
 //==========================================================================
 //
 // PClassActor :: GetReplacee
@@ -593,6 +543,13 @@ PClassActor *PClassActor::GetReplacee(bool lookskill)
 	rep = rep->GetReplacee(false);
 	Replacee = savedrep;
 	return rep;
+}
+
+DEFINE_ACTION_FUNCTION(AActor, GetReplacee)
+{
+	PARAM_PROLOGUE;
+	PARAM_POINTER(c, PClassActor);
+	ACTION_RETURN_POINTER(c->GetReplacee());
 }
 
 //==========================================================================
@@ -645,10 +602,33 @@ size_t PClassActor::PointerSubstitution(DObject *oldclass, DObject *newclass)
 	{
 		if (VisibleToPlayerClass[i] == oldclass)
 		{
-			VisibleToPlayerClass[i] = static_cast<PClassPlayerPawn*>(newclass);
+			VisibleToPlayerClass[i] = static_cast<PClassActor*>(newclass);
 			changed++;
 		}
 	}
+
+	for (unsigned i = 0; i < ForbiddenToPlayerClass.Size(); i++)
+	{
+		if (ForbiddenToPlayerClass[i] == oldclass)
+		{
+			ForbiddenToPlayerClass[i] = static_cast<PClassActor*>(newclass);
+			changed++;
+		}
+	}
+	for (unsigned i = 0; i < RestrictedToPlayerClass.Size(); i++)
+	{
+		if (RestrictedToPlayerClass[i] == oldclass)
+		{
+			RestrictedToPlayerClass[i] = static_cast<PClassActor*>(newclass);
+			changed++;
+		}
+	}
+	AInventory *def = dyn_cast<AInventory>((AActor*)Defaults);
+	if (def != NULL)
+	{
+		if (def->PickupFlash == oldclass) def->PickupFlash = static_cast<PClassActor *>(newclass);
+	}
+
 	return changed;
 }
 
@@ -744,6 +724,21 @@ bool DamageTypeDefinition::IgnoreArmor(FName type)
 	return false;
 }
 
+DEFINE_ACTION_FUNCTION(_DamageTypeDefinition, IgnoreArmor)
+{
+	PARAM_PROLOGUE;
+	PARAM_NAME(type);
+	ACTION_RETURN_BOOL(DamageTypeDefinition::IgnoreArmor(type));
+}
+
+FString DamageTypeDefinition::GetObituary(FName type)
+{
+	DamageTypeDefinition *dtd = Get(type);
+	if (dtd) return dtd->Obituary;
+	return "";
+}
+
+
 //==========================================================================
 //
 // DamageTypeDefinition :: ApplyMobjDamageFactor
@@ -834,6 +829,12 @@ void FMapInfoParser::ParseDamageDefinition()
 			sc.MustGetFloat();
 			dtd.DefaultFactor = sc.Float;
 			if (dtd.DefaultFactor == 0) dtd.ReplaceFactor = true;
+		}
+		else if (sc.Compare("OBITUARY"))
+		{
+			sc.MustGetStringName("=");
+			sc.MustGetString();
+			dtd.Obituary = sc.String;
 		}
 		else if (sc.Compare("REPLACEFACTOR"))
 		{

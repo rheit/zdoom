@@ -136,7 +136,6 @@ protected:
 
 	bool Windowed;
 
-	friend int I_PlayMovie (const char *name);
 	friend class Win32Video;
 
 	BaseWinFB() {}
@@ -265,7 +264,7 @@ public:
 	void DrawPixel(int x, int y, int palcolor, uint32 rgbcolor);
 	void FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 		double originx, double originy, double scalex, double scaley,
-		DAngle rotation, FDynamicColormap *colormap, int lightlevel, int bottomclip) override;
+		DAngle rotation, FDynamicColormap *colormap, PalEntry flatcolor, int lightlevel, int bottomclip) override;
 	bool WipeStartScreen(int type);
 	void WipeEndScreen();
 	bool WipeDo(int ticks);

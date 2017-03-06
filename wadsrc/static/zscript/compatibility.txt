@@ -1,8 +1,24 @@
-// This file contains compatibility wrappers for DECORATE functions with bad parameters.
+// This file contains compatibility wrappers for DECORATE functions with bad parameters or other things that were refactored since the first release.
+
+extend class Object
+{
+	deprecated("2.4") static int GameType()
+	{ 
+		return gameinfo.gametype; 
+	}
+	
+	deprecated("2.4") static void C_MidPrint(string fontname, string textlabel, bool bold = false)
+	{
+		let f = Font.GetFont(fontname);
+		if (f == null) return;
+		return Console.MidPrint(f, textlabel, bold);
+	}
+
+}
 
 extend class Actor
 {
-	deprecated void A_CustomMissile(class<Actor> missiletype, double spawnheight = 32, double spawnofs_xy = 0, double angle = 0, int flags = 0, double pitch = 0, int ptr = AAPTR_TARGET)
+	deprecated("2.3") void A_CustomMissile(class<Actor> missiletype, double spawnheight = 32, double spawnofs_xy = 0, double angle = 0, int flags = 0, double pitch = 0, int ptr = AAPTR_TARGET)
 	{
 		A_SpawnProjectile(missiletype, spawnheight, spawnofs_xy, angle, flags|CMF_BADPITCH, pitch, ptr);
 	}
@@ -10,9 +26,15 @@ extend class Actor
 
 extend class StateProvider
 {
-	deprecated action void A_FireCustomMissile(class<Actor> missiletype, double angle = 0, bool useammo = true, double spawnofs_xy = 0, double spawnheight = 0, int flags = 0, double pitch = 0)
+	deprecated("2.3") action void A_FireCustomMissile(class<Actor> missiletype, double angle = 0, bool useammo = true, double spawnofs_xy = 0, double spawnheight = 0, int flags = 0, double pitch = 0)
 	{
 		A_FireProjectile(missiletype, angle, useammo, spawnofs_xy, spawnheight, flags, -pitch);
 	}
+}
+
+// this is just a placeholder until the statusbar gets properly exported.
+struct StatusBar native
+{
+	native static void ReceivedWeapon(Weapon weap);
 }
 

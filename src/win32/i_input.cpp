@@ -101,6 +101,7 @@
 #include "d_event.h"
 #include "v_text.h"
 #include "version.h"
+#include "events.h"
 
 // Prototypes and declarations.
 #include "rawinput.h"
@@ -186,6 +187,10 @@ static void I_CheckGUICapture ()
 	{
 		wantCapt = (menuactive == MENU_On || menuactive == MENU_OnNoPause);
 	}
+
+	// [ZZ] check active event handlers that want the UI processing
+	if (!wantCapt && E_CheckUiProcessors())
+		wantCapt = true;
 
 	if (wantCapt != GUICapture)
 	{
@@ -590,11 +595,9 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				case WTS_CONSOLE_DISCONNECT:
 					SessionState |= 2;
-					//I_MovieDisableSound ();
 					break;
 				case WTS_CONSOLE_CONNECT:
 					SessionState &= ~2;
-					//I_MovieResumeSound ();
 					break;
 				}
 			}
@@ -618,10 +621,6 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (!oldstate && SessionState)
 				{
 					GSnd->SuspendSound ();
-				}
-				else if (oldstate && !SessionState)
-				{
-					GSnd->MovieResumeSound ();
 				}
 #endif
 			}
@@ -946,18 +945,6 @@ FString I_GetFromClipboard (bool return_nothing)
 
 	CloseClipboard ();
 	return retstr;
-}
-
-#include "i_movie.h"
-
-CCMD (playmovie)
-{
-	if (argv.argc() != 2)
-	{
-		Printf ("Usage: playmovie <movie name>\n");
-		return;
-	}
-	I_PlayMovie (argv[1]);
 }
 
 //==========================================================================

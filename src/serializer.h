@@ -15,10 +15,6 @@ struct usercmd_t;
 struct FWriter;
 struct FReader;
 
-extern TArray<sector_t>	loadsectors;
-extern TArray<line_t>	loadlines;
-extern TArray<side_t>	loadsides;
-
 inline bool nullcmp(const void *buffer, size_t length)
 {
 	const char *p = (const char *)buffer;
@@ -68,6 +64,7 @@ public:
 
 	~FSerializer()
 	{
+		mErrors = 0;	// The destructor may not throw an exception so silence the error checker.
 		Close();
 	}
 	bool OpenWriter(bool pretty = true);
@@ -249,11 +246,6 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, FString *&p
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, FDoorAnimation *&pstr, FDoorAnimation **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, char *&pstr, char **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, FFont *&font, FFont **def);
-
-template<> inline FSerializer &Serialize(FSerializer &arc, const char *key, PClassPlayerPawn *&clst, PClassPlayerPawn **def)
-{
-	return Serialize(arc, key, (PClassActor *&)clst, (PClassActor **)def);
-}
 
 FSerializer &Serialize(FSerializer &arc, const char *key, FState *&state, FState **def, bool *retcode);
 template<> inline FSerializer &Serialize(FSerializer &arc, const char *key, FState *&state, FState **def)

@@ -3,24 +3,20 @@ class PlayerPawn : Actor native
 	
 	native int			crouchsprite;
 	native int			MaxHealth;
+	native int			BonusHealth;
 	native int			MugShotMaxHealth;
 	native int			RunHealth;
 	native int			PlayerFlags;
 	native Inventory	InvFirst;		// first inventory item displayed on inventory bar
 	native Inventory	InvSel;			// selected inventory item
-	native meta String 	DisplayName;	// Display name (used in menus, etc.)
-	native meta String 	SoundClass;		// Sound class
-	native meta String 	Face;			// Doom status bar face (when used)
-	native meta String 	Portrait;
-	native meta String 	Slot[10];
-	native meta Name	InvulMode;
-	native meta Name	HealingRadiusType;
-	native meta double 	HexenArmor[5];
-	native meta uint8	ColorRangeStart;	// Skin color range
-	native meta uint8	ColorRangeEnd;
-	//FPlayerColorSetMap ColorSets;
-	//PainFlashList PainFlashes;
-	
+	native Name 		SoundClass;		// Sound class
+	native Name 		Face;			// Doom status bar face (when used)
+	native Name 		Portrait;
+	native Name 		Slot[10];
+	native double 		HexenArmor[5];
+	native uint8		ColorRangeStart;	// Skin color range
+	native uint8		ColorRangeEnd;
+
 	// [GRB] Player class properties
 	native double		JumpZ;
 	native double		GruntSpeed;
@@ -37,6 +33,14 @@ class PlayerPawn : Actor native
 	native Class<Actor> FlechetteType;
 	native color 		DamageFade;				// [CW] Fades for when you are being damaged.
 	native double		ViewBob;				// [SP] ViewBob Multiplier
+	native double		FullHeight;
+
+	meta Name HealingRadiusType;
+	meta Name InvulMode;
+	
+	Property prefix: Player;
+	Property HealRadiusType: HealingradiusType;
+	Property InvulnerabilityMode: InvulMode;
 	
 	Default
 	{
@@ -102,12 +106,75 @@ class PlayerPawn : Actor native
 	virtual void MorphPlayerThink()
 	{
 	}
+	
+	virtual void OnRespawn()
+	{
+		if (sv_respawnprotect && (multiplayer || alwaysapplydmflags))
+		{
+			let invul = Powerup(Spawn("PowerInvulnerable"));
+			invul.EffectTics = 3 * TICRATE;
+			invul.BlendColor = 0;			// don't mess with the view
+			invul.bUndroppable = true;		// Don't drop this
+			bRespawnInvul = true;			// [RH] special effect
+		}
+	}
+	
+	override String GetObituary(Actor victim, Actor inflictor, Name mod, bool playerattack)
+	{
+		if (victim.player != player && victim.IsTeammate(self))
+		{
+			victim = self;
+			return String.Format("$OB_FRIENDLY%c", random[Obituary](49, 53));
+		}
+		else
+		{
+			if (mod == 'Telefrag') return "$OB_MPTELEFRAG";
 
-	native int GetMaxHealth();
+			String message;
+			if (inflictor != NULL)
+			{
+				message = inflictor.GetObituary(victim, inflictor, mod, playerattack);
+			}
+			if (message.Length() == 0 && playerattack && player.ReadyWeapon != NULL)
+			{
+				message = player.ReadyWeapon.GetObituary(victim, inflictor, mod, playerattack);
+			}
+			if (message.Length() == 0)
+			{
+				if (mod == 'BFGSplash') return "$OB_MPBFG_SPLASH";
+				if (mod == 'Railgun') return "$OB_RAILGUN";
+				message = Obituary;
+			}
+			return message;
+		}
+	}
+	
+	// This is for SBARINFO.
+	int, int GetEffectTicsForItem(class<Inventory> item) const 
+	{
+		let pg = (class<PowerupGiver>)(item);
+		if (pg != null)
+		{
+			let powerupType = (class<Powerup>)(GetDefaultByType(pg).PowerupType);
+			let powerup = Powerup(FindInventory(powerupType));
+			if(powerup != null) 
+			{
+				let maxtics = GetDefaultByType(pg).EffectTics;
+				if (maxtics == 0) maxtics = powerup.default.EffectTics;
+				return powerup.EffectTics, maxtics;
+			}
+		}
+		return -1, -1;
+	}
+
+	native int GetMaxHealth(bool withupgrades = false) const;
 	native bool ResetAirSupply (bool playgasp = false);
+	native void CheckWeaponSwitch(class<Inventory> item);
+	native clearscope static String GetPrintableDisplayName(Class<Actor> cls);
+
 }
 
-class PlayerChunk : PlayerPawn native
+class PlayerChunk : PlayerPawn
 {
 	Default
 	{
@@ -125,10 +192,20 @@ class PlayerChunk : PlayerPawn native
 	}
 }
 
-class PSprite : Object native
+class PSprite : Object native play
 {
+	enum PSPLayers
+	{
+		STRIFEHANDS = -1,
+		WEAPON = 1,
+		FLASH = 1000,
+		TARGETCENTER = 0x7fffffff - 2,
+		TARGETLEFT,
+		TARGETRIGHT,
+	};
+
 	native readonly State CurState; 
-	native readonly Actor Caller;
+	native Actor Caller;
 	native readonly PSprite Next;
 	native readonly PlayerInfo Owner;
 	native SpriteID Sprite;
@@ -160,14 +237,18 @@ enum EPlayerState
 	PST_GONE	// Player has left the game
 }
 
-struct PlayerInfo native	// this is what internally is known as player_t
+struct PlayerInfo native play	// this is what internally is known as player_t
 {
-	native readonly PlayerPawn mo;
+	// technically engine constants but the only part of the playsim using them is the player.
+	const NOFIXEDCOLORMAP = -1;
+	const NUMCOLORMAPS = 32;
+	
+	native PlayerPawn mo;
 	native uint8 playerstate;
 	native uint original_oldbuttons;
 	native readonly Class<PlayerPawn> cls;
 	native float DesiredFOV;
-	native readonly float FOV;
+	native float FOV;
 	native double viewz;
 	native double viewheight;
 	native double deltaviewheight;
@@ -243,22 +324,67 @@ struct PlayerInfo native	// this is what internally is known as player_t
 	native Actor ConversationPC;
 	native double ConversationNPCAngle;
 	native bool ConversationFaceTalker;
+	//native WeaponSlots weapons; <- defined internally
+
 /* these are not doable yet
 ticcmd_t	cmd;
 usercmd_t	original_cmd;
-userinfo_t	userinfo;				// [RH] who is this?
-FWeaponSlots weapons;
 */
 	
 
+	native bool MorphPlayer(playerinfo p, Class<PlayerPawn> spawntype, int duration, int style, Class<Actor> enter_flash = null, Class<Actor> exit_flash = null);
 	native bool UndoPlayerMorph(playerinfo player, int unmorphflag = 0, bool force = false);
 	native bool PoisonPlayer(Actor poisoner, Actor source, int poison);
 	native void PoisonDamage(Actor source, int damage, bool playPainSound);
 	native void SetPsprite(int id, State stat, bool pending = false);
 	native void SetSafeFlash(Weapon weap, State flashstate, int index);
-	native PSprite GetPSprite(int id);
-	native PSprite FindPSprite(int id);
+	native PSprite GetPSprite(int id) const;
+	native PSprite FindPSprite(int id) const;
 	native void SetLogNumber (int text);
 	native void SetLogText (String text);
+	native void DropWeapon();
+	native void BringUpWeapon();
 
+	native String GetUserName() const;
+	native Color GetColor() const;
+	native int GetColorSet() const;
+	native int GetPlayerClassNum() const;
+	native int GetSkin() const;
+	native bool GetNeverSwitch() const;
+	native int GetGender() const;
+	native int GetTeam() const;
+	native float GetAutoaim() const;
+	native void SetFOV(float fov);
+}
+
+struct PlayerClass native
+{
+	native class<Actor> Type;
+	native uint Flags;
+	native Array<int> Skins;
+	
+	native bool CheckSkin(int skin);
+	native void EnumColorsets(out Array<int> data);
+	native Name GetColorsetName(int setnum);
+}
+
+struct PlayerSkin native
+{
+	native readonly String		SkinName;
+	native readonly String		Face;
+	native readonly uint8		gender;
+	native readonly uint8		range0start;
+	native readonly uint8		range0end;
+	native readonly bool		othergame;
+	native readonly Vector2		Scale;
+	native readonly int			sprite;
+	native readonly int			crouchsprite;
+	native readonly int			namespc;
+};
+
+struct Team native
+{
+	const NoTeam = 255;
+	const Max = 16;
+	native String mName;
 }

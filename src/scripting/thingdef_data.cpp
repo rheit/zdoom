@@ -49,10 +49,24 @@
 #include "gstrings.h"
 #include "zstring.h"
 #include "d_event.h"
+#include "g_levellocals.h"
+#include "vm.h"
+#include "p_checkposition.h"
+#include "r_sky.h"
+#include "v_font.h"
+#include "v_video.h"
+#include "c_bind.h"
+#include "menu/menu.h"
+#include "teaminfo.h"
+#include "r_data/sprites.h"
+#include "serializer.h"
 
 static TArray<FPropertyInfo*> properties;
 static TArray<AFuncDesc> AFTable;
 static TArray<FieldDesc> FieldTable;
+extern int				BackbuttonTime;
+extern float			BackbuttonAlpha;
+static AWeapon *wpnochg;
 
 //==========================================================================
 //
@@ -96,6 +110,7 @@ static FFlagDef InternalActorFlagDefs[]=
 	DEFINE_FLAG(MF6, INTRYMOVE, AActor, flags6),
 	DEFINE_FLAG(MF7, HANDLENODELAY, AActor, flags7),
 	DEFINE_FLAG(MF7, FLYCHEAT, AActor, flags7),
+	DEFINE_FLAG(FX, RESPAWNINVUL, AActor, effects),
 };
 
 
@@ -302,6 +317,9 @@ static FFlagDef ActorFlagDefs[]=
 	DEFINE_FLAG(MF7, SPRITEANGLE, AActor, flags7),
 	DEFINE_FLAG(MF7, SMASHABLE, AActor, flags7),
 	DEFINE_FLAG(MF7, NOSHIELDREFLECT, AActor, flags7),
+	DEFINE_FLAG(MF7, FORCEZERORADIUSDMG, AActor, flags7),
+	DEFINE_FLAG(MF7, NOINFIGHTSPECIES, AActor, flags7),
+	DEFINE_FLAG(MF7, FORCEINFIGHTING, AActor, flags7),
 
 	// Effect flags
 	DEFINE_FLAG(FX, VISIBILITYPULSE, AActor, effects),
@@ -319,6 +337,10 @@ static FFlagDef ActorFlagDefs[]=
 	DEFINE_FLAG(RF, MASKROTATION, AActor, renderflags),
 	DEFINE_FLAG(RF, ABSMASKANGLE, AActor, renderflags),
 	DEFINE_FLAG(RF, ABSMASKPITCH, AActor, renderflags),
+	DEFINE_FLAG(RF, XFLIP, AActor, renderflags),
+	DEFINE_FLAG(RF, YFLIP, AActor, renderflags),
+	DEFINE_FLAG(RF, INTERPOLATEANGLES, AActor, renderflags),
+	DEFINE_FLAG(RF, DONTINTERPOLATE, AActor, renderflags),
 
 	// Bounce flags
 	DEFINE_FLAG2(BOUNCE_Walls, BOUNCEONWALLS, AActor, BounceFlags),
@@ -335,6 +357,7 @@ static FFlagDef ActorFlagDefs[]=
 	DEFINE_FLAG2(BOUNCE_MBF, MBFBOUNCER, AActor, BounceFlags),
 	DEFINE_FLAG2(BOUNCE_AutoOffFloorOnly, BOUNCEAUTOOFFFLOORONLY, AActor, BounceFlags),
 	DEFINE_FLAG2(BOUNCE_UseBounceState, USEBOUNCESTATE, AActor, BounceFlags),
+	DEFINE_FLAG2(BOUNCE_NotOnShootables, DONTBOUNCEONSHOOTABLES, AActor, BounceFlags),
 };
 
 // These won't be accessible through bitfield variables
@@ -357,13 +380,30 @@ static FFlagDef MoreFlagDefs[] =
 	DEFINE_DUMMY_FLAG(FASTER, true),				// obsolete, replaced by 'Fast' state flag
 	DEFINE_DUMMY_FLAG(FASTMELEE, true),			// obsolete, replaced by 'Fast' state flag
 
+	// Deprecated name as an alias
+	DEFINE_FLAG2_DEPRECATED(MF4_DONTHARMCLASS, DONTHURTSPECIES, AActor, flags4),
+
 	// Various Skulltag flags that are quite irrelevant to ZDoom
-	DEFINE_DUMMY_FLAG(NONETID, false),				// netcode-based
-	DEFINE_DUMMY_FLAG(ALLOWCLIENTSPAWN, false),	// netcode-based
-	DEFINE_DUMMY_FLAG(CLIENTSIDEONLY, false),	    // netcode-based
-	DEFINE_DUMMY_FLAG(SERVERSIDEONLY, false),		// netcode-based
-	DEFINE_DUMMY_FLAG(EXPLODEONDEATH, true),	    // seems useless
-	DEFINE_FLAG2_DEPRECATED(MF4_DONTHARMCLASS, DONTHURTSPECIES, AActor, flags4), // Deprecated name as an alias
+	// [BC] New DECORATE flag defines here.
+	DEFINE_DUMMY_FLAG(BLUETEAM, false),
+	DEFINE_DUMMY_FLAG(REDTEAM, false),
+	DEFINE_DUMMY_FLAG(USESPECIAL, false),
+	DEFINE_DUMMY_FLAG(BASEHEALTH, false),
+	DEFINE_DUMMY_FLAG(SUPERHEALTH, false),
+	DEFINE_DUMMY_FLAG(BASEARMOR, false),
+	DEFINE_DUMMY_FLAG(SUPERARMOR, false),
+	DEFINE_DUMMY_FLAG(SCOREPILLAR, false),
+	DEFINE_DUMMY_FLAG(NODE, false),
+	DEFINE_DUMMY_FLAG(USESTBOUNCESOUND, false),
+	DEFINE_DUMMY_FLAG(EXPLODEONDEATH, true),
+	DEFINE_DUMMY_FLAG(DONTIDENTIFYTARGET, false), // [CK]
+
+	// Skulltag netcode-based flags.
+	// [BB] New DECORATE network related flag defines here.
+	DEFINE_DUMMY_FLAG(NONETID, false),
+	DEFINE_DUMMY_FLAG(ALLOWCLIENTSPAWN, false),
+	DEFINE_DUMMY_FLAG(CLIENTSIDEONLY, false),
+	DEFINE_DUMMY_FLAG(SERVERSIDEONLY, false),
 };
 
 static FFlagDef InventoryFlagDefs[] =
@@ -390,6 +430,11 @@ static FFlagDef InventoryFlagDefs[] =
 	DEFINE_FLAG(IF, ALWAYSRESPAWN, AInventory, ItemFlags),
 	DEFINE_FLAG(IF, TRANSFER, AInventory, ItemFlags),
 	DEFINE_FLAG(IF, NOTELEPORTFREEZE, AInventory, ItemFlags),
+	DEFINE_FLAG(IF, NOSCREENBLINK, AInventory, ItemFlags),
+	DEFINE_FLAG(IF, ISARMOR, AInventory, ItemFlags),
+	DEFINE_FLAG(IF, ISHEALTH, AInventory, ItemFlags),
+
+	DEFINE_DUMMY_FLAG(FORCERESPAWNINSURVIVAL, false),
 
 	DEFINE_DEPRECATED_FLAG(PICKUPFLASH),
 	DEFINE_DEPRECATED_FLAG(INTERHUBSTRIP),
@@ -437,7 +482,7 @@ static FFlagDef PlayerPawnFlagDefs[] =
 static FFlagDef PowerSpeedFlagDefs[] =
 {
 	// PowerSpeed flags
-	DEFINE_FLAG(PSF, NOTRAIL, APowerSpeed, SpeedFlags),
+	DEFINE_DEPRECATED_FLAG(NOTRAIL),
 };
 
 static const struct FFlagList { const PClass * const *Type; FFlagDef *Defs; int NumDefs; int Use; } FlagLists[] =
@@ -448,7 +493,6 @@ static const struct FFlagList { const PClass * const *Type; FFlagDef *Defs; int 
 	{ &RUNTIME_CLASS_CASTLESS(AInventory), 	InventoryFlagDefs,	countof(InventoryFlagDefs), 3 },
 	{ &RUNTIME_CLASS_CASTLESS(AWeapon), 	WeaponFlagDefs,		countof(WeaponFlagDefs), 3 },
 	{ &RUNTIME_CLASS_CASTLESS(APlayerPawn),	PlayerPawnFlagDefs,	countof(PlayerPawnFlagDefs), 3 },
-	{ &RUNTIME_CLASS_CASTLESS(APowerSpeed),	PowerSpeedFlagDefs,	countof(PowerSpeedFlagDefs), 3 },
 };
 #define NUM_FLAG_LISTS (countof(FlagLists))
 
@@ -522,6 +566,12 @@ FFlagDef *FindFlag (const PClass *type, const char *part1, const char *part2, bo
 				}
 			}
 		}
+	}
+
+	// Handle that lone PowerSpeed flag - this should be more generalized but it's just this one flag and unlikely to become more so an explicit check will do.
+	if ((!stricmp(part1, "NOTRAIL") && !strict) || (!stricmp(part1, "POWERSPEED") && !stricmp(part2, "NOTRAIL")))
+	{
+		return &PowerSpeedFlagDefs[0];
 	}
 	return NULL;
 }
@@ -691,63 +741,275 @@ static int fieldcmp(const void * a, const void * b)
 
 void InitThingdef()
 {
-	PType *TypeActor = NewPointer(RUNTIME_CLASS(AActor));
+	// Create all global variables here because this cannot be done on the script side and really isn't worth adding support for.
+	// Also create all special fields here that cannot be declared by script syntax plus the pointer serializers. Doing all these with class overrides would be a bit messy.
 
-	PStruct *sstruct = NewNativeStruct("Sector", nullptr);
-	auto sptr = NewPointer(sstruct);
-	sstruct->AddNativeField("soundtarget", TypeActor, myoffsetof(sector_t, SoundTarget));
-	
+	auto secplanestruct = NewNativeStruct("Secplane", nullptr);
+	secplanestruct->Size = sizeof(secplane_t);
+	secplanestruct->Align = alignof(secplane_t);
+
+	auto sectorstruct = NewNativeStruct("Sector", nullptr);
+	sectorstruct->Size = sizeof(sector_t);
+	sectorstruct->Align = alignof(sector_t);
+	NewPointer(sectorstruct, false)->InstallHandlers(
+		[](FSerializer &ar, const char *key, const void *addr)
+		{
+			ar(key, *(sector_t **)addr);
+		},
+		[](FSerializer &ar, const char *key, void *addr)
+		{
+			Serialize<sector_t>(ar, key, *(sector_t **)addr, nullptr);
+			return true;
+		}
+	);
+
+	auto linestruct = NewNativeStruct("Line", nullptr);
+	linestruct->Size = sizeof(line_t);
+	linestruct->Align = alignof(line_t);
+	NewPointer(linestruct, false)->InstallHandlers(
+		[](FSerializer &ar, const char *key, const void *addr)
+		{
+			ar(key, *(line_t **)addr);
+		},
+		[](FSerializer &ar, const char *key, void *addr)
+		{
+			Serialize<line_t>(ar, key, *(line_t **)addr, nullptr);
+			return true;
+		}
+	);
+
+	auto sidestruct = NewNativeStruct("Side", nullptr);
+	sidestruct->Size = sizeof(side_t);
+	sidestruct->Align = alignof(side_t);
+	NewPointer(sidestruct, false)->InstallHandlers(
+		[](FSerializer &ar, const char *key, const void *addr)
+		{
+			ar(key, *(side_t **)addr);
+		},
+			[](FSerializer &ar, const char *key, void *addr)
+		{
+			Serialize<side_t>(ar, key, *(side_t **)addr, nullptr);
+			return true;
+		}
+	);
+
+	auto vertstruct = NewNativeStruct("Vertex", nullptr);
+	vertstruct->Size = sizeof(vertex_t);
+	vertstruct->Align = alignof(vertex_t);
+	NewPointer(vertstruct, false)->InstallHandlers(
+		[](FSerializer &ar, const char *key, const void *addr)
+		{
+			ar(key, *(vertex_t **)addr);
+		},
+		[](FSerializer &ar, const char *key, void *addr)
+		{
+			Serialize<vertex_t>(ar, key, *(vertex_t **)addr, nullptr);
+			return true;
+		}
+	);
+
+	auto sectorportalstruct = NewNativeStruct("SectorPortal", nullptr);
+	sectorportalstruct->Size = sizeof(FSectorPortal);
+	sectorportalstruct->Align = alignof(FSectorPortal);
+
+	auto playerclassstruct = NewNativeStruct("PlayerClass", nullptr);
+	playerclassstruct->Size = sizeof(FPlayerClass);
+	playerclassstruct->Align = alignof(FPlayerClass);
+
+	auto playerskinstruct = NewNativeStruct("PlayerSkin", nullptr);
+	playerskinstruct->Size = sizeof(FPlayerSkin);
+	playerskinstruct->Align = alignof(FPlayerSkin);
+
+	auto teamstruct = NewNativeStruct("Team", nullptr);
+	teamstruct->Size = sizeof(FTeam);
+	teamstruct->Align = alignof(FTeam);
+
+	PStruct *pstruct = NewNativeStruct("PlayerInfo", nullptr);
+	pstruct->Size = sizeof(player_t);
+	pstruct->Align = alignof(player_t);
+	NewPointer(pstruct, false)->InstallHandlers(
+		[](FSerializer &ar, const char *key, const void *addr)
+		{
+			ar(key, *(player_t **)addr);
+		},
+			[](FSerializer &ar, const char *key, void *addr)
+		{
+			Serialize<player_t>(ar, key, *(player_t **)addr, nullptr);
+			return true;
+		}
+	);
+
+	auto fontstruct = NewNativeStruct("FFont", nullptr);
+	fontstruct->Size = sizeof(FFont);
+	fontstruct->Align = alignof(FFont);
+	NewPointer(fontstruct, false)->InstallHandlers(
+		[](FSerializer &ar, const char *key, const void *addr)
+		{
+			ar(key, *(FFont **)addr);
+		},
+			[](FSerializer &ar, const char *key, void *addr)
+		{
+			Serialize<FFont>(ar, key, *(FFont **)addr, nullptr);
+			return true;
+		}
+	);
+
+	// set up the lines array in the sector struct. This is a bit messy because the type system is not prepared to handle a pointer to an array of pointers to a native struct even remotely well...
+	// As a result, the size has to be set to something large and arbritrary because it can change between maps. This will need some serious improvement when things get cleaned up.
+	sectorstruct->AddNativeField("lines", NewPointer(NewResizableArray(NewPointer(linestruct, false)), false), myoffsetof(sector_t, Lines), VARF_Native);
+
+	sectorstruct->AddNativeField("ceilingplane", secplanestruct, myoffsetof(sector_t, ceilingplane), VARF_Native | VARF_ReadOnly);
+	sectorstruct->AddNativeField("floorplane", secplanestruct, myoffsetof(sector_t, floorplane), VARF_Native | VARF_ReadOnly);
+
+
+
+
 	// expose the global validcount variable.
 	PField *vcf = new PField("validcount", TypeSInt32, VARF_Native | VARF_Static, (intptr_t)&validcount);
-	GlobalSymbols.AddSymbol(vcf);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(vcf);
 
 	// expose the global Multiplayer variable.
 	PField *multif = new PField("multiplayer", TypeBool, VARF_Native | VARF_ReadOnly | VARF_Static, (intptr_t)&multiplayer);
-	GlobalSymbols.AddSymbol(multif);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(multif);
 
 	// set up a variable for the global level data structure
 	PStruct *lstruct = NewNativeStruct("LevelLocals", nullptr);
 	PField *levelf = new PField("level", lstruct, VARF_Native | VARF_Static, (intptr_t)&level);
-	GlobalSymbols.AddSymbol(levelf);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(levelf);
+
+	// Add the game data arrays to LevelLocals.
+	lstruct->AddNativeField("sectors", NewPointer(NewResizableArray(sectorstruct), false), myoffsetof(FLevelLocals, sectors), VARF_Native);
+	lstruct->AddNativeField("lines", NewPointer(NewResizableArray(linestruct), false), myoffsetof(FLevelLocals, lines), VARF_Native);
+	lstruct->AddNativeField("sides", NewPointer(NewResizableArray(sidestruct), false), myoffsetof(FLevelLocals, sides), VARF_Native);
+	lstruct->AddNativeField("vertexes", NewPointer(NewResizableArray(vertstruct), false), myoffsetof(FLevelLocals, vertexes), VARF_Native|VARF_ReadOnly);
+	lstruct->AddNativeField("sectorportals", NewPointer(NewResizableArray(sectorportalstruct), false), myoffsetof(FLevelLocals, sectorPortals), VARF_Native);
+
+
+	auto aact = NewPointer(NewResizableArray(NewClassPointer(RUNTIME_CLASS(AActor))), true);
+	PField *aacf = new PField("AllActorClasses", aact, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&PClassActor::AllActorClasses);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(aacf);
+
+	auto plrcls = NewPointer(NewResizableArray(playerclassstruct), false);
+	PField *plrclsf = new PField("PlayerClasses", plrcls, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&PlayerClasses);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(plrclsf);
+
+	auto plrskn = NewPointer(NewResizableArray(playerskinstruct), false);
+	PField *plrsknf = new PField("PlayerSkins", plrskn, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&Skins);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(plrsknf);
+
+	auto teamst = NewPointer(NewResizableArray(teamstruct), false);
+	PField *teamf = new PField("Teams", teamst, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&Teams);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(teamf);
+
+	auto bindcls = NewNativeStruct("KeyBindings", nullptr);
+	PField *binding = new PField("Bindings", bindcls, VARF_Native | VARF_Static, (intptr_t)&Bindings);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(binding);
+	binding = new PField("AutomapBindings", bindcls, VARF_Native | VARF_Static, (intptr_t)&AutomapBindings);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(binding);
 
 	// set up a variable for the DEH data
 	PStruct *dstruct = NewNativeStruct("DehInfo", nullptr);
 	PField *dehf = new PField("deh", dstruct, VARF_Native | VARF_Static, (intptr_t)&deh);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(dehf);
 
-	GlobalSymbols.AddSymbol(dehf);
+	// set up a variable for the global gameinfo data
+	PStruct *gistruct = NewNativeStruct("GameInfoStruct", nullptr);
+	PField *gi = new PField("gameinfo", gistruct, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&gameinfo);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(gi);
 
 	// set up a variable for the global players array.
-	PStruct *pstruct = NewNativeStruct("PlayerInfo", nullptr);
-	pstruct->Size = sizeof(player_t);
-	pstruct->Align = alignof(player_t);
 	PArray *parray = NewArray(pstruct, MAXPLAYERS);
-	PField *playerf = new PField("players", parray, VARF_Native | VARF_Static, (intptr_t)&players);
-	GlobalSymbols.AddSymbol(playerf);
+	PField *fieldptr = new PField("players", parray, VARF_Native | VARF_Static, (intptr_t)&players);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
 
-	// set up the lines array in the sector struct. This is a bit messy because the type system is not prepared to handle a pointer to an array of pointers to a native struct even remotely well...
-	// As a result, the size has to be set to something large and arbritrary because it can change between maps. This will need some serious improvement when things get cleaned up.
-	pstruct = NewNativeStruct("Sector", nullptr);
-	pstruct->AddNativeField("lines", NewPointer(NewArray(NewPointer(NewNativeStruct("line", nullptr), false), 0x40000), false), myoffsetof(sector_t, lines), VARF_Native);
+	pstruct->AddNativeField("weapons", NewNativeStruct("WeaponSlots", nullptr), myoffsetof(player_t, weapons), VARF_Native);
+
 
 	parray = NewArray(TypeBool, MAXPLAYERS);
-	playerf = new PField("playeringame", parray, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&playeringame);
-	GlobalSymbols.AddSymbol(playerf);
+	fieldptr = new PField("playeringame", parray, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&playeringame);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
 
-	playerf = new PField("gameaction", TypeUInt8, VARF_Native | VARF_Static, (intptr_t)&gameaction);
-	GlobalSymbols.AddSymbol(playerf);
+	fieldptr = new PField("gameaction", TypeUInt32, VARF_Native | VARF_Static, (intptr_t)&gameaction);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
 
-	playerf = new PField("consoleplayer", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&consoleplayer);
-	GlobalSymbols.AddSymbol(playerf);
+	fieldptr = new PField("gamestate", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&gamestate);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("skyflatnum", TypeTextureID, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&skyflatnum);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("globalfreeze", TypeUInt8, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&bglobal.freeze);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("consoleplayer", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&consoleplayer);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	auto fontptr = NewPointer(NewNativeStruct("Font", nullptr));
+
+	fieldptr = new PField("smallfont", fontptr, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&SmallFont);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("smallfont2", fontptr, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&SmallFont2);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("bigfont", fontptr, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&BigFont);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("confont", fontptr, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&ConFont);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("intermissionfont", fontptr, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&IntermissionFont);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanXFac", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanXfac);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanYFac", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanYfac);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanWidth", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanWidth);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanHeight", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanHeight);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanXFac_1", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanXfac_1);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanYFac_1", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanYfac_1);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanWidth_1", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanWidth_1);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("CleanHeight_1", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&CleanHeight_1);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("menuactive", TypeSInt32, VARF_Native | VARF_Static, (intptr_t)&menuactive);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("OptionMenuSettings", NewStruct("FOptionMenuSettings", nullptr), VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&OptionSettings);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("gametic", TypeSInt32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&gametic);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("demoplayback", TypeBool, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&demoplayback);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("BackbuttonTime", TypeSInt32, VARF_Native | VARF_Static, (intptr_t)&BackbuttonTime);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
+	fieldptr = new PField("BackbuttonAlpha", TypeFloat32, VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&BackbuttonAlpha);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
+
 
 	// Argh. It sucks when bad hacks need to be supported. WP_NOCHANGE is just a bogus pointer but it used everywhere as a special flag.
 	// It cannot be defined as constant because constants can either be numbers or strings but nothing else, so the only 'solution'
 	// is to create a static variable from it and reference that in the script. Yuck!!!
-	static AWeapon *wpnochg = WP_NOCHANGE;
-	playerf = new PField("WP_NOCHANGE", NewPointer(RUNTIME_CLASS(AWeapon), false), VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&wpnochg);
-	GlobalSymbols.AddSymbol(playerf);
-
-	// this needs to be done manually until it can be given a proper type.
-	RUNTIME_CLASS(AActor)->AddNativeField("DecalGenerator", NewPointer(TypeVoid), myoffsetof(AActor, DecalGenerator));
+	wpnochg = WP_NOCHANGE;
+	fieldptr = new PField("WP_NOCHANGE", NewPointer(RUNTIME_CLASS(AWeapon), false), VARF_Native | VARF_Static | VARF_ReadOnly, (intptr_t)&wpnochg);
+	Namespaces.GlobalNamespace->Symbols.AddSymbol(fieldptr);
 
 	// synthesize a symbol for each flag from the flag name tables to avoid redundant declaration of them.
 	for (auto &fl : FlagLists)
@@ -809,6 +1071,14 @@ void InitThingdef()
 		qsort(&AFTable[0], AFTable.Size(), sizeof(AFTable[0]), funccmp);
 	}
 
+	// Add the constructor and destructor to FCheckPosition.
+	auto fcp = NewStruct("FCheckPosition", nullptr);
+	fcp->mConstructor = *FindFunction(fcp, "_Constructor")->VMPointer;
+	fcp->mDestructor = *FindFunction(fcp, "_Destructor")->VMPointer;
+	fcp->Size = sizeof(FCheckPosition);
+	fcp->Align = alignof(FCheckPosition);
+
+
 	FieldTable.Clear();
 	if (FieldTable.Size() == 0)
 	{
@@ -842,15 +1112,244 @@ DEFINE_ACTION_FUNCTION(FStringTable, Localize)
 {
 	PARAM_PROLOGUE;
 	PARAM_STRING(label);
-	ACTION_RETURN_STRING(GStrings(label));
+	PARAM_BOOL_DEF(prefixed);
+	if (!prefixed) ACTION_RETURN_STRING(GStrings(label));
+	if (label[0] != '$') ACTION_RETURN_STRING(label);
+	ACTION_RETURN_STRING(GStrings(&label[1]));
 }
 
-DEFINE_ACTION_FUNCTION(FString, Replace)
+DEFINE_ACTION_FUNCTION(FStringStruct, Replace)
 {
 	PARAM_SELF_STRUCT_PROLOGUE(FString);
 	PARAM_STRING(s1);
 	PARAM_STRING(s2);
-	self->Substitute(*s1, *s2);
+	self->Substitute(s1, s2);
 	return 0;
+}
+
+FString FStringFormat(VM_ARGS)
+{
+	assert(param[0].Type == REGT_STRING);
+	FString fmtstring = param[0].s().GetChars();
+
+	// note: we don't need a real printf format parser.
+	//       enough to simply find the subtitution tokens and feed them to the real printf after checking types.
+	//       https://en.wikipedia.org/wiki/Printf_format_string#Format_placeholder_specification
+	FString output;
+	bool in_fmt = false;
+	FString fmt_current;
+	int argnum = 1;
+	int argauto = 1;
+	// % = starts
+	//  [0-9], -, +, \s, 0, #, . continue
+	//  %, s, d, i, u, fF, eE, gG, xX, o, c, p, aA terminate
+	// various type flags are not supported. not like stuff like 'hh' modifier is to be used in the VM.
+	// the only combination that is parsed locally is %n$...
+	bool haveargnums = false;
+	for (size_t i = 0; i < fmtstring.Len(); i++)
+	{
+		char c = fmtstring[i];
+		if (in_fmt)
+		{
+			if ((c >= '0' && c <= '9') ||
+				c == '-' || c == '+' || (c == ' ' && fmt_current[fmt_current.Len() - 1] != ' ') || c == '#' || c == '.')
+			{
+				fmt_current += c;
+			}
+			else if (c == '$') // %number$format
+			{
+				if (!haveargnums && argauto > 1)
+					ThrowAbortException(X_FORMAT_ERROR, "Cannot mix explicit and implicit arguments.");
+				FString argnumstr = fmt_current.Mid(1);
+				if (!argnumstr.IsInt()) ThrowAbortException(X_FORMAT_ERROR, "Expected a numeric value for argument number, got '%s'.", argnumstr.GetChars());
+				argnum = argnumstr.ToLong();
+				if (argnum < 1 || argnum >= numparam) ThrowAbortException(X_FORMAT_ERROR, "Not enough arguments for format (tried to access argument %d, %d total).", argnum, numparam);
+				fmt_current = "%";
+				haveargnums = true;
+			}
+			else
+			{
+				fmt_current += c;
+
+				switch (c)
+				{
+					// string
+				case 's':
+				{
+					if (argnum < 0 && haveargnums)
+						ThrowAbortException(X_FORMAT_ERROR, "Cannot mix explicit and implicit arguments.");
+					in_fmt = false;
+					// fail if something was found, but it's not a string
+					if (argnum >= numparam) ThrowAbortException(X_FORMAT_ERROR, "Not enough arguments for format.");
+					if (param[argnum].Type != REGT_STRING) ThrowAbortException(X_FORMAT_ERROR, "Expected a string for format %s.", fmt_current.GetChars());
+					// append
+					output.AppendFormat(fmt_current.GetChars(), param[argnum].s().GetChars());
+					if (!haveargnums) argnum = ++argauto;
+					else argnum = -1;
+					break;
+				}
+
+				// pointer
+				case 'p':
+				{
+					if (argnum < 0 && haveargnums)
+						ThrowAbortException(X_FORMAT_ERROR, "Cannot mix explicit and implicit arguments.");
+					in_fmt = false;
+					// fail if something was found, but it's not a string
+					if (argnum >= numparam) ThrowAbortException(X_FORMAT_ERROR, "Not enough arguments for format.");
+					if (param[argnum].Type != REGT_POINTER) ThrowAbortException(X_FORMAT_ERROR, "Expected a pointer for format %s.", fmt_current.GetChars());
+					// append
+					output.AppendFormat(fmt_current.GetChars(), param[argnum].a);
+					if (!haveargnums) argnum = ++argauto;
+					else argnum = -1;
+					break;
+				}
+
+				// int formats (including char)
+				case 'd':
+				case 'i':
+				case 'u':
+				case 'x':
+				case 'X':
+				case 'o':
+				case 'c':
+				{
+					if (argnum < 0 && haveargnums)
+						ThrowAbortException(X_FORMAT_ERROR, "Cannot mix explicit and implicit arguments.");
+					in_fmt = false;
+					// fail if something was found, but it's not an int
+					if (argnum >= numparam) ThrowAbortException(X_FORMAT_ERROR, "Not enough arguments for format.");
+					if (param[argnum].Type != REGT_INT &&
+						param[argnum].Type != REGT_FLOAT) ThrowAbortException(X_FORMAT_ERROR, "Expected a numeric value for format %s.", fmt_current.GetChars());
+					// append
+					output.AppendFormat(fmt_current.GetChars(), param[argnum].ToInt());
+					if (!haveargnums) argnum = ++argauto;
+					else argnum = -1;
+					break;
+				}
+
+				// double formats
+				case 'f':
+				case 'F':
+				case 'e':
+				case 'E':
+				case 'g':
+				case 'G':
+				case 'a':
+				case 'A':
+				{
+					if (argnum < 0 && haveargnums)
+						ThrowAbortException(X_FORMAT_ERROR, "Cannot mix explicit and implicit arguments.");
+					in_fmt = false;
+					// fail if something was found, but it's not a float
+					if (argnum >= numparam) ThrowAbortException(X_FORMAT_ERROR, "Not enough arguments for format.");
+					if (param[argnum].Type != REGT_INT &&
+						param[argnum].Type != REGT_FLOAT) ThrowAbortException(X_FORMAT_ERROR, "Expected a numeric value for format %s.", fmt_current.GetChars());
+					// append
+					output.AppendFormat(fmt_current.GetChars(), param[argnum].ToDouble());
+					if (!haveargnums) argnum = ++argauto;
+					else argnum = -1;
+					break;
+				}
+
+				default:
+					// invalid character
+					output += fmt_current;
+					in_fmt = false;
+					break;
+				}
+			}
+		}
+		else
+		{
+			if (c == '%')
+			{
+				if (i + 1 < fmtstring.Len() && fmtstring[i + 1] == '%')
+				{
+					output += '%';
+					i++;
+				}
+				else
+				{
+					in_fmt = true;
+					fmt_current = "%";
+				}
+			}
+			else
+			{
+				output += c;
+			}
+		}
+	}
+
+	return output;
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, Format)
+{
+	PARAM_PROLOGUE;
+	FString s = FStringFormat(param, defaultparam, numparam, ret, numret);
+	ACTION_RETURN_STRING(s);
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, AppendFormat)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	// first parameter is the self pointer
+	FString s = FStringFormat(param+1, defaultparam, numparam-1, ret, numret);
+	(*self) += s;
+	return 0;
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, Mid)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	PARAM_UINT(pos);
+	PARAM_UINT(len);
+	FString s = self->Mid(pos, len);
+	ACTION_RETURN_STRING(s);
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, Left)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	PARAM_UINT(len);
+	FString s = self->Left(len);
+	ACTION_RETURN_STRING(s);
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, Truncate)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	PARAM_UINT(len);
+	self->Truncate(len);
+	return 0;
+}
+
+// CharAt and CharCodeAt is how JS does it, and JS is similar here in that it doesn't have char type as int.
+DEFINE_ACTION_FUNCTION(FStringStruct, CharAt)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	PARAM_INT(pos);
+	int slen = (int)self->Len();
+	if (pos < 0 || pos >= slen)
+		ACTION_RETURN_STRING("");
+	ACTION_RETURN_STRING(FString((*self)[pos]));
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, CharCodeAt)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	PARAM_INT(pos);
+	int slen = (int)self->Len();
+	if (pos < 0 || pos >= slen)
+		ACTION_RETURN_INT(0);
+	ACTION_RETURN_INT((*self)[pos]);
+}
+
+DEFINE_ACTION_FUNCTION(FStringStruct, Filter)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FString);
+	ACTION_RETURN_STRING(strbin1(*self));
 }
 

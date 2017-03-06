@@ -57,6 +57,7 @@
 #include "r_utility.h"
 #include "d_player.h"
 #include "p_local.h"
+#include "g_levellocals.h"
 #include "p_maputl.h"
 #include "math/cmath.h"
 
@@ -106,6 +107,7 @@ int 			viewwindowx;
 int 			viewwindowy;
 
 DVector3		ViewPos;
+DVector3		ViewActorPos;	// the actual position of the viewing actor, without interpolation and quake offsets.
 DAngle			ViewAngle;
 DAngle			ViewPitch;
 DAngle			ViewRoll;
@@ -271,13 +273,13 @@ void R_ExecuteSetViewSize ()
 	setsizeneeded = false;
 	V_SetBorderNeedRefresh();
 
-	R_SetWindow (setblocks, SCREENWIDTH, SCREENHEIGHT, ST_Y);
+	R_SetWindow (setblocks, SCREENWIDTH, SCREENHEIGHT, gST_Y);
 
 	// Handle resize, e.g. smaller view windows with border and/or status bar.
 	viewwindowx = (screen->GetWidth() - viewwidth) >> 1;
 
 	// Same with base row offset.
-	viewwindowy = (viewwidth == screen->GetWidth()) ? 0 : (ST_Y - viewheight) >> 1;
+	viewwindowy = (viewwidth == screen->GetWidth()) ? 0 : (gST_Y - viewheight) >> 1;
 }
 
 //==========================================================================
@@ -335,8 +337,6 @@ void R_Init ()
 {
 	atterm (R_Shutdown);
 
-	StartScreen->Progress();
-	V_InitFonts();
 	StartScreen->Progress();
 	// Colormap init moved back to InitPalette()
 	//R_InitColormaps ();
@@ -490,6 +490,7 @@ void R_InterpolateView (player_t *player, double Frac, InterpolationViewer *ivie
 		if (ViewPos.Z > viewsector->GetPortalPlaneZ(sector_t::ceiling))
 		{
 			ViewPos += viewsector->GetPortalDisplacement(sector_t::ceiling);
+			ViewActorPos += viewsector->GetPortalDisplacement(sector_t::ceiling);
 			viewsector = R_PointInSubsector(ViewPos)->sector;
 			moved = true;
 		}
@@ -502,6 +503,7 @@ void R_InterpolateView (player_t *player, double Frac, InterpolationViewer *ivie
 			if (ViewPos.Z < viewsector->GetPortalPlaneZ(sector_t::floor))
 			{
 				ViewPos += viewsector->GetPortalDisplacement(sector_t::floor);
+				ViewActorPos += viewsector->GetPortalDisplacement(sector_t::floor);
 				viewsector = R_PointInSubsector(ViewPos)->sector;
 				moved = true;
 			}
@@ -743,10 +745,11 @@ void R_SetupFrame (AActor *actor)
 			iview->Old = iview->New;
 			r_NoInterpolate = true;
 		}
+		ViewActorPos = campos;
 	}
 	else
 	{
-		iview->New.Pos = { camera->Pos().XY(), camera->player ? camera->player->viewz : camera->Z() + camera->GetCameraHeight() };
+		ViewActorPos = iview->New.Pos = { camera->Pos().XY(), camera->player ? camera->player->viewz : camera->Z() + camera->GetCameraHeight() };
 		viewsector = camera->Sector;
 		r_showviewer = false;
 	}

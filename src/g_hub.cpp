@@ -44,6 +44,7 @@
 #include "gstrings.h"
 #include "wi_stuff.h"
 #include "serializer.h"
+#include "g_levellocals.h"
 
 
 //==========================================================================
@@ -153,8 +154,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, wbplayerstruct_t &h, w
 {
 	if (arc.BeginObject(key))
 	{
-		arc("in", h.in)
-			("kills", h.skills)
+		arc("kills", h.skills)
 			("items", h.sitems)
 			("secrets", h.ssecret)
 			("time", h.stime)

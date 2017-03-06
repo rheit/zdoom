@@ -51,6 +51,7 @@
 #include "v_palette.h"
 #include "v_video.h"
 #include "colormatcher.h"
+#include "menu/menu.h"
 
 struct FLatchedValue
 {
@@ -181,6 +182,63 @@ void FBaseCVar::SetGenericRep (UCVarValue value, ECVarType type)
 	}
 }
 
+DEFINE_ACTION_FUNCTION(_CVar, GetInt)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	auto v = self->GetGenericRep(CVAR_Int);
+	ACTION_RETURN_INT(v.Int);
+}
+
+DEFINE_ACTION_FUNCTION(_CVar, GetFloat)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	auto v = self->GetGenericRep(CVAR_Float);
+	ACTION_RETURN_FLOAT(v.Float);
+}
+
+DEFINE_ACTION_FUNCTION(_CVar, GetString)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	auto v = self->GetGenericRep(CVAR_String);
+	ACTION_RETURN_STRING(v.String);
+}
+
+DEFINE_ACTION_FUNCTION(_CVar, SetInt)
+{
+	// Only menus are allowed to change CVARs.
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	if (!(self->GetFlags() & CVAR_MOD) && CurrentMenu == nullptr) return 0;
+	PARAM_INT(val);
+	UCVarValue v;
+	v.Int = val;
+	self->SetGenericRep(v, CVAR_Int);
+	return 0;
+}
+
+DEFINE_ACTION_FUNCTION(_CVar, SetFloat)
+{
+	// Only menus are allowed to change CVARs.
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	if (!(self->GetFlags() & CVAR_MOD) && CurrentMenu == nullptr) return 0;
+	PARAM_FLOAT(val);
+	UCVarValue v;
+	v.Float = (float)val;
+	self->SetGenericRep(v, CVAR_Float);
+	return 0;
+}
+
+DEFINE_ACTION_FUNCTION(_CVar, SetString)
+{
+	// Only menus are allowed to change CVARs.
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	if (!(self->GetFlags() & CVAR_MOD) && CurrentMenu == nullptr) return 0;
+	PARAM_STRING(val);
+	UCVarValue v;
+	v.String = val.GetChars();
+	self->SetGenericRep(v, CVAR_String);
+	return 0;
+}
+
 bool FBaseCVar::ToBool (UCVarValue value, ECVarType type)
 {
 	switch (type)
@@ -200,7 +258,7 @@ bool FBaseCVar::ToBool (UCVarValue value, ECVarType type)
 		else if (stricmp (value.String, "false") == 0)
 			return false;
 		else
-			return !!strtol (value.String, NULL, 0);
+			return !!strtoll (value.String, NULL, 0);
 
 	case CVAR_GUID:
 		return false;
@@ -233,7 +291,7 @@ int FBaseCVar::ToInt (UCVarValue value, ECVarType type)
 			else if (stricmp (value.String, "false") == 0)
 				res = 0;
 			else
-				res = strtol (value.String, NULL, 0); 
+				res = (int)strtoll (value.String, NULL, 0); 
 			break;
 		}
 	case CVAR_GUID:			res = 0; break;
@@ -458,7 +516,7 @@ UCVarValue FBaseCVar::FromString (const char *value, ECVarType type)
 		else if (stricmp (value, "false") == 0)
 			ret.Bool = false;
 		else
-			ret.Bool = strtol (value, NULL, 0) != 0;
+			ret.Bool = strtoll (value, NULL, 0) != 0;
 		break;
 
 	case CVAR_Int:
@@ -467,7 +525,7 @@ UCVarValue FBaseCVar::FromString (const char *value, ECVarType type)
 		else if (stricmp (value, "false") == 0)
 			ret.Int = 0;
 		else
-			ret.Int = strtol (value, NULL, 0);
+			ret.Int = (int)strtoll (value, NULL, 0);
 		break;
 
 	case CVAR_Float:
@@ -620,6 +678,12 @@ void FBaseCVar::EnableCallbacks ()
 void FBaseCVar::DisableCallbacks ()
 {
 	m_UseCallback = false;
+}
+
+DEFINE_ACTION_FUNCTION(_CVar, GetRealType)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	ACTION_RETURN_INT(self->GetRealType());
 }
 
 //
@@ -1061,6 +1125,13 @@ void FBaseCVar::ResetToDefault ()
 	}
 }
 
+DEFINE_ACTION_FUNCTION(_CVar, ResetToDefault)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FBaseCVar);
+	self->ResetToDefault();
+	return 0;
+}
+
 //
 // Flag cvar implementation
 //
@@ -1466,6 +1537,13 @@ FBaseCVar *FindCVar (const char *var_name, FBaseCVar **prev)
 	return var;
 }
 
+DEFINE_ACTION_FUNCTION(_CVar, FindCVar)
+{
+	PARAM_PROLOGUE;
+	PARAM_NAME(name);
+	ACTION_RETURN_POINTER(FindCVar(name, nullptr));
+}
+
 FBaseCVar *FindCVarSub (const char *var_name, int namelen)
 {
 	FBaseCVar *var;
@@ -1617,8 +1695,16 @@ void C_ArchiveCVars (FConfigFile *f, uint32 filter)
 	}
 }
 
+EXTERN_CVAR(Bool, sv_cheats);
+
 void FBaseCVar::CmdSet (const char *newval)
 {
+	if ((GetFlags() & CVAR_CHEAT) && !sv_cheats)
+	{
+		Printf("sv_cheats must be true to set this console variable.\n");
+		return;
+	}
+
 	UCVarValue val;
 
 	// Casting away the const is safe in this case.

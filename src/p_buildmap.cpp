@@ -19,6 +19,7 @@
 #include "gi.h"
 #include "p_spec.h"
 
+#if 0
 // MACROS ------------------------------------------------------------------
 
 //#define SHADE2LIGHT(s) (160-2*(s))
@@ -45,7 +46,7 @@
 struct sectortype
 {
 	SWORD wallptr, wallnum;
-	SDWORD ceilingZ, floorZ;
+	int32_t ceilingZ, floorZ;
 	SWORD ceilingstat, floorstat;
 	SWORD ceilingpicnum, ceilingheinum;
 	SBYTE ceilingshade;
@@ -73,7 +74,7 @@ struct sectortype
 	//32 bytes
 struct walltype
 {
-	SDWORD x, y;
+	int32_t x, y;
 	SWORD point2, nextwall, nextsector, cstat;
 	SWORD picnum, overpicnum;
 	SBYTE shade;
@@ -99,7 +100,7 @@ struct walltype
 	//44 bytes
 struct spritetype
 {
-	SDWORD x, y, z;
+	int32_t x, y, z;
 	SWORD cstat, picnum;
 	SBYTE shade;
 	BYTE pal, clipdist, filler;
@@ -142,11 +143,11 @@ void P_AdjustLine (line_t *line);
 // PRIVATE FUNCTION PROTOTYPES ---------------------------------------------
 
 static bool P_LoadBloodMap (BYTE *data, size_t len, FMapThing **sprites, int *numsprites);
-static void LoadSectors (sectortype *bsectors);
+static void LoadSectors (sectortype *bsectors, int count);
 static void LoadWalls (walltype *walls, int numwalls, sectortype *bsectors);
 static int LoadSprites (spritetype *sprites, Xsprite *xsprites, int numsprites, sectortype *bsectors, FMapThing *mapthings);
-static vertex_t *FindVertex (SDWORD x, SDWORD y);
-static void CreateStartSpot (SDWORD *pos, FMapThing *start);
+static vertex_t *FindVertex (int32_t x, int32_t y);
+static void CreateStartSpot (int32_t *pos, FMapThing *start);
 static void CalcPlane (SlopeWork &slope, secplane_t &plane);
 static void Decrypt (void *to, const void *from, int len, int key);
 
@@ -225,15 +226,14 @@ bool P_LoadBuildMap (BYTE *data, size_t len, FMapThing **sprites, int *numspr)
 		return false;
 	}
 
-	numsectors = numsec;
-	LoadSectors ((sectortype *)(data + 22));
-	LoadWalls ((walltype *)(data + 24 + numsectors*sizeof(sectortype)), numwalls,
+	LoadSectors ((sectortype *)(data + 22), numsec);
+	LoadWalls ((walltype *)(data + 24 + numsec*sizeof(sectortype)), numwalls,
 		(sectortype *)(data + 22));
 
-	numsprites = *(WORD *)(data + 24 + numsectors*sizeof(sectortype) + numwalls*sizeof(walltype));
+	numsprites = *(WORD *)(data + 24 + numsec*sizeof(sectortype) + numwalls*sizeof(walltype));
 	*sprites = new FMapThing[numsprites + 1];
-	CreateStartSpot ((SDWORD *)(data + 4), *sprites);
-	*numspr = 1 + LoadSprites ((spritetype *)(data + 26 + numsectors*sizeof(sectortype) + numwalls*sizeof(walltype)),
+	CreateStartSpot ((int32_t *)(data + 4), *sprites);
+	*numspr = 1 + LoadSprites ((spritetype *)(data + 26 + numsec*sizeof(sectortype) + numwalls*sizeof(walltype)),
 		NULL, numsprites, (sectortype *)(data + 22), *sprites + 1);
 
 	return true;
@@ -274,7 +274,7 @@ static bool P_LoadBloodMap (BYTE *data, size_t len, FMapThing **mapthings, int *
 	visibility = LittleLong(*(DWORD *)(infoBlock + 18));
 	parallaxType = infoBlock[26];
 	numRevisions = LittleLong(*(DWORD *)(infoBlock + 27));
-	numsectors = LittleShort(*(WORD *)(infoBlock + 31));
+	int numsectors = LittleShort(*(WORD *)(infoBlock + 31));
 	numWalls = LittleShort(*(WORD *)(infoBlock + 33));
 	numsprites = LittleShort(*(WORD *)(infoBlock + 35));
 	Printf("Visibility: %d\n", visibility);
@@ -364,7 +364,7 @@ static bool P_LoadBloodMap (BYTE *data, size_t len, FMapThing **mapthings, int *
 
 	// Now convert to Doom format, since we've extracted all the standard
 	// BUILD info from the map we need. (Sprites are ignored.)
-	LoadSectors (bsec);
+	LoadSectors (bsec, numsectors);
 	LoadWalls (bwal, numWalls, bsec);
 	*mapthings = new FMapThing[numsprites];
 	*numspr = LoadSprites (bspr, xspr, numsprites, bsec, *mapthings);
@@ -383,25 +383,26 @@ static bool P_LoadBloodMap (BYTE *data, size_t len, FMapThing **mapthings, int *
 //
 //==========================================================================
 
-static void LoadSectors (sectortype *bsec)
+static void LoadSectors (sectortype *bsec, int count)
 {
 	FDynamicColormap *map = GetSpecialLights (PalEntry (255,255,255), level.fadeto, 0);
 	sector_t *sec;
 	char tnam[9];
 
-	sec = sectors = new sector_t[numsectors];
-	memset (sectors, 0, sizeof(sector_t)*numsectors);
+	level.sectors.Alloc(count);
+	sec = &level.sectors[0];
+	memset (sec, 0, sizeof(sector_t)*count);
 
-	sectors[0].e = new extsector_t[numsectors];
+	sec->e = new extsector_t[count];
 
-	for (int i = 0; i < numsectors; ++i, ++bsec, ++sec)
+	for (int i = 0; i < count; ++i, ++bsec, ++sec)
 	{
 		bsec->wallptr = WORD(bsec->wallptr);
 		bsec->wallnum = WORD(bsec->wallnum);
 		bsec->ceilingstat = WORD(bsec->ceilingstat);
 		bsec->floorstat = WORD(bsec->floorstat);
 
-		sec->e = &sectors[0].e[i];
+		sec->e = &sec->e[i];
 		double floorheight = -LittleLong(bsec->floorZ) / 256.;
 		sec->SetPlaneTexZ(sector_t::floor, floorheight);
 		sec->floorplane.SetAtHeight(floorheight, sector_t::floor);
@@ -487,7 +488,7 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 	// Setting numvertexes to the same as numwalls is overly conservative,
 	// but the extra vertices will be removed during the BSP building pass.
 	numsides = numvertexes = numwalls;
-	numlines = 0;
+	int numlines = 0;
 
 	sides = new side_t[numsides];
 	memset (sides, 0, numsides*sizeof(side_t));
@@ -496,13 +497,13 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 	numvertexes = 0;
 
 	// First mark each sidedef with the sector it belongs to
-	for (i = 0; i < numsectors; ++i)
+	for (unsigned i = 0; i < level.sectors.Size(); i++)
 	{
 		if (bsec[i].wallptr >= 0)
 		{
 			for (j = 0; j < bsec[i].wallnum; ++j)
 			{
-				sides[j + bsec[i].wallptr].sector = sectors + i;
+				sides[j + bsec[i].wallptr].sector = &level.sectors[i];
 			}
 		}
 	}
@@ -562,8 +563,8 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 	}
 
 	// Set line properties that Doom doesn't store per-sidedef
-	lines = new line_t[numlines];
-	memset (lines, 0, numlines*sizeof(line_t));
+	level.lines.Alloc(numlines);
+	memset (&level.lines[0], 0, numlines*sizeof(line_t));
 
 	for (i = 0, j = -1; i < numwalls; ++i)
 	{
@@ -573,6 +574,7 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 		}
 
 		j = int(intptr_t(sides[i].linedef));
+		auto &lines = level.lines;
 		lines[j].sidedef[0] = (side_t*)(intptr_t)i;
 		lines[j].sidedef[1] = (side_t*)(intptr_t)walls[i].nextwall;
 		lines[j].v1 = FindVertex (walls[i].x, walls[i].y);
@@ -581,7 +583,7 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 		lines[j].flags |= ML_WRAP_MIDTEX;
 		if (walls[i].nextsector >= 0)
 		{
-			lines[j].backsector = sectors + walls[i].nextsector;
+			lines[j].backsector = &level.sectors[walls[i].nextsector];
 			lines[j].flags |= ML_TWOSIDED;
 		}
 		else
@@ -629,7 +631,7 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 	}
 
 	// Finish setting sector properties that depend on walls
-	for (i = 0; i < numsectors; ++i, ++bsec)
+	for (auto &sec : level.sectors)
 	{
 		SlopeWork slope;
 
@@ -646,16 +648,16 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 		{ // floor is sloped
 			slope.heinum = -LittleShort(bsec->floorheinum);
 			slope.z[0] = slope.z[1] = slope.z[2] = -bsec->floorZ;
-			CalcPlane (slope, sectors[i].floorplane);
+			CalcPlane (slope, sec.floorplane);
 		}
 		if ((bsec->ceilingstat & 2) && (bsec->ceilingheinum != 0))
 		{ // ceiling is sloped
 			slope.heinum = -LittleShort(bsec->ceilingheinum);
 			slope.z[0] = slope.z[1] = slope.z[2] = -bsec->ceilingZ;
-			CalcPlane (slope, sectors[i].ceilingplane);
+			CalcPlane (slope, sec.ceilingplane);
 		}
-		int linenum = int(intptr_t(sides[bsec->wallptr].linedef));
-		int sidenum = int(intptr_t(lines[linenum].sidedef[1]));
+		int linenum = sides[bsec->wallptr].linedef->Index();
+		int sidenum = int(intptr_t(level.lines[linenum].sidedef[1] - sides));
 		if (bsec->floorstat & 64)
 		{ // floor is aligned to first wall
 			P_AlignFlat (linenum, sidenum == bsec->wallptr, 0);
@@ -667,8 +669,8 @@ static void LoadWalls (walltype *walls, int numwalls, sectortype *bsec)
 	}
 	for (i = 0; i < numlines; i++)
 	{
-		intptr_t front = intptr_t(lines[i].sidedef[0]);
-		intptr_t back = intptr_t(lines[i].sidedef[1]);
+		intptr_t front = intptr_t(level.lines[i].sidedef[0]-sides);
+		intptr_t back = intptr_t(level.lines[i].sidedef[1]-sides);
 		lines[i].sidedef[0] = front >= 0 ? &sides[front] : NULL;
 		lines[i].sidedef[1] = back >= 0 ? &sides[back] : NULL;
 	}
@@ -753,7 +755,7 @@ static int LoadSprites (spritetype *sprites, Xsprite *xsprites, int numsprites,
 //
 //==========================================================================
 
-vertex_t *FindVertex (SDWORD xx, SDWORD yy)
+vertex_t *FindVertex (int32_t xx, int32_t yy)
 {
 	int i;
 
@@ -778,7 +780,7 @@ vertex_t *FindVertex (SDWORD xx, SDWORD yy)
 //
 //==========================================================================
 
-static void CreateStartSpot (SDWORD *pos, FMapThing *start)
+static void CreateStartSpot (int32_t *pos, FMapThing *start)
 {
 	short angle = LittleShort(*(WORD *)(&pos[3]));
 	FMapThing mt = { 0, };
@@ -851,44 +853,4 @@ static void Decrypt (void *to_, const void *from_, int len, int key)
 	}
 }
 
-//==========================================================================
-//
-// Just an actor to make the Build sprites show up. It doesn't do anything
-// with them other than display them.
-//
-//==========================================================================
-
-class ACustomSprite : public AActor
-{
-	DECLARE_CLASS (ACustomSprite, AActor);
-public:
-	void BeginPlay ();
-};
-
-IMPLEMENT_CLASS(ACustomSprite, false, false)
-
-void ACustomSprite::BeginPlay ()
-{
-	char name[9];
-	Super::BeginPlay ();
-
-	mysnprintf (name, countof(name), "BTIL%04d", args[0] & 0xffff);
-	picnum = TexMan.GetTexture (name, FTexture::TEX_Build);
-
-	Scale.X = args[2] / 64.;
-	Scale.Y = args[3] / 64.;
-
-	int cstat = args[4];
-	if (cstat & 2)
-	{
-		RenderStyle = STYLE_Translucent;
-		Alpha = (cstat & 512) ? 0.6666 : 0.3333;
-	}
-	if (cstat & 4)
-		renderflags |= RF_XFLIP;
-	if (cstat & 8)
-		renderflags |= RF_YFLIP;
-
-	// set face/wall/floor flags
-	renderflags |= ActorRenderFlags::FromInt (((cstat >> 4) & 3) << 12);
-}
+#endif

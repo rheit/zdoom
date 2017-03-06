@@ -45,6 +45,20 @@
 
 gameinfo_t gameinfo;
 
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, backpacktype)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, Armor2Percent)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, ArmorIcon1)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, ArmorIcon2)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, gametype)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, norandomplayerclass)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, infoPages)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, mBackButton)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, mStatscreenMapNameFont)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, mStatscreenEnteringFont)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, mStatscreenFinishedFont)
+DEFINE_FIELD_X(GameInfoStruct, gameinfo_t, gibfactor)
+
+
 const char *GameNames[17] =
 {
 	NULL, "Doom", "Heretic", NULL, "Hexen", NULL, NULL, NULL, "Strife", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "Chex"
@@ -307,6 +321,11 @@ void FMapInfoParser::ParseGameInfo()
 		GAMEINFOKEY_STRINGARRAY(finalePages, "finalePage", 8, true)
 		GAMEINFOKEY_STRINGARRAY(infoPages, "addinfoPage", 8, false)
 		GAMEINFOKEY_STRINGARRAY(infoPages, "infoPage", 8, true)
+		GAMEINFOKEY_STRINGARRAY(PrecachedClasses, "precacheclasses", 0, false)
+		GAMEINFOKEY_STRINGARRAY(PrecachedTextures, "precachetextures", 0, false)
+		GAMEINFOKEY_STRINGARRAY(PrecachedSounds, "precachesounds", 0, false)
+		GAMEINFOKEY_STRINGARRAY(EventHandlers, "addeventhandlers", 0, true)
+		GAMEINFOKEY_STRINGARRAY(EventHandlers, "eventhandlers", 0, false)
 		GAMEINFOKEY_STRING(PauseSign, "pausesign")
 		GAMEINFOKEY_STRING(quitSound, "quitSound")
 		GAMEINFOKEY_STRING(BorderFlat, "borderFlat")
@@ -348,6 +367,7 @@ void FMapInfoParser::ParseGameInfo()
 		GAMEINFOKEY_INT(TextScreenX, "textscreenx")
 		GAMEINFOKEY_INT(TextScreenY, "textscreeny")
 		GAMEINFOKEY_STRING(DefaultEndSequence, "defaultendsequence")
+		GAMEINFOKEY_STRING(DefaultConversationMenuClass, "defaultconversationmenuclass")
 		GAMEINFOKEY_FONT(mStatscreenMapNameFont, "statscreen_mapnamefont")
 		GAMEINFOKEY_FONT(mStatscreenFinishedFont, "statscreen_finishedfont")
 		GAMEINFOKEY_FONT(mStatscreenEnteringFont, "statscreen_enteringfont")
@@ -355,6 +375,7 @@ void FMapInfoParser::ParseGameInfo()
 		GAMEINFOKEY_PATCH(mStatscreenEnteringFont, "statscreen_enteringpatch")
 		GAMEINFOKEY_BOOL(norandomplayerclass, "norandomplayerclass")
 		GAMEINFOKEY_BOOL(forcekillscripts, "forcekillscripts") // [JM] Force kill scripts on thing death. (MF7_NOKILLSCRIPTS overrides.)
+		GAMEINFOKEY_STRING(Dialogue, "dialogue")
 
 		else
 		{

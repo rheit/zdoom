@@ -21,8 +21,6 @@
 #include "d_event.h"
 #include "d_player.h"
 #include "vectors.h"
-#include "a_ammo.h"
-#include "a_health.h"
 
 static FRandom pr_botmove ("BotMove");
 
@@ -330,7 +328,7 @@ void DBot::WhatToGet (AActor *item)
 	//if(pos && !bglobal.thingvis[pos->id][item->id]) continue;
 //	if (item->IsKindOf (RUNTIME_CLASS(AArtifact)))
 //		return;	// don't know how to use artifacts
-	if (item->IsKindOf (RUNTIME_CLASS(AWeapon)))
+	if (item->IsKindOf(NAME_Weapon))
 	{
 		// FIXME
 		AWeapon *heldWeapon;
@@ -347,12 +345,12 @@ void DBot::WhatToGet (AActor *item)
 			}
 		}
 	}
-	else if (item->IsKindOf (RUNTIME_CLASS(AAmmo)))
+	else if (item->IsKindOf (PClass::FindActor(NAME_Ammo)))
 	{
-		AAmmo *ammo = static_cast<AAmmo *> (item);
-		PClassActor *parent = ammo->GetParentAmmo ();
-		AInventory *holdingammo = player->mo->FindInventory (parent);
-
+		auto ac = PClass::FindActor(NAME_Ammo);
+		auto parent = item->GetClass();
+		while (parent->ParentClass != ac) parent = (PClassActor*)(parent->ParentClass);
+		AInventory *holdingammo = player->mo->FindInventory(parent);
 		if (holdingammo != NULL && holdingammo->Amount >= holdingammo->MaxAmount)
 		{
 			return;
@@ -360,7 +358,7 @@ void DBot::WhatToGet (AActor *item)
 	}
 	else if ((typeis (Megasphere) || typeis (Soulsphere) || typeis (HealthBonus)) && player->mo->health >= deh.MaxSoulsphere)
 		return;
-	else if (item->IsKindOf (RUNTIME_CLASS(AHealth)) && player->mo->health >= player->mo->GetMaxHealth() + player->mo->stamina)
+	else if (item->IsKindOf (PClass::FindActor(NAME_Health)) && player->mo->health >= player->mo->GetMaxHealth(true))
 		return;
 
 	if ((dest == NULL ||

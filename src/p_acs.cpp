@@ -54,7 +54,6 @@
 #include "c_dispatch.h"
 #include "s_sndseq.h"
 #include "i_system.h"
-#include "i_movie.h"
 #include "sbar.h"
 #include "m_swap.h"
 #include "a_sharedglobal.h"
@@ -83,8 +82,9 @@
 #include "serializer.h"
 #include "thingdef.h"
 #include "a_pickups.h"
-#include "a_armor.h"
-#include "a_ammo.h"
+#include "r_data/colormaps.h"
+#include "g_levellocals.h"
+#include "stats.h"
 
 extern FILE *Logfile;
 
@@ -113,13 +113,6 @@ FRandom pr_acs ("ACS");
 #define HUDMSG_VISIBILITY_SHIFT		16
 #define HUDMSG_VISIBILITY_MASK		(0x00070000)
 // See HUDMSG visibility enumerations in sbar.h
-
-// Flags for ReplaceTextures
-#define NOT_BOTTOM			1
-#define NOT_MIDDLE			2
-#define NOT_TOP				4
-#define NOT_FLOOR			8
-#define NOT_CEILING			16
 
 // LineAttack flags
 #define FHF_NORANDOMPUFFZ	1
@@ -187,7 +180,7 @@ inline int PitchToACS(DAngle ang)
 
 struct CallReturn
 {
-	CallReturn(int pc, ScriptFunction *func, FBehavior *module, SDWORD *locals, ACSLocalArrays *arrays, bool discard, unsigned int runaway)
+	CallReturn(int pc, ScriptFunction *func, FBehavior *module, int32_t *locals, ACSLocalArrays *arrays, bool discard, unsigned int runaway)
 		: ReturnFunction(func),
 		  ReturnModule(module),
 		  ReturnLocals(locals),
@@ -199,7 +192,7 @@ struct CallReturn
 
 	ScriptFunction *ReturnFunction;
 	FBehavior *ReturnModule;
-	SDWORD *ReturnLocals;
+	int32_t *ReturnLocals;
 	ACSLocalArrays *ReturnArrays;
 	int ReturnAddress;
 	int bDiscardResult;
@@ -213,7 +206,7 @@ static DLevelScript *P_GetScriptGoing (AActor *who, line_t *where, int num, cons
 struct FBehavior::ArrayInfo
 {
 	DWORD ArraySize;
-	SDWORD *Elements;
+	int32_t *Elements;
 };
 
 TArray<FBehavior *> FBehavior::StaticModules;
@@ -250,11 +243,11 @@ inline int uallong(const int &foo)
 //============================================================================
 
 // ACS variables with world scope
-SDWORD ACS_WorldVars[NUM_WORLDVARS];
+int32_t ACS_WorldVars[NUM_WORLDVARS];
 FWorldGlobalArray ACS_WorldArrays[NUM_WORLDVARS];
 
 // ACS variables with global scope
-SDWORD ACS_GlobalVars[NUM_GLOBALVARS];
+int32_t ACS_GlobalVars[NUM_GLOBALVARS];
 FWorldGlobalArray ACS_GlobalArrays[NUM_GLOBALVARS];
 
 //----------------------------------------------------------------------------
@@ -268,7 +261,7 @@ FWorldGlobalArray ACS_GlobalArrays[NUM_GLOBALVARS];
 
 struct FACSStack
 {
-	SDWORD buffer[STACK_SIZE];
+	int32_t buffer[STACK_SIZE];
 	int sp;
 	FACSStack *next;
 	FACSStack *prev;
@@ -342,6 +335,23 @@ FACSStack::~FACSStack()
 //----------------------------------------------------------------------------
 
 ACSStringPool GlobalACSStrings;
+
+void ACSStringPool::PoolEntry::Lock()
+{
+	if (Locks.Find(level.levelnum) == Locks.Size())
+	{
+		Locks.Push(level.levelnum);
+	}
+}
+
+void ACSStringPool::PoolEntry::Unlock()
+{
+	auto ndx = Locks.Find(level.levelnum);
+	if (ndx < Locks.Size())
+	{
+		Locks.Delete(ndx);
+	}
+}
 
 ACSStringPool::ACSStringPool()
 {
@@ -430,7 +440,7 @@ void ACSStringPool::LockString(int strnum)
 	assert((strnum & LIBRARYID_MASK) == STRPOOL_LIBRARYID_OR);
 	strnum &= ~LIBRARYID_MASK;
 	assert((unsigned)strnum < Pool.Size());
-	Pool[strnum].LockCount++;
+	Pool[strnum].Lock();
 }
 
 //============================================================================
@@ -446,8 +456,7 @@ void ACSStringPool::UnlockString(int strnum)
 	assert((strnum & LIBRARYID_MASK) == STRPOOL_LIBRARYID_OR);
 	strnum &= ~LIBRARYID_MASK;
 	assert((unsigned)strnum < Pool.Size());
-	assert(Pool[strnum].LockCount > 0);
-	Pool[strnum].LockCount--;
+	Pool[strnum].Unlock();
 }
 
 //============================================================================
@@ -464,7 +473,7 @@ void ACSStringPool::MarkString(int strnum)
 	assert((strnum & LIBRARYID_MASK) == STRPOOL_LIBRARYID_OR);
 	strnum &= ~LIBRARYID_MASK;
 	assert((unsigned)strnum < Pool.Size());
-	Pool[strnum].LockCount |= 0x80000000;
+	Pool[strnum].Mark = true;
 }
 
 //============================================================================
@@ -489,7 +498,7 @@ void ACSStringPool::LockStringArray(const int *strnum, unsigned int count)
 			num &= ~LIBRARYID_MASK;
 			if ((unsigned)num < Pool.Size())
 			{
-				Pool[num].LockCount++;
+				Pool[num].Lock();
 			}
 		}
 	}
@@ -513,8 +522,7 @@ void ACSStringPool::UnlockStringArray(const int *strnum, unsigned int count)
 			num &= ~LIBRARYID_MASK;
 			if ((unsigned)num < Pool.Size())
 			{
-				assert(Pool[num].LockCount > 0);
-				Pool[num].LockCount--;
+				Pool[num].Unlock();
 			}
 		}
 	}
@@ -538,7 +546,7 @@ void ACSStringPool::MarkStringArray(const int *strnum, unsigned int count)
 			num &= ~LIBRARYID_MASK;
 			if ((unsigned)num < Pool.Size())
 			{
-				Pool[num].LockCount |= 0x80000000;
+				Pool[num].Mark = true;
 			}
 		}
 	}
@@ -565,7 +573,7 @@ void ACSStringPool::MarkStringMap(const FWorldGlobalArray &aray)
 			num &= ~LIBRARYID_MASK;
 			if ((unsigned)num < Pool.Size())
 			{
-				Pool[num].LockCount |= 0x80000000;
+				Pool[num].Mark |= true;
 			}
 		}
 	}
@@ -584,7 +592,8 @@ void ACSStringPool::UnlockAll()
 {
 	for (unsigned int i = 0; i < Pool.Size(); ++i)
 	{
-		Pool[i].LockCount = 0;
+		Pool[i].Mark = false;
+		Pool[i].Locks.Clear();
 	}
 }
 
@@ -607,7 +616,7 @@ void ACSStringPool::PurgeStrings()
 		PoolEntry *entry = &Pool[i];
 		if (entry->Next != FREE_ENTRY)
 		{
-			if (entry->LockCount == 0)
+			if (entry->Locks.Size() == 0 && !entry->Mark)
 			{
 				freedcount++;
 				// Mark this entry as free.
@@ -627,7 +636,7 @@ void ACSStringPool::PurgeStrings()
 				entry->Next = PoolBuckets[h];
 				PoolBuckets[h] = i;
 				// Remove MarkString's mark.
-				entry->LockCount &= 0x7FFFFFFF;
+				entry->Mark = false;
 			}
 		}
 	}
@@ -692,7 +701,8 @@ int ACSStringPool::InsertString(FString &str, unsigned int h, unsigned int bucke
 	entry->Str = str;
 	entry->Hash = h;
 	entry->Next = PoolBuckets[bucketnum];
-	entry->LockCount = 0;
+	entry->Mark = false;
+	entry->Locks.Clear();
 	PoolBuckets[bucketnum] = index;
 	return index | STRPOOL_LIBRARYID_OR;
 }
@@ -735,7 +745,8 @@ void ACSStringPool::ReadStrings(FSerializer &file, const char *key)
 		for (auto &p : Pool)
 		{
 			p.Next = FREE_ENTRY;
-			p.LockCount = 0;
+			p.Mark = false;
+			p.Locks.Clear();
 		}
 		if (file.BeginArray("pool"))
 		{
@@ -749,7 +760,7 @@ void ACSStringPool::ReadStrings(FSerializer &file, const char *key)
 					if (ii < Pool.Size())
 					{
 						file("string", Pool[ii].Str)
-							("lockcount", Pool[ii].LockCount);
+							("locks", Pool[ii].Locks);
 
 						unsigned h = SuperFastHash(Pool[ii].Str, Pool[ii].Str.Len());
 						unsigned bucketnum = h % NUM_BUCKETS;
@@ -792,13 +803,9 @@ void ACSStringPool::WriteStrings(FSerializer &file, const char *key) const
 				{
 					if (file.BeginObject(nullptr))
 					{
-						if (i == 430)
-						{
-							int a = 0;
-						}
 						file("index", i)
 							("string", entry->Str)
-							("lockcount", entry->LockCount)
+							("locks", entry->Locks)
 							.EndObject();
 					}
 				}
@@ -823,10 +830,26 @@ void ACSStringPool::Dump() const
 	{
 		if (Pool[i].Next != FREE_ENTRY)
 		{
-			Printf("%4u. (%2d) \"%s\"\n", i, Pool[i].LockCount, Pool[i].Str.GetChars());
+			Printf("%4u. (%2d) \"%s\"\n", i, Pool[i].Locks.Size(), Pool[i].Str.GetChars());
 		}
 	}
 	Printf("First free %u\n", FirstFreeEntry);
+}
+
+
+void ACSStringPool::UnlockForLevel(int lnum)
+{
+	for (unsigned int i = 0; i < Pool.Size(); ++i)
+	{
+		if (Pool[i].Next != FREE_ENTRY)
+		{
+			auto ndx = Pool[i].Locks.Find(lnum);
+			if (ndx < Pool[i].Locks.Size())
+			{
+				Pool[i].Locks.Delete(ndx);
+			}
+		}
+	}
 }
 
 //============================================================================
@@ -956,7 +979,7 @@ void P_ClearACSVars(bool alsoglobal)
 //
 //============================================================================
 
-static void WriteVars (FSerializer &file, SDWORD *vars, size_t count, const char *key)
+static void WriteVars (FSerializer &file, int32_t *vars, size_t count, const char *key)
 {
 	size_t i, j;
 
@@ -984,7 +1007,7 @@ static void WriteVars (FSerializer &file, SDWORD *vars, size_t count, const char
 //
 //============================================================================
 
-static void ReadVars (FSerializer &arc, SDWORD *vars, size_t count, const char *key)
+static void ReadVars (FSerializer &arc, int32_t *vars, size_t count, const char *key)
 {
 	memset(&vars[0], 0, count * 4);
 	arc.Array(key, vars, (int)count);
@@ -1055,12 +1078,12 @@ static void ReadArrayVars (FSerializer &file, FWorldGlobalArray *vars, size_t co
 		const char *arraykey;
 		while ((arraykey = file.GetKey()))
 		{
-			int i = (int)strtol(arraykey, nullptr, 10);
+			int i = (int)strtoll(arraykey, nullptr, 10);
 			if (file.BeginObject(nullptr))
 			{
 				while ((arraykey = file.GetKey()))
 				{
-					int k = (int)strtol(arraykey, nullptr, 10);
+					int k = (int)strtoll(arraykey, nullptr, 10);
 					int val;
 					file(nullptr, val);
 					vars[i].Insert(k, val);
@@ -1163,12 +1186,12 @@ static void GiveInventory (AActor *activator, const char *type, int amount)
 		for (int i = 0; i < MAXPLAYERS; ++i)
 		{
 			if (playeringame[i])
-				players[i].mo->GiveInventory(static_cast<PClassInventory *>(info), amount);
+				players[i].mo->GiveInventory(info, amount);
 		}
 	}
 	else
 	{
-		activator->GiveInventory(static_cast<PClassInventory *>(info), amount);
+		activator->GiveInventory(info, amount);
 	}
 }
 
@@ -1307,7 +1330,7 @@ static int CheckInventory (AActor *activator, const char *type, bool max)
 		if (max)
 		{
 			if (activator->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
-				return static_cast<APlayerPawn *>(activator)->MaxHealth;
+				return static_cast<APlayerPawn *>(activator)->GetMaxHealth();
 			else
 				return activator->SpawnHealth();
 		}
@@ -1392,7 +1415,7 @@ DPlaneWatcher::DPlaneWatcher (AActor *it, line_t *line, int lineSide, bool ceili
 	{
 		secplane_t plane;
 
-		Sector = &sectors[secnum];
+		Sector = &level.sectors[secnum];
 		if (bCeiling)
 		{
 			plane = Sector->ceilingplane;
@@ -1573,19 +1596,7 @@ void FBehavior::StaticLockLevelVarStrings()
 
 void FBehavior::StaticUnlockLevelVarStrings()
 {
-	// Unlock map variables.
-	for (DWORD modnum = 0; modnum < StaticModules.Size(); ++modnum)
-	{
-		StaticModules[modnum]->UnlockMapVarStrings();
-	}
-	// Unlock running scripts' local variables.
-	if (DACSThinker::ActiveThinker != NULL)
-	{
-		for (DLevelScript *script = DACSThinker::ActiveThinker->Scripts; script != NULL; script = script->GetNext())
-		{
-			script->UnlockLocalVarStrings();
-		}
-	}
+	GlobalACSStrings.UnlockForLevel(level.levelnum);
 }
 
 void FBehavior::MarkMapVarStrings() const
@@ -1673,10 +1684,10 @@ void FBehavior::SerializeVars (FSerializer &arc)
 	}
 }
 
-void FBehavior::SerializeVarSet (FSerializer &arc, SDWORD *vars, int max)
+void FBehavior::SerializeVarSet (FSerializer &arc, int32_t *vars, int max)
 {
-	SDWORD count;
-	SDWORD first, last;
+	int32_t count;
+	int32_t first, last;
 
 	if (arc.BeginObject(nullptr))
 	{
@@ -1986,7 +1997,7 @@ bool FBehavior::Init(int lumpnum, FileReader * fr, int len)
 			{
 				MapVarStore[LittleLong(chunk[2+i*2])] = i;
 				ArrayStore[i].ArraySize = LittleLong(chunk[3+i*2]);
-				ArrayStore[i].Elements = new SDWORD[ArrayStore[i].ArraySize];
+				ArrayStore[i].Elements = new int32_t[ArrayStore[i].ArraySize];
 				memset(ArrayStore[i].Elements, 0, ArrayStore[i].ArraySize*sizeof(DWORD));
 			}
 		}
@@ -2002,7 +2013,7 @@ bool FBehavior::Init(int lumpnum, FileReader * fr, int len)
 				// optimizer. Might be some undefined behavior in this code,
 				// but I don't know what it is.
 				unsigned int initsize = MIN<unsigned int> (ArrayStore[arraynum].ArraySize, (LittleLong(chunk[1])-4)/4);
-				SDWORD *elems = ArrayStore[arraynum].Elements;
+				int32_t *elems = ArrayStore[arraynum].Elements;
 				for (unsigned int j = 0; j < initsize; ++j)
 				{
 					elems[j] = LittleLong(chunk[3+j]);
@@ -2051,7 +2062,7 @@ bool FBehavior::Init(int lumpnum, FileReader * fr, int len)
 					int arraynum = MapVarStore[LittleLong(chunk[i+2])];
 					if ((unsigned)arraynum < (unsigned)NumArrays)
 					{
-						SDWORD *elems = ArrayStore[arraynum].Elements;
+						int32_t *elems = ArrayStore[arraynum].Elements;
 						for (int j = ArrayStore[arraynum].ArraySize; j > 0; --j, ++elems)
 						{
 //							*elems |= LibraryID;
@@ -2077,7 +2088,7 @@ bool FBehavior::Init(int lumpnum, FileReader * fr, int len)
 					chunkData += 4;
 					if ((unsigned)arraynum < (unsigned)NumArrays)
 					{
-						SDWORD *elems = ArrayStore[arraynum].Elements;
+						int32_t *elems = ArrayStore[arraynum].Elements;
 						// Ending zeros may be left out.
 						for (int j = MIN(LittleLong(chunk[1])-5, ArrayStore[arraynum].ArraySize); j > 0; --j, ++elems, ++chunkData)
 						{
@@ -2810,6 +2821,8 @@ void FBehavior::StaticStartTypedScripts (WORD type, AActor *activator, bool alwa
 		"Unloading",
 		"Disconnect",
 		"Return",
+		"Event",
+		"Kill",
 		"Reopen"
 	};
 	DPrintf(DMSG_NOTIFY, "Starting all scripts of type %d (%s)\n", type,
@@ -2954,8 +2967,12 @@ void DACSThinker::Serialize(FSerializer &arc)
 	}
 }
 
+cycle_t ACSTime;
+
 void DACSThinker::Tick ()
 {
+	ACSTime.Reset();
+	ACSTime.Clock();
 	DLevelScript *script = Scripts;
 
 	while (script)
@@ -2973,6 +2990,7 @@ void DACSThinker::Tick ()
 		ACS_StringBuilderStack.Clear();
 		I_Error("Error: %d garbage entries on ACS string builder stack.", size);
 	}
+	ACSTime.Unclock();
 }
 
 void DACSThinker::StopScriptsFor (AActor *actor)
@@ -3244,7 +3262,7 @@ void DLevelScript::ChangeFlat (int tag, int name, bool floorOrCeiling)
 	while ((secnum = it.Next()) >= 0)
 	{
 		int pos = floorOrCeiling? sector_t::ceiling : sector_t::floor;
-		sectors[secnum].SetTexture(pos, flat);
+		level.sectors[secnum].SetTexture(pos, flat);
 	}
 }
 
@@ -3265,7 +3283,7 @@ void DLevelScript::SetLineTexture (int lineid, int side, int position, int name)
 	int linenum = -1;
 	const char *texname = FBehavior::StaticLookupString (name);
 
-	if (texname == NULL)
+	if (texname == nullptr)
 		return;
 
 	side = !!side;
@@ -3277,8 +3295,8 @@ void DLevelScript::SetLineTexture (int lineid, int side, int position, int name)
 	{
 		side_t *sidedef;
 
-		sidedef = lines[linenum].sidedef[side];
-		if (sidedef == NULL)
+		sidedef = level.lines[linenum].sidedef[side];
+		if (sidedef == nullptr)
 			continue;
 
 		switch (position)
@@ -3296,51 +3314,6 @@ void DLevelScript::SetLineTexture (int lineid, int side, int position, int name)
 			break;
 		}
 
-	}
-}
-
-void DLevelScript::ReplaceTextures (int fromnamei, int tonamei, int flags)
-{
-	const char *fromname = FBehavior::StaticLookupString (fromnamei);
-	const char *toname = FBehavior::StaticLookupString (tonamei);
-	FTextureID picnum1, picnum2;
-
-	if (fromname == NULL)
-		return;
-
-	if ((flags ^ (NOT_BOTTOM | NOT_MIDDLE | NOT_TOP)) != 0)
-	{
-		picnum1 = TexMan.GetTexture (fromname, FTexture::TEX_Wall, FTextureManager::TEXMAN_Overridable);
-		picnum2 = TexMan.GetTexture (toname, FTexture::TEX_Wall, FTextureManager::TEXMAN_Overridable);
-
-		for (int i = 0; i < numsides; ++i)
-		{
-			side_t *wal = &sides[i];
-
-			for(int j=0;j<3;j++)
-			{
-				static BYTE bits[]={NOT_TOP, NOT_MIDDLE, NOT_BOTTOM};
-				if (!(flags & bits[j]) && wal->GetTexture(j) == picnum1)
-				{
-					wal->SetTexture(j, picnum2);
-				}
-			}
-		}
-	}
-	if ((flags ^ (NOT_FLOOR | NOT_CEILING)) != 0)
-	{
-		picnum1 = TexMan.GetTexture (fromname, FTexture::TEX_Flat, FTextureManager::TEXMAN_Overridable);
-		picnum2 = TexMan.GetTexture (toname, FTexture::TEX_Flat, FTextureManager::TEXMAN_Overridable);
-
-		for (int i = 0; i < numsectors; ++i)
-		{
-			sector_t *sec = &sectors[i];
-
-			if (!(flags & NOT_FLOOR) && sec->GetTexture(sector_t::floor) == picnum1) 
-				sec->SetTexture(sector_t::floor, picnum2);
-			if (!(flags & NOT_CEILING) && sec->GetTexture(sector_t::ceiling) == picnum1)	
-				sec->SetTexture(sector_t::ceiling, picnum2);
-		}
 	}
 }
 
@@ -3966,7 +3939,7 @@ int DLevelScript::GetActorProperty (int tid, int property)
 	case APROP_Dormant:		return !!(actor->flags2 & MF2_DORMANT);
 	case APROP_SpawnHealth: if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 							{
-								return static_cast<APlayerPawn *>(actor)->MaxHealth;
+								return static_cast<APlayerPawn *>(actor)->GetMaxHealth();
 							}
 							else
 							{
@@ -4259,7 +4232,7 @@ enum
 	SOUND_Howl,
 };
 
-static FSoundID GetActorSound(const AActor *actor, int soundtype)
+static FSoundID GetActorSound(AActor *actor, int soundtype)
 {
 	switch (soundtype)
 	{
@@ -4272,7 +4245,7 @@ static FSoundID GetActorSound(const AActor *actor, int soundtype)
 	case SOUND_Bounce:		return actor->BounceSound;
 	case SOUND_WallBounce:	return actor->WallBounceSound;
 	case SOUND_CrushPain:	return actor->CrushPainSound;
-	case SOUND_Howl:		return actor->GetClass()->HowlSound;
+	case SOUND_Howl:		return actor->SoundVar(NAME_HowlSound);
 	default:				return 0;
 	}
 }
@@ -4392,6 +4365,18 @@ enum EACSFunctions
 	ACSF_DamageActor, // [arookas]
 	ACSF_SetActorFlag,
 	ACSF_SetTranslation,
+	ACSF_GetActorFloorTexture,
+	ACSF_GetActorFloorTerrain,
+	ACSF_StrArg,
+	ACSF_Floor,
+	ACSF_Round,
+	ACSF_Ceil,
+	ACSF_ScriptCall,
+
+
+	// OpenGL stuff
+	ACSF_SetSectorGlow = 400,
+	ACSF_SetFogDensity,
 
 	// ZDaemon
 	ACSF_GetTeamScore = 19620,	// (int team)
@@ -4406,14 +4391,14 @@ int DLevelScript::SideFromID(int id, int side)
 	{
 		if (activationline == NULL) return -1;
 		if (activationline->sidedef[side] == NULL) return -1;
-		return activationline->sidedef[side]->Index;
+		return activationline->sidedef[side]->UDMFIndex;
 	}
 	else
 	{
 		int line = P_FindFirstLineFromID(id);
 		if (line == -1) return -1;
-		if (lines[line].sidedef[side] == NULL) return -1;
-		return lines[line].sidedef[side]->Index;
+		if (level.lines[line].sidedef[side] == NULL) return -1;
+		return level.lines[line].sidedef[side]->UDMFIndex;
 	}
 }
 
@@ -4422,7 +4407,7 @@ int DLevelScript::LineFromID(int id)
 	if (id == 0)
 	{
 		if (activationline == NULL) return -1;
-		return int(activationline - lines);
+		return activationline->Index();
 	}
 	else
 	{
@@ -4769,9 +4754,121 @@ static int SwapActorTeleFog(AActor *activator, int tid)
 	return count;
 }
 
+static int ScriptCall(unsigned argc, int32_t *args)
+{
+	int retval = 0;
+	if (argc >= 2)
+	{
+		auto clsname = FBehavior::StaticLookupString(args[0]);
+		auto funcname = FBehavior::StaticLookupString(args[1]);
 
+		auto cls = PClass::FindClass(clsname);
+		if (!cls)
+		{
+			I_Error("ACS call to unknown class in script function %s.%s", clsname, funcname);
+		}
+		auto funcsym = dyn_cast<PFunction>(cls->Symbols.FindSymbol(funcname, true));
+		if (funcsym == nullptr)
+		{
+			I_Error("ACS call to unknown script function %s.%s", clsname, funcname);
+		}
+		auto func = funcsym->Variants[0].Implementation;
+		if (func->ImplicitArgs > 0)
+		{
+			I_Error("ACS call to non-static script function %s.%s", clsname, funcname);
+		}
+		TArray<VMValue> params;
+		for (unsigned i = 2; i < argc; i++)
+		{
+			if (func->Proto->ArgumentTypes.Size() < i - 1)
+			{
+				I_Error("Too many parameters in call to %s.%s", clsname, funcname);
+			}
+			auto argtype = func->Proto->ArgumentTypes[i - 2];
+			// The only types allowed are int, bool, double, Name, Sound, Color and String
+			if (argtype == TypeSInt32 || argtype == TypeColor)
+			{
+				params.Push(args[i]);
+			}
+			else if (argtype == TypeBool)
+			{
+				params.Push(!!args[i]);
+			}
+			else if (argtype == TypeFloat64)
+			{
+				params.Push(ACSToDouble(args[i]));
+			}
+			else if (argtype == TypeName)
+			{
+				params.Push(FName(FBehavior::StaticLookupString(args[i])).GetIndex());
+			}
+			else if (argtype == TypeString)
+			{
+				params.Push(FBehavior::StaticLookupString(args[i]));
+			}
+			else if (argtype == TypeSound)
+			{
+				params.Push(int(FSoundID(FBehavior::StaticLookupString(args[i]))));
+			}
+			else
+			{
+				I_Error("Invalid type %s in call to %s.%s", argtype->DescriptiveName(), clsname, funcname);
+			}
+		}
+		if (func->Proto->ArgumentTypes.Size() > params.Size())
+		{
+			// Check if we got enough parameters. That means we either cover the full argument list of the function or the next argument is optional.
+			if (!(funcsym->Variants[0].ArgFlags[params.Size()] & VARF_Optional))
+			{
+				I_Error("Insufficient parameters in call to %s.%s", clsname, funcname);
+			}
+		}
+		// The return value can be the same types as the parameter types, plus void
+		if (func->Proto->ReturnTypes.Size() == 0)
+		{
+			GlobalVMStack.Call(func, &params[0], params.Size(), nullptr, 0);
+		}
+		else
+		{
+			auto rettype = func->Proto->ReturnTypes[0];
+			if (rettype == TypeSInt32 || rettype == TypeBool || rettype == TypeColor || rettype == TypeName || rettype == TypeSound)
+			{
+				VMReturn ret(&retval);
+				GlobalVMStack.Call(func, &params[0], params.Size(), &ret, 1);
+				if (rettype == TypeName)
+				{
+					retval = GlobalACSStrings.AddString(FName(ENamedName(retval)));
+				}
+				else if (rettype == TypeSound)
+				{
+					retval = GlobalACSStrings.AddString(FSoundID(retval));
+				}
+			}
+			else if (rettype == TypeFloat64)
+			{
+				double d;
+				VMReturn ret(&d);
+				GlobalVMStack.Call(func, &params[0], params.Size(), &ret, 1);
+				retval = DoubleToACS(d);
+			}
+			else if (rettype == TypeString)
+			{
+				FString d;
+				VMReturn ret(&d);
+				GlobalVMStack.Call(func, &params[0], params.Size(), &ret, 1);
+				retval = GlobalACSStrings.AddString(d);
+			}
+			else
+			{
+				// All other return values can not be handled so ignore them.
+				GlobalVMStack.Call(func, &params[0], params.Size(), nullptr, 0);
+			}
+		}
+	}
+	return retval;
+}
 
-int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
+int DLevelScript::CallFunction(int argCount, int funcIndex, int32_t *args)
 {
 	AActor *actor;
 	switch(funcIndex)
@@ -4927,8 +5024,8 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 			else
 			{
 				FName p(FBehavior::StaticLookupString(args[0]));
-				ABasicArmor * armor = (ABasicArmor *) players[args[1]].mo->FindInventory(NAME_BasicArmor);
-				if (armor && armor->ArmorType == p) return armor->Amount;
+				auto armor = players[args[1]].mo->FindInventory(NAME_BasicArmor);
+				if (armor && armor->NameVar(NAME_ArmorType) == p) return armor->Amount;
 			}
 			return 0;
 		}
@@ -4937,29 +5034,29 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 		{
 			if (activator == NULL || activator->player == NULL) return 0;
 
-			ABasicArmor * equippedarmor = (ABasicArmor *) activator->FindInventory(NAME_BasicArmor);
+			auto equippedarmor = activator->FindInventory(NAME_BasicArmor);
 
 			if (equippedarmor && equippedarmor->Amount != 0)
 			{
 				switch(args[0])
 				{
 					case ARMORINFO_CLASSNAME:
-						return GlobalACSStrings.AddString(equippedarmor->ArmorType.GetChars());
+						return GlobalACSStrings.AddString(equippedarmor->NameVar(NAME_ArmorType).GetChars());
 
 					case ARMORINFO_SAVEAMOUNT:
-						return equippedarmor->MaxAmount;
+						return equippedarmor->IntVar(NAME_MaxAmount);
 
 					case ARMORINFO_SAVEPERCENT:
-						return DoubleToACS(equippedarmor->SavePercent);
+						return DoubleToACS(equippedarmor->FloatVar(NAME_SavePercent));
 
 					case ARMORINFO_MAXABSORB:
-						return equippedarmor->MaxAbsorb;
+						return equippedarmor->IntVar(NAME_MaxAbsorb);
 
 					case ARMORINFO_MAXFULLABSORB:
-						return equippedarmor->MaxFullAbsorb;
+						return equippedarmor->IntVar(NAME_MaxFullAbsorb);
 
 					case ARMORINFO_ACTUALSAVEAMOUNT:
-						return equippedarmor->ActualSaveAmount;
+						return equippedarmor->IntVar(NAME_ActualSaveAmount);
 
 					default:
 						return 0;
@@ -5126,7 +5223,7 @@ int DLevelScript::CallFunction(int argCount, int funcIndex, SDWORD *args)
 					int s;
 					while ((s = it.Next()) >= 0)
 					{
-						SN_StartSequence(&sectors[s], args[2], seqname, 0);
+						SN_StartSequence(&level.sectors[s], args[2], seqname, 0);
 					}
 				}
 			}
@@ -5673,7 +5770,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				FLineIdIterator itr(args[0]);
 				while ((line = itr.Next()) >= 0)
 				{
-					lines[line].activation = args[1];
+					level.lines[line].activation = args[1];
 				}
 			}
 			break;
@@ -5682,7 +5779,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			if (argCount > 0)
 			{
 				int line = P_FindFirstLineFromID(args[0]);
-				return line >= 0 ? lines[line].activation : 0;
+				return line >= 0 ? level.lines[line].activation : 0;
 			}
 			break;
 
@@ -5690,7 +5787,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			if (argCount >= 2)
 			{
 				PClassActor *powerupclass = PClass::FindActor(FBehavior::StaticLookupString(args[1]));
-				if (powerupclass == NULL || !RUNTIME_CLASS(APowerup)->IsAncestorOf(powerupclass))
+				if (powerupclass == NULL || !powerupclass->IsDescendantOf(NAME_Powerup))
 				{
 					Printf("'%s' is not a type of Powerup.\n", FBehavior::StaticLookupString(args[1]));
 					return 0;
@@ -5699,9 +5796,9 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				AActor *actor = SingleActorFromTID(args[0], activator);
 				if (actor != NULL)
 				{
-					APowerup* powerup = (APowerup*)actor->FindInventory(powerupclass);
+					auto powerup = actor->FindInventory(powerupclass);
 					if (powerup != NULL)
-						return powerup->EffectTics;
+						return powerup->IntVar(NAME_EffectTics);
 				}
 				return 0;
 			}
@@ -5898,7 +5995,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				int s;
 				while ((s = it.Next()) >= 0)
 				{
-					sector_t *sec = &sectors[s];
+					sector_t *sec = &level.sectors[s];
 
 					sec->damageamount = args[1];
 					sec->damagetype = argCount >= 3 ? FName(FBehavior::StaticLookupString(args[2])) : FName(NAME_None);
@@ -5918,7 +6015,7 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 					int s;
 					while ((s = it.Next()) >= 0)
 					{
-						sectors[s].terrainnum[args[1]] = terrain;
+						level.sectors[s].terrainnum[args[1]] = terrain;
 					}
 				}
 			}
@@ -6047,6 +6144,81 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			return 1;
 		}
 
+		// OpenGL exclusive functions
+		case ACSF_SetSectorGlow:
+		{
+			int which = !!args[1];
+			PalEntry color(args[2], args[3], args[4]);
+			float height = float(args[5]);
+			if (args[2] == -1) color = -1;
+
+			FSectorTagIterator it(args[0]);
+			int s;
+			while ((s = it.Next()) >= 0)
+			{
+				level.sectors[s].planes[which].GlowColor = color;
+				level.sectors[s].planes[which].GlowHeight = height;
+			}
+			break;
+		}
+
+		case ACSF_SetFogDensity:
+		{
+			FSectorTagIterator it(args[0]);
+			int s;
+			int d = clamp(args[1]/2, 0, 255);
+			while ((s = it.Next()) >= 0)
+			{
+				auto &sec = level.sectors[s];
+				auto f = sec.ColorMap->Fade;
+				sec.ColorMap = GetSpecialLights(sec.ColorMap->Color, PalEntry(d, f.r, f.g, f.b), sec.ColorMap->Desaturate);
+			}
+			break;
+		}
+
+		case ACSF_GetActorFloorTexture:
+		{
+			auto a = SingleActorFromTID(args[0], activator);
+			if (a != nullptr)
+			{
+				return GlobalACSStrings.AddString(TexMan[a->floorpic]->Name);
+			}
+			else
+			{
+				return GlobalACSStrings.AddString("");
+			}
+			break;
+		}
+
+		case ACSF_GetActorFloorTerrain:
+		{
+			auto a = SingleActorFromTID(args[0], activator);
+			if (a != nullptr)
+			{
+				return GlobalACSStrings.AddString(Terrains[a->floorterrain].Name);
+			}
+			else
+			{
+				return GlobalACSStrings.AddString("");
+			}
+			break;
+		}
+
+		case ACSF_StrArg:
+			return -FName(FBehavior::StaticLookupString(args[0]));
+
+		case ACSF_Floor:
+			return args[0] & ~0xffff;
+
+		case ACSF_Ceil:
+			return (args[0] & ~0xffff) + 0x10000;
+
+		case ACSF_Round:
+			return (args[0] + 32768) & ~0xffff;
+
+		case ACSF_ScriptCall:
+			return ScriptCall(argCount, args);
+
 		default:
 			break;
 	}
@@ -6060,6 +6232,8 @@ enum
 	PRINTNAME_LEVELNAME		= -1,
 	PRINTNAME_LEVEL			= -2,
 	PRINTNAME_SKILL			= -3,
+	PRINTNAME_NEXTLEVEL		= -4,
+	PRINTNAME_NEXTSECRET	= -5,
 };
 
 
@@ -6112,7 +6286,7 @@ static bool CharArrayParms(int &capacity, int &offset, int &a, int *Stack, int &
 static void SetMarineWeapon(AActor *marine, int weapon)
 {
 	static VMFunction *smw = nullptr;
-	if (smw == nullptr) smw = PClass::FindFunction(NAME_ScriptedMarine, NAME_SetWeapon);
+	if (smw == nullptr) PClass::FindFunction(&smw, NAME_ScriptedMarine, NAME_SetWeapon);
 	if (smw)
 	{
 		VMValue params[2] = { marine, weapon };
@@ -6123,7 +6297,7 @@ static void SetMarineWeapon(AActor *marine, int weapon)
 static void SetMarineSprite(AActor *marine, PClassActor *source)
 {
 	static VMFunction *sms = nullptr;
-	if (sms == nullptr) sms = PClass::FindFunction(NAME_ScriptedMarine, NAME_SetSprite);
+	if (sms == nullptr) PClass::FindFunction(&sms, NAME_ScriptedMarine, NAME_SetSprite);
 	if (sms)
 	{
 		VMValue params[2] = { marine, source };
@@ -6134,7 +6308,7 @@ static void SetMarineSprite(AActor *marine, PClassActor *source)
 int DLevelScript::RunScript ()
 {
 	DACSThinker *controller = DACSThinker::ActiveThinker;
-	SDWORD *locals = &Localvars[0];
+	int32_t *locals = &Localvars[0];
 	ACSLocalArrays noarrays;
 	ACSLocalArrays *localarrays = &noarrays;
 	ScriptFunction *activeFunction = NULL;
@@ -6171,7 +6345,7 @@ int DLevelScript::RunScript ()
 		FSectorTagIterator it(statedata);
 		while ((secnum = it.Next()) >= 0)
 		{
-			if (sectors[secnum].floordata || sectors[secnum].ceilingdata)
+			if (level.sectors[secnum].floordata || level.sectors[secnum].ceilingdata)
 				return resultValue;
 		}
 
@@ -6208,7 +6382,7 @@ int DLevelScript::RunScript ()
 	}
 
 	FACSStack stackobj;
-	SDWORD *Stack = stackobj.buffer;
+	int32_t *Stack = stackobj.buffer;
 	int &sp = stackobj.sp;
 
 	int *pc = this->pc;
@@ -6502,7 +6676,7 @@ int DLevelScript::RunScript ()
 				int i;
 				ScriptFunction *func;
 				FBehavior *module;
-				SDWORD *mylocals;
+				int32_t *mylocals;
 
 				if(pcd == PCD_CALLSTACK)
 				{
@@ -6557,7 +6731,7 @@ int DLevelScript::RunScript ()
 				int value;
 				union
 				{
-					SDWORD *retsp;
+					int32_t *retsp;
 					CallReturn *ret;
 				};
 
@@ -7687,7 +7861,7 @@ scriptwait:
 			if (activationline != NULL)
 			{
 				activationline->special = 0;
-				DPrintf(DMSG_SPAMMY, "Cleared line special on line %d\n", (int)(activationline - lines));
+				DPrintf(DMSG_SPAMMY, "Cleared line special on line %d\n", activationline->Index());
 			}
 			break;
 
@@ -7712,7 +7886,7 @@ scriptwait:
 				while (min <= max)
 				{
 					int mid = (min + max) / 2;
-					SDWORD caseval = LittleLong(pc[mid*2]);
+					int32_t caseval = LittleLong(pc[mid*2]);
 					if (caseval == STACK(1))
 					{
 						pc = activeBehavior->Ofs2PC (LittleLong(pc[mid*2+1]));
@@ -7801,6 +7975,22 @@ scriptwait:
 						uppername.ToUpper();
 						work += uppername;
 						break; 
+					}
+
+					case PRINTNAME_NEXTLEVEL:
+					{
+						FString uppername = level.NextMap;
+						uppername.ToUpper();
+						work += uppername;
+						break;
+					}
+
+					case PRINTNAME_NEXTSECRET:
+					{
+						FString uppername = level.NextSecretMap;
+						uppername.ToUpper();
+						work += uppername;
+						break;
 					}
 
 					case PRINTNAME_SKILL:
@@ -8127,7 +8317,7 @@ scriptwait:
 		case PCD_PLAYERARMORPOINTS:
 			if (activator)
 			{
-				ABasicArmor *armor = activator->FindInventory<ABasicArmor>();
+				auto armor = activator->FindInventory(NAME_BasicArmor);
 				PushToStack (armor ? armor->Amount : 0);
 			}
 			else
@@ -8246,38 +8436,44 @@ scriptwait:
 			break;
 
 		case PCD_REPLACETEXTURES:
-			ReplaceTextures (STACK(3), STACK(2), STACK(1));
+		{
+			const char *fromname = FBehavior::StaticLookupString(STACK(3));
+			const char *toname = FBehavior::StaticLookupString(STACK(2));
+
+			P_ReplaceTextures(fromname, toname, STACK(1));
 			sp -= 3;
 			break;
+		}
 
 		case PCD_SETLINEBLOCKING:
 			{
-				int line;
+				int lineno;
 
 				FLineIdIterator itr(STACK(2));
-				while ((line = itr.Next()) >= 0)
+				while ((lineno = itr.Next()) >= 0)
 				{
+					auto &line = level.lines[lineno];
 					switch (STACK(1))
 					{
 					case BLOCK_NOTHING:
-						lines[line].flags &= ~(ML_BLOCKING|ML_BLOCKEVERYTHING|ML_RAILING|ML_BLOCK_PLAYERS);
+						line.flags &= ~(ML_BLOCKING|ML_BLOCKEVERYTHING|ML_RAILING|ML_BLOCK_PLAYERS);
 						break;
 					case BLOCK_CREATURES:
 					default:
-						lines[line].flags &= ~(ML_BLOCKEVERYTHING|ML_RAILING|ML_BLOCK_PLAYERS);
-						lines[line].flags |= ML_BLOCKING;
+						line.flags &= ~(ML_BLOCKEVERYTHING|ML_RAILING|ML_BLOCK_PLAYERS);
+						line.flags |= ML_BLOCKING;
 						break;
 					case BLOCK_EVERYTHING:
-						lines[line].flags &= ~(ML_RAILING|ML_BLOCK_PLAYERS);
-						lines[line].flags |= ML_BLOCKING|ML_BLOCKEVERYTHING;
+						line.flags &= ~(ML_RAILING|ML_BLOCK_PLAYERS);
+						line.flags |= ML_BLOCKING|ML_BLOCKEVERYTHING;
 						break;
 					case BLOCK_RAILING:
-						lines[line].flags &= ~(ML_BLOCKEVERYTHING|ML_BLOCK_PLAYERS);
-						lines[line].flags |= ML_RAILING|ML_BLOCKING;
+						line.flags &= ~(ML_BLOCKEVERYTHING|ML_BLOCK_PLAYERS);
+						line.flags |= ML_RAILING|ML_BLOCKING;
 						break;
 					case BLOCK_PLAYERS:
-						lines[line].flags &= ~(ML_BLOCKEVERYTHING|ML_BLOCKING|ML_RAILING);
-						lines[line].flags |= ML_BLOCK_PLAYERS;
+						line.flags &= ~(ML_BLOCKEVERYTHING|ML_BLOCKING|ML_RAILING);
+						line.flags |= ML_BLOCK_PLAYERS;
 						break;
 					}
 				}
@@ -8294,9 +8490,9 @@ scriptwait:
 				while ((line = itr.Next()) >= 0)
 				{
 					if (STACK(1))
-						lines[line].flags |= ML_BLOCKMONSTERS;
+						level.lines[line].flags |= ML_BLOCKMONSTERS;
 					else
-						lines[line].flags &= ~ML_BLOCKMONSTERS;
+						level.lines[line].flags &= ~ML_BLOCKMONSTERS;
 				}
 
 				sp -= 2;
@@ -8319,7 +8515,7 @@ scriptwait:
 				FLineIdIterator itr(STACK(7));
 				while ((linenum = itr.Next()) >= 0)
 				{
-					line_t *line = &lines[linenum];
+					line_t *line = &level.lines[linenum];
 					line->special = specnum;
 					line->args[0] = arg0;
 					line->args[1] = STACK(4);
@@ -8573,7 +8769,7 @@ scriptwait:
 			{
 				AInventory *sigil;
 
-				if (activator == NULL || (sigil = activator->FindInventory(PClass::FindActor(NAME_Sigil))) == NULL)
+				if (activator == NULL || (sigil = activator->FindInventory(NAME_Sigil)) == NULL)
 				{
 					PushToStack (0);
 				}
@@ -8590,7 +8786,7 @@ scriptwait:
 				PClass *type = PClass::FindClass (FBehavior::StaticLookupString (STACK(1)));
 				AInventory *item;
 
-				if (type != NULL && type->ParentClass == RUNTIME_CLASS(AAmmo))
+				if (type != NULL && type->ParentClass == PClass::FindActor(NAME_Ammo))
 				{
 					item = activator->FindInventory (static_cast<PClassActor *>(type));
 					if (item != NULL)
@@ -8616,19 +8812,19 @@ scriptwait:
 		case PCD_SETAMMOCAPACITY:
 			if (activator != NULL)
 			{
-				PClass *type = PClass::FindClass (FBehavior::StaticLookupString (STACK(2)));
+				PClassActor *type = PClass::FindActor (FBehavior::StaticLookupString (STACK(2)));
 				AInventory *item;
 
-				if (type != NULL && type->ParentClass == RUNTIME_CLASS(AAmmo))
+				if (type != NULL && type->ParentClass == PClass::FindActor(NAME_Ammo))
 				{
-					item = activator->FindInventory (static_cast<PClassActor *>(type));
+					item = activator->FindInventory (type);
 					if (item != NULL)
 					{
 						item->MaxAmount = STACK(1);
 					}
 					else
 					{
-						item = activator->GiveInventoryType (static_cast<PClassAmmo *>(type));
+						item = activator->GiveInventoryType (type);
 						if (item != NULL)
 						{
 							item->MaxAmount = STACK(1);
@@ -8693,7 +8889,7 @@ scriptwait:
 			break;
 
 		case PCD_PLAYMOVIE:
-			STACK(1) = I_PlayMovie (FBehavior::StaticLookupString (STACK(1)));
+			STACK(1) = -1;
 			break;
 
 		case PCD_SETACTORPOSITION:
@@ -8782,17 +8978,17 @@ scriptwait:
 				if (tag != 0)
 					secnum = P_FindFirstSectorFromTag (tag);
 				else
-					secnum = int(P_PointInSector (x, y) - sectors);
+					secnum = P_PointInSector (x, y)->sectornum;
 
 				if (secnum >= 0)
 				{
 					if (pcd == PCD_GETSECTORFLOORZ)
 					{
-						z = sectors[secnum].floorplane.ZatPoint (x, y);
+						z = level.sectors[secnum].floorplane.ZatPoint (x, y);
 					}
 					else
 					{
-						z = sectors[secnum].ceilingplane.ZatPoint (x, y);
+						z = level.sectors[secnum].ceilingplane.ZatPoint (x, y);
 					}
 				}
 				sp -= 2;
@@ -8807,7 +9003,7 @@ scriptwait:
 
 				if (secnum >= 0)
 				{
-					z = sectors[secnum].lightlevel;
+					z = level.sectors[secnum].lightlevel;
 				}
 				STACK(1) = z;
 			}
@@ -8892,6 +9088,35 @@ scriptwait:
 			}
 			break;
 
+		case PCD_TRANSLATIONRANGE4:
+			{ // Colourise translation
+				int start = STACK(5);
+				int end = STACK(4);
+				int r = STACK(3);
+				int g = STACK(2);
+				int b = STACK(1);
+				sp -= 5;
+
+				if (translation != NULL)
+					translation->AddColourisation(start, end, r, g, b);
+			}
+			break;
+
+		case PCD_TRANSLATIONRANGE5:
+			{ // Tint translation
+				int start = STACK(6);
+				int end = STACK(5);
+				int a = STACK(4);
+				int r = STACK(3);
+				int g = STACK(2);
+				int b = STACK(1);
+				sp -= 6;
+
+				if (translation != NULL)
+					translation->AddTint(start, end, r, g, b, a);
+			}
+			break;
+
 		case PCD_ENDTRANSLATION:
 			if (translation != NULL)
 			{
@@ -8935,7 +9160,7 @@ scriptwait:
 				AInventory *item = activator->FindInventory (dyn_cast<PClassActor>(
 					PClass::FindClass (FBehavior::StaticLookupString (STACK(1)))));
 
-				if (item == NULL || !item->IsKindOf (RUNTIME_CLASS(AWeapon)))
+				if (item == NULL || !item->IsKindOf(NAME_Weapon))
 				{
 					STACK(1) = 0;
 				}
@@ -9003,7 +9228,7 @@ scriptwait:
 					}
 					else
 					{
-						if (activator != nullptr && activator->IsKindOf(PClass::FindClass("ScriptedMarine")))
+						if (activator != nullptr && activator->IsKindOf("ScriptedMarine"))
 						{
 							SetMarineSprite(activator, type);
 						}
@@ -9105,7 +9330,7 @@ scriptwait:
 				const char *str = FBehavior::StaticLookupString(STACK(1));
 				if (str != NULL)
 				{
-					STACK(1) = SDWORD(strlen(str));
+					STACK(1) = int32_t(strlen(str));
 					break;
 				}
 
@@ -9275,7 +9500,7 @@ scriptwait:
 				switch (STACK(1))
 				{
 				case PLAYERINFO_TEAM:			STACK(2) = userinfo->GetTeam(); break;
-				case PLAYERINFO_AIMDIST:		STACK(2) = (SDWORD)(userinfo->GetAimDist() * (0x40000000/90.)); break;	// Yes, this has been returning a BAM since its creation.
+				case PLAYERINFO_AIMDIST:		STACK(2) = (int32_t)(userinfo->GetAimDist() * (0x40000000/90.)); break;	// Yes, this has been returning a BAM since its creation.
 				case PLAYERINFO_COLOR:			STACK(2) = userinfo->GetColor(); break;
 				case PLAYERINFO_GENDER:			STACK(2) = userinfo->GetGender(); break;
 				case PLAYERINFO_NEVERSWITCH:	STACK(2) = userinfo->GetNeverSwitch(); break;
@@ -9357,7 +9582,10 @@ scriptwait:
 		}
 
 		case PCD_SETMUGSHOTSTATE:
-			StatusBar->SetMugShotState(FBehavior::StaticLookupString(STACK(1)));
+			if (!multiplayer || (activator != nullptr && activator->CheckLocalView(consoleplayer)))
+			{
+				StatusBar->SetMugShotState(FBehavior::StaticLookupString(STACK(1)));
+			}
 			sp--;
 			break;
 
@@ -9384,7 +9612,7 @@ scriptwait:
 			{
 				int tag = STACK(7);
 				FName playerclass_name = FBehavior::StaticLookupString(STACK(6));
-				PClassPlayerPawn *playerclass = dyn_cast<PClassPlayerPawn>(PClass::FindClass (playerclass_name));
+				auto playerclass = PClass::FindActor (playerclass_name);
 				FName monsterclass_name = FBehavior::StaticLookupString(STACK(5));
 				PClassActor *monsterclass = PClass::FindActor(monsterclass_name);
 				int duration = STACK(4);
@@ -9608,7 +9836,16 @@ scriptwait:
 
 	if (runaway != 0 && InModuleScriptNumber >= 0)
 	{
-		activeBehavior->GetScriptPtr(InModuleScriptNumber)->ProfileData.AddRun(runaway);
+		auto scriptptr = activeBehavior->GetScriptPtr(InModuleScriptNumber);
+		if (scriptptr != nullptr)
+		{
+			scriptptr->ProfileData.AddRun(runaway);
+		}
+		else
+		{
+			// It is pointless to continue execution. The script is broken and needs to be aborted.
+			I_Error("Bad script definition encountered. Script %d is reported running but not present.\nThe most likely cause for this message is using 'delay' inside a function which is not supported.\nPlease check the ACS compiler used for compiling the script!", InModuleScriptNumber);
+		}
 	}
 
 	if (state == SCRIPT_DivideBy0)
@@ -9670,7 +9907,7 @@ DLevelScript::DLevelScript (AActor *who, line_t *where, int num, const ScriptPtr
 	script = num;
 	assert(code->VarCount >= code->ArgCount);
 	Localvars.Resize(code->VarCount);
-	memset(&Localvars[0], 0, code->VarCount * sizeof(SDWORD));
+	memset(&Localvars[0], 0, code->VarCount * sizeof(int32_t));
 	for (int i = 0; i < MIN<int>(argcount, code->ArgCount); ++i)
 	{
 		Localvars[i] = args[i];
@@ -10164,4 +10401,9 @@ CCMD(acsprofile)
 
 	ShowProfileData(ScriptProfiles, limit, sorter, false);
 	ShowProfileData(FuncProfiles, limit, sorter, true);
+}
+
+ADD_STAT(ACS)
+{
+	return FStringf("ACS time: %f ms", ACSTime.TimeMS());
 }

@@ -26,6 +26,8 @@ IMPLEMENT_POINTERS_START(DBot)
 	IMPLEMENT_POINTER(last_mate)
 IMPLEMENT_POINTERS_END
 
+DEFINE_FIELD(DBot, dest)
+
 DBot::DBot ()
 : DThinker(STAT_BOT)
 {
@@ -261,7 +263,7 @@ void InitBotStuff()
 	for(unsigned i=0;i<sizeof(botinits)/sizeof(botinits[0]);i++)
 	{
 		const PClass *cls = PClass::FindClass(botinits[i].type);
-		if (cls != NULL && cls->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+		if (cls != NULL && cls->IsDescendantOf(NAME_Weapon))
 		{
 			AWeapon *w = (AWeapon*)GetDefaultByType(cls);
 			if (w != NULL)

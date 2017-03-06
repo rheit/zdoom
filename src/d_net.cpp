@@ -63,6 +63,8 @@
 #include "r_utility.h"
 #include "a_keys.h"
 #include "intermission/intermission.h"
+#include "g_levellocals.h"
+#include "events.h"
 
 EXTERN_CVAR (Int, disableautosave)
 EXTERN_CVAR (Int, autosavecount)
@@ -71,7 +73,7 @@ EXTERN_CVAR (Int, autosavecount)
 #define SIMULATEERRORS			0
 
 extern BYTE		*demo_p;		// [RH] Special "ticcmds" get recorded in demos
-extern char		savedescription[SAVESTRINGSIZE];
+extern FString	savedescription;
 extern FString	savegamefile;
 
 extern short consistancy[MAXPLAYERS][BACKUPTICS];
@@ -2108,6 +2110,11 @@ static int RemoveClass(const PClass *cls)
 				player = true;
 				continue;
 			}
+			// [SP] Don't remove owned inventory objects.
+			if (actor->IsKindOf(RUNTIME_CLASS(AInventory)) && static_cast<AInventory *>(actor)->Owner != NULL)
+			{
+				continue;
+			}
 			removecount++; 
 			actor->ClearCounters();
 			actor->Destroy();
@@ -2192,12 +2199,12 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 
 	case DEM_GIVECHEAT:
 		s = ReadString (stream);
-		cht_Give (&players[player], s, ReadWord (stream));
+		cht_Give (&players[player], s, ReadLong (stream));
 		break;
 
 	case DEM_TAKECHEAT:
 		s = ReadString (stream);
-		cht_Take (&players[player], s, ReadWord (stream));
+		cht_Take (&players[player], s, ReadLong (stream));
 		break;
 
 	case DEM_WARPCHEAT:
@@ -2247,11 +2254,11 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		if (gamestate == GS_LEVEL && !paused)
 		{
 			AInventory *item = players[player].mo->Inventory;
-
+			auto pitype = PClass::FindActor(NAME_PuzzleItem);
 			while (item != NULL)
 			{
 				AInventory *next = item->Inventory;
-				if (item->ItemFlags & IF_INVBAR && !(item->IsKindOf(RUNTIME_CLASS(APuzzleItem))))
+				if (item->ItemFlags & IF_INVBAR && !(item->IsKindOf(pitype)))
 				{
 					players[player].mo->UseInventory (item);
 				}
@@ -2264,6 +2271,9 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 	case DEM_INVDROP:
 		{
 			DWORD which = ReadLong (stream);
+			int amt = -1;
+
+			if (type == DEM_INVDROP) amt = ReadLong(stream);
 
 			if (gamestate == GS_LEVEL && !paused
 				&& players[player].playerstate != PST_DEAD)
@@ -2281,7 +2291,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 					}
 					else
 					{
-						players[player].mo->DropInventory (item);
+						players[player].mo->DropInventory (item, amt);
 					}
 				}
 			}
@@ -2366,25 +2376,13 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 		break;
 
 	case DEM_SPRAY:
-		{
-			FTraceResults trace;
+		s = ReadString(stream);
+		SprayDecal(players[player].mo, s);
+		break;
 
-			DAngle ang = players[player].mo->Angles.Yaw;
-			DAngle pitch = players[player].mo->Angles.Pitch;
-			double c = pitch.Cos();
-			DVector3 vec(c * ang.Cos(), c * ang.Sin(), -pitch.Sin());
-
-			s = ReadString (stream);
-
-			if (Trace (players[player].mo->PosPlusZ(players[player].mo->Height/2), players[player].mo->Sector, 
-				vec, 172., 0, ML_BLOCKEVERYTHING, players[player].mo, trace, TRACE_NoSky))
-			{
-				if (trace.HitType == TRACE_HitWall)
-				{
-					DImpactDecal::StaticCreate (s, trace.HitPos, trace.Line->sidedef[trace.Side], NULL);
-				}
-			}
-		}
+	case DEM_MDK:
+		s = ReadString(stream);
+		cht_DoMDK(&players[player], s);
 		break;
 
 	case DEM_PAUSE:
@@ -2411,8 +2409,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			savegamefile = s;
 			delete[] s;
 			s = ReadString (stream);
-			memset (savedescription, 0, sizeof(savedescription));
-			strncpy (savedescription, s, sizeof(savedescription));
+			savedescription = s;
 			if (player != consoleplayer)
 			{
 				// Paths sent over the network will be valid for the system that sent
@@ -2533,7 +2530,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 	case DEM_MORPHEX:
 		{
 			s = ReadString (stream);
-			const char *msg = cht_Morph (players + player, dyn_cast<PClassPlayerPawn>(PClass::FindClass (s)), false);
+			const char *msg = cht_Morph (players + player, PClass::FindActor (s), false);
 			if (player == consoleplayer)
 			{
 				Printf ("%s\n", *msg != '\0' ? msg : "Morph failed.");
@@ -2632,7 +2629,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 			}
 			for(i = 0; i < count; ++i)
 			{
-				PClassWeapon *wpn = Net_ReadWeapon(stream);
+				PClassActor *wpn = Net_ReadWeapon(stream);
 				players[pnum].weapons.AddSlot(slot, wpn, pnum == consoleplayer);
 			}
 		}
@@ -2641,7 +2638,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 	case DEM_ADDSLOT:
 		{
 			int slot = ReadByte(stream);
-			PClassWeapon *wpn = Net_ReadWeapon(stream);
+			PClassActor *wpn = Net_ReadWeapon(stream);
 			players[player].weapons.AddSlot(slot, wpn, player == consoleplayer);
 		}
 		break;
@@ -2649,7 +2646,7 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 	case DEM_ADDSLOTDEFAULT:
 		{
 			int slot = ReadByte(stream);
-			PClassWeapon *wpn = Net_ReadWeapon(stream);
+			PClassActor *wpn = Net_ReadWeapon(stream);
 			players[player].weapons.AddSlotDefault(slot, wpn, player == consoleplayer);
 		}
 		break;
@@ -2670,6 +2667,17 @@ void Net_DoCommand (int type, BYTE **stream, int player)
 	case DEM_FINISHGAME:
 		// Simulate an end-of-game action
 		G_ChangeLevel(NULL, 0, 0);
+		break;
+
+	case DEM_NETEVENT:
+		{
+			s = ReadString(stream);
+			int argn = ReadByte(stream);
+			int arg[3] = { 0, 0, 0 };
+			for (int i = 0; i < 3; i++)
+				arg[i] = ReadLong(stream);
+			E_Console(player, s, arg[0], arg[1], arg[2]);
+		}
 		break;
 
 	default:
@@ -2715,7 +2723,11 @@ void Net_SkipCommand (int type, BYTE **stream)
 
 		case DEM_GIVECHEAT:
 		case DEM_TAKECHEAT:
-			skip = strlen ((char *)(*stream)) + 3;
+			skip = strlen ((char *)(*stream)) + 5;
+			break;
+
+		case DEM_NETEVENT:
+			skip = strlen((char *)(*stream)) + 14;
 			break;
 
 		case DEM_SUMMON2:
@@ -2739,6 +2751,7 @@ void Net_SkipCommand (int type, BYTE **stream)
 		case DEM_SPRAY:
 		case DEM_MORPHEX:
 		case DEM_KILLCLASSCHEAT:
+		case DEM_MDK:
 			skip = strlen ((char *)(*stream)) + 1;
 			break;
 
@@ -2747,8 +2760,11 @@ void Net_SkipCommand (int type, BYTE **stream)
 			break;
 
 		case DEM_INVUSE:
-		case DEM_INVDROP:
 			skip = 4;
+			break;
+
+		case DEM_INVDROP:
+			skip = 8;
 			break;
 
 		case DEM_GENERICCHEAT:

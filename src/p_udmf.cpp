@@ -48,6 +48,7 @@
 #include "w_wad.h"
 #include "p_tags.h"
 #include "p_terrain.h"
+#include "g_levellocals.h"
 
 //===========================================================================
 //
@@ -341,7 +342,7 @@ FUDMFKey *FUDMFKeys::Find(FName key)
 //
 //===========================================================================
 
-int GetUDMFInt(int type, int index, const char *key)
+int GetUDMFInt(int type, int index, FName key)
 {
 	assert(type >=0 && type <=3);
 
@@ -358,7 +359,16 @@ int GetUDMFInt(int type, int index, const char *key)
 	return 0;
 }
 
-double GetUDMFFloat(int type, int index, const char *key)
+DEFINE_ACTION_FUNCTION(FLevelLocals, GetUDMFInt)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FLevelLocals);
+	PARAM_INT(type);
+	PARAM_INT(index);
+	PARAM_NAME(key);
+	ACTION_RETURN_INT(GetUDMFInt(type, index, key));
+}
+
+double GetUDMFFloat(int type, int index, FName key)
 {
 	assert(type >=0 && type <=3);
 
@@ -373,6 +383,41 @@ double GetUDMFFloat(int type, int index, const char *key)
 		}
 	}
 	return 0;
+}
+
+DEFINE_ACTION_FUNCTION(FLevelLocals, GetUDMFFloat)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FLevelLocals);
+	PARAM_INT(type);
+	PARAM_INT(index);
+	PARAM_NAME(key);
+	ACTION_RETURN_FLOAT(GetUDMFFloat(type, index, key));
+}
+
+FString GetUDMFString(int type, int index, FName key)
+{
+	assert(type >= 0 && type <= 3);
+
+	FUDMFKeys *pKeys = UDMFKeys[type].CheckKey(index);
+
+	if (pKeys != NULL)
+	{
+		FUDMFKey *pKey = pKeys->Find(key);
+		if (pKey != NULL)
+		{
+			return pKey->StringVal;
+		}
+	}
+	return "";
+}
+
+DEFINE_ACTION_FUNCTION(FLevelLocals, GetUDMFString)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FLevelLocals);
+	PARAM_INT(type);
+	PARAM_INT(index);
+	PARAM_NAME(key);
+	ACTION_RETURN_STRING(GetUDMFString(type, index, key));
 }
 
 
@@ -393,7 +438,6 @@ class UDMFParser : public UDMFParserBase
 	TArray<intmapsidedef_t> ParsedSideTextures;
 	TArray<sector_t> ParsedSectors;
 	TArray<vertex_t> ParsedVertices;
-	TArray<vertexdata_t> ParsedVertexDatas;
 
 	FDynamicColormap	*fogMap, *normMap;
 	FMissingTextureTracker &missingTex;
@@ -474,7 +518,7 @@ public:
 		th->Gravity = 1;
 		th->RenderStyle = STYLE_Count;
 		th->Alpha = -1;
-		th->health = 1;
+		th->Health = 1;
 		th->FloatbobPhase = -1;
 		sc.MustGetToken('{');
 		while (!sc.CheckToken('}'))
@@ -702,7 +746,7 @@ public:
 				break;
 
 			case NAME_Health:
-				th->health = CheckInt(key);
+				th->Health = CheckFloat(key);
 				break;
 
 			case NAME_Score:
@@ -792,6 +836,7 @@ public:
 		memset(ld, 0, sizeof(*ld));
 		ld->alpha = 1.;
 		ld->portalindex = UINT_MAX;
+		ld->portaltransferred = UINT_MAX;
 		ld->sidedef[0] = ld->sidedef[1] = NULL;
 		if (level.flags2 & LEVEL2_CLIPMIDTEX) ld->flags |= ML_CLIP_MIDTEX;
 		if (level.flags2 & LEVEL2_WRAPMIDTEX) ld->flags |= ML_WRAP_MIDTEX;
@@ -1096,7 +1141,7 @@ public:
 		{
 			ld->alpha = 0.75;
 		}
-		if (strifetrans2 && ld->alpha == OPAQUE)
+		if (strifetrans2 && ld->alpha == 1.)
 		{
 			ld->alpha = 0.25;
 		}
@@ -1135,7 +1180,7 @@ public:
 		sdt->midtexture = "-";
 		sd->SetTextureXScale(1.);
 		sd->SetTextureYScale(1.);
-		sd->Index = index;
+		sd->UDMFIndex = index;
 
 		sc.MustGetToken('{');
 		while (!sc.CheckToken('}'))
@@ -1279,8 +1324,9 @@ public:
 
 	void ParseSector(sector_t *sec, int index)
 	{
-		int lightcolor = -1;
-		int fadecolor = -1;
+		PalEntry lightcolor = -1;
+		PalEntry fadecolor = -1;
+		int fogdensity = -1;
 		int desaturation = -1;
 		int fplaneflags = 0, cplaneflags = 0;
 		double fp[4] = { 0 }, cp[4] = { 0 };
@@ -1296,7 +1342,7 @@ public:
 		sec->SetAlpha(sector_t::ceiling, 1.);
 		sec->thinglist = nullptr;
 		sec->touching_thinglist = nullptr;		// phares 3/14/98
-		sec->render_thinglist = nullptr;
+		sec->sectorportal_thinglist = nullptr;
 		sec->touching_renderthings = nullptr;
 		sec->seqType = (level.flags & LEVEL_SNDSEQTOTALCTRL) ? 0 : -1;
 		sec->nextsec = -1;	//jff 2/26/98 add fields to support locking out
@@ -1305,6 +1351,7 @@ public:
 		sec->sectornum = index;
 		sec->damageinterval = 32;
 		sec->terrainnum[sector_t::ceiling] = sec->terrainnum[sector_t::floor] = -1;
+		memset(sec->SpecialColors, -1, sizeof(sec->SpecialColors));
 		if (floordrop) sec->Flags = SECF_FLOORDROP;
 		// killough 3/7/98: end changes
 
@@ -1346,7 +1393,7 @@ public:
 				if (isTranslated) sec->special = P_TranslateSectorSpecial(sec->special);
 				else if (namespc == NAME_Hexen)
 				{
-					if (sec->special < 0 || sec->special > 255 || !HexenSectorSpecialOk[sec->special])
+					if (sec->special < 0 || sec->special > 140 || !HexenSectorSpecialOk[sec->special])
 						sec->special = 0;	// NULL all unknown specials
 				}
 				continue;
@@ -1457,9 +1504,33 @@ public:
 					fadecolor = CheckInt(key);
 					continue;
 
+				case NAME_Color_Floor:
+					sec->SpecialColors[sector_t::floor] = CheckInt(key) | 0xff000000;
+					break;
+
+				case NAME_Color_Ceiling:
+					sec->SpecialColors[sector_t::ceiling] = CheckInt(key) | 0xff000000;
+					break;
+
+				case NAME_Color_Walltop:
+					sec->SpecialColors[sector_t::walltop] = CheckInt(key) | 0xff000000;
+					break;
+
+				case NAME_Color_Wallbottom:
+					sec->SpecialColors[sector_t::wallbottom] = CheckInt(key) | 0xff000000;
+					break;
+
+				case NAME_Color_Sprites:
+					sec->SpecialColors[sector_t::sprites] = CheckInt(key) | 0xff000000;
+					break;
+
 				case NAME_Desaturation:
 					desaturation = int(255*CheckFloat(key));
 					continue;
+
+				case NAME_fogdensity:
+					fogdensity = clamp(CheckInt(key), 0, 511);
+					break;
 
 				case NAME_Silent:
 					Flag(sec->Flags, SECF_SILENT, key);
@@ -1561,6 +1632,34 @@ public:
 
 				case NAME_ceilingterrain:
 					sec->terrainnum[sector_t::ceiling] = P_FindTerrain(CheckString(key));
+					break;
+
+				case NAME_floor_reflect:
+					sec->reflect[sector_t::floor] = (float)CheckFloat(key);
+					break;
+
+				case NAME_ceiling_reflect:
+					sec->reflect[sector_t::ceiling] = (float)CheckFloat(key);
+					break;
+
+				case NAME_floorglowcolor:
+					sec->planes[sector_t::floor].GlowColor = CheckInt(key);
+					break;
+
+				case NAME_floorglowheight:
+					sec->planes[sector_t::floor].GlowHeight = (float)CheckFloat(key);
+					break;
+
+				case NAME_ceilingglowcolor:
+					sec->planes[sector_t::ceiling].GlowColor = CheckInt(key);
+					break;
+
+				case NAME_ceilingglowheight:
+					sec->planes[sector_t::ceiling].GlowHeight = (float)CheckFloat(key);
+					break;
+
+				case NAME_Noattack:
+					Flag(sec->Flags, SECF_NOATTACK, key);
 					break;
 
 				case NAME_MoreIds:
@@ -1666,7 +1765,7 @@ public:
 			sec->ceilingplane.set(n.X, n.Y, n.Z, cp[3]);
 		}
 
-		if (lightcolor == -1 && fadecolor == -1 && desaturation == -1)
+		if (lightcolor == ~0u && fadecolor == ~0u && desaturation == -1 && fogdensity == -1)
 		{
 			// [RH] Sectors default to white light with the default fade.
 			//		If they are outside (have a sky ceiling), they use the outside fog.
@@ -1685,8 +1784,8 @@ public:
 		}
 		else
 		{
-			if (lightcolor == -1) lightcolor = PalEntry(255,255,255);
-			if (fadecolor == -1)
+			if (lightcolor == ~0u) lightcolor = PalEntry(255,255,255);
+			if (fadecolor == ~0u)
 			{
 				if (level.outsidefog != 0xff000000 && (sec->GetTexture(sector_t::ceiling) == skyflatnum || (sec->special & 0xff) == Sector_Outside))
 					fadecolor = level.outsidefog;
@@ -1694,6 +1793,8 @@ public:
 					fadecolor = level.fadeto;
 			}
 			if (desaturation == -1) desaturation = NormalLight.Desaturate;
+			if (fogdensity != -1) fadecolor.a = fogdensity / 2;
+			else fadecolor.a = 0;
 
 			sec->ColorMap = GetSpecialLights (lightcolor, fadecolor, desaturation);
 		}
@@ -1757,12 +1858,12 @@ public:
 			intptr_t v1i = intptr_t(ParsedLines[i].v1);
 			intptr_t v2i = intptr_t(ParsedLines[i].v2);
 
-			if (v1i >= numvertexes || v2i >= numvertexes || v1i < 0 || v2i < 0)
+			if ((unsigned)v1i >= level.vertexes.Size() || (unsigned)v2i >= level.vertexes.Size())
 			{
-				I_Error ("Line %d has invalid vertices: %zd and/or %zd.\nThe map only contains %d vertices.", i+skipped, v1i, v2i, numvertexes);
+				I_Error ("Line %d has invalid vertices: %zd and/or %zd.\nThe map only contains %u vertices.", i+skipped, v1i, v2i, level.vertexes.Size());
 			}
 			else if (v1i == v2i ||
-				(vertexes[v1i].fX() == vertexes[v2i].fX() && vertexes[v1i].fY() == vertexes[v2i].fY()))
+				(level.vertexes[v1i].fX() == level.vertexes[v2i].fX() && level.vertexes[v1i].fY() == level.vertexes[v2i].fY()))
 			{
 				Printf ("Removing 0-length line %d\n", i+skipped);
 				ParsedLines.Delete(i);
@@ -1771,8 +1872,8 @@ public:
 			}
 			else
 			{
-				ParsedLines[i].v1 = &vertexes[v1i];
-				ParsedLines[i].v2 = &vertexes[v2i];
+				ParsedLines[i].v1 = &level.vertexes[v1i];
+				ParsedLines[i].v2 = &level.vertexes[v2i];
 
 				if (ParsedLines[i].sidedef[0] != NULL)
 					sidecount++;
@@ -1782,13 +1883,14 @@ public:
 				i++;
 			}
 		}
-		numlines = ParsedLines.Size();
-		numsides = sidecount;
-		lines = new line_t[numlines];
-		sides = new side_t[numsides];
+		unsigned numlines = ParsedLines.Size();
+		level.sides.Alloc(sidecount);
+		level.lines.Alloc(numlines);
 		int line, side;
+		auto lines = &level.lines[0];
+		auto sides = &level.sides[0];
 
-		for(line = 0, side = 0; line < numlines; line++)
+		for(line = 0, side = 0; line < (int)numlines; line++)
 		{
 			short tempalpha[2] = { SHRT_MIN, SHRT_MIN };
 
@@ -1803,7 +1905,7 @@ public:
 					{
 						sides[side] = ParsedSides[mapside];
 						sides[side].linedef = &lines[line];
-						sides[side].sector = &sectors[intptr_t(sides[side].sector)];
+						sides[side].sector = &level.sectors[intptr_t(sides[side].sector)];
 						lines[line].sidedef[sd] = &sides[side];
 
 						P_ProcessSideTextures(!isExtended, &sides[side], sides[side].sector, &ParsedSideTextures[mapside],
@@ -1821,11 +1923,10 @@ public:
 			P_AdjustLine(&lines[line]);
 			P_FinishLoadingLineDef(&lines[line], tempalpha[0]);
 		}
-		assert(side <= numsides);
-		if (side < numsides)
+		assert((unsigned)side <= level.sides.Size());
+		if ((unsigned)side > level.sides.Size())
 		{
-			Printf("Map had %d invalid side references\n", numsides - side);
-			numsides = side;
+			Printf("Map had %d invalid side references\n", (int)level.sides.Size() - side);
 		}
 	}
 
@@ -1963,7 +2064,7 @@ public:
 				vertexdata_t vd;
 				ParseVertex(&vt, &vd);
 				ParsedVertices.Push(vt);
-				ParsedVertexDatas.Push(vd);
+				vertexdatas.Push(vd);
 			}
 			else
 			{
@@ -1978,23 +2079,16 @@ public:
 		if (ParsedSides.Size() == 0)	I_Error("Map has no sidedefs.\n");
 
 		// Create the real vertices
-		numvertexes = ParsedVertices.Size();
-		vertexes = new vertex_t[numvertexes];
-		memcpy(vertexes, &ParsedVertices[0], numvertexes * sizeof(*vertexes));
-
-		// Create the real vertex datas
-		numvertexdatas = ParsedVertexDatas.Size();
-		vertexdatas = new vertexdata_t[numvertexdatas];
-		memcpy(vertexdatas, &ParsedVertexDatas[0], numvertexdatas * sizeof(*vertexdatas));
+		level.vertexes.Alloc(ParsedVertices.Size());
+		memcpy(&level.vertexes[0], &ParsedVertices[0], level.vertexes.Size() * sizeof(vertex_t));
 
 		// Create the real sectors
-		numsectors = ParsedSectors.Size();
-		sectors = new sector_t[numsectors];
-		memcpy(sectors, &ParsedSectors[0], numsectors * sizeof(*sectors));
-		sectors[0].e = new extsector_t[numsectors];
-		for(int i = 0; i < numsectors; i++)
+		level.sectors.Alloc(ParsedSectors.Size());
+		memcpy(&level.sectors[0], &ParsedSectors[0], level.sectors.Size() * sizeof(sector_t));
+		level.sectors[0].e = new extsector_t[level.sectors.Size()];
+		for(unsigned i = 0; i < level.sectors.Size(); i++)
 		{
-			sectors[i].e = &sectors[0].e[i];
+			level.sectors[i].e = &level.sectors[0].e[i];
 		}
 
 		// Create the real linedefs and decompress the sidedefs

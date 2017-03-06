@@ -54,6 +54,7 @@
 #include "d_net.h"
 #include "d_main.h"
 #include "serializer.h"
+#include "menu/menu.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -662,6 +663,16 @@ void C_DoCommand (const char *cmd, int keynum)
 	}
 }
 
+// This is only accessible to the special menu item to run CCMDs.
+DEFINE_ACTION_FUNCTION(DOptionMenuItemCommand, DoCommand)
+{
+	if (CurrentMenu == nullptr) return 0;
+	PARAM_PROLOGUE;
+	PARAM_STRING(cmd);
+	C_DoCommand(cmd);
+	return 0;
+}
+
 void AddCommandString (char *cmd, int keynum)
 {
 	char *brkpt;
@@ -705,7 +716,7 @@ void AddCommandString (char *cmd, int keynum)
 
 					if (cmd[4] == ' ')
 					{
-						tics = strtol (cmd + 5, NULL, 0);
+						tics = (int)strtoll (cmd + 5, NULL, 0);
 					}
 					else
 					{
@@ -1040,7 +1051,11 @@ FString BuildString (int argc, FString *argv)
 
 		for (arg = 0; arg < argc; arg++)
 		{
-			if (strchr(argv[arg], '"'))
+			if (argv[arg][0] == '\0')
+			{ // It's an empty argument, we need to convert it to '""'
+				buf << "\"\" ";
+			}
+			else if (strchr(argv[arg], '"'))
 			{ // If it contains one or more quotes, we need to escape them.
 				buf << '"';
 				long substr_start = 0, quotepos;

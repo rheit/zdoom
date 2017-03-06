@@ -1,0 +1,985 @@
+struct VisStyle
+{
+	bool			Invert;
+	float			Alpha;
+	int				RenderStyle;
+}
+
+class Inventory : Actor native
+{
+	const BLINKTHRESHOLD = (4*32);
+	const BONUSADD = 6;
+
+	native Actor Owner;						// Who owns self item? NULL if it's still a pickup.
+	native int Amount;						// Amount of item self instance has
+	native int MaxAmount;					// Max amount of item self instance can have
+	native int InterHubAmount;				// Amount of item that can be kept between hubs or levels
+	native int RespawnTics;					// Tics from pickup time to respawn time
+	native TextureID Icon;					// Icon to show on status bar or HUD
+	native int DropTime;					// Countdown after dropping
+	native Class<Actor> SpawnPointClass;	// For respawning like Heretic's mace
+	native Class<Actor> PickupFlash;		// actor to spawn as pickup flash
+	native Sound PickupSound;
+	native bool bPickupGood;
+	native bool bCreateCopyMoved;
+	native bool bInitEffectFailed;
+	meta String PickupMsg;
+	meta int GiveQuest;
+	
+	Property PickupMessage: PickupMsg;
+	Property GiveQuest: GiveQuest;
+	
+	Default
+	{
+		Inventory.Amount 1;
+		Inventory.MaxAmount 1;
+		Inventory.InterHubAmount 1;
+		Inventory.UseSound "misc/invuse";
+		Inventory.PickupSound "misc/i_pkup";
+		Inventory.PickupMessage "$TXT_DEFAULTPICKUPMSG";
+	}
+	
+	native bool CanPickup(Actor toucher);
+	native bool DoRespawn();
+	native void BecomeItem();
+	native void BecomePickup();
+	native void ModifyDropAmount(int dropamount);
+	native static void PrintPickupMessage (bool localview, String str);
+
+	States(Actor, Overlay, Weapon, Item)
+	{
+	HideDoomish:
+		TNT1 A 1050;
+		TNT1 A 0 A_RestoreSpecialPosition;
+		TNT1 A 1 A_RestoreSpecialDoomThing;
+		Stop;
+	HideSpecial:
+		ACLO E 1400;
+		ACLO A 0 A_RestoreSpecialPosition;
+		ACLO A 4 A_RestoreSpecialThing1;
+		ACLO BABCBCDC 4;
+		ACLO D 4 A_RestoreSpecialThing2;
+		Stop;
+	Held:
+		TNT1 A -1;
+		Stop;
+	HoldAndDestroy:
+		TNT1 A 1;
+		Stop;
+	}
+	
+
+	//===========================================================================
+	//
+	// AInventory :: BeginPlay
+	//
+	//===========================================================================
+
+	override void BeginPlay ()
+	{
+		Super.BeginPlay ();
+		bDropped = true;	// [RH] Items are dropped by default
+	}
+
+	//---------------------------------------------------------------------------
+	//
+	// PROC A_RestoreSpecialThing1
+	//
+	// Make a special thing visible again.
+	//
+	//---------------------------------------------------------------------------
+
+	void A_RestoreSpecialThing1()
+	{
+		bInvisible = false;
+		if (DoRespawn ())
+		{
+			A_PlaySound ("misc/spawn", CHAN_VOICE);
+		}
+	}
+
+	//---------------------------------------------------------------------------
+	//
+	// PROC A_RestoreSpecialThing2
+	//
+	//---------------------------------------------------------------------------
+
+	void A_RestoreSpecialThing2()
+	{
+		bSpecial = true;
+		if (!Default.bNoGravity)
+		{
+			bNoGravity = false;
+		}
+		SetState (SpawnState);
+	}
+
+	//---------------------------------------------------------------------------
+	//
+	// PROC A_RestoreSpecialDoomThing
+	//
+	//---------------------------------------------------------------------------
+
+	void A_RestoreSpecialDoomThing()
+	{
+		bInvisible = false;
+		bSpecial = true;
+		if (!Default.bNoGravity)
+		{
+			bNoGravity = false;
+		}
+		if (DoRespawn ())
+		{
+			SetState (SpawnState);
+			A_PlaySound ("misc/spawn", CHAN_VOICE);
+			Spawn ("ItemFog", Pos, ALLOW_REPLACE);
+		}
+	}
+		
+
+	//===========================================================================
+	//
+	// AInventory :: CreateCopy
+	//
+	// Returns an actor suitable for placing in an inventory, either itself or
+	// a copy based on whether it needs to respawn or not. Returning NULL
+	// indicates the item should not be picked up.
+	//
+	//===========================================================================
+
+	virtual Inventory CreateCopy (Actor other)
+	{
+		Inventory copy;
+
+		Amount = MIN(Amount, MaxAmount);
+		if (GoAway ())
+		{
+			copy = Inventory(Spawn (GetClass()));
+			copy.Amount = Amount;
+			copy.MaxAmount = MaxAmount;
+		}
+		else
+		{
+			copy = self;
+		}
+		return copy;
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: HandlePickup
+	//
+	// Returns true if the pickup was handled (or should not happen at all),
+	// false if not.
+	//
+	//===========================================================================
+
+	virtual bool HandlePickup (Inventory item)
+	{
+		if (item.GetClass() == GetClass())
+		{
+			if (Amount < MaxAmount || (sv_unlimited_pickup && !item.ShouldStay()))
+			{
+				if (Amount > 0 && Amount + item.Amount < 0)
+				{
+					Amount = 0x7fffffff;
+				}
+				else
+				{
+					Amount += item.Amount;
+				}
+			
+				if (Amount > MaxAmount && !sv_unlimited_pickup)
+				{
+					Amount = MaxAmount;
+				}
+				item.bPickupGood = true;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: CallHandlePickup
+	//
+	// Runs all HandlePickup methods in the chain
+	//
+	//===========================================================================
+
+	private bool CallHandlePickup(Inventory item)
+	{
+		let me = self;
+		while (me != null)
+		{
+			if (me.HandlePickup(item)) return true;
+			me = me.Inv;
+		}
+		return false;
+	}
+		
+	//===========================================================================
+	//
+	// AInventory :: TryPickup
+	//
+	//===========================================================================
+
+	virtual protected bool TryPickup (in out Actor toucher)
+	{
+		Actor newtoucher = toucher; // in case changed by the powerup
+
+		// If HandlePickup() returns true, it will set the IF_PICKUPGOOD flag
+		// to indicate that self item has been picked up. If the item cannot be
+		// picked up, then it leaves the flag cleared.
+
+		bPickupGood = false;
+		if (toucher.Inv != NULL && toucher.Inv.CallHandlePickup (self))
+		{
+			// Let something else the player is holding intercept the pickup.
+			if (!bPickupGood)
+			{
+				return false;
+			}
+			bPickupGood = false;
+			GoAwayAndDie ();
+		}
+		else if (MaxAmount > 0)
+		{
+			// Add the item to the inventory. It is not already there, or HandlePickup
+			// would have already taken care of it.
+			let copy = CreateCopy (toucher);
+			if (copy == NULL)
+			{
+				return false;
+			}
+			// Some powerups cannot activate absolutely, for
+			// example, PowerMorph; fail the pickup if so.
+			if (copy.bInitEffectFailed)
+			{
+				if (copy != self) copy.Destroy();
+				else bInitEffectFailed;
+				return false;
+			}
+			// Handle owner-changing powerups
+			if (copy.bCreateCopyMoved)
+			{
+				newtoucher = copy.Owner;
+				copy.Owner = NULL;
+				bCreateCopyMoved = false;
+			}
+			// Continue onwards with the rest
+			copy.AttachToOwner (newtoucher);
+			if (bAutoActivate)
+			{
+				if (copy.Use (true))
+				{
+					if (--copy.Amount <= 0)
+					{
+						copy.bSpecial = false;
+						copy.SetStateLabel ("HoldAndDestroy");
+					}
+				}
+			}
+		}
+		else if (bAutoActivate)
+		{
+			// Special case: If an item's MaxAmount is 0, you can still pick it
+			// up if it is autoactivate-able.
+
+			// The item is placed in the inventory just long enough to be used.
+			toucher.AddInventory(self);
+			bool usegood = Use(true);
+			toucher.RemoveInventory(self);
+
+			if (usegood)
+			{
+				GoAwayAndDie();
+			}
+			else
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: GiveQuest
+	//
+	//===========================================================================
+
+	void GiveQuestItem (Actor toucher)
+	{
+		if (GiveQuest > 0)
+		{
+			String qname = "QuestItem" .. GiveQuest;
+			class<Inventory> type = qname;
+			if (type != null)
+			{
+				toucher.GiveInventoryType (type);
+			}
+		}
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: CallTryPickup
+	//
+	// In this case the caller function is more than a simple wrapper around the virtual method and
+	// is what must be actually called to pick up an item.
+	//
+	//===========================================================================
+
+	bool, Actor CallTryPickup(Actor toucher)
+	{
+		let saved_toucher = toucher;
+		let Invstack = Inv; // A pointer of the inventories item stack.
+
+		// unmorphed versions of a currently morphed actor cannot pick up anything. 
+		if (bUnmorphed) return false, null;
+
+		bool res;
+		if (CanPickup(toucher))
+		{
+			res = TryPickup(toucher);
+		}
+		else if (!bRestrictAbsolutely)
+		{
+			// let an item decide for itself how it will handle this
+			res = TryPickupRestricted(toucher);
+		}
+		else
+			return false, null;
+
+
+		if (!res && (bAlwaysPickup) && !ShouldStay())
+		{
+			res = true;
+			GoAwayAndDie();
+		}
+
+		if (res)
+		{
+			GiveQuestItem(toucher);
+
+			// Transfer all inventory across that the old object had, if requested.
+			if (bTransfer)
+			{
+				while (Invstack)
+				{
+					let titem = Invstack;
+					Invstack = titem.Inv;
+					if (titem.Owner == self)
+					{
+						if (!titem.CallTryPickup(toucher)) // The object no longer can exist
+						{
+							titem.Destroy();
+						}
+					}
+				}
+			}
+		}
+		return res, toucher;
+	}
+	
+	//===========================================================================
+	//
+	// AInventory :: ShouldStay
+	//
+	// Returns true if the item should not disappear, even temporarily.
+	//
+	//===========================================================================
+
+	virtual bool ShouldStay ()
+	{
+		return false;
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: TryPickupRestricted
+	//
+	//===========================================================================
+
+	virtual bool TryPickupRestricted (in out Actor toucher)
+	{
+		return false;
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: AttachToOwner
+	//
+	//===========================================================================
+
+	virtual void AttachToOwner (Actor other)
+	{
+		BecomeItem ();
+		other.AddInventory (self);
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: DetachFromOwner
+	//
+	// Performs any special work needed when the item leaves an inventory,
+	// either through destruction or becoming a pickup.
+	//
+	//===========================================================================
+
+	virtual void DetachFromOwner ()
+	{
+	}
+
+	//===========================================================================
+	//
+	// AInventory::CreateTossable
+	//
+	// Creates a copy of the item suitable for dropping. If this actor embodies
+	// only one item, then it is tossed out itself. Otherwise, the count drops
+	// by one and a new item with an amount of 1 is spawned.
+	//
+	//===========================================================================
+
+	virtual Inventory CreateTossable (int amt = -1)
+	{
+		// If self actor lacks a SpawnState, don't drop it. (e.g. A base weapon
+		// like the fist can't be dropped because you'll never see it.)
+		if (SpawnState == GetDefaultByType("Actor").SpawnState || SpawnState == NULL)
+		{
+			return NULL;
+		}
+		if (bUndroppable || bUntossable || Owner == NULL || Amount <= 0 || amt == 0)
+		{
+			return NULL;
+		}
+		if (Amount == 1 && !bKeepDepleted)
+		{
+			BecomePickup ();
+			DropTime = 30;
+			bSpecial = bSolid = false;
+			return self;
+		}
+		let copy = Inventory(Spawn (GetClass(), Owner.Pos, NO_REPLACE));
+		if (copy != NULL)
+		{
+			amt = clamp(amt, 1, Amount);
+			
+			copy.MaxAmount = MaxAmount;
+			copy.Amount = amt;
+			copy.DropTime = 30;
+			copy.bSpecial = copy.bSolid = false;
+			Amount -= amt;
+		}
+		return copy;
+	}
+
+	
+	//===========================================================================
+	//
+	// AInventory :: PickupMessage
+	//
+	// Returns the message to print when this actor is picked up.
+	//
+	//===========================================================================
+
+	virtual String PickupMessage ()
+	{
+		return PickupMsg;
+	}
+	
+	//===========================================================================
+	//
+	// AInventory :: Touch
+	//
+	// Handles collisions from another actor, possible adding itself to the
+	// collider's inventory.
+	//
+	//===========================================================================
+
+	override void Touch (Actor toucher)
+	{
+		let player = toucher.player;
+
+		// If a voodoo doll touches something, pretend the real player touched it instead.
+		if (player != NULL)
+		{
+			toucher = player.mo;
+		}
+
+		bool localview = toucher.CheckLocalView(consoleplayer);
+
+		bool res;
+		[res, toucher] = CallTryPickup(toucher);
+		if (!res) return;
+
+		// This is the only situation when a pickup flash should ever play.
+		if (PickupFlash != NULL && !ShouldStay())
+		{
+			Spawn(PickupFlash, Pos, ALLOW_REPLACE);
+		}
+
+		if (!bQuiet)
+		{
+			PrintPickupMessage(localview, PickupMessage ());
+
+			// Special check so voodoo dolls picking up items cause the
+			// real player to make noise.
+			if (player != NULL)
+			{
+				PlayPickupSound (player.mo);
+				if (!bNoScreenFlash)
+				{
+					player.bonuscount = BONUSADD;
+				}
+			}
+			else
+			{
+				PlayPickupSound (toucher);
+			}
+		}							
+
+		// [RH] Execute an attached special (if any)
+		DoPickupSpecial (toucher);
+
+		if (bCountItem)
+		{
+			if (player != NULL)
+			{
+				player.itemcount++;
+			}
+			level.found_items++;
+		}
+
+		if (bCountSecret)
+		{
+			Actor ac = player != NULL? Actor(player.mo) : toucher;
+			ac.GiveSecret(true, true);
+		}
+
+		//Added by MC: Check if item taken was the roam destination of any bot
+		for (int i = 0; i < MAXPLAYERS; i++)
+		{
+			if (players[i].Bot != NULL && self == players[i].Bot.dest)
+				players[i].Bot.dest = NULL;
+		}
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: DepleteOrDestroy
+	//
+	// If the item is depleted, just change its amount to 0, otherwise it's destroyed.
+	//
+	//===========================================================================
+
+	virtual void DepleteOrDestroy ()
+	{
+		// If it's not ammo or an internal armor, destroy it.
+		// Ammo needs to stick around, even when it's zero for the benefit
+		// of the weapons that use it and to maintain the maximum ammo
+		// amounts a backpack might have given.
+		// Armor shouldn't be removed because they only work properly when
+		// they are the last items in the inventory.
+		if (bKeepDepleted)
+		{
+			Amount = 0;
+		}
+		else
+		{
+			Destroy();
+		}
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: Travelled
+	//
+	// Called when an item in somebody's inventory is carried over to another
+	// map, in case it needs to do special reinitialization.
+	//
+	//===========================================================================
+
+	virtual void Travelled() {}
+
+	//===========================================================================
+	//
+	// AInventory :: DoEffect
+	//
+	// Handles any effect an item might apply to its owner
+	// Normally only used by subclasses of Powerup
+	//
+	//===========================================================================
+
+	virtual void DoEffect() {}
+	
+	//===========================================================================
+	//
+	// AInventory :: Hide
+	//
+	// Hides this actor until it's time to respawn again. 
+	//
+	//===========================================================================
+
+	virtual void Hide ()
+	{
+		State HideSpecialState = NULL, HideDoomishState = NULL;
+
+		bSpecial = false;
+		bNoGravity = true;
+		bInvisible = true;
+
+		if (gameinfo.gametype & GAME_Raven)
+		{
+			HideSpecialState = FindState("HideSpecial");
+			if (HideSpecialState == NULL)
+			{
+				HideDoomishState = FindState("HideDoomish");
+			}
+		}
+		else
+		{
+			HideDoomishState = FindState("HideDoomish");
+			if (HideDoomishState == NULL)
+			{
+				HideSpecialState = FindState("HideSpecial");
+			}
+		}
+
+		if (HideSpecialState != NULL)
+		{
+			SetState (HideSpecialState);
+			tics = 1400;
+			if (PickupFlash != NULL) tics += 30;
+		}
+		else if (HideDoomishState != NULL)
+		{
+			SetState (HideDoomishState);
+			tics = 1050;
+		}
+		if (RespawnTics != 0)
+		{
+			tics = RespawnTics;
+		}
+	}
+
+
+	
+	//===========================================================================
+	//
+	// AInventory :: ShouldRespawn
+	//
+	// Returns true if the item should hide itself and reappear later when picked
+	// up.
+	//
+	//===========================================================================
+
+	virtual bool ShouldRespawn ()
+	{
+		if (bBigPowerup && !sv_respawnsuper) return false;
+		if (bNeverRespawn) return false;
+		return sv_itemrespawn || bAlwaysRespawn;
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: GoAway
+	//
+	// Returns true if you must create a copy of this item to give to the player
+	// or false if you can use this one instead.
+	//
+	//===========================================================================
+
+	protected bool GoAway ()
+	{
+		// Dropped items never stick around
+		if (bDropped)
+		{
+			return false;
+		}
+
+		if (!ShouldStay ())
+		{
+			Hide ();
+			if (ShouldRespawn ())
+			{
+				return true;
+			}
+			return false;
+		}
+		return true;
+	}
+	
+	//===========================================================================
+	//
+	// AInventory :: GoAwayAndDie
+	//
+	// Like GoAway but used by items that don't insert themselves into the
+	// inventory. If they won't be respawning, then they can destroy themselves.
+	//
+	//===========================================================================
+
+	protected void GoAwayAndDie ()
+	{
+		if (!GoAway ())
+		{
+			bSpecial = false;
+			SetStateLabel("HoldAndDestroy");
+		}
+	}
+	
+	//===========================================================================
+	//
+	// AInventory :: ModifyDamage
+	//
+	// Allows inventory items to manipulate the amount of damage
+	// inflicted. Damage is the amount of damage that would be done without manipulation,
+	// and newdamage is the amount that should be done after the item has changed
+	// it.
+	// 'active' means it is called by the inflictor, 'passive' by the target.
+	// It may seem that this is redundant and AbsorbDamage is the same. However,
+	// AbsorbDamage is called only for players and also depends on other settings
+	// which are undesirable for a protection artifact.
+	//
+	//===========================================================================
+
+	virtual void ModifyDamage(int damage, Name damageType, out int newdamage, bool passive) {}
+	
+
+	virtual bool Use (bool pickup) { return false; }
+	virtual double GetSpeedFactor() { return 1; }
+	virtual bool GetNoTeleportFreeze() { return false; }
+	virtual version("2.4") ui void AlterWeaponSprite(VisStyle vis, in out int changed) {}
+	virtual void OwnerDied() {}
+	virtual Color GetBlend () { return 0; }
+
+	//===========================================================================
+	//
+	// AInventory :: DoPickupSpecial
+	//
+	// Executes this actor's special when it is picked up.
+	//
+	//===========================================================================
+
+	virtual void DoPickupSpecial (Actor toucher)
+	{
+		if (special)
+		{
+			toucher.A_CallSpecial(special, args[0], args[1], args[2], args[3], args[4]);
+			special = 0;
+		}
+	}
+		//===========================================================================
+	//
+	// AInventory :: PlayPickupSound
+	//
+	//===========================================================================
+
+	virtual void PlayPickupSound (Actor toucher)
+	{
+		double atten;
+		int chan;
+
+		if (bNoAttenPickupSound)
+		{
+			atten = ATTN_NONE;
+		}
+		/*
+		else if ((ItemFlags & IF_FANCYPICKUPSOUND) &&
+			(toucher == NULL || toucher->CheckLocalView(consoeplayer)))
+		{
+			atten = ATTN_NONE;
+		}
+		*/
+		else
+		{
+			atten = ATTN_NORM;
+		}
+
+		if (toucher != NULL && toucher.CheckLocalView(consoleplayer))
+		{
+			chan = CHAN_PICKUP|CHAN_NOPAUSE;
+		}
+		else
+		{
+			chan = CHAN_PICKUP;
+		}
+		toucher.A_PlaySound(PickupSound, chan, 1, false, atten);
+	}
+
+	//===========================================================================
+	//
+	// AInventory :: DrawPowerup
+	//
+	// Gives self item a chance to draw a special status indicator on the screen.
+	// Returns false if it didn't draw anything.
+	//
+	//===========================================================================
+
+	virtual ui version("2.4") bool DrawPowerup(int x, int y) { return false; }
+
+	//===========================================================================
+	//
+	// AInventory :: AbsorbDamage
+	//
+	// Allows inventory items (primarily armor) to reduce the amount of damage
+	// taken. Damage is the amount of damage that would be done without armor,
+	// and newdamage is the amount that should be done after the armor absorbs
+	// it.
+	//
+	//===========================================================================
+
+	virtual void AbsorbDamage (int damage, Name damageType, out int newdamage) {}
+	
+	//===========================================================================
+	//
+	// AInventory :: SpecialDropAction
+	//
+	// Called by P_DropItem. Return true to prevent the standard drop tossing.
+	// A few Strife items that are meant to trigger actions rather than be
+	// picked up use this. Normal items shouldn't need it.
+	//
+	//===========================================================================
+
+	virtual bool SpecialDropAction (Actor dropper)
+	{
+		return false;
+	}
+
+	
+}
+
+//===========================================================================
+//
+// 
+//
+//===========================================================================
+
+class DehackedPickup : Inventory
+{
+	Inventory RealPickup;
+	bool droppedbymonster;
+	
+	private native class<Inventory> DetermineType();
+	
+	override bool TryPickup (in out Actor toucher)
+	{
+		let type = DetermineType ();
+		if (type == NULL)
+		{
+			return false;
+		}
+		RealPickup = Inventory(Spawn (type, Pos, NO_REPLACE));
+		if (RealPickup != NULL)
+		{
+			// The internally spawned item should never count towards statistics.
+			RealPickup.ClearCounters();
+			if (!bDropped)
+			{
+				RealPickup.bDropped = false;
+			}
+			// If this item has been dropped by a monster the
+			// amount of ammo this gives must be adjusted.
+			if (droppedbymonster)
+			{
+				RealPickup.ModifyDropAmount(0);
+			}
+			if (!RealPickup.CallTryPickup (toucher))
+			{
+				RealPickup.Destroy ();
+				RealPickup = NULL;
+				return false;
+			}
+			GoAwayAndDie ();
+			return true;
+		}
+		return false;
+	}
+
+	override String PickupMessage ()
+	{
+		if (RealPickup != null)
+			return RealPickup.PickupMessage ();
+		else return "";
+	}
+
+	override bool ShouldStay ()
+	{
+		if (RealPickup != null)
+			return RealPickup.ShouldStay ();
+		else return true;
+	}
+
+	override bool ShouldRespawn ()
+	{
+		if (RealPickup != null)
+			return RealPickup.ShouldRespawn ();
+		else return false;
+	}
+
+	override void PlayPickupSound (Actor toucher)
+	{
+		if (RealPickup != null)
+			RealPickup.PlayPickupSound (toucher);
+	}
+
+	override void DoPickupSpecial (Actor toucher)
+	{
+		Super.DoPickupSpecial (toucher);
+		// If the real pickup hasn't joined the toucher's inventory, make sure it
+		// doesn't stick around.
+		if (RealPickup != null && RealPickup.Owner != toucher)
+		{
+			RealPickup.Destroy ();
+		}
+		RealPickup = null;
+	}
+
+	override void OnDestroy ()
+	{
+		if (RealPickup != null)
+		{
+			RealPickup.Destroy ();
+			RealPickup = null;
+		}
+		Super.OnDestroy();
+	}
+}
+
+//===========================================================================
+//
+// 
+//
+//===========================================================================
+
+class FakeInventory : Inventory
+{
+	bool Respawnable;
+	
+	property respawns: Respawnable;
+
+	override bool ShouldRespawn ()
+	{
+		return Respawnable && Super.ShouldRespawn();
+	}
+
+	override bool TryPickup (in out Actor toucher)
+	{
+		let success = toucher.A_CallSpecial(special, args[0], args[1], args[2], args[3], args[4]);
+
+		if (success)
+		{
+			GoAwayAndDie ();
+			return true;
+		}
+		return false;
+	}
+
+	override void DoPickupSpecial (Actor toucher)
+	{
+		// The special was already executed by TryPickup, so do nothing here
+	}
+	
+}

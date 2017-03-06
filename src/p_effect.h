@@ -38,16 +38,6 @@
 #define FX_RESPAWNINVUL		0x00000020
 #define FX_VISIBILITYPULSE	0x00000040
 
-#define FX_FOUNTAINMASK		0x00070000
-#define FX_FOUNTAINSHIFT	16
-#define FX_REDFOUNTAIN		0x00010000
-#define FX_GREENFOUNTAIN	0x00020000
-#define FX_BLUEFOUNTAIN		0x00030000
-#define FX_YELLOWFOUNTAIN	0x00040000
-#define FX_PURPLEFOUNTAIN	0x00050000
-#define FX_BLACKFOUNTAIN	0x00060000
-#define FX_WHITEFOUNTAIN	0x00070000
-
 struct subsector_t;
 
 // [RH] Particle details
@@ -57,17 +47,17 @@ struct particle_t
 	DVector3 Pos;
 	DVector3 Vel;
 	DVector3 Acc;
-	BYTE	ttl;
-	BYTE	trans;
 	double	size;
 	double	sizestep;
+	subsector_t * subsector;
+	short	ttl;
 	BYTE	bright;
-	BYTE	fade;
+	bool	notimefreeze;
+	float	fadestep;
+	float	alpha;
 	int		color;
 	WORD	tnext;
 	WORD	snext;
-	subsector_t * subsector;
-	bool	notimefreeze;
 };
 
 extern particle_t *Particles;

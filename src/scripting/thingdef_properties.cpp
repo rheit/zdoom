@@ -46,7 +46,6 @@
 #include "templates.h"
 #include "r_defs.h"
 #include "a_pickups.h"
-#include "a_armor.h"
 #include "s_sound.h"
 #include "cmdlib.h"
 #include "p_lnspec.h"
@@ -57,7 +56,6 @@
 #include "p_effect.h"
 #include "v_palette.h"
 #include "doomerrors.h"
-#include "a_artifacts.h"
 #include "p_conversation.h"
 #include "v_text.h"
 #include "thingdef.h"
@@ -68,11 +66,10 @@
 #include "teaminfo.h"
 #include "v_video.h"
 #include "r_data/colormaps.h"
-#include "a_weaponpiece.h"
-#include "vmbuilder.h"
-#include "a_ammo.h"
-#include "a_health.h"
+#include "backend/vmbuilder.h"
 #include "a_keys.h"
+#include "g_levellocals.h"
+#include "d_player.h"
 
 //==========================================================================
 //
@@ -99,17 +96,13 @@ static PClassActor *FindClassTentative(const char *name, PClass *ancestor, bool 
 	}
 	return static_cast<PClassActor *>(cls);
 }
-static AAmmo::MetaClass *FindClassTentativeAmmo(const char *name, bool optional = false)
+static AInventory::MetaClass *FindClassTentativeAmmo(const char *name, bool optional = false)
 {
-	return static_cast<AAmmo::MetaClass *>(FindClassTentative(name, RUNTIME_CLASS(AAmmo), optional));
+	return static_cast<AInventory::MetaClass *>(FindClassTentative(name, PClass::FindActor(NAME_Ammo), optional));
 }
 static AWeapon::MetaClass *FindClassTentativeWeapon(const char *name, bool optional = false)
 {
 	return static_cast<AWeapon::MetaClass *>(FindClassTentative(name, RUNTIME_CLASS(AWeapon), optional));
-}
-static APowerup::MetaClass *FindClassTentativePowerup(const char *name, bool optional = false)
-{
-	return static_cast<APowerup::MetaClass *>(FindClassTentative(name, RUNTIME_CLASS(APowerup), optional));
 }
 static APlayerPawn::MetaClass *FindClassTentativePlayerPawn(const char *name, bool optional = false)
 {
@@ -354,6 +347,23 @@ void HandleDeprecatedFlags(AActor *defaults, PClassActor *info, bool set, int in
 		break;
 	case DEPF_INTERHUBSTRIP: // Old system was 0 or 1, so if the flag is cleared, assume 1.
 		static_cast<AInventory*>(defaults)->InterHubAmount = set ? 0 : 1;
+		break;
+	case DEPF_NOTRAIL:
+	{
+		FString propname = "@property@powerspeed.notrail";
+		FName name(propname, true);
+		if (name != NAME_None)
+		{
+			auto propp = dyn_cast<PProperty>(info->Symbols.FindSymbol(name, true));
+			if (propp != nullptr)
+			{
+				*((char*)defaults + propp->Variables[0]->Offset) = set ? 1 : 0;
+			}
+		}
+		break;
+	}
+
+
 	default:
 		break;	// silence GCC
 	}
@@ -441,9 +451,24 @@ int MatchString (const char *in, const char **strings)
 
 //==========================================================================
 //
+// Get access to scripted pointers.
+// They need a bit more work than other variables.
+//
+//==========================================================================
+
+static bool PointerCheck(PType *symtype, PType *checktype)
+{
+	auto symptype = dyn_cast<PClassPointer>(symtype);
+	auto checkptype = dyn_cast<PClassPointer>(checktype);
+	return symptype != nullptr && checkptype != nullptr && symptype->ClassRestriction->IsDescendantOf(checkptype->ClassRestriction);
+}
+
+//==========================================================================
+//
 // Info Property handlers
 //
 //==========================================================================
+
 
 //==========================================================================
 //
@@ -536,7 +561,7 @@ DEFINE_PROPERTY(skip_super, 0, Actor)
 		return;
 	}
 
-	memcpy ((void *)defaults, (void *)GetDefault<AActor>(), sizeof(AActor));
+	*defaults = *GetDefault<AActor>();
 	ResetBaggage (&bag, RUNTIME_CLASS(AActor));
 }
 
@@ -570,21 +595,10 @@ DEFINE_PROPERTY(health, I, Actor)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(gibhealth, I, Actor)
-{
-	PROP_INT_PARM(id, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->GibHealth = id;
-}
-
-//==========================================================================
-//
-//==========================================================================
 DEFINE_PROPERTY(woundhealth, I, Actor)
 {
 	PROP_INT_PARM(id, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->WoundHealth = id;
+	defaults->WoundHealth = id;
 }
 
 //==========================================================================
@@ -665,7 +679,7 @@ DEFINE_PROPERTY(damage, X, Actor)
 
 	defaults->DamageVal = dmgval;
 	// Only DECORATE can get here with a valid expression.
-	CreateDamageFunction(bag.Info, defaults, id, true, bag.Lumpnum);
+	CreateDamageFunction(bag.Namespace, bag.Version, bag.Info, defaults, id, true, bag.Lumpnum);
 }
 
 //==========================================================================
@@ -866,16 +880,6 @@ DEFINE_PROPERTY(activesound, S, Actor)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(howlsound, S, Actor)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->HowlSound = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
 DEFINE_PROPERTY(crushpainsound, S, Actor)
 {
 	PROP_STRING_PARM(str, 0);
@@ -896,7 +900,7 @@ DEFINE_PROPERTY(dropitem, S_i_i, Actor)
 		bag.DropItemList = NULL;
 	}
 
-	DDropItem *di = new DDropItem;
+	FDropItem *di = (FDropItem*)ClassDataAllocator.Alloc(sizeof(FDropItem));
 
 	di->Name = type;
 	di->Probability = 255;
@@ -914,7 +918,6 @@ DEFINE_PROPERTY(dropitem, S_i_i, Actor)
 	}
 	di->Next = bag.DropItemList;
 	bag.DropItemList = di;
-	GC::WriteBarrier(di);
 }
 
 //==========================================================================
@@ -960,75 +963,6 @@ DEFINE_PROPERTY(alpha, F, Actor)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(obituary, S, Actor)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->Obituary = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(hitobituary, S, Actor)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->HitObituary = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(donthurtshooter, 0, Actor)
-{
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->DontHurtShooter = true;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(explosionradius, I, Actor)
-{
-	PROP_INT_PARM(id, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->ExplosionRadius = id;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(explosiondamage, I, Actor)
-{
-	PROP_INT_PARM(id, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->ExplosionDamage = id;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(deathheight, F, Actor)
-{
-	PROP_DOUBLE_PARM(h, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->DeathHeight = MAX(0., h);
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(burnheight, F, Actor)
-{
-	PROP_DOUBLE_PARM(h, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->BurnHeight = MAX(0., h);
-}
-
-//==========================================================================
-//
-//==========================================================================
 DEFINE_PROPERTY(maxtargetrange, F, Actor)
 {
 	PROP_DOUBLE_PARM(id, 0);
@@ -1047,50 +981,10 @@ DEFINE_PROPERTY(meleethreshold, F, Actor)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(meleedamage, I, Actor)
-{
-	PROP_INT_PARM(id, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->MeleeDamage = id;
-}
-
-//==========================================================================
-//
-//==========================================================================
 DEFINE_PROPERTY(meleerange, F, Actor)
 {
 	PROP_DOUBLE_PARM(id, 0);
 	defaults->meleerange = id;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(meleesound, S, Actor)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->MeleeSound = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(missiletype, S, Actor)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->MissileName = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_PROPERTY(missileheight, F, Actor)
-{
-	PROP_DOUBLE_PARM(id, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->MissileHeight = id;
 }
 
 //==========================================================================
@@ -1159,12 +1053,10 @@ DEFINE_PROPERTY(bloodcolor, C, Actor)
 {
 	PROP_COLOR_PARM(color, 0);
 
-	PalEntry pe = color;
-	pe.a = CreateBloodTranslation(pe);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->BloodColor = pe;
+	defaults->BloodColor = color;
+	defaults->BloodColor.a = 255;	// a should not be 0.
+	defaults->BloodTranslation = TRANSLATION(TRANSLATION_Blood,  CreateBloodTranslation(color));
 }
-
 
 //==========================================================================
 //
@@ -1175,26 +1067,23 @@ DEFINE_PROPERTY(bloodtype, Sss, Actor)
 	PROP_STRING_PARM(str1, 1)
 	PROP_STRING_PARM(str2, 2)
 
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	PClassActor *ainfo = static_cast<PClassActor *>(info);
-
 	FName blood = str;
 	// normal blood
-	ainfo->BloodType = blood;
+	defaults->NameVar("BloodType") = blood;
 
 	if (PROP_PARM_COUNT > 1)
 	{
 		blood = str1;
 	}
 	// blood splatter
-	ainfo->BloodType2 = blood;
+	defaults->NameVar("BloodType2") = blood;
 
 	if (PROP_PARM_COUNT > 2)
 	{
 		blood = str2;
 	}
 	// axe blood
-	ainfo->BloodType3 = blood;
+	defaults->NameVar("BloodType3") = blood;
 }
 
 //==========================================================================
@@ -1216,11 +1105,6 @@ DEFINE_PROPERTY(bouncetype, S, Actor)
 	}
 	defaults->BounceFlags &= ~(BOUNCE_TypeMask | BOUNCE_UseSeeSound);
 	defaults->BounceFlags |= flags[match];
-	if (defaults->BounceFlags & (BOUNCE_Actors | BOUNCE_AllActors))
-	{
-		// PASSMOBJ is irrelevant for normal missiles, but not for bouncers.
-		defaults->flags2 |= MF2_PASSMOBJ;
-	}
 }
 
 //==========================================================================
@@ -1394,21 +1278,28 @@ DEFINE_PROPERTY(poisondamagetype, S, Actor)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(fastspeed, F, Actor)
+DEFINE_PROPERTY(radiusdamagefactor, F, Actor)
 {
 	PROP_DOUBLE_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->FastSpeed = i;
+	defaults->RadiusDamageFactor = i;
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_PROPERTY(radiusdamagefactor, F, Actor)
+DEFINE_PROPERTY(selfdamagefactor, F, Actor)
 {
 	PROP_DOUBLE_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->RDFactor = i;
+	defaults->SelfDamageFactor = i;
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_PROPERTY(stealthalpha, F, Actor)
+{
+	PROP_DOUBLE_PARM(i, 0);
+	defaults->StealthAlpha = i;
 }
 
 //==========================================================================
@@ -1417,8 +1308,7 @@ DEFINE_PROPERTY(radiusdamagefactor, F, Actor)
 DEFINE_PROPERTY(cameraheight, F, Actor)
 {
 	PROP_DOUBLE_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassActor)));
-	static_cast<PClassActor *>(info)->CameraHeight = i;
+	defaults->CameraHeight = i;
 }
 
 //==========================================================================
@@ -1680,12 +1570,12 @@ DEFINE_PROPERTY(distancecheck, S, Actor)
 //==========================================================================
 DEFINE_CLASS_PROPERTY(restrictedto, Ssssssssssssssssssss, Inventory)
 {
-	static_cast<PClassInventory*>(info)->RestrictedToPlayerClass.Clear();
+	static_cast<PClassActor*>(info)->RestrictedToPlayerClass.Clear();
 	for(int i = 0;i < PROP_PARM_COUNT;++i)
 	{
 		PROP_STRING_PARM(n, i);
 		if (*n != 0)
-			static_cast<PClassInventory*>(info)->RestrictedToPlayerClass.Push(FindClassTentativePlayerPawn(n));
+			static_cast<PClassActor*>(info)->RestrictedToPlayerClass.Push(FindClassTentativePlayerPawn(n));
 	}
 }
 
@@ -1694,156 +1584,12 @@ DEFINE_CLASS_PROPERTY(restrictedto, Ssssssssssssssssssss, Inventory)
 //==========================================================================
 DEFINE_CLASS_PROPERTY(forbiddento, Ssssssssssssssssssss, Inventory)
 {
-	static_cast<PClassInventory*>(info)->ForbiddenToPlayerClass.Clear();
+	static_cast<PClassActor*>(info)->ForbiddenToPlayerClass.Clear();
 	for(int i = 0;i < PROP_PARM_COUNT;++i)
 	{
 		PROP_STRING_PARM(n, i);
 		if (*n != 0)
-			static_cast<PClassInventory*>(info)->ForbiddenToPlayerClass.Push(FindClassTentativePlayerPawn(n));
-	}
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(backpackamount, I, Ammo)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->BackpackAmount = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(backpackmaxamount, I, Ammo)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->BackpackMaxAmount = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(dropamount, I, Ammo)
-{
-	PROP_INT_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassAmmo)));
-	static_cast<PClassAmmo *>(info)->DropAmount = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY_PREFIX(armor, maxsaveamount, I, BasicArmorBonus)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->MaxSaveAmount = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY_PREFIX(armor, maxbonus, I, BasicArmorBonus)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->BonusCount = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY_PREFIX(armor, maxbonusmax, I, BasicArmorBonus)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->BonusMax = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(saveamount, I, Armor)
-{
-	PROP_INT_PARM(i, 0);
-
-	// Special case here because this property has to work for 2 unrelated classes
-	if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorPickup)))
-	{
-		((ABasicArmorPickup*)defaults)->SaveAmount=i;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorBonus)))
-	{
-		((ABasicArmorBonus*)defaults)->SaveAmount=i;
-	}
-	else
-	{
-		I_Error("\"Armor.SaveAmount\" requires an actor of type \"Armor\"");
-	}
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(savepercent, F, Armor)
-{
-	PROP_DOUBLE_PARM(i, 0);
-
-	i = clamp(i, 0., 100.)/100.;
-	// Special case here because this property has to work for 2 unrelated classes
-	if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorPickup)))
-	{
-		((ABasicArmorPickup*)defaults)->SavePercent = i;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorBonus)))
-	{
-		((ABasicArmorBonus*)defaults)->SavePercent = i;
-	}
-	else
-	{
-		I_Error("\"Armor.SavePercent\" requires an actor of type \"Armor\"\n");
-	}
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(maxabsorb, I, Armor)
-{
-	PROP_INT_PARM(i, 0);
-
-	// Special case here because this property has to work for 2 unrelated classes
-	if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorPickup)))
-	{
-		((ABasicArmorPickup*)defaults)->MaxAbsorb = i;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorBonus)))
-	{
-		((ABasicArmorBonus*)defaults)->MaxAbsorb = i;
-	}
-	else
-	{
-		I_Error("\"Armor.MaxAbsorb\" requires an actor of type \"Armor\"\n");
-	}
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(maxfullabsorb, I, Armor)
-{
-	PROP_INT_PARM(i, 0);
-
-	// Special case here because this property has to work for 2 unrelated classes
-	if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorPickup)))
-	{
-		((ABasicArmorPickup*)defaults)->MaxFullAbsorb = i;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(ABasicArmorBonus)))
-	{
-		((ABasicArmorBonus*)defaults)->MaxFullAbsorb = i;
-	}
-	else
-	{
-		I_Error("\"Armor.MaxFullAbsorb\" requires an actor of type \"Armor\"\n");
+			static_cast<PClassActor*>(info)->ForbiddenToPlayerClass.Push(FindClassTentativePlayerPawn(n));
 	}
 }
 
@@ -1859,29 +1605,45 @@ DEFINE_CLASS_PROPERTY(amount, I, Inventory)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(icon, S, Inventory)
+static void SetIcon(FTextureID &icon, Baggage &bag, const char *i)
 {
-	PROP_STRING_PARM(i, 0);
-
 	if (i == NULL || i[0] == '\0')
 	{
-		defaults->Icon.SetNull();
+		icon.SetNull();
 	}
 	else
 	{
-		defaults->Icon = TexMan.CheckForTexture(i, FTexture::TEX_MiscPatch);
-		if (!defaults->Icon.isValid())
+		icon = TexMan.CheckForTexture(i, FTexture::TEX_MiscPatch);
+		if (!icon.isValid())
 		{
 			// Don't print warnings if the item is for another game or if this is a shareware IWAD. 
 			// Strife's teaser doesn't contain all the icon graphics of the full game.
-			if ((info->GameFilter == GAME_Any || info->GameFilter & gameinfo.gametype) &&
+			if ((bag.Info->GameFilter == GAME_Any || bag.Info->GameFilter & gameinfo.gametype) &&
 				!(gameinfo.flags&GI_SHAREWARE) && Wads.GetLumpFile(bag.Lumpnum) != 0)
 			{
 				bag.ScriptPosition.Message(MSG_WARNING,
-					"Icon '%s' for '%s' not found\n", i, info->TypeName.GetChars());
+					"Icon '%s' for '%s' not found\n", i, bag.Info->TypeName.GetChars());
 			}
 		}
 	}
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_CLASS_PROPERTY(icon, S, Inventory)
+{
+	PROP_STRING_PARM(i, 0);
+	SetIcon(defaults->Icon, bag, i);
+}
+
+//==========================================================================
+//
+//==========================================================================
+DEFINE_CLASS_PROPERTY(althudicon, S, Inventory)
+{
+	PROP_STRING_PARM(i, 0);
+	SetIcon(defaults->AltHUDIcon, bag, i);
 }
 
 //==========================================================================
@@ -1923,16 +1685,6 @@ DEFINE_CLASS_PROPERTY(pickupflash, S, Inventory)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(pickupmessage, T, Inventory)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassInventory)));
-	static_cast<PClassInventory *>(info)->PickupMessage = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
 DEFINE_CLASS_PROPERTY(pickupsound, S, Inventory)
 {
 	PROP_STRING_PARM(str, 0);
@@ -1962,56 +1714,6 @@ DEFINE_CLASS_PROPERTY(usesound, S, Inventory)
 {
 	PROP_STRING_PARM(str, 0);
 	defaults->UseSound = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(givequest, I, Inventory)
-{
-	PROP_INT_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassInventory)));
-	static_cast<PClassInventory *>(info)->GiveQuest = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(lowmessage, IT, Health)
-{
-	PROP_INT_PARM(i, 0);
-	PROP_STRING_PARM(str, 1);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassHealth)));
-	static_cast<PClassHealth *>(info)->LowHealth = i;
-	static_cast<PClassHealth *>(info)->LowHealthMessage = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(autouse, I, HealthPickup)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->autousemode = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(number, I, PuzzleItem)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->PuzzleItemNumber = i;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(failmessage, T, PuzzleItem)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPuzzleItem)));
-	static_cast<PClassPuzzleItem *>(info)->PuzzFailMessage = str;
 }
 
 //==========================================================================
@@ -2230,8 +1932,7 @@ DEFINE_CLASS_PROPERTY(bobrangey, F, Weapon)
 DEFINE_CLASS_PROPERTY(slotnumber, I, Weapon)
 {
 	PROP_INT_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassWeapon)));
-	static_cast<PClassWeapon *>(info)->SlotNumber = i;
+	defaults->SlotNumber = i;
 }
 
 //==========================================================================
@@ -2240,8 +1941,7 @@ DEFINE_CLASS_PROPERTY(slotnumber, I, Weapon)
 DEFINE_CLASS_PROPERTY(slotpriority, F, Weapon)
 {
 	PROP_DOUBLE_PARM(i, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassWeapon)));
-	static_cast<PClassWeapon *>(info)->SlotPriority = int(i*65536);
+	defaults->SlotPriority = int(i*65536);
 }
 
 //==========================================================================
@@ -2256,24 +1956,6 @@ DEFINE_CLASS_PROPERTY(preferredskin, S, Weapon)
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(number, I, WeaponPiece)
-{
-	PROP_INT_PARM(i, 0);
-	defaults->PieceValue = 1 << (i-1);
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY(weapon, S, WeaponPiece)
-{
-	PROP_STRING_PARM(str, 0);
-	defaults->WeaponClass = FindClassTentativeWeapon(str);
-}
-
-//==========================================================================
-//
-//==========================================================================
 DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 {
 	static const char *specialcolormapnames[] = {
@@ -2281,14 +1963,11 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 
 	int alpha;
 	PalEntry *pBlendColor;
+	bool isgiver = info->IsDescendantOf(NAME_PowerupGiver);
 
-	if (info->IsDescendantOf(RUNTIME_CLASS(APowerup)))
+	if (info->IsDescendantOf(NAME_Powerup) || isgiver)
 	{
-		pBlendColor = &((APowerup*)defaults)->BlendColor;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
-	{
-		pBlendColor = &((APowerupGiver*)defaults)->BlendColor;
+		pBlendColor = &defaults->ColorVar(NAME_BlendColor);
 	}
 	else
 	{
@@ -2310,7 +1989,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 			*pBlendColor = MakeSpecialColormap(v);
 			return;
 		}
-		else if (!stricmp(name, "none") && info->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
+		else if (!stricmp(name, "none") && isgiver)
 		{
 			*pBlendColor = MakeSpecialColormap(65535);
 			return;
@@ -2334,17 +2013,9 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, color, C_f, Inventory)
 //==========================================================================
 DEFINE_CLASS_PROPERTY_PREFIX(powerup, colormap, FFFfff, Inventory)
 {
-	PalEntry * pBlendColor;
+	PalEntry BlendColor;
 
-	if (info->IsDescendantOf(RUNTIME_CLASS(APowerup)))
-	{
-		pBlendColor = &((APowerup*)defaults)->BlendColor;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
-	{
-		pBlendColor = &((APowerupGiver*)defaults)->BlendColor;
-	}
-	else
+	if (!info->IsDescendantOf(NAME_Powerup) && !info->IsDescendantOf(NAME_PowerupGiver))
 	{
 		I_Error("\"powerup.colormap\" requires an actor of type \"Powerup\"\n");
 		return;
@@ -2355,7 +2026,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, colormap, FFFfff, Inventory)
 		PROP_FLOAT_PARM(r, 0);
 		PROP_FLOAT_PARM(g, 1);
 		PROP_FLOAT_PARM(b, 2);
-		*pBlendColor = MakeSpecialColormap(AddSpecialColormap(0, 0, 0, r, g, b));
+		BlendColor = MakeSpecialColormap(AddSpecialColormap(0, 0, 0, r, g, b));
 	}
 	else if (PROP_PARM_COUNT == 6)
 	{
@@ -2365,12 +2036,13 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, colormap, FFFfff, Inventory)
 		PROP_FLOAT_PARM(r2, 3);
 		PROP_FLOAT_PARM(g2, 4);
 		PROP_FLOAT_PARM(b2, 5);
-		*pBlendColor = MakeSpecialColormap(AddSpecialColormap(r1, g1, b1, r2, g2, b2));
+		BlendColor = MakeSpecialColormap(AddSpecialColormap(r1, g1, b1, r2, g2, b2));
 	}
 	else
 	{
 		I_Error("\"power.colormap\" must have either 3 or 6 parameters\n");
 	}
+	defaults->ColorVar(NAME_BlendColor) = BlendColor;
 }
 
 //==========================================================================
@@ -2378,24 +2050,14 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, colormap, FFFfff, Inventory)
 //==========================================================================
 DEFINE_CLASS_PROPERTY_PREFIX(powerup, duration, I, Inventory)
 {
-	int *pEffectTics;
-
-	if (info->IsDescendantOf(RUNTIME_CLASS(APowerup)))
-	{
-		pEffectTics = &((APowerup*)defaults)->EffectTics;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
-	{
-		pEffectTics = &((APowerupGiver*)defaults)->EffectTics;
-	}
-	else
+	if (!info->IsDescendantOf(NAME_Powerup) && !info->IsDescendantOf(NAME_PowerupGiver))
 	{
 		I_Error("\"powerup.duration\" requires an actor of type \"Powerup\"\n");
 		return;
 	}
 
 	PROP_INT_PARM(i, 0);
-	*pEffectTics = (i >= 0) ? i : -i * TICRATE;
+	defaults->IntVar(NAME_EffectTics) = (i >= 0) ? i : -i * TICRATE;
 }
 
 //==========================================================================
@@ -2403,23 +2065,13 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, duration, I, Inventory)
 //==========================================================================
 DEFINE_CLASS_PROPERTY_PREFIX(powerup, strength, F, Inventory)
 {
-	double *pStrength;
-
-	if (info->IsDescendantOf(RUNTIME_CLASS(APowerup)))
-	{
-		pStrength = &((APowerup*)defaults)->Strength;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
-	{
-		pStrength = &((APowerupGiver*)defaults)->Strength;
-	}
-	else
+	if (!info->IsDescendantOf(NAME_Powerup) && !info->IsDescendantOf(NAME_PowerupGiver))
 	{
 		I_Error("\"powerup.strength\" requires an actor of type \"Powerup\"\n");
 		return;
 	}
 	PROP_DOUBLE_PARM(f, 0);
-	*pStrength = f;
+	defaults->FloatVar(NAME_Strength) = f;
 }
 
 //==========================================================================
@@ -2428,48 +2080,40 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, strength, F, Inventory)
 DEFINE_CLASS_PROPERTY_PREFIX(powerup, mode, S, Inventory)
 {
 	PROP_STRING_PARM(str, 0);
-	FName *pMode;
-	if (info->IsDescendantOf(RUNTIME_CLASS(APowerup)))
-	{
-		pMode = &((APowerup*)defaults)->Mode;
-	}
-	else if (info->IsDescendantOf(RUNTIME_CLASS(APowerupGiver)))
-	{
-		pMode = &((APowerupGiver*)defaults)->Mode;
-	}
-	else
+
+	if (!info->IsDescendantOf(NAME_Powerup) && !info->IsDescendantOf(NAME_PowerupGiver))
 	{
 		I_Error("\"powerup.mode\" requires an actor of type \"Powerup\"\n");
 		return;
 	}
-	*pMode = (FName)str;
+	defaults->NameVar(NAME_Mode) = (FName)str;
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY_PREFIX(powerup, type, S, PowerupGiver)
+DEFINE_SCRIPTED_PROPERTY_PREFIX(powerup, type, S, PowerupGiver)
 {
 	PROP_STRING_PARM(str, 0);
 
 	// Yuck! What was I thinking when I decided to prepend "Power" to the name? 
 	// Now it's too late to change it...
 	PClassActor *cls = PClass::FindActor(str);
-	if (cls == nullptr || !cls->IsDescendantOf(RUNTIME_CLASS(APowerup)))
+	auto pow = PClass::FindActor(NAME_Powerup);
+	if (cls == nullptr || !cls->IsDescendantOf(pow))
 	{
 		if (bag.fromDecorate)
 		{
 			FString st;
 			st.Format("%s%s", strnicmp(str, "power", 5) ? "Power" : "", str);
-			cls = FindClassTentativePowerup(st);
+			cls = FindClassTentative(st, pow);
 		}
 		else
 		{
 			I_Error("Unknown powerup type %s", str);
 		}
 	}
-
-	defaults->PowerupType = cls;
+	defaults->PointerVar<PClassActor>(NAME_PowerupType) = cls;
 }
 
 //==========================================================================
@@ -2484,8 +2128,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(powerup, type, S, PowerupGiver)
 DEFINE_CLASS_PROPERTY_PREFIX(player, displayname, S, PlayerPawn)
 {
 	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	static_cast<PClassPlayerPawn *>(info)->DisplayName = str;
+	info->DisplayName = str;
 }
 
 //==========================================================================
@@ -2497,8 +2140,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, soundclass, S, PlayerPawn)
 
 	FString tmp = str;
 	tmp.ReplaceChars (' ', '_');
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	static_cast<PClassPlayerPawn *>(info)->SoundClass = tmp;
+	defaults->SoundClass = tmp.IsNotEmpty()? FName(tmp) : NAME_None;
 }
 
 //==========================================================================
@@ -2509,21 +2151,23 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, face, S, PlayerPawn)
 	PROP_STRING_PARM(str, 0);
 	FString tmp = str;
 
-	tmp.ToUpper();
-	bool valid = (tmp.Len() == 3 &&
-		(((tmp[0] >= 'A') && (tmp[0] <= 'Z')) || ((tmp[0] >= '0') && (tmp[0] <= '9'))) &&
-		(((tmp[1] >= 'A') && (tmp[1] <= 'Z')) || ((tmp[1] >= '0') && (tmp[1] <= '9'))) &&
-		(((tmp[2] >= 'A') && (tmp[2] <= 'Z')) || ((tmp[2] >= '0') && (tmp[2] <= '9')))
-		);
-	if (!valid)
+	if (tmp.Len() == 0) defaults->Face = NAME_None;
+	else
 	{
-		bag.ScriptPosition.Message(MSG_OPTERROR,
-			"Invalid face '%s' for '%s';\nSTF replacement codes must be 3 alphanumeric characters.\n",
-			tmp.GetChars(), info->TypeName.GetChars ());
+		tmp.ToUpper();
+		bool valid = (tmp.Len() == 3 &&
+			(((tmp[0] >= 'A') && (tmp[0] <= 'Z')) || ((tmp[0] >= '0') && (tmp[0] <= '9'))) &&
+			(((tmp[1] >= 'A') && (tmp[1] <= 'Z')) || ((tmp[1] >= '0') && (tmp[1] <= '9'))) &&
+			(((tmp[2] >= 'A') && (tmp[2] <= 'Z')) || ((tmp[2] >= '0') && (tmp[2] <= '9')))
+			);
+		if (!valid)
+		{
+			bag.ScriptPosition.Message(MSG_OPTERROR,
+				"Invalid face '%s' for '%s';\nSTF replacement codes must be 3 alphanumeric characters.\n",
+				tmp.GetChars(), info->TypeName.GetChars());
+		}
+		defaults->Face = tmp;
 	}
-	
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	static_cast<PClassPlayerPawn *>(info)->Face = tmp;
 }
 
 //==========================================================================
@@ -2537,9 +2181,8 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, colorrange, I_I, PlayerPawn)
 	if (start > end)
 		swapvalues (start, end);
 
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	static_cast<PClassPlayerPawn *>(info)->ColorRangeStart = start;
-	static_cast<PClassPlayerPawn *>(info)->ColorRangeEnd = end;
+	defaults->ColorRangeStart = start;
+	defaults->ColorRangeEnd = end;
 }
 
 //==========================================================================
@@ -2594,8 +2237,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, colorset, ISIIIiiiiiiiiiiiiiiiiiiiiiiii, Pl
 	}
 	else
 	{
-		assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-		static_cast<PClassPlayerPawn *>(info)->ColorSets.Insert(setnum, color);
+		ColorSets.Push(std::make_tuple(info, setnum, color));
 	}
 }
 
@@ -2621,8 +2263,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, colorsetfile, ISSI, PlayerPawn)
 	}
 	else if (color.Lump >= 0)
 	{
-		assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-		static_cast<PClassPlayerPawn *>(info)->ColorSets.Insert(setnum, color);
+		ColorSets.Push(std::make_tuple(info, setnum, color));
 	}
 }
 
@@ -2639,8 +2280,9 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, clearcolorset, I, PlayerPawn)
 	}
 	else
 	{
-		assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-		static_cast<PClassPlayerPawn *>(info)->ColorSets.Remove(setnum);
+		FPlayerColorSet color;
+		memset(&color, 0, sizeof(color));
+		ColorSets.Push(std::make_tuple(info, setnum, color));
 	}
 }
 
@@ -2874,8 +2516,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, damagescreencolor, Cfs, PlayerPawn)
 		PROP_STRING_PARM(type, 3);
 
 		color.a = BYTE(255 * clamp<double>(a, 0.f, 1.f));
-		assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-		static_cast<PClassPlayerPawn *>(info)->PainFlashes.Insert(type, color);
+		PainFlashes.Push(std::make_tuple(info, type, color));
 	}
 }
 
@@ -2895,7 +2536,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, startitem, S_i, PlayerPawn)
 		bag.DropItemList = NULL;
 	}
 
-	DDropItem *di = new DDropItem;
+	FDropItem *di = (FDropItem*)ClassDataAllocator.Alloc(sizeof(FDropItem));
 
 	di->Name = str;
 	di->Probability = 255;
@@ -2907,27 +2548,6 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, startitem, S_i, PlayerPawn)
 	}
 	di->Next = bag.DropItemList;
 	bag.DropItemList = di;
-	GC::WriteBarrier(di);
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY_PREFIX(player, invulnerabilitymode, S, PlayerPawn)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	static_cast<PClassPlayerPawn *>(info)->InvulMode = str;
-}
-
-//==========================================================================
-//
-//==========================================================================
-DEFINE_CLASS_PROPERTY_PREFIX(player, healradiustype, S, PlayerPawn)
-{
-	PROP_STRING_PARM(str, 0);
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	static_cast<PClassPlayerPawn *>(info)->HealingRadiusType = str;
 }
 
 //==========================================================================
@@ -2935,11 +2555,10 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, healradiustype, S, PlayerPawn)
 //==========================================================================
 DEFINE_CLASS_PROPERTY_PREFIX(player, hexenarmor, FFFFF, PlayerPawn)
 {
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
 	for (int i = 0; i < 5; i++)
 	{
 		PROP_DOUBLE_PARM(val, i);
-		static_cast<PClassPlayerPawn *>(info)->HexenArmor[i] = val;
+		defaults->HexenArmor[i] = val;
 	}
 }
 
@@ -2948,9 +2567,8 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, hexenarmor, FFFFF, PlayerPawn)
 //==========================================================================
 DEFINE_CLASS_PROPERTY_PREFIX(player, portrait, S, PlayerPawn)
 {
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
 	PROP_STRING_PARM(val, 0);
-	static_cast<PClassPlayerPawn *>(info)->Portrait = val;
+	defaults->Portrait = val;
 }
 
 //==========================================================================
@@ -2960,7 +2578,6 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, weaponslot, ISsssssssssssssssssssssssssssss
 {
 	PROP_INT_PARM(slot, 0);
 
-	assert(info->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
 	if (slot < 0 || slot > 9)
 	{
 		I_Error("Slot must be between 0 and 9.");
@@ -2974,7 +2591,7 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, weaponslot, ISsssssssssssssssssssssssssssss
 			PROP_STRING_PARM(str, i);
 			weapons << ' ' << str;
 		}
-		static_cast<PClassPlayerPawn *>(info)->Slot[slot] = &weapons[1];
+		defaults->Slot[slot] = weapons.IsEmpty()? NAME_None : FName(weapons);
 	}
 }
 
@@ -3001,91 +2618,91 @@ DEFINE_CLASS_PROPERTY_PREFIX(player, viewbob, F, PlayerPawn)
 //==========================================================================
 // (non-fatal with non-existent types only in DECORATE)
 //==========================================================================
-DEFINE_CLASS_PROPERTY(playerclass, S, MorphProjectile)
+DEFINE_SCRIPTED_PROPERTY(playerclass, S, MorphProjectile)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->PlayerClass = FindClassTentativePlayerPawn(str, bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_PlayerClass) = FindClassTentativePlayerPawn(str, bag.fromDecorate);
 }
 
 //==========================================================================
 // (non-fatal with non-existent types only in DECORATE)
 //==========================================================================
-DEFINE_CLASS_PROPERTY(monsterclass, S, MorphProjectile)
+DEFINE_SCRIPTED_PROPERTY(monsterclass, S, MorphProjectile)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->MonsterClass = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_MonsterClass) = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(duration, I, MorphProjectile)
+DEFINE_SCRIPTED_PROPERTY(duration, I, MorphProjectile)
 {
 	PROP_INT_PARM(i, 0);
-	defaults->Duration = i >= 0 ? i : -i*TICRATE;
+	defaults->IntVar(NAME_Duration) = i >= 0 ? i : -i*TICRATE;
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(morphstyle, M, MorphProjectile)
+DEFINE_SCRIPTED_PROPERTY(morphstyle, M, MorphProjectile)
 {
 	PROP_INT_PARM(i, 0);
-	defaults->MorphStyle = i;
+	defaults->IntVar(NAME_MorphStyle) = i;
 }
 
 //==========================================================================
 // (non-fatal with non-existent types only in DECORATE)
 //==========================================================================
-DEFINE_CLASS_PROPERTY(morphflash, S, MorphProjectile)
+DEFINE_SCRIPTED_PROPERTY(morphflash, S, MorphProjectile)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->MorphFlash = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_MorphFlash) = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(unmorphflash, S, MorphProjectile)
+DEFINE_SCRIPTED_PROPERTY(unmorphflash, S, MorphProjectile)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->UnMorphFlash = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_UnMorphFlash) = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
 }
 
 //==========================================================================
 // (non-fatal with non-existent types only in DECORATE)
 //==========================================================================
-DEFINE_CLASS_PROPERTY(playerclass, S, PowerMorph)
+DEFINE_SCRIPTED_PROPERTY(playerclass, S, PowerMorph)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->PlayerClass = FindClassTentativePlayerPawn(str, bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_PlayerClass) = FindClassTentativePlayerPawn(str, bag.fromDecorate);
 }
 
 //==========================================================================
 //
 //==========================================================================
-DEFINE_CLASS_PROPERTY(morphstyle, M, PowerMorph)
+DEFINE_SCRIPTED_PROPERTY(morphstyle, M, PowerMorph)
 {
 	PROP_INT_PARM(i, 0);
-	defaults->MorphStyle = i;
+	defaults->IntVar(NAME_MorphStyle) = i;
 }
 
 //==========================================================================
 // (non-fatal with non-existent types only in DECORATE)
 //==========================================================================
-DEFINE_CLASS_PROPERTY(morphflash, S, PowerMorph)
+DEFINE_SCRIPTED_PROPERTY(morphflash, S, PowerMorph)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->MorphFlash = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_MorphFlash) = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
 }
 
 //==========================================================================
 // (non-fatal with non-existent types only in DECORATE)
 //==========================================================================
-DEFINE_CLASS_PROPERTY(unmorphflash, S, PowerMorph)
+DEFINE_SCRIPTED_PROPERTY(unmorphflash, S, PowerMorph)
 {
 	PROP_STRING_PARM(str, 0);
-	defaults->UnMorphFlash = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
+	defaults->PointerVar<PClassActor>(NAME_UnMorphFlash) = FindClassTentative(str, RUNTIME_CLASS(AActor), bag.fromDecorate);
 }
 
 

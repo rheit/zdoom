@@ -368,15 +368,15 @@ FString &FString::CopyCStrPart(const char *tail, size_t tailLen)
 	return *this;
 }
 
-void FString::Truncate(long newlen)
+void FString::Truncate(size_t newlen)
 {
-	if (newlen <= 0)
+	if (newlen == 0)
 	{
 		Data()->Release();
 		NullString.RefCount++;
 		Chars = &NullString.Nothing[0];
 	}
-	else if (newlen < (long)Len())
+	else if (newlen < Len())
 	{
 		ReallocBuffer (newlen);
 		Chars[newlen] = '\0';
@@ -393,7 +393,6 @@ void FString::Remove(size_t index, size_t remlen)
 		}
 		else
 		{
-			remlen = Len() - remlen < remlen ? Len() - remlen : remlen;
 			if (Data()->RefCount == 1)
 			{ // Can do this in place
 				memmove(Chars + index, Chars + index + remlen, Len() - index - remlen);
@@ -696,7 +695,7 @@ void FString::StripRight ()
 {
 	size_t max = Len(), i;
 	if (max == 0) return;
-	for (i = --max; i-- > 0; )
+	for (i = --max; i > 0; i--)
 	{
 		if (!isspace((unsigned char)Chars[i]))
 			break;
@@ -728,7 +727,7 @@ void FString::StripRight (const char *charset)
 {
 	size_t max = Len(), i;
 	if (max == 0) return;
-	for (i = --max; i-- > 0; )
+	for (i = --max; i > 0; i--)
 	{
 		if (!strchr (charset, Chars[i]))
 			break;
@@ -1104,12 +1103,12 @@ digits		= [0-9];
 
 long FString::ToLong (int base) const
 {
-	return strtol (Chars, NULL, base);
+	return (long)strtoll (Chars, NULL, base);
 }
 
 unsigned long FString::ToULong (int base) const
 {
-	return strtoul (Chars, NULL, base);
+	return (unsigned long)strtoull (Chars, NULL, base);
 }
 
 double FString::ToDouble () const

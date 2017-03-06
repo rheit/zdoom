@@ -94,6 +94,7 @@ The FON2 header is followed by variable length data:
 #include "r_data/r_translate.h"
 #include "colormatcher.h"
 #include "v_palette.h"
+#include "v_text.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -162,7 +163,7 @@ protected:
 class FSpecialFont : public FFont
 {
 public:
-	FSpecialFont (const char *name, int first, int count, FTexture **lumplist, const bool *notranslate, int lump);
+	FSpecialFont (const char *name, int first, int count, FTexture **lumplist, const bool *notranslate, int lump, bool donttranslate);
 
 	void LoadTranslations();
 
@@ -340,6 +341,14 @@ FFont *V_GetFont(const char *name)
 	return font;
 }
 
+DEFINE_ACTION_FUNCTION(FFont, GetFont)
+{
+	PARAM_PROLOGUE;
+	PARAM_NAME(name);
+	ACTION_RETURN_POINTER(V_GetFont(name.GetChars()));
+}
+
+
 //==========================================================================
 //
 // FFont :: FFont
@@ -348,7 +357,7 @@ FFont *V_GetFont(const char *name)
 //
 //==========================================================================
 
-FFont::FFont (const char *name, const char *nametemplate, int first, int count, int start, int fdlump, int spacewidth)
+FFont::FFont (const char *name, const char *nametemplate, int first, int count, int start, int fdlump, int spacewidth, bool notranslate)
 {
 	int i;
 	FTextureID lump;
@@ -358,6 +367,7 @@ FFont::FFont (const char *name, const char *nametemplate, int first, int count, 
 	bool doomtemplate = gameinfo.gametype & GAME_DoomChex ? strncmp (nametemplate, "STCFN", 5) == 0 : false;
 	bool stcfn121 = false;
 
+	noTranslate = notranslate;
 	Lump = fdlump;
 	Chars = new CharData[count];
 	charlumps = new FTexture *[count];
@@ -366,7 +376,7 @@ FFont::FFont (const char *name, const char *nametemplate, int first, int count, 
 	LastChar = first + count - 1;
 	FontHeight = 0;
 	GlobalKerning = false;
-	Name = copystring (name);
+	FontName = name;
 	Next = FirstFont;
 	FirstFont = this;
 	Cursor = '_';
@@ -421,7 +431,8 @@ FFont::FFont (const char *name, const char *nametemplate, int first, int count, 
 
 		if (charlumps[i] != NULL)
 		{
-			Chars[i].Pic = new FFontChar1 (charlumps[i]);
+			if (!noTranslate) Chars[i].Pic = new FFontChar1 (charlumps[i]);
+			else Chars[i].Pic = charlumps[i];
 			Chars[i].XMove = Chars[i].Pic->GetScaledWidth();
 		}
 		else
@@ -446,7 +457,7 @@ FFont::FFont (const char *name, const char *nametemplate, int first, int count, 
 
 	FixXMoves();
 
-	LoadTranslations();
+	if (!noTranslate) LoadTranslations();
 
 	delete[] charlumps;
 }
@@ -463,11 +474,15 @@ FFont::~FFont ()
 	{
 		int count = LastChar - FirstChar + 1;
 
-		for (int i = 0; i < count; ++i)
+		// A noTranslate font directly references the original textures.
+		if (!noTranslate)
 		{
-			if (Chars[i].Pic != NULL && Chars[i].Pic->Name[0] == 0)
+			for (int i = 0; i < count; ++i)
 			{
-				delete Chars[i].Pic;
+				if (Chars[i].Pic != NULL && Chars[i].Pic->Name[0] == 0)
+				{
+					delete Chars[i].Pic;
+				}
 			}
 		}
 		delete[] Chars;
@@ -477,11 +492,6 @@ FFont::~FFont ()
 	{
 		delete[] PatchRemap;
 		PatchRemap = NULL;
-	}
-	if (Name)
-	{
-		delete[] Name;
-		Name = NULL;
 	}
 
 	FFont **prev = &FirstFont;
@@ -508,21 +518,27 @@ FFont::~FFont ()
 //
 //==========================================================================
 
-FFont *FFont::FindFont (const char *name)
+FFont *FFont::FindFont (FName name)
 {
-	if (name == NULL)
+	if (name == NAME_None)
 	{
-		return NULL;
+		return nullptr;
 	}
 	FFont *font = FirstFont;
 
-	while (font != NULL)
+	while (font != nullptr)
 	{
-		if (stricmp (font->Name, name) == 0)
-			break;
+		if (font->FontName == name) return font;
 		font = font->Next;
 	}
-	return font;
+	return nullptr;
+}
+
+DEFINE_ACTION_FUNCTION(FFont, FindFont)
+{
+	PARAM_PROLOGUE;
+	PARAM_NAME(name);
+	ACTION_RETURN_POINTER(FFont::FindFont(name));
 }
 
 //==========================================================================
@@ -742,7 +758,7 @@ void FFont::BuildTranslations (const double *luminosity, const BYTE *identity,
 
 FRemapTable *FFont::GetColorTranslation (EColorRange range) const
 {
-	if (ActiveColors == 0)
+	if (ActiveColors == 0 || noTranslate)
 		return NULL;
 	else if (range >= NumTextColors)
 		range = CR_UNTRANSLATED;
@@ -834,6 +850,71 @@ int FFont::GetCharWidth (int code) const
 {
 	code = GetCharCode(code, false);
 	return (code < 0) ? SpaceWidth : Chars[code - FirstChar].XMove;
+}
+
+DEFINE_ACTION_FUNCTION(FFont, GetCharWidth)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FFont);
+	PARAM_INT(code);
+	ACTION_RETURN_INT(self->GetCharWidth(code));
+}
+
+DEFINE_ACTION_FUNCTION(FFont, GetHeight)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FFont);
+	ACTION_RETURN_INT(self->GetHeight());
+}
+
+//==========================================================================
+//
+// Find string width using this font
+//
+//==========================================================================
+
+int FFont::StringWidth(const BYTE *string) const
+{
+	int w = 0;
+	int maxw = 0;
+
+	while (*string)
+	{
+		if (*string == TEXTCOLOR_ESCAPE)
+		{
+			++string;
+			if (*string == '[')
+			{
+				while (*string != '\0' && *string != ']')
+				{
+					++string;
+				}
+			}
+			if (*string != '\0')
+			{
+				++string;
+			}
+			continue;
+		}
+		else if (*string == '\n')
+		{
+			if (w > maxw)
+				maxw = w;
+			w = 0;
+			++string;
+		}
+		else
+		{
+			w += GetCharWidth(*string++) + GlobalKerning;
+		}
+	}
+
+	return MAX(maxw, w);
+}
+
+DEFINE_ACTION_FUNCTION(FFont, StringWidth)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FFont);
+	PARAM_STRING(str);
+	ACTION_RETURN_INT(self->StringWidth(str));
 }
 
 //==========================================================================
@@ -928,8 +1009,9 @@ FFont::FFont (int lump)
 	Lump = lump;
 	Chars = NULL;
 	PatchRemap = NULL;
-	Name = NULL;
+	FontName = NAME_None;
 	Cursor = '_';
+	noTranslate = false;
 }
 
 //==========================================================================
@@ -944,7 +1026,7 @@ FSingleLumpFont::FSingleLumpFont (const char *name, int lump) : FFont(lump)
 {
 	assert(lump >= 0);
 
-	Name = copystring (name);
+	FontName = name;
 
 	FMemLump data1 = Wads.ReadLump (lump);
 	const BYTE *data = (const BYTE *)data1.GetMem();
@@ -1182,7 +1264,7 @@ void FSingleLumpFont::LoadFON2 (int lump, const BYTE *data)
 		if (destSize < 0)
 		{
 			i += FirstChar;
-			I_FatalError ("Overflow decompressing char %d (%c) of %s", i, i, Name);
+			I_FatalError ("Overflow decompressing char %d (%c) of %s", i, i, FontName.GetChars());
 		}
 	}
 
@@ -1484,7 +1566,7 @@ FSinglePicFont::FSinglePicFont(const char *picname) :
 
 	FTexture *pic = TexMan[picnum];
 
-	Name = copystring(picname);
+	FontName = picname;
 	FontHeight = pic->GetScaledHeight();
 	SpaceWidth = pic->GetScaledWidth();
 	GlobalKerning = 0;
@@ -1887,7 +1969,7 @@ void FFontChar2::MakeTexture ()
 //
 //==========================================================================
 
-FSpecialFont::FSpecialFont (const char *name, int first, int count, FTexture **lumplist, const bool *notranslate, int lump) : FFont(lump)
+FSpecialFont::FSpecialFont (const char *name, int first, int count, FTexture **lumplist, const bool *notranslate, int lump, bool donttranslate) : FFont(lump)
 {
 	int i;
 	FTexture **charlumps;
@@ -1896,7 +1978,8 @@ FSpecialFont::FSpecialFont (const char *name, int first, int count, FTexture **l
 
 	memcpy(this->notranslate, notranslate, 256*sizeof(bool));
 
-	Name = copystring(name);
+	noTranslate = donttranslate;
+	FontName = name;
 	Chars = new CharData[count];
 	charlumps = new FTexture*[count];
 	PatchRemap = new BYTE[256];
@@ -1930,7 +2013,8 @@ FSpecialFont::FSpecialFont (const char *name, int first, int count, FTexture **l
 
 		if (charlumps[i] != NULL)
 		{
-			Chars[i].Pic = new FFontChar1 (charlumps[i]);
+			if (!noTranslate) Chars[i].Pic = new FFontChar1 (charlumps[i]);
+			else Chars[i].Pic = charlumps[i];
 			Chars[i].XMove = Chars[i].Pic->GetScaledWidth();
 		}
 		else
@@ -1952,7 +2036,7 @@ FSpecialFont::FSpecialFont (const char *name, int first, int count, FTexture **l
 
 	FixXMoves();
 
-	LoadTranslations();
+	if (!noTranslate) LoadTranslations();
 
 	delete[] charlumps;
 }
@@ -2083,6 +2167,7 @@ void V_InitCustomFonts()
 	FScanner sc;
 	FTexture *lumplist[256];
 	bool notranslate[256];
+	bool donttranslate;
 	FString namebuffer, templatebuf;
 	int i;
 	int llump,lastlump=0;
@@ -2100,6 +2185,7 @@ void V_InitCustomFonts()
 		{
 			memset (lumplist, 0, sizeof(lumplist));
 			memset (notranslate, 0, sizeof(notranslate));
+			donttranslate = false;
 			namebuffer = sc.String;
 			format = 0;
 			start = 33;
@@ -2151,6 +2237,10 @@ void V_InitCustomFonts()
 					spacewidth = sc.Number;
 					format = 1;
 				}
+				else if (sc.Compare("DONTTRANSLATE"))
+				{
+					donttranslate = true;
+				}
 				else if (sc.Compare ("NOTRANSLATION"))
 				{
 					if (format == 1) goto wrong;
@@ -2181,7 +2271,7 @@ void V_InitCustomFonts()
 			}
 			if (format == 1)
 			{
-				FFont *fnt = new FFont (namebuffer, templatebuf, first, count, start, llump, spacewidth);
+				FFont *fnt = new FFont (namebuffer, templatebuf, first, count, start, llump, spacewidth, donttranslate);
 				fnt->SetCursor(cursor);
 			}
 			else if (format == 2)
@@ -2204,7 +2294,7 @@ void V_InitCustomFonts()
 				}
 				if (count > 0)
 				{
-					FFont *fnt = new FSpecialFont (namebuffer, first, count, &lumplist[first], notranslate, llump);
+					FFont *fnt = new FSpecialFont (namebuffer, first, count, &lumplist[first], notranslate, llump, donttranslate);
 					fnt->SetCursor(cursor);
 				}
 			}
@@ -2483,6 +2573,13 @@ EColorRange V_FindFontColor (FName name)
 	return CR_UNTRANSLATED;
 }
 
+DEFINE_ACTION_FUNCTION(FFont, FindFontColor)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FFont);
+	PARAM_NAME(code);
+	ACTION_RETURN_INT((int)V_FindFontColor(code));
+}
+
 //==========================================================================
 //
 // V_LogColorFromColorRange
@@ -2657,12 +2754,8 @@ void V_ClearFonts()
 	SmallFont = SmallFont2 = BigFont = ConFont = IntermissionFont = NULL;
 }
 
-void V_RetranslateFonts()
+DEFINE_ACTION_FUNCTION(FFont, GetCursor)
 {
-	FFont *font = FFont::FirstFont;
-	while(font)
-	{
-		font->LoadTranslations();
-		font = font->Next;
-	}
+	PARAM_SELF_STRUCT_PROLOGUE(FFont);
+	ACTION_RETURN_STRING(FString(self->GetCursor()));
 }

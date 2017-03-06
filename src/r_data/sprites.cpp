@@ -15,6 +15,8 @@
 #include "r_data/voxels.h"
 #include "textures/textures.h"
 
+void gl_InitModels();
+
 // variables used to look up
 //	and range check thing_t sprites patches
 TArray<spritedef_t> sprites;
@@ -28,8 +30,7 @@ struct spriteframewithrotate : public spriteframe_t
 
 
 // [RH] skin globals
-FPlayerSkin		*skins;
-size_t			numskins;
+TArray<FPlayerSkin> Skins;
 BYTE			OtherGameSkinRemap[256];
 PalEntry		OtherGameSkinPalette[256];
 
@@ -61,7 +62,7 @@ static bool R_InstallSpriteLump (FTextureID lump, unsigned frame, char rot, bool
 
 	if (frame >= MAX_SPRITE_FRAMES || rotation > 16)
 	{
-		Printf (TEXTCOLOR_RED"R_InstallSpriteLump: Bad frame characters in lump %s\n", TexMan[lump]->Name.GetChars());
+		Printf (TEXTCOLOR_RED "R_InstallSpriteLump: Bad frame characters in lump %s\n", TexMan[lump]->Name.GetChars());
 		return false;
 	}
 
@@ -510,12 +511,12 @@ void R_InitSkins (void)
 	int sndlumps[NUMSKINSOUNDS];
 	char key[65];
 	DWORD intname, crouchname;
-	size_t i;
+	unsigned i;
 	int j, k, base;
 	int lastlump;
 	int aliasid;
 	bool remove;
-	PClassPlayerPawn *basetype, *transtype;
+	PClassActor *basetype, *transtype;
 
 	key[sizeof(key)-1] = 0;
 	i = PlayerClasses.Size () - 1;
@@ -536,7 +537,7 @@ void R_InitSkins (void)
 		i++;
 		for (j = 0; j < NUMSKINSOUNDS; j++)
 			sndlumps[j] = -1;
-		skins[i].namespc = Wads.GetLumpNamespace (base);
+		Skins[i].namespc = Wads.GetLumpNamespace (base);
 
 		FScanner sc(base);
 		intname = 0;
@@ -558,14 +559,13 @@ void R_InitSkins (void)
 			sc.GetString ();
 			if (0 == stricmp (key, "name"))
 			{
-				strncpy (skins[i].name, sc.String, 16);
-				for (j = 0; (size_t)j < i; j++)
+				Skins[i].Name = sc.String;
+				for (j = 0; (unsigned)j < i; j++)
 				{
-					if (stricmp (skins[i].name, skins[j].name) == 0)
+					if (Skins[i].Name.CompareNoCase(Skins[j].Name) == 0)
 					{
-						mysnprintf (skins[i].name, countof(skins[i].name), "skin%d", (int)i);
-						Printf (PRINT_BOLD, "Skin %s duplicated as %s\n",
-							skins[j].name, skins[i].name);
+						Skins[i].Name.Format("skin%u", i);
+						Printf (PRINT_BOLD, "Skin %s duplicated as %s\n", Skins[j].Name.GetChars(), Skins[i].Name.GetChars());
 						break;
 					}
 				}
@@ -584,27 +584,25 @@ void R_InitSkins (void)
 			}
 			else if (0 == stricmp (key, "face"))
 			{
-				for (j = 2; j >= 0; j--)
-					skins[i].face[j] = toupper (sc.String[j]);
-				skins[i].face[3] = '\0';
+				Skins[i].Face = FString(sc.String, 3);
 			}
 			else if (0 == stricmp (key, "gender"))
 			{
-				skins[i].gender = D_GenderToInt (sc.String);
+				Skins[i].gender = D_GenderToInt (sc.String);
 			}
 			else if (0 == stricmp (key, "scale"))
 			{
-				skins[i].Scale.X = clamp(atof (sc.String), 1./65536, 256.);
-				skins[i].Scale.Y = skins[i].Scale.X;
+				Skins[i].Scale.X = clamp(atof (sc.String), 1./65536, 256.);
+				Skins[i].Scale.Y = Skins[i].Scale.X;
 			}
 			else if (0 == stricmp (key, "game"))
 			{
 				if (gameinfo.gametype == GAME_Heretic)
-					basetype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_HereticPlayer));
+					basetype = PClass::FindActor(NAME_HereticPlayer);
 				else if (gameinfo.gametype == GAME_Strife)
-					basetype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_StrifePlayer));
+					basetype = PClass::FindActor(NAME_StrifePlayer);
 				else
-					basetype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_DoomPlayer));
+					basetype = PClass::FindActor(NAME_DoomPlayer);
 
 				transtype = basetype;
 
@@ -612,8 +610,8 @@ void R_InitSkins (void)
 				{
 					if (gameinfo.gametype & GAME_DoomChex)
 					{
-						transtype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_HereticPlayer));
-						skins[i].othergame = true;
+						transtype = PClass::FindActor(NAME_HereticPlayer);
+						Skins[i].othergame = true;
 					}
 					else if (gameinfo.gametype != GAME_Heretic)
 					{
@@ -631,8 +629,8 @@ void R_InitSkins (void)
 				{
 					if (gameinfo.gametype == GAME_Heretic)
 					{
-						transtype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_DoomPlayer));
-						skins[i].othergame = true;
+						transtype = PClass::FindActor(NAME_DoomPlayer);
+						Skins[i].othergame = true;
 					}
 					else if (!(gameinfo.gametype & GAME_DoomChex))
 					{
@@ -657,7 +655,7 @@ void R_InitSkins (void)
 			}
 			else if (key[0] == '*')
 			{ // Player sound replacment (ZDoom extension)
-				int lump = Wads.CheckNumForName (sc.String, skins[i].namespc);
+				int lump = Wads.CheckNumForName (sc.String, Skins[i].namespc);
 				if (lump == -1)
 				{
 					lump = Wads.CheckNumForFullName (sc.String, true, ns_sounds);
@@ -666,11 +664,11 @@ void R_InitSkins (void)
 				{
 					if (stricmp (key, "*pain") == 0)
 					{ // Replace all pain sounds in one go
-						aliasid = S_AddPlayerSound (skins[i].name, skins[i].gender,
+						aliasid = S_AddPlayerSound (Skins[i].Name, Skins[i].gender,
 							playersoundrefs[0], lump, true);
 						for (int l = 3; l > 0; --l)
 						{
-							S_AddPlayerSoundExisting (skins[i].name, skins[i].gender,
+							S_AddPlayerSoundExisting (Skins[i].Name, Skins[i].gender,
 								playersoundrefs[l], aliasid, true);
 						}
 					}
@@ -679,7 +677,7 @@ void R_InitSkins (void)
 						int sndref = S_FindSoundNoHash (key);
 						if (sndref != 0)
 						{
-							S_AddPlayerSound (skins[i].name, skins[i].gender, sndref, lump, true);
+							S_AddPlayerSound (Skins[i].Name, Skins[i].gender, sndref, lump, true);
 						}
 					}
 				}
@@ -690,7 +688,7 @@ void R_InitSkins (void)
 				{
 					if (stricmp (key, skinsoundnames[j][0]) == 0)
 					{
-						sndlumps[j] = Wads.CheckNumForName (sc.String, skins[i].namespc);
+						sndlumps[j] = Wads.CheckNumForName (sc.String, Skins[i].namespc);
 						if (sndlumps[j] == -1)
 						{ // Replacement not found, try finding it in the global namespace
 							sndlumps[j] = Wads.CheckNumForFullName (sc.String, true, ns_sounds);
@@ -707,13 +705,13 @@ void R_InitSkins (void)
 		{
 			if (gameinfo.gametype & GAME_DoomChex)
 			{
-				basetype = transtype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_DoomPlayer));
+				basetype = transtype = PClass::FindActor(NAME_DoomPlayer);
 			}
 			else if (gameinfo.gametype == GAME_Heretic)
 			{
-				basetype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_HereticPlayer));
-				transtype = dyn_cast<PClassPlayerPawn>(PClass::FindActor(NAME_DoomPlayer));
-				skins[i].othergame = true;
+				basetype = PClass::FindActor(NAME_HereticPlayer);
+				transtype = PClass::FindActor(NAME_DoomPlayer);
+				Skins[i].othergame = true;
 			}
 			else
 			{
@@ -723,18 +721,22 @@ void R_InitSkins (void)
 
 		if (!remove)
 		{
-			skins[i].range0start = transtype->ColorRangeStart;
-			skins[i].range0end = transtype->ColorRangeEnd;
+			auto transdef = ((APlayerPawn*)GetDefaultByType(transtype));
+			auto basedef = ((APlayerPawn*)GetDefaultByType(basetype));
+
+			Skins[i].range0start = transdef->ColorRangeStart;
+			Skins[i].range0end = transdef->ColorRangeEnd;
 
 			remove = true;
 			for (j = 0; j < (int)PlayerClasses.Size (); j++)
 			{
-				PClassPlayerPawn *type = PlayerClasses[j].Type;
+				auto type = PlayerClasses[j].Type;
+				auto type_def = ((APlayerPawn*)GetDefaultByType(type));
 
 				if (type->IsDescendantOf (basetype) &&
 					GetDefaultByType(type)->SpawnState->sprite == GetDefaultByType(basetype)->SpawnState->sprite &&
-					type->ColorRangeStart == basetype->ColorRangeStart &&
-					type->ColorRangeEnd == basetype->ColorRangeEnd)
+					type_def->ColorRangeStart == basedef->ColorRangeStart &&
+					type_def->ColorRangeEnd == basedef->ColorRangeEnd)
 				{
 					PlayerClasses[j].Skins.Push ((int)i);
 					remove = false;
@@ -744,8 +746,8 @@ void R_InitSkins (void)
 
 		if (!remove)
 		{
-			if (skins[i].name[0] == 0)
-				mysnprintf (skins[i].name, countof(skins[i].name), "skin%d", (int)i);
+			if (Skins[i].Name.IsEmpty())
+				Skins[i].Name.Format("skin%u", i);
 
 			// Now collect the sprite frames for this skin. If the sprite name was not
 			// specified, use whatever immediately follows the specifier lump.
@@ -777,7 +779,7 @@ void R_InitSkins (void)
 					}
 					else
 					{
-						skins[i].crouchsprite = -1;
+						Skins[i].crouchsprite = -1;
 						break;
 					}
 				}
@@ -800,7 +802,7 @@ void R_InitSkins (void)
 
 				if (spr == 0 && maxframe <= 0)
 				{
-					Printf (PRINT_BOLD, "Skin %s (#%d) has no frames. Removing.\n", skins[i].name, (int)i);
+					Printf (PRINT_BOLD, "Skin %s (#%u) has no frames. Removing.\n", Skins[i].Name.GetChars(), i);
 					remove = true;
 					break;
 				}
@@ -808,16 +810,18 @@ void R_InitSkins (void)
 				Wads.GetLumpName (temp.name, base+1);
 				temp.name[4] = 0;
 				int sprno = (int)sprites.Push (temp);
-				if (spr==0)	skins[i].sprite = sprno;
-				else skins[i].crouchsprite = sprno;
+				if (spr==0)	Skins[i].sprite = sprno;
+				else Skins[i].crouchsprite = sprno;
 				R_InstallSprite (sprno, sprtemp, maxframe);
 			}
 		}
 
 		if (remove)
 		{
-			if (i < numskins-1)
-				memmove (&skins[i], &skins[i+1], sizeof(skins[0])*(numskins-i-1));
+			if (i < Skins.Size() - 1)
+			{
+				Skins.Delete(i);
+			}
 			i--;
 			continue;
 		}
@@ -830,25 +834,25 @@ void R_InitSkins (void)
 			{
 				if (j == 0 || sndlumps[j] != sndlumps[j-1])
 				{
-					aliasid = S_AddPlayerSound (skins[i].name, skins[i].gender,
+					aliasid = S_AddPlayerSound (Skins[i].Name, Skins[i].gender,
 						playersoundrefs[j], sndlumps[j], true);
 				}
 				else
 				{
-					S_AddPlayerSoundExisting (skins[i].name, skins[i].gender,
+					S_AddPlayerSoundExisting (Skins[i].Name, Skins[i].gender,
 						playersoundrefs[j], aliasid, true);
 				}
 			}
 		}
 
 		// Make sure face prefix is a full 3 chars
-		if (skins[i].face[1] == 0 || skins[i].face[2] == 0)
+		if (Skins[i].Face.Len() < 3)
 		{
-			skins[i].face[0] = 0;
+			Skins[i].Face = "";
 		}
 	}
 
-	if (numskins > PlayerClasses.Size ())
+	if (Skins.Size() > PlayerClasses.Size ())
 	{ // The sound table may have changed, so rehash it.
 		S_HashSounds ();
 		S_ShrinkPlayerSoundLists ();
@@ -863,9 +867,9 @@ int R_FindSkin (const char *name, int pclass)
 		return pclass;
 	}
 
-	for (unsigned i = PlayerClasses.Size(); i < numskins; i++)
+	for (unsigned i = PlayerClasses.Size(); i < Skins.Size(); i++)
 	{
-		if (strnicmp (skins[i].name, name, 16) == 0)
+		if (Skins[i].Name.CompareNoCase(name) == 0)
 		{
 			if (PlayerClasses[pclass].CheckSkin (i))
 				return i;
@@ -881,8 +885,8 @@ CCMD (skins)
 {
 	int i;
 
-	for (i = PlayerClasses.Size ()-1; i < (int)numskins; i++)
-		Printf ("% 3d %s\n", i-PlayerClasses.Size ()+1, skins[i].name);
+	for (i = PlayerClasses.Size() - 1; i < (int)Skins.Size(); i++)
+		Printf("% 3d %s\n", i - PlayerClasses.Size() + 1, Skins[i].Name.GetChars());
 }
 
 
@@ -908,6 +912,7 @@ void R_InitSprites ()
 {
 	int lump, lastlump;
 	unsigned int i, j;
+	unsigned numskins;
 
 	// [RH] Create a standard translation to map skins between Heretic and Doom
 	if (gameinfo.gametype == GAME_DoomChex)
@@ -928,15 +933,15 @@ void R_InitSprites ()
 	}
 
 	// [RH] Do some preliminary setup
-	if (skins != NULL) delete [] skins;
-	skins = new FPlayerSkin[numskins];
-	memset (skins, 0, sizeof(*skins) * numskins);
+	Skins.Clear();
+	Skins.Resize(numskins);
+
 	for (i = 0; i < numskins; i++)
 	{ // Assume Doom skin by default
-		PClassPlayerPawn *type = PlayerClasses[0].Type;
-		skins[i].range0start = type->ColorRangeStart;
-		skins[i].range0end = type->ColorRangeEnd;
-		skins[i].Scale = GetDefaultByType (type)->Scale;
+		auto type = ((APlayerPawn*)GetDefaultByType(PlayerClasses[0].Type));
+		Skins[i].range0start = type->ColorRangeStart;
+		Skins[i].range0end = type->ColorRangeEnd;
+		Skins[i].Scale = type->Scale;
 	}
 
 	R_InitSpriteDefs ();
@@ -948,36 +953,32 @@ void R_InitSprites ()
 	// [GRB] Each player class has its own base skin
 	for (i = 0; i < PlayerClasses.Size (); i++)
 	{
-		PClassPlayerPawn *basetype = PlayerClasses[i].Type;
-		FString classface = basetype->Face;
+		auto basetype = ((APlayerPawn*)GetDefaultByType(PlayerClasses[i].Type));
 
-		strcpy (skins[i].name, "Base");
-		if (classface.IsEmpty() || strcmp(classface, "None") == 0)
+		Skins[i].Name = "Base";
+		if (basetype->Face == NAME_None)
 		{
-			skins[i].face[0] = 'S';
-			skins[i].face[1] = 'T';
-			skins[i].face[2] = 'F';
-			skins[i].face[3] = '\0';
+			Skins[i].Face = "STF";
 		}
 		else
 		{
-			strcpy(skins[i].face, classface);
+			Skins[i].Face = basetype->Face;
 		}
-		skins[i].range0start = basetype->ColorRangeStart;
-		skins[i].range0end = basetype->ColorRangeEnd;
-		skins[i].Scale = GetDefaultByType (basetype)->Scale;
-		skins[i].sprite = GetDefaultByType (basetype)->SpawnState->sprite;
-		skins[i].namespc = ns_global;
+		Skins[i].range0start = basetype->ColorRangeStart;
+		Skins[i].range0end = basetype->ColorRangeEnd;
+		Skins[i].Scale = basetype->Scale;
+		Skins[i].sprite = basetype->SpawnState->sprite;
+		Skins[i].namespc = ns_global;
 
 		PlayerClasses[i].Skins.Push (i);
 
-		if (memcmp (sprites[skins[i].sprite].name, "PLAY", 4) == 0)
+		if (memcmp (sprites[Skins[i].sprite].name, "PLAY", 4) == 0)
 		{
 			for (j = 0; j < sprites.Size (); j++)
 			{
 				if (memcmp (sprites[j].name, deh.PlayerSprite, 4) == 0)
 				{
-					skins[i].sprite = (int)j;
+					Skins[i].sprite = (int)j;
 					break;
 				}
 			}
@@ -987,14 +988,17 @@ void R_InitSprites ()
 	// [RH] Sort the skins, but leave base as skin 0
 	//qsort (&skins[PlayerClasses.Size ()], numskins-PlayerClasses.Size (), sizeof(FPlayerSkin), skinsorter);
 
+	gl_InitModels();
 }
 
-void R_DeinitSpriteData()
-{
-	// Free skins
-	if (skins != NULL)
-	{
-		delete[] skins;
-		skins = NULL;
-	}
-}
+
+DEFINE_FIELD_NAMED(FPlayerSkin, Name, SkinName);
+DEFINE_FIELD(FPlayerSkin, Face);
+DEFINE_FIELD(FPlayerSkin, gender);
+DEFINE_FIELD(FPlayerSkin, range0start);
+DEFINE_FIELD(FPlayerSkin, range0end);
+DEFINE_FIELD(FPlayerSkin, othergame);
+DEFINE_FIELD(FPlayerSkin, Scale);
+DEFINE_FIELD(FPlayerSkin, sprite);
+DEFINE_FIELD(FPlayerSkin, crouchsprite);
+DEFINE_FIELD(FPlayerSkin, namespc);

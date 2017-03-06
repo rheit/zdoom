@@ -64,6 +64,7 @@
 #include "doomerrors.h"
 #include "v_text.h"
 #include "cmdlib.h"
+#include "g_levellocals.h"
 
 char nulspace[1024 * 1024 * 4];
 bool save_full = false;	// for testing. Should be removed afterward.
@@ -485,6 +486,8 @@ bool FSerializer::OpenReader(FCompressedBuffer *input)
 
 void FSerializer::Close()
 {	
+	if (w == nullptr && r == nullptr) return;	// double close? This should skip the I_Error at the bottom.
+
 	if (w != nullptr)
 	{
 		delete w;
@@ -494,7 +497,7 @@ void FSerializer::Close()
 	{
 		// we must explicitly delete all thinkers in the array which did not get linked into the thinker lists.
 		// Otherwise these objects may survive a level deletion and point to incorrect data.
-		for (auto &obj : r->mDObjects)
+		for (auto obj : r->mDObjects)
 		{
 			auto think = dyn_cast<DThinker>(obj);
 			if (think != nullptr)
@@ -589,7 +592,7 @@ bool FSerializer::BeginObject(const char *name)
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "Object expected for '%s'", name);
+				Printf(TEXTCOLOR_RED "Object expected for '%s'\n", name);
 				mErrors++;
 				return false;
 			}
@@ -655,7 +658,7 @@ bool FSerializer::BeginArray(const char *name)
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "Array expected for '%s'", name);
+				Printf(TEXTCOLOR_RED "Array expected for '%s'\n", name);
 				mErrors++;
 				return false;
 			}
@@ -747,7 +750,7 @@ FSerializer &FSerializer::Args(const char *key, int *args, int *defargs, int spe
 					else
 					{
 						assert(false && "Integer expected");
-						Printf(TEXTCOLOR_RED "Integer expected for '%s[%d]'", key, i);
+						Printf(TEXTCOLOR_RED "Integer expected for '%s[%d]'\n", key, i);
 						mErrors++;
 					}
 				}
@@ -755,7 +758,7 @@ FSerializer &FSerializer::Args(const char *key, int *args, int *defargs, int spe
 			else
 			{
 				assert(false && "array expected");
-				Printf(TEXTCOLOR_RED "array expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "array expected for '%s'\n", key);
 				mErrors++;
 			}
 		}
@@ -799,7 +802,7 @@ FSerializer &FSerializer::ScriptNum(const char *key, int &num)
 			else
 			{
 				assert(false && "Integer expected");
-				Printf(TEXTCOLOR_RED "Integer expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "Integer expected for '%s'\n", key);
 				mErrors++;
 			}
 		}
@@ -1004,7 +1007,7 @@ void FSerializer::ReadObjects(bool hubtravel)
 					PClass *cls = PClass::FindClass(clsname);
 					if (cls == nullptr)
 					{
-						Printf("Unknown object class '%s' in savegame", clsname.GetChars());
+						Printf(TEXTCOLOR_RED "Unknown object class '%s' in savegame\n", clsname.GetChars());
 						founderrors = true;
 						r->mDObjects[i] = RUNTIME_CLASS(AActor)->CreateNew();	// make sure we got at least a valid pointer for the duration of the loading process.
 						r->mDObjects[i]->Destroy();								// but we do not want to keep this around, so destroy it right away.
@@ -1040,7 +1043,7 @@ void FSerializer::ReadObjects(bool hubtravel)
 							catch (CRecoverableError &err)
 							{
 								// In case something in here throws an error, let's continue and deal with it later.
-								Printf(TEXTCOLOR_RED "'%s'\n while restoring %s", err.GetMessage(), obj ? obj->GetClass()->TypeName.GetChars() : "invalid object");
+								Printf(TEXTCOLOR_RED "'%s'\n while restoring %s\n", err.GetMessage(), obj ? obj->GetClass()->TypeName.GetChars() : "invalid object");
 								mErrors++;
 							}
 						}
@@ -1054,7 +1057,7 @@ void FSerializer::ReadObjects(bool hubtravel)
 			assert(!founderrors);
 			if (founderrors)
 			{
-				Printf(TEXTCOLOR_RED "Failed to restore all objects in savegame");
+				Printf(TEXTCOLOR_RED "Failed to restore all objects in savegame\n");
 				mErrors++;
 			}
 		}
@@ -1063,7 +1066,7 @@ void FSerializer::ReadObjects(bool hubtravel)
 			// nuke all objects we created here.
 			for (auto obj : r->mDObjects)
 			{
-				obj->Destroy();
+				if (!(obj->ObjectFlags & OF_EuthanizeMe)) obj->Destroy();
 			}
 			r->mDObjects.Clear();
 
@@ -1181,7 +1184,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, bool &value, bool *def
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "boolean type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "boolean type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -1217,7 +1220,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, int64_t &value, int64_
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "integer type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "integer type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -1253,7 +1256,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, uint64_t &value, uint6
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "integer type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "integer type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -1290,7 +1293,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, int32_t &value, int32_
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "integer type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "integer type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -1326,7 +1329,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, uint32_t &value, uint3
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "integer type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "integer type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -1404,7 +1407,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, double &value, double 
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "float type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "float type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -1458,17 +1461,17 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, const FPoly
 
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, side_t *&value, side_t **defval)
 {
-	return SerializePointer(arc, key, value, defval, sides);
+	return SerializePointer(arc, key, value, defval, &level.sides[0]);
 }
 
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, sector_t *&value, sector_t **defval)
 {
-	return SerializePointer(arc, key, value, defval, sectors);
+	return SerializePointer(arc, key, value, defval, &level.sectors[0]);
 }
 
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, const sector_t *&value, const sector_t **defval)
 {
-	return SerializePointer<const sector_t>(arc, key, value, defval, sectors);
+	return SerializePointer<const sector_t>(arc, key, value, defval, &level.sectors[0]);
 }
 
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, player_t *&value, player_t **defval)
@@ -1478,12 +1481,12 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, player_t *&
 
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, line_t *&value, line_t **defval)
 {
-	return SerializePointer(arc, key, value, defval, lines);
+	return SerializePointer(arc, key, value, defval, &level.lines[0]);
 }
 
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, vertex_t *&value, vertex_t **defval)
 {
-	return SerializePointer(arc, key, value, defval, vertexes);
+	return SerializePointer(arc, key, value, defval, &level.vertexes[0]);
 }
 
 //==========================================================================
@@ -1547,7 +1550,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, FTextureID &value, FTe
 				}
 				else
 				{
-					Printf(TEXTCOLOR_RED "object does not represent a texture for '%s'", key);
+					Printf(TEXTCOLOR_RED "object does not represent a texture for '%s'\n", key);
 					value.SetNull();
 					arc.mErrors++;
 				}
@@ -1563,7 +1566,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, FTextureID &value, FTe
 			else
 			{
 				assert(false && "not a texture");
-				Printf(TEXTCOLOR_RED "object does not represent a texture for '%s'", key);
+				Printf(TEXTCOLOR_RED "object does not represent a texture for '%s'\n", key);
 				value.SetNull();
 				arc.mErrors++;
 			}
@@ -1648,7 +1651,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, DObject *&value, DObje
 					else
 					{
 						assert(false && "invalid object reference");
-						Printf(TEXTCOLOR_RED "Invalid object reference for '%s'", key);
+						Printf(TEXTCOLOR_RED "Invalid object reference for '%s'\n", key);
 						value = nullptr;
 						arc.mErrors++;
 						if (retcode) *retcode = false;
@@ -1697,7 +1700,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, FName &value, FName *d
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "String expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "String expected for '%s'\n", key);
 				arc.mErrors++;
 				value = NAME_None;
 			}
@@ -1745,7 +1748,7 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, FDynamicCol
 				}
 			}
 			assert(false && "not a colormap");
-			Printf(TEXTCOLOR_RED "object does not represent a colormap for '%s'", key);
+			Printf(TEXTCOLOR_RED "object does not represent a colormap for '%s'\n", key);
 			cm = &NormalLight;
 		}
 	}
@@ -1786,7 +1789,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, FSoundID &sid, FSoundI
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "string type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "string type expected for '%s'\n", key);
 				sid = 0;
 				arc.mErrors++;
 			}
@@ -1835,7 +1838,7 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, PClassActor
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "string type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "string type expected for '%s'\n", key);
 				clst = nullptr;
 				arc.mErrors++;
 			}
@@ -1883,7 +1886,7 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, PClass *&cl
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "string type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "string type expected for '%s'\n", key);
 				clst = nullptr;
 				arc.mErrors++;
 			}
@@ -1959,20 +1962,20 @@ FSerializer &Serialize(FSerializer &arc, const char *key, FState *&state, FState
 					{
 						// this can actually happen by changing the DECORATE so treat it as a warning, not an error.
 						state = nullptr;
-						Printf(TEXTCOLOR_ORANGE "Invalid state '%s+%d' for '%s'", cls.GetString(), ndx.GetInt(), key);
+						Printf(TEXTCOLOR_ORANGE "Invalid state '%s+%d' for '%s'\n", cls.GetString(), ndx.GetInt(), key);
 					}
 				}
 				else
 				{
 					assert(false && "not a state");
-					Printf(TEXTCOLOR_RED "data does not represent a state for '%s'", key);
+					Printf(TEXTCOLOR_RED "data does not represent a state for '%s'\n", key);
 					arc.mErrors++;
 				}
 			}
 			else if (!retcode)
 			{
 				assert(false && "not an array");
-				Printf(TEXTCOLOR_RED "array type expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "array type expected for '%s'\n", key);
 				arc.mErrors++;
 			}
 		}
@@ -2027,7 +2030,7 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, FStrifeDial
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "integer expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "integer expected for '%s'\n", key);
 				arc.mErrors++;
 				node = nullptr;
 			}
@@ -2076,7 +2079,7 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, FString *&p
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "string expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "string expected for '%s'\n", key);
 				pstr = nullptr;
 				arc.mErrors++;
 			}
@@ -2118,7 +2121,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, FString &pstr, FString
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "string expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "string expected for '%s'\n", key);
 				pstr = "";
 				arc.mErrors++;
 			}
@@ -2167,7 +2170,7 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, char *&pstr
 			}
 			else
 			{
-				Printf(TEXTCOLOR_RED "string expected for '%s'", key);
+				Printf(TEXTCOLOR_RED "string expected for '%s'\n", key);
 				pstr = nullptr;
 				arc.mErrors++;
 			}
@@ -2186,17 +2189,17 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, FFont *&fon
 {
 	if (arc.isWriting())
 	{
-		const char *n = font->GetName();
-		return arc.StringPtr(key, n);
+		FName n = font->GetName();
+		return arc(key, n);
 	}
 	else
 	{
-		const char *n;
-		arc.StringPtr(key, n);
+		FName n;
+		arc(key, n);
 		font = V_GetFont(n);
 		if (font == nullptr)
 		{
-			Printf(TEXTCOLOR_ORANGE "Could not load font %s\n", n);
+			Printf(TEXTCOLOR_ORANGE "Could not load font %s\n", n.GetChars());
 			font = SmallFont;
 		}
 		return arc;

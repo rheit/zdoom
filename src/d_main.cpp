@@ -109,6 +109,8 @@
 #include "p_local.h"
 #include "autosegs.h"
 #include "fragglescript/t_fs.h"
+#include "g_levellocals.h"
+#include "events.h"
 
 EXTERN_CVAR(Bool, hud_althud)
 void DrawHUD();
@@ -205,6 +207,11 @@ CUSTOM_CVAR (String, vid_cursor, "None", CVAR_ARCHIVE | CVAR_NOINITCALL)
 	}
 }
 
+// Controlled by startup dialog
+CVAR (Bool, disableautoload, false, CVAR_ARCHIVE | CVAR_NOINITCALL | CVAR_GLOBALCONFIG)
+CVAR (Bool, autoloadbrightmaps, false, CVAR_ARCHIVE | CVAR_NOINITCALL | CVAR_GLOBALCONFIG)
+CVAR (Bool, autoloadlights, false, CVAR_ARCHIVE | CVAR_NOINITCALL | CVAR_GLOBALCONFIG)
+
 bool wantToRestart;
 bool DrawFSHUD;				// [RH] Draw fullscreen HUD?
 TArray<FString> allwads;
@@ -280,6 +287,9 @@ void D_ProcessEvents (void)
 			continue;				// console ate the event
 		if (M_Responder (ev))
 			continue;				// menu ate the event
+		// check events
+		if (E_Responder(ev)) // [ZZ] ZScript ate the event
+			continue;
 		G_Responder (ev);
 	}
 }
@@ -300,8 +310,7 @@ void D_PostEvent (const event_t *ev)
 		return;
 	}
 	events[eventhead] = *ev;
-	if (ev->type == EV_Mouse && !paused && menuactive == MENU_Off && ConsoleState != c_down && ConsoleState != c_falling
-		)
+	if (ev->type == EV_Mouse && !paused && menuactive == MENU_Off && ConsoleState != c_down && ConsoleState != c_falling && !E_CheckUiProcessors())
 	{
 		if (Button_Mlook.bDown || freelook)
 		{
@@ -769,6 +778,9 @@ void D_Display ()
 			screen->SetBlendingRect(viewwindowx, viewwindowy,
 				viewwindowx + viewwidth, viewwindowy + viewheight);
 
+			// [ZZ] execute event hook that we just started the frame
+			//E_RenderFrame();
+			//
 			Renderer->RenderView(&players[consoleplayer]);
 
 			if ((hw2d = screen->Begin2D(viewactive)))
@@ -781,13 +793,13 @@ void D_Display ()
 			screen->DrawBlendingRect();
 			if (automapactive)
 			{
-				int saved_ST_Y = ST_Y;
+				int saved_ST_Y = gST_Y;
 				if (hud_althud && viewheight == SCREENHEIGHT)
 				{
-					ST_Y = viewheight;
+					gST_Y = viewheight;
 				}
 				AM_Drawer ();
-				ST_Y = saved_ST_Y;
+				gST_Y = saved_ST_Y;
 			}
 			if (!automapactive || viewactive)
 			{
@@ -798,6 +810,10 @@ void D_Display ()
 			{
 				StatusBar->DrawBottomStuff (HUD_AltHud);
 				if (DrawFSHUD || automapactive) DrawHUD();
+				if (players[consoleplayer].camera && players[consoleplayer].camera->player)
+				{
+					StatusBar->DrawCrosshair();
+				}
 				StatusBar->Draw (HUD_AltHud);
 				StatusBar->DrawTopStuff (HUD_AltHud);
 			}
@@ -887,6 +903,8 @@ void D_Display ()
 	{
 		NetUpdate ();			// send out any new accumulation
 		// normal update
+		// draw ZScript UI stuff
+		//E_RenderOverlay();
 		C_DrawConsole (hw2d);	// draw console
 		M_Drawer ();			// menu is drawn even on top of everything
 		FStat::PrintStat ();
@@ -1056,6 +1074,7 @@ void D_PageTicker (void)
 
 void D_PageDrawer (void)
 {
+	screen->Clear(0, 0, SCREENWIDTH, SCREENHEIGHT, 0, 0);
 	if (Page != NULL)
 	{
 		screen->DrawTexture (Page, 0, 0,
@@ -1063,11 +1082,9 @@ void D_PageDrawer (void)
 			DTA_Masked, false,
 			DTA_BilinearFilter, true,
 			TAG_DONE);
-		screen->FillBorder (NULL);
 	}
 	else
 	{
-		screen->Clear (0, 0, SCREENWIDTH, SCREENHEIGHT, 0, 0);
 		if (!PageBlank)
 		{
 			screen->DrawText (SmallFont, CR_WHITE, 0, 0, "Page graphic goes here", TAG_DONE);
@@ -1391,6 +1408,10 @@ void ParseCVarInfo()
 				else if (stricmp(sc.String, "noarchive") == 0)
 				{
 					cvarflags &= ~CVAR_ARCHIVE;
+				}
+				else if (stricmp(sc.String, "cheat") == 0)
+				{
+					cvarflags |= CVAR_CHEAT;
 				}
 				else
 				{
@@ -2038,7 +2059,24 @@ static void AddAutoloadFiles(const char *autoname)
 {
 	LumpFilterIWAD.Format("%s.", autoname);	// The '.' is appened to simplify parsing the string 
 
-	if (!(gameinfo.flags & GI_SHAREWARE) && !Args->CheckParm("-noautoload"))
+	// [SP] Dialog reaction - load lights.pk3 and brightmaps.pk3 based on user choices
+	if (!(gameinfo.flags & GI_SHAREWARE))
+	{
+		if (autoloadlights)
+		{
+			const char *lightswad = BaseFileSearch ("lights.pk3", NULL);
+			if (lightswad)
+				D_AddFile (allwads, lightswad);
+		}
+		if (autoloadbrightmaps)
+		{
+			const char *bmwad = BaseFileSearch ("brightmaps.pk3", NULL);
+			if (bmwad)
+				D_AddFile (allwads, bmwad);
+		}
+	}
+
+	if (!(gameinfo.flags & GI_SHAREWARE) && !Args->CheckParm("-noautoload") && !disableautoload)
 	{
 		FString file;
 
@@ -2441,6 +2479,9 @@ void D_DoomMain (void)
 		TexMan.Init();
 		C_InitConback();
 
+		StartScreen->Progress();
+		V_InitFonts();
+
 		// [CW] Parse any TEAMINFO lumps.
 		if (!batchrun) Printf ("ParseTeamInfo: Load team definitions.\n");
 		TeamLibrary.ParseTeamInfo ();
@@ -2495,6 +2536,12 @@ void D_DoomMain (void)
 		// Create replacements for dehacked pickups
 		FinishDehPatch();
 
+		if (!batchrun) Printf("M_Init: Init menus.\n");
+		M_Init();
+
+		// clean up the compiler symbols which are not needed any longer.
+		RemoveUnusedSymbols();
+
 		InitActorNumsFromMapinfo();
 		InitSpawnablesFromMapinfo();
 		PClassActor::StaticSetActorNums();
@@ -2508,9 +2555,6 @@ void D_DoomMain (void)
 		}
 		bglobal.spawn_tries = 0;
 		bglobal.wanted_botnum = bglobal.getspawned.Size();
-
-		if (!batchrun) Printf ("M_Init: Init menus.\n");
-		M_Init ();
 
 		if (!batchrun) Printf ("P_Init: Init Playloop state.\n");
 		StartScreen->LoadingStatus ("Init game engine", 0x3f);
@@ -2648,6 +2692,7 @@ void D_DoomMain (void)
 			// These calls from inside V_Init2 are still necessary
 			C_NewModeAdjust();
 			M_InitVideoModesMenu();
+			Renderer->RemapVoxels();
 			D_StartTitle ();				// start up intro loop
 			setmodeneeded = false;			// This may be set to true here, but isn't needed for a restart
 		}
@@ -2668,6 +2713,7 @@ void D_DoomMain (void)
 		// clean up game state
 		ST_Clear();
 		D_ErrorCleanup ();
+		DThinker::DestroyThinkersInList(STAT_STATIC);
 		P_FreeLevelData();
 		P_FreeExtraLevelData();
 
@@ -2675,16 +2721,19 @@ void D_DoomMain (void)
 
 		// delete all data that cannot be left until reinitialization
 		V_ClearFonts();					// must clear global font pointers
+		ColorSets.Clear();
+		PainFlashes.Clear();
 		R_DeinitTranslationTables();	// some tables are initialized from outside the translation code.
 		gameinfo.~gameinfo_t();
 		new (&gameinfo) gameinfo_t;		// Reset gameinfo
 		S_Shutdown();					// free all channels and delete playlist
 		C_ClearAliases();				// CCMDs won't be reinitialized so these need to be deleted here
 		DestroyCVarsFlagged(CVAR_MOD);	// Delete any cvar left by mods
+		FS_Close();						// destroy the global FraggleScript.
 
 		GC::FullGC();					// clean up before taking down the object list.
 
-		// Delete the VM functions here. The garbage collector will not do this automatically because they are referenced from the global action function definitions.
+		// Delete the reference to the VM functions here which were deleted and will be recreated after the restart.
 		FAutoSegIterator probe(ARegHead, ARegTail);
 		while (*++probe != NULL)
 		{
@@ -2692,7 +2741,6 @@ void D_DoomMain (void)
 			*(afunc->VMPointer) = NULL;
 		}
 
-		ReleaseGlobalSymbols();
 		PClass::StaticShutdown();
 
 		GC::FullGC();					// perform one final garbage collection after shutdown
@@ -2704,6 +2752,7 @@ void D_DoomMain (void)
 
 		restart++;
 		PClass::bShutdown = false;
+		PClass::bVMOperational = false;
 	}
 	while (1);
 }
@@ -2795,3 +2844,10 @@ void FStartupScreen::NetMessage(char const *,...) {}
 void FStartupScreen::NetDone(void) {}
 bool FStartupScreen::NetLoop(bool (*)(void *),void *) { return false; }
 
+DEFINE_FIELD_X(InputEventData, event_t, type)
+DEFINE_FIELD_X(InputEventData, event_t, subtype)
+DEFINE_FIELD_X(InputEventData, event_t, data1)
+DEFINE_FIELD_X(InputEventData, event_t, data2)
+DEFINE_FIELD_X(InputEventData, event_t, data3)
+DEFINE_FIELD_X(InputEventData, event_t, x)
+DEFINE_FIELD_X(InputEventData, event_t, y)

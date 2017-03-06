@@ -49,6 +49,7 @@
 #include "v_palette.h"
 #include "p_acs.h"
 #include "r_data/colormaps.h"
+#include "g_levellocals.h"
 
 
 struct FEDOptions : public FOptionalMapinfoData
@@ -705,7 +706,7 @@ void ProcessEDLinedef(line_t *ld, int recordnum)
 	ld->flags = (ld->flags&~fmask) | eld->flags;
 	ld->setAlpha(eld->alpha);
 	memcpy(ld->args, eld->args, sizeof(ld->args));
-	tagManager.AddLineID(int(ld - lines), eld->tag);
+	tagManager.AddLineID(ld->Index(), eld->tag);
 }
 
 void ProcessEDSector(sector_t *sec, int recordnum)
@@ -753,27 +754,26 @@ void ProcessEDSector(sector_t *sec, int recordnum)
 
 void ProcessEDSectors()
 {
-	int i;
-
 	InitED();
 	if (EDSectors.CountUsed() == 0) return;	// don't waste time if there's no records.
 
 	// collect all Extradata sector records up front so we do not need to search the complete line array for each sector separately.
+	auto numsectors = level.sectors.Size();
 	int *sectorrecord = new int[numsectors];
 	memset(sectorrecord, -1, numsectors * sizeof(int));
-	for (i = 0; i < numlines; i++)
+	for (auto &line : level.lines)
 	{
-		if (lines[i].special == Static_Init && lines[i].args[1] == Init_EDSector)
+		if (line.special == Static_Init && line.args[1] == Init_EDSector)
 		{
-			sectorrecord[lines[i].frontsector - sectors] = lines[i].args[0];
-			lines[i].special = 0;
+			sectorrecord[line.frontsector->Index()] = line.args[0];
+			line.special = 0;
 		}
 	}
-	for (i = 0; i < numsectors; i++)
+	for (unsigned i = 0; i < numsectors; i++)
 	{
 		if (sectorrecord[i] >= 0)
 		{
-			ProcessEDSector(&sectors[i], sectorrecord[i]);
+			ProcessEDSector(&level.sectors[i], sectorrecord[i]);
 		}
 	}
 	delete[] sectorrecord;

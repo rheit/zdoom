@@ -34,6 +34,7 @@
 #include "r_utility.h"
 #include "v_text.h"
 #include "gi.h"
+#include "g_levellocals.h"
 
 //
 // sky mapping
@@ -119,12 +120,12 @@ void R_InitSkyMap ()
 		skystretch = (r_skymode == 1
 					  && skyheight >= 128
 					  && level.IsFreelookAllowed()
-					  && !(level.flags & LEVEL_FORCENOSKYSTRETCH)) ? 1 : 0;
+					  && !(level.flags & LEVEL_FORCETILEDSKY)) ? 1 : 0;
 		skytexturemid = -28;
 	}
 	else if (skyheight > 200)
 	{
-		skytexturemid = (200 - skyheight) * skytex1->Scale.Y +(r_skymode == 2 ? skytex1->SkyOffset + testskyoffset : 0);
+		skytexturemid = (200 - skyheight) * skytex1->Scale.Y +((r_skymode == 2 && !(level.flags & LEVEL_FORCETILEDSKY)) ? skytex1->SkyOffset + testskyoffset : 0);
 	}
 
 	if (viewwidth != 0 && viewheight != 0)

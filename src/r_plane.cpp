@@ -58,6 +58,8 @@
 #include "r_3dfloors.h"
 #include "v_palette.h"
 #include "r_data/colormaps.h"
+#include "g_levellocals.h"
+#include "events.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -841,7 +843,7 @@ static void R_DrawCapSky(visplane_t *pl)
 
 static void R_DrawSky (visplane_t *pl)
 {
-	if (r_skymode == 2)
+	if (r_skymode == 2 && !(level.flags & LEVEL_FORCETILEDSKY))
 	{
 		R_DrawCapSky(pl);
 		return;
@@ -1135,7 +1137,7 @@ void R_DrawPortals ()
 		case PORTS_SKYVIEWPOINT:
 		{
 			// Don't let gun flashes brighten the sky box
-			ASkyViewpoint *sky = barrier_cast<ASkyViewpoint*>(port->mSkybox);
+			AActor *sky = port->mSkybox;
 			extralight = 0;
 			R_SetVisibility(sky->args[0] * 0.25f);
 
@@ -1170,7 +1172,7 @@ void R_DrawPortals ()
 		}
 
 		port->mFlags |= PORTSF_INSKYBOX;
-		if (port->mPartner > 0) sectorPortals[port->mPartner].mFlags |= PORTSF_INSKYBOX;
+		if (port->mPartner > 0) level.sectorPortals[port->mPartner].mFlags |= PORTSF_INSKYBOX;
 		camera = NULL;
 		viewsector = port->mDestination;
 		assert(viewsector != NULL);
@@ -1233,7 +1235,7 @@ void R_DrawPortals ()
 		R_DrawPlanes ();
 
 		port->mFlags &= ~PORTSF_INSKYBOX;
-		if (port->mPartner > 0) sectorPortals[port->mPartner].mFlags &= ~PORTSF_INSKYBOX;
+		if (port->mPartner > 0) level.sectorPortals[port->mPartner].mFlags &= ~PORTSF_INSKYBOX;
 	}
 
 	// Draw all the masked textures in a second pass, in the reverse order they
@@ -1347,7 +1349,7 @@ void R_DrawSkyPlane (visplane_t *pl)
 		else
 		{	// MBF's linedef-controlled skies
 			// Sky Linedef
-			const line_t *l = &lines[(pl->sky & ~PL_SKYFLAT)-1];
+			const line_t *l = &level.lines[(pl->sky & ~PL_SKYFLAT)-1];
 
 			// Sky transferred from first sidedef
 			const side_t *s = l->sidedef[0];

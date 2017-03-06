@@ -71,8 +71,8 @@ protected:
 struct FArray
 {
 	void *Array;
-	unsigned int Most;
 	unsigned int Count;
+	unsigned int Most;
 };
 
 // T is the type stored in the array.
@@ -398,8 +398,8 @@ public:
 	}
 private:
 	T *Array;
-	unsigned int Most;
 	unsigned int Count;
+	unsigned int Most;
 
 	void DoCopy (const TArray<T> &other)
 	{
@@ -466,6 +466,137 @@ public:
 		this->Clear();
 	}
 };
+
+// A non-resizable array
+// This is meant for data that can be replaced but is otherwise static as long as it exists.
+// The reason for it is to replace any global pointer/counter pairs with something that can
+// be reliably accessed by the scripting VM and which can use 'for' iterator syntax.
+
+// This is split into two, so that it also can be used to wrap arrays that are not directly allocated.
+// This first class only gets a reference to some data but won't own it.
+template <class T>
+class TStaticPointedArray
+{
+public:
+
+	typedef TIterator<T>                       iterator;
+	typedef TIterator<const T>                 const_iterator;
+
+	iterator begin()
+	{
+		return &Array[0];
+	}
+	const_iterator begin() const
+	{
+		return &Array[0];
+	}
+	const_iterator cbegin() const
+	{
+		return &Array[0];
+	}
+
+	iterator end()
+	{
+		return &Array[Count];
+	}
+	const_iterator end() const
+	{
+		return &Array[Count];
+	}
+	const_iterator cend() const
+	{
+		return &Array[Count];
+	}
+
+	void Init(T *ptr, unsigned cnt)
+	{
+		Array = ptr;
+		Count = cnt;
+	}
+	// Return a reference to an element
+	T &operator[] (size_t index) const
+	{
+		return Array[index];
+	}
+	unsigned int Size() const
+	{
+		return Count;
+	}
+	// Some code needs to access these directly so they cannot be private.
+	T *Array;
+	unsigned int Count;
+};
+
+// This second type owns its data, it can delete and reallocate it, but it cannot
+// resize the array or repurpose its old contents if new ones are about to be created.
+template <class T>
+class TStaticArray : public TStaticPointedArray<T>
+{
+public:
+
+	////////
+	// This is a dummy constructor that does nothing. The purpose of this
+	// is so you can create a global TArray in the data segment that gets
+	// used by code before startup without worrying about the constructor
+	// resetting it after it's already been used. You MUST NOT use it for
+	// heap- or stack-allocated TArrays.
+	enum ENoInit
+	{
+		NoInit
+	};
+	TStaticArray(ENoInit dummy)
+	{
+	}
+	////////
+	TStaticArray()
+	{
+		this->Count = 0;
+		this->Array = NULL;
+	}
+	TStaticArray(TStaticArray<T> &&other)
+	{
+		this->Array = other.Array;
+		this->Count = other.Count;
+		other.Array = nullptr;
+		other.Count = 0;
+	}
+	// This is not supposed to be copyable.
+	TStaticArray(const TStaticArray<T> &other) = delete;
+
+	~TStaticArray()
+	{
+		Clear();
+	}
+	void Clear()
+	{
+		if (this->Array) delete[] this->Array;
+		this->Count = 0;
+		this->Array = nullptr;
+	}
+	void Alloc(unsigned int amount)
+	{
+		// intentionally first deletes and then reallocates.
+		if (this->Array) delete[] this->Array;
+		this->Array = new T[amount];
+		this->Count = amount;
+	}
+	TStaticArray &operator=(const TStaticArray &other)
+	{
+		Alloc(other.Size());
+		memcpy(this->Array, other.Array, this->Count * sizeof(T));
+		return *this;
+	}
+	TStaticArray &operator=(TStaticArray &&other)
+	{
+		if (this->Array) delete[] this->Array;
+		this->Array = other.Array;
+		this->Count = other.Count;
+		other.Array = nullptr;
+		other.Count = 0;
+		return *this;
+	}
+};
+
 
 // TAutoGrowArray -----------------------------------------------------------
 // An array with accessors that automatically grow the array as needed.

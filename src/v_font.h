@@ -40,7 +40,7 @@ class DCanvas;
 struct FRemapTable;
 class FTexture;
 
-enum EColorRange
+enum EColorRange : int
 {
 	CR_UNDEFINED = -1,
 	CR_BRICK,
@@ -66,7 +66,7 @@ enum EColorRange
 	CR_PURPLE,
 	CR_DARKGRAY,
 	CR_CYAN,
-	NUM_TEXT_COLORS
+	NUM_TEXT_COLORS,
 };
 
 extern int NumTextColors;
@@ -75,7 +75,7 @@ extern int NumTextColors;
 class FFont
 {
 public:
-	FFont (const char *fontname, const char *nametemplate, int first, int count, int base, int fdlump, int spacewidth=-1);
+	FFont (const char *fontname, const char *nametemplate, int first, int count, int base, int fdlump, int spacewidth=-1, bool notranslate = false);
 	virtual ~FFont ();
 
 	virtual FTexture *GetChar (int code, int *const width) const;
@@ -87,9 +87,9 @@ public:
 	int GetDefaultKerning () const { return GlobalKerning; }
 	virtual void LoadTranslations();
 	void Preload() const;
-	const char *GetName() const { return Name; }
+	FName GetName() const { return FontName; }
 
-	static FFont *FindFont (const char *fontname);
+	static FFont *FindFont(FName fontname);
 	static void StaticPreloadFonts();
 
 	// Return width of string in pixels (unscaled)
@@ -100,6 +100,7 @@ public:
 	int GetCharCode(int code, bool needpic) const;
 	char GetCursor() const { return Cursor; }
 	void SetCursor(char c) { Cursor = c; }
+	bool NoTranslate() const { return noTranslate; }
 
 protected:
 	FFont (int lump);
@@ -116,6 +117,7 @@ protected:
 	int FontHeight;
 	int GlobalKerning;
 	char Cursor;
+	bool noTranslate;
 	struct CharData
 	{
 		FTexture *Pic;
@@ -126,14 +128,13 @@ protected:
 	BYTE *PatchRemap;
 
 	int Lump;
-	char *Name;
+	FName FontName;
 	FFont *Next;
 
 	static FFont *FirstFont;
 	friend struct FontsDeleter;
 
 	friend void V_ClearFonts();
-	friend void V_RetranslateFonts();
 };
 
 
@@ -146,6 +147,5 @@ PalEntry V_LogColorFromColorRange (EColorRange range);
 EColorRange V_ParseFontColor (const BYTE *&color_value, int normalcolor, int boldcolor);
 FFont *V_GetFont(const char *);
 void V_InitFontColors();
-void V_RetranslateFonts();
 
 #endif //__V_FONT_H__

@@ -1,3 +1,318 @@
+struct InputEventData native version("2.4")
+{
+	native uint8	type;
+	native uint8	subtype;
+	native int16	data1;		// keys / mouse/joystick buttons
+	native int16	data2;
+	native int16	data3;
+	native int 		x;			// mouse/joystick x move
+	native int 		y;			// mouse/joystick y move
+	
+	enum EGenericEvent
+	{
+		NoEvent,
+		KeyDown,		// data1: scan code, data2: Qwerty ASCII code
+		KeyUp,		// same
+		Mouse,		// x, y: mouse movement deltas
+		GUI_Event,	// subtype specifies actual event
+		DeviceChange,// a device has been connected or removed
+	}
+	
+	enum EGUIEvent
+	{
+		GUI_None,
+		GUI_KeyDown,			// data1: unshifted ASCII, data2: shifted ASCII, data3: modifiers
+		GUI_KeyRepeat,		// same
+		GUI_KeyUp,			// same
+		GUI_Char,			// data1: translated character (for user text input), data2: alt down?
+		GUI_FirstMouseEvent,
+			GUI_MouseMove,
+			GUI_LButtonDown,
+			GUI_LButtonUp,
+			GUI_LButtonDblClick,
+			GUI_MButtonDown,
+			GUI_MButtonUp,
+			GUI_MButtonDblClick,
+			GUI_RButtonDown,
+			GUI_RButtonUp,
+			GUI_RButtonDblClick,
+			GUI_WheelUp,			// data3: shift/ctrl/alt
+			GUI_WheelDown,		// "
+			GUI_WheelRight,		// "
+			GUI_WheelLeft,		// "
+			GUI_BackButtonDown,
+			GUI_BackButtonUp,
+			GUI_FwdButtonDown,
+			GUI_FwdButtonUp,
+		GUI_LastMouseEvent,
+	};
+	
+	const KEY_ESCAPE = 0x01;
+}
+
+struct TexMan
+{
+	enum EUseTypes
+	{
+		Type_Any,
+		Type_Wall,
+		Type_Flat,
+		Type_Sprite,
+		Type_WallPatch,
+		Type_Build,
+		Type_SkinSprite,
+		Type_Decal,
+		Type_MiscPatch,
+		Type_FontChar,
+		Type_Override,	// For patches between TX_START/TX_END
+		Type_Autopage,	// Automap background - used to enable the use of FAutomapTexture
+		Type_SkinGraphic,
+		Type_Null,
+		Type_FirstDefined,
+	};
+
+	enum EFlags
+	{
+		TryAny = 1,
+		Overridable = 2,
+		ReturnFirst = 4,
+		AllowSkins = 8,
+		ShortNameOnly = 16,
+		DontCreate = 32
+	};
+	
+	enum ETexReplaceFlags
+	{
+		NOT_BOTTOM			= 1,
+		NOT_MIDDLE			= 2,
+		NOT_TOP				= 4,
+		NOT_FLOOR			= 8,
+		NOT_CEILING			= 16,
+		NOT_WALL			= 7,
+		NOT_FLAT			= 24
+	};
+
+	native static TextureID CheckForTexture(String name, int usetype, int flags = TryAny);
+	native static void ReplaceTextures(String from, String to, int flags);
+	native static int, int GetSize(TextureID tex);
+	native static Vector2 GetScaledSize(TextureID tex);
+}
+
+enum DrawTextureTags
+{
+	TAG_USER = (1<<30),
+	DTA_Base = TAG_USER + 5000,
+	DTA_DestWidth,		// width of area to draw to
+	DTA_DestHeight,		// height of area to draw to
+	DTA_Alpha,			// alpha value for translucency
+	DTA_FillColor,		// color to stencil onto the destination (RGB is the color for truecolor drawers, A is the palette index for paletted drawers)
+	DTA_TranslationIndex, // translation table to recolor the source
+	DTA_AlphaChannel,	// bool: the source is an alpha channel; used with DTA_FillColor
+	DTA_Clean,			// bool: scale texture size and position by CleanXfac and CleanYfac
+	DTA_320x200,		// bool: scale texture size and position to fit on a virtual 320x200 screen
+	DTA_Bottom320x200,	// bool: same as DTA_320x200 but centers virtual screen on bottom for 1280x1024 targets
+	DTA_CleanNoMove,	// bool: like DTA_Clean but does not reposition output position
+	DTA_CleanNoMove_1,	// bool: like DTA_CleanNoMove, but uses Clean[XY]fac_1 instead
+	DTA_FlipX,			// bool: flip image horizontally	//FIXME: Does not work with DTA_Window(Left|Right)
+	DTA_ShadowColor,	// color of shadow
+	DTA_ShadowAlpha,	// alpha of shadow
+	DTA_Shadow,			// set shadow color and alphas to defaults
+	DTA_VirtualWidth,	// pretend the canvas is this wide
+	DTA_VirtualHeight,	// pretend the canvas is this tall
+	DTA_TopOffset,		// override texture's top offset
+	DTA_LeftOffset,		// override texture's left offset
+	DTA_CenterOffset,	// bool: override texture's left and top offsets and set them for the texture's middle
+	DTA_CenterBottomOffset,// bool: override texture's left and top offsets and set them for the texture's bottom middle
+	DTA_WindowLeft,		// don't draw anything left of this column (on source, not dest)
+	DTA_WindowRight,	// don't draw anything at or to the right of this column (on source, not dest)
+	DTA_ClipTop,		// don't draw anything above this row (on dest, not source)
+	DTA_ClipBottom,		// don't draw anything at or below this row (on dest, not source)
+	DTA_ClipLeft,		// don't draw anything to the left of this column (on dest, not source)
+	DTA_ClipRight,		// don't draw anything at or to the right of this column (on dest, not source)
+	DTA_Masked,			// true(default)=use masks from texture, false=ignore masks
+	DTA_HUDRules,		// use fullscreen HUD rules to position and size textures
+	DTA_HUDRulesC,		// only used internally for marking HUD_HorizCenter
+	DTA_KeepRatio,		// doesn't adjust screen size for DTA_Virtual* if the aspect ratio is not 4:3
+	DTA_RenderStyle,	// same as render style for actors
+	DTA_ColorOverlay,	// DWORD: ARGB to overlay on top of image; limited to black for software
+	DTA_Internal1,
+	DTA_Internal2,
+	DTA_Internal3,
+	DTA_Fullscreen,		// Draw image fullscreen (same as DTA_VirtualWidth/Height with graphics size.)
+
+	// floating point duplicates of some of the above:
+	DTA_DestWidthF,
+	DTA_DestHeightF,
+	DTA_TopOffsetF,
+	DTA_LeftOffsetF,
+	DTA_VirtualWidthF,
+	DTA_VirtualHeightF,
+	DTA_WindowLeftF,
+	DTA_WindowRightF,
+
+	// For DrawText calls only:
+	DTA_TextLen,		// stop after this many characters, even if \0 not hit
+	DTA_CellX,			// horizontal size of character cell
+	DTA_CellY,			// vertical size of character cell
+};
+
+struct Screen native
+{
+	native static Color PaletteColor(int index);
+	native static int GetWidth();
+	native static int GetHeight();
+	native static void Clear(int left, int top, int right, int bottom, Color color, int palcolor = -1);
+	native static void Dim(Color col, double amount, int x, int y, int w, int h);
+
+	native static void DrawHUDTexture(TextureID tex, double x, double y);
+	native static vararg void DrawTexture(TextureID tex, bool animate, double x, double y, ...);
+	native static vararg void DrawChar(Font font, int normalcolor, double x, double y, int character, ...);
+	native static vararg void DrawText(Font font, int normalcolor, double x, double y, String text, ...);
+	native static void DrawFrame(int x, int y, int w, int h);
+}
+
+struct Font native
+{
+	enum EColorRange
+	{
+		CR_UNDEFINED = -1,
+		CR_BRICK,
+		CR_TAN,
+		CR_GRAY,
+		CR_GREY = CR_GRAY,
+		CR_GREEN,
+		CR_BROWN,
+		CR_GOLD,
+		CR_RED,
+		CR_BLUE,
+		CR_ORANGE,
+		CR_WHITE,
+		CR_YELLOW,
+		CR_UNTRANSLATED,
+		CR_BLACK,
+		CR_LIGHTBLUE,
+		CR_CREAM,
+		CR_OLIVE,
+		CR_DARKGREEN,
+		CR_DARKRED,
+		CR_DARKBROWN,
+		CR_PURPLE,
+		CR_DARKGRAY,
+		CR_CYAN,
+		NUM_TEXT_COLORS
+	};
+	
+	const TEXTCOLOR_BRICK			= "\034A";
+	const TEXTCOLOR_TAN				= "\034B";
+	const TEXTCOLOR_GRAY			= "\034C";
+	const TEXTCOLOR_GREY			= "\034C";
+	const TEXTCOLOR_GREEN			= "\034D";
+	const TEXTCOLOR_BROWN			= "\034E";
+	const TEXTCOLOR_GOLD			= "\034F";
+	const TEXTCOLOR_RED				= "\034G";
+	const TEXTCOLOR_BLUE			= "\034H";
+	const TEXTCOLOR_ORANGE			= "\034I";
+	const TEXTCOLOR_WHITE			= "\034J";
+	const TEXTCOLOR_YELLOW			= "\034K";
+	const TEXTCOLOR_UNTRANSLATED	= "\034L";
+	const TEXTCOLOR_BLACK			= "\034M";
+	const TEXTCOLOR_LIGHTBLUE		= "\034N";
+	const TEXTCOLOR_CREAM			= "\034O";
+	const TEXTCOLOR_OLIVE			= "\034P";
+	const TEXTCOLOR_DARKGREEN		= "\034Q";
+	const TEXTCOLOR_DARKRED			= "\034R";
+	const TEXTCOLOR_DARKBROWN		= "\034S";
+	const TEXTCOLOR_PURPLE			= "\034T";
+	const TEXTCOLOR_DARKGRAY		= "\034U";
+	const TEXTCOLOR_CYAN			= "\034V";
+
+	const TEXTCOLOR_NORMAL			= "\034-";
+	const TEXTCOLOR_BOLD			= "\034+";
+
+	const TEXTCOLOR_CHAT			= "\034*";
+	const TEXTCOLOR_TEAMCHAT		= "\034!";
+	
+
+	native int GetCharWidth(int code);
+	native int StringWidth(String code);
+	native int GetHeight();
+	native String GetCursor();
+
+	native static int FindFontColor(Name color);
+	native static Font FindFont(Name fontname);
+	native static Font GetFont(Name fontname);
+	native BrokenLines BreakLines(String text, int maxlen);
+}
+
+struct Translation version("2.4")
+{
+	Color colors[256];
+	
+	native int AddTranslation();
+	native static bool SetPlayerTranslation(int group, int num, int plrnum, PlayerClass pclass);
+	static int MakeID(int group, int num)
+	{
+		return (group << 16) + num;
+	}
+}
+
+struct Console native
+{
+	native static void HideConsole();
+	native static void MidPrint(Font fontname, string textlabel, bool bold = false);
+	native static vararg void Printf(string fmt, ...);
+}
+
+struct DamageTypeDefinition native
+{
+	native static bool IgnoreArmor(Name type);
+}
+
+struct CVar native
+{
+	enum ECVarType
+	{
+		CVAR_Bool,
+		CVAR_Int,
+		CVAR_Float,
+		CVAR_String,
+		CVAR_Color,
+	};
+
+	native static CVar FindCVar(Name name);
+	native int GetInt();
+	native double GetFloat();
+	native String GetString();
+	native void SetInt(int v);
+	native void SetFloat(double v);
+	native void SetString(String s);
+	native int GetRealType();
+	native int ResetToDefault();
+}
+
+struct GIFont version("2.4")
+{
+	Name fontname;
+	Name color;
+};
+
+struct GameInfoStruct native
+{
+	// will be extended as needed.
+	native Name backpacktype;
+	native double Armor2Percent;
+	native String ArmorIcon1;
+	native String ArmorIcon2;
+	native int gametype;
+	native bool norandomplayerclass;
+	native Array<Name> infoPages;
+	native String mBackButton;
+	native GIFont mStatscreenMapNameFont;
+	native GIFont mStatscreenEnteringFont;
+	native GIFont mStatscreenFinishedFont;
+	native double gibfactor;
+}
+
 class Object native
 {
 	native bool bDestroyed;
@@ -7,16 +322,29 @@ class Object native
 	native static double G_SkillPropertyFloat(int p);
 	native static vector3, int G_PickDeathmatchStart();
 	native static vector3, int G_PickPlayerStart(int pnum, int flags = 0);
-	native static int GameType();
 	native static void S_Sound (Sound sound_id, int channel, float volume = 1, float attenuation = ATTN_NORM);
+	native static void S_PauseSound (bool notmusic, bool notsfx);
+	native static void S_ResumeSound (bool notsfx);
 	native static bool S_ChangeMusic(String music_name, int order = 0, bool looping = true, bool force = false);
-	native static void C_MidPrint(string fontname, string textlabel, bool bold = false);	// always uses the stringtable.
 	native static uint BAM(double angle);
+	native static void SetMusicVolume(float vol);
+	native static uint MSTime();
 
-	/*virtual*/ native void Destroy();
+	native Name GetClassName();
+	native virtualscope void Destroy();
+
+	// This does not call into the native method of the same name to avoid problems with objects that get garbage collected late on shutdown.
+	virtual virtualscope void OnDestroy() {}
 }
 
-class Thinker : Object native
+class BrokenLines : Object native version("2.4")
+{
+	native int Count();
+	native int StringWidth(int line);
+	native String StringAt(int line);
+}
+
+class Thinker : Object native play
 {
 	enum EStatnums
 	{
@@ -26,6 +354,7 @@ class Thinker : Object native
 		STAT_AUTODECAL,							// A decal that can be automatically deleted
 		STAT_CORPSEPOINTER,						// An entry in Hexen's corpse queue
 		STAT_TRAVELLING,						// An actor temporarily travelling to a new map
+		STAT_STATIC,
 
 		// Thinkers that do think
 		STAT_FIRST_THINKING=32,
@@ -57,7 +386,6 @@ class Thinker : Object native
 
 class ThinkerIterator : Object native
 {
-
 	native static ThinkerIterator Create(class<Object> type = "Actor", int statnum=Thinker.MAX_STATNUM+1);
 	native Thinker Next(bool exact = false);
 	native void Reinit();
@@ -81,7 +409,7 @@ class BlockThingsIterator : Object native
 	native bool Next();
 }
 
-class DropItem : Object native
+struct DropItem native
 {
 	native readonly DropItem Next;
 	native readonly name Name;
@@ -99,6 +427,14 @@ class SpotState : Object native
 
 struct LevelLocals native
 {
+	enum EUDMF
+	{
+		UDMF_Line,
+		UDMF_Side,
+		UDMF_Sector,
+		//UDMF_Thing // not implemented
+	};
+
 	native readonly int time;
 	native readonly int maptime;
 	native readonly int totaltime;
@@ -112,6 +448,7 @@ struct LevelLocals native
 	native readonly String MapName;
 	native String NextMap;
 	native String NextSecretMap;
+	native String F1Pic;
 	native readonly int maptype;
 	native readonly String Music;
 	native readonly int musicorder;
@@ -121,26 +458,35 @@ struct LevelLocals native
 	native int found_items;
 	native int total_monsters;
 	native int killed_monsters;
-	native double gravity;
-	native double aircontrol;
-	native double airfriction;
-	native int airsupply;
-	native double teamdamage;
-	native bool monsterstelefrag;
-	native bool actownspecial;
-	native bool sndseqtotalctrl;
+	native play double gravity;
+	native play double aircontrol;
+	native play double airfriction;
+	native play int airsupply;
+	native readonly double teamdamage;
+	native readonly bool monsterstelefrag;
+	native readonly bool actownspecial;
+	native readonly bool sndseqtotalctrl;
 	native bool allmap;
-	native bool missilesactivateimpact;
-	native bool monsterfallingdamage;
-	native bool checkswitchrange;
-	native bool polygrind;
-	native bool nomonsters;
+	native readonly bool missilesactivateimpact;
+	native readonly bool monsterfallingdamage;
+	native readonly bool checkswitchrange;
+	native readonly bool polygrind;
+	native readonly bool nomonsters;
+	native bool frozen;
+	native readonly bool infinite_flight;
+	native readonly bool no_dlg_freeze;
 // level_info_t *info cannot be done yet.
+
+	native String GetUDMFString(int type, int index, Name key);
+	native int GetUDMFInt(int type, int index, Name key);
+	native double GetUDMFFloat(int type, int index, Name key);
+	native bool ExecuteSpecial(int special, Actor activator, line linedef, bool lineside, int arg1 = 0, int arg2 = 0, int arg3 = 0, int arg4 = 0, int arg5 = 0);
+
 }
 
 struct StringTable native
 {
-	native static String Localize(String val);
+	native static String Localize(String val, bool prefixed = true);
 }
 
 // a few values of this need to be readable by the play code.
@@ -152,6 +498,7 @@ struct DehInfo native
 	native double ExplosionAlpha;
 	native int NoAutofreeze;
 	native int BFGCells;
+	native int BlueAC;
 }
 
 struct State native
@@ -173,173 +520,12 @@ struct State native
 	native bool bDehacked;
 	
 	native int DistanceTo(state other);
+	native bool ValidateSpriteFrame();
+	native TextureID, bool, Vector2 GetSpriteTexture(int rotation, int skin = 0, Vector2 scale = (0,0));
 }
 
 struct F3DFloor native
 {
-}
-
-struct Line native
-{
-	enum ELineFlags
-	{
-		ML_BLOCKING					=0x00000001,	// solid, is an obstacle
-		ML_BLOCKMONSTERS			=0x00000002,	// blocks monsters only
-		ML_TWOSIDED					=0x00000004,	// backside will not be present at all if not two sided
-		ML_DONTPEGTOP				= 0x00000008,	// upper texture unpegged
-		ML_DONTPEGBOTTOM			= 0x00000010,	// lower texture unpegged
-		ML_SECRET					= 0x00000020,	// don't map as two sided: IT'S A SECRET!
-		ML_SOUNDBLOCK				= 0x00000040,	// don't let sound cross two of these
-		ML_DONTDRAW 				= 0x00000080,	// don't draw on the automap
-		ML_MAPPED					= 0x00000100,	// set if already drawn in automap
-		ML_REPEAT_SPECIAL			= 0x00000200,	// special is repeatable
-		ML_ADDTRANS					= 0x00000400,	// additive translucency (can only be set internally)
-
-		// Extended flags
-		ML_MONSTERSCANACTIVATE		= 0x00002000,	// [RH] Monsters (as well as players) can activate the line
-		ML_BLOCK_PLAYERS			= 0x00004000,
-		ML_BLOCKEVERYTHING			= 0x00008000,	// [RH] Line blocks everything
-		ML_ZONEBOUNDARY				= 0x00010000,
-		ML_RAILING					= 0x00020000,
-		ML_BLOCK_FLOATERS			= 0x00040000,
-		ML_CLIP_MIDTEX				= 0x00080000,	// Automatic for every Strife line
-		ML_WRAP_MIDTEX				= 0x00100000,
-		ML_3DMIDTEX					= 0x00200000,
-		ML_CHECKSWITCHRANGE			= 0x00400000,
-		ML_FIRSTSIDEONLY			= 0x00800000,	// activated only when crossed from front side
-		ML_BLOCKPROJECTILE			= 0x01000000,
-		ML_BLOCKUSE					= 0x02000000,	// blocks all use actions through this line
-		ML_BLOCKSIGHT				= 0x04000000,	// blocks monster line of sight
-		ML_BLOCKHITSCAN				= 0x08000000,	// blocks hitscan attacks
-		ML_3DMIDTEX_IMPASS			= 0x10000000,	// [TP] if 3D midtex, behaves like a height-restricted ML_BLOCKING
-	};
-
-
-	//native readonly vertex		v1, v2;		// vertices, from v1 to v2
-	native readonly Vector2			delta;		// precalculated v2 - v1 for side checking
-	native uint						flags;
-	native uint						activation;	// activation type
-	native int						special;
-	native int						args[5];	// <--- hexen-style arguments (expanded to ZDoom's full width)
-	native double					alpha;		// <--- translucency (0=invisibile, FRACUNIT=opaque)
-	//native Side					sidedef[2];
-	native readonly double			bbox[4];	// bounding box, for the extent of the LineDef.
-	native readonly Sector			frontsector, backsector;
-	native int 						validcount;	// if == validcount, already checked
-	native int						locknumber;	// [Dusk] lock number for special
-	native readonly uint			portalindex;
-}
-
-struct Sector native
-{
-	//secplane_t	floorplane, ceilingplane;
-	//FDynamicColormap *ColorMap;	// [RH] Per-sector colormap
-
-	native Actor 		SoundTarget;
-
-	native int16 		special;
-	native int16 		lightlevel;
-	native int16		seqType;	
-
-	native int			sky;
-	native Name			SeqName;	
-
-	native readonly Vector2		centerspot;	
-	native int 			validcount;	
-	native Actor		thinglist;	
-
-	native double		friction, movefactor;
-	native int			terrainnum[2];
-
-	// thinker_t for reversable actions
-	//SectorEffect floordata;	
-	//SectorEffect ceilingdata;	
-	//SectorEffect lightingdata;
-
-	enum EInterpolationType
-	{
-		CeilingMove,
-		FloorMove,
-		CeilingScroll,
-		FloorScroll
-	};
-	//Interpolation interpolations[4];
-
-	native uint8 		soundtraversed;
-	native int8 		stairlock;
-	native int 			prevsec;
-	native int	 		nextsec;
-
-	native readonly int16 		linecount;
-	//line_t **lines; // this is defined internally to avoid exposing some overly complicated type to the parser
-
-	native readonly Sector		heightsec;
-
-	native uint			bottommap, midmap, topmap;
-
-	//struct msecnode_t *touching_thinglist;
-	//struct msecnode_t *render_thinglist;
-
-	native double 		gravity;	
-	native Name 		damagetype;
-	native int 			damageamount;
-	native int16 		damageinterval;
-	native int16 		leakydamage;
-
-	native uint16		ZoneNumber;
-	
-	enum ESectorMoreFlags
-	{
-		SECMF_FAKEFLOORONLY	= 2,	// when used as heightsec in R_FakeFlat, only copies floor
-		SECMF_CLIPFAKEPLANES = 4,	// as a heightsec, clip planes to target sector's planes
-		SECMF_NOFAKELIGHT	= 8,	// heightsec does not change lighting
-		SECMF_IGNOREHEIGHTSEC= 16,	// heightsec is only for triggering sector actions
-		SECMF_UNDERWATER		= 32,	// sector is underwater
-		SECMF_FORCEDUNDERWATER= 64,	// sector is forced to be underwater
-		SECMF_UNDERWATERMASK	= 32+64,
-		SECMF_DRAWN			= 128,	// sector has been drawn at least once
-		SECMF_HIDDEN			= 256,	// Do not draw on textured automap
-	}
-	native uint16		MoreFlags;
-	
-	enum ESectorFlags
-	{
-		SECF_SILENT			= 1,	// actors in sector make no noise
-		SECF_NOFALLINGDAMAGE= 2,	// No falling damage in this sector
-		SECF_FLOORDROP		= 4,	// all actors standing on this floor will remain on it when it lowers very fast.
-		SECF_NORESPAWN		= 8,	// players can not respawn in this sector
-		SECF_FRICTION		= 16,	// sector has friction enabled
-		SECF_PUSH			= 32,	// pushers enabled
-		SECF_SILENTMOVE		= 64,	// Sector movement makes mo sound (Eternity got this so this may be useful for an extended cross-port standard.) 
-		SECF_DMGTERRAINFX	= 128,	// spawns terrain splash when inflicting damage
-		SECF_ENDGODMODE		= 256,	// getting damaged by this sector ends god mode
-		SECF_ENDLEVEL		= 512,	// ends level when health goes below 10
-		SECF_HAZARD			= 1024,	// Change to Strife's delayed damage handling.
-
-		SECF_WASSECRET		= 1 << 30,	// a secret that was discovered
-		SECF_SECRET			= 1 << 31,	// a secret sector
-
-		SECF_DAMAGEFLAGS = SECF_ENDGODMODE|SECF_ENDLEVEL|SECF_DMGTERRAINFX|SECF_HAZARD,
-		SECF_NOMODIFY = SECF_SECRET|SECF_WASSECRET,	// not modifiable by Sector_ChangeFlags
-		SECF_SPECIALFLAGS = SECF_DAMAGEFLAGS|SECF_FRICTION|SECF_PUSH,	// these flags originate from 'special and must be transferrable by floor thinkers
-	}
-	native uint			Flags;
-
-	native SectorAction		SecActTarget;
-
-	native readonly uint		Portals[2];
-	native readonly int			PortalGroup;
-
-	native readonly int			sectornum;
-
-
-	native double, Sector, F3DFloor NextHighestCeilingAt(double x, double y, double bottomz, double topz, int flags = 0);
-	native double, Sector, F3DFloor NextLowestFloorAt(double x, double y, double z, int flags = 0, double steph = 0);
-
-	native void RemoveForceField();
-	native static Sector PointInSector(Vector2 pt);
-	native void SetColor(color c, int desat = 0);
-	native void SetFade(color c);
 }
 
 struct Wads
@@ -399,9 +585,18 @@ enum EPickStart
 }
 
 // Although String is a builtin type, this is a convenient way to attach methods to it.
-struct String native
+struct StringStruct native
 {
+	native static vararg String Format(String fmt, ...);
+	native vararg void AppendFormat(String fmt, ...);
+
 	native void Replace(String pattern, String replacement);
+	native String Left(int len);
+	native String Mid(int pos = 0, int len = 2147483647);
+	native void Truncate(int newlen);
+	native String CharAt(int pos);
+	native int CharCodeAt(int pos);
+	native String Filter();
 }
 
 class Floor : Thinker native
@@ -440,7 +635,7 @@ class Floor : Thinker native
 		waitStair,
 		resetStair,
 
-		// Not to be used as parameters to EV_DoFloor()
+		// Not to be used as parameters to DoFloor()
 		genFloorChg0,
 		genFloorChgT,
 		genFloorChg

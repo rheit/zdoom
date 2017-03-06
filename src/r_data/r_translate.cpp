@@ -487,6 +487,56 @@ void FRemapTable::AddDesaturation(int start, int end, double r1, double g1, doub
 //
 //----------------------------------------------------------------------------
 
+void FRemapTable::AddColourisation(int start, int end, int r, int g, int b)
+{
+	for (int i = start; i < end; ++i)
+	{
+		float br = GPalette.BaseColors[i].r;
+		float bg = GPalette.BaseColors[i].g;
+		float bb = GPalette.BaseColors[i].b;
+		float grey = (br * 0.299 + bg * 0.587 + bb * 0.114) / 255.0f;
+		if (grey > 1.0) grey = 1.0;
+		br = r * grey;
+		bg = g * grey;
+		bb = b * grey;
+
+		int j = GPalette.Remap[i];
+		Palette[j] = PalEntry(j == 0 ? 0 : 255, int(br), int(bg), int(bb));
+		Remap[j] = ColorMatcher.Pick(Palette[j]);
+	}
+}
+
+//----------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------
+
+void FRemapTable::AddTint(int start, int end, int r, int g, int b, int amount)
+{
+	for (int i = start; i < end; ++i)
+	{
+		float br = GPalette.BaseColors[i].r;
+		float bg = GPalette.BaseColors[i].g;
+		float bb = GPalette.BaseColors[i].b;
+		float a = amount * 0.01f;
+		float ia = 1.0f - a;
+		br = br * ia + r * a;
+		bg = bg * ia + g * a;
+		bb = bb * ia + b * a;
+
+		int j = GPalette.Remap[i];
+		Palette[j] = PalEntry(j == 0 ? 0 : 255, int(br), int(bg), int(bb));
+		Remap[j] = ColorMatcher.Pick(Palette[j]);
+	}
+}
+
+//----------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------
+
 void FRemapTable::AddToTranslation(const char *range)
 {
 	int start,end;
@@ -511,19 +561,9 @@ void FRemapTable::AddToTranslation(const char *range)
 		}
 
 		sc.MustGetAnyToken();
+		Printf(0, "token type: %d", sc.TokenType);
 
-		if (sc.TokenType != '[' && sc.TokenType != '%')
-		{
-			int pal1,pal2;
-
-			sc.TokenMustBe(TK_IntConst);
-			pal1 = sc.Number;
-			sc.MustGetToken(':');
-			sc.MustGetToken(TK_IntConst);
-			pal2 = sc.Number;
-			AddIndexRange(start, end, pal1, pal2);
-		}
-		else if (sc.TokenType == '[')
+		if (sc.TokenType == '[')
 		{ 
 			// translation using RGB values
 			int r1,g1,b1,r2,g2,b2;
@@ -595,6 +635,54 @@ void FRemapTable::AddToTranslation(const char *range)
 			sc.MustGetToken(']');
 
 			AddDesaturation(start, end, r1, g1, b1, r2, g2, b2);
+		}
+		else if (sc.TokenType == '#')
+		{
+			// Colourise translation
+			int r, g, b;
+			sc.MustGetToken('[');
+			sc.MustGetToken(TK_IntConst);
+			r = sc.Number;
+			sc.MustGetToken(',');
+			sc.MustGetToken(TK_IntConst);
+			g = sc.Number;
+			sc.MustGetToken(',');
+			sc.MustGetToken(TK_IntConst);
+			b = sc.Number;
+			sc.MustGetToken(']');
+
+			AddColourisation(start, end, r, g, b);
+		}
+		else if (sc.TokenType == '@')
+		{
+			// Tint translation
+			int a, r, g, b;
+
+			sc.MustGetToken(TK_IntConst);
+			a = sc.Number;
+			sc.MustGetToken('[');
+			sc.MustGetToken(TK_IntConst);
+			r = sc.Number;
+			sc.MustGetToken(',');
+			sc.MustGetToken(TK_IntConst);
+			g = sc.Number;
+			sc.MustGetToken(',');
+			sc.MustGetToken(TK_IntConst);
+			b = sc.Number;
+			sc.MustGetToken(']');
+
+			AddTint(start, end, r, g, b, a);
+		}
+		else
+		{
+			int pal1, pal2;
+
+			sc.TokenMustBe(TK_IntConst);
+			pal1 = sc.Number;
+			sc.MustGetToken(':');
+			sc.MustGetToken(TK_IntConst);
+			pal2 = sc.Number;
+			AddIndexRange(start, end, pal1, pal2);
 		}
 	}
 	catch (CRecoverableError &err)
@@ -860,6 +948,15 @@ void R_InitTranslationTables ()
 		int v = (r*77 + g*143 + b*37) >> 12;
 		remap->Remap[i] = IcePaletteRemap[v];
 		remap->Palette[i] = PalEntry(255, IcePalette[v][0], IcePalette[v][1], IcePalette[v][2]);
+	}
+
+	// The alphatexture translation. Since alphatextures use the red channel this is just a standard grayscale mapping.
+	PushIdentityTable(TRANSLATION_Standard);
+	remap = translationtables[TRANSLATION_Standard][8];
+	for (i = 0; i < 256; i++)
+	{
+		remap->Remap[i] = i;
+		remap->Palette[i] = PalEntry(255, i, i, i);
 	}
 }
 
@@ -1162,7 +1259,7 @@ void R_BuildPlayerTranslation (int player)
 	D_GetPlayerColor (player, &h, &s, &v, &colorset);
 
 	R_CreatePlayerTranslation (h, s, v, colorset,
-		&skins[players[player].userinfo.GetSkin()],
+		&Skins[players[player].userinfo.GetSkin()],
 		translationtables[TRANSLATION_Players][player],
 		translationtables[TRANSLATION_PlayersExtra][player],
 		translationtables[TRANSLATION_RainPillar][player]
@@ -1187,6 +1284,33 @@ void R_GetPlayerTranslation (int color, const FPlayerColorSet *colorset, FPlayer
 		&h, &s, &v);
 
 	R_CreatePlayerTranslation (h, s, v, colorset, skin, table, NULL, NULL);
+}
+
+
+DEFINE_ACTION_FUNCTION(_Translation, SetPlayerTranslation)
+{
+	PARAM_PROLOGUE;
+	PARAM_UINT(tgroup);
+	PARAM_UINT(tnum);
+	PARAM_UINT(pnum);
+	PARAM_POINTER(cls, FPlayerClass);
+
+	if (pnum >= MAXPLAYERS || tgroup >= NUM_TRANSLATION_TABLES || tnum >= translationtables[tgroup].Size())
+	{
+		ACTION_RETURN_BOOL(false);
+	}
+	auto self = &players[pnum];
+	int PlayerColor = self->userinfo.GetColor();
+	int	PlayerSkin = self->userinfo.GetSkin();
+	int PlayerColorset = self->userinfo.GetColorSet();
+
+	if (cls != nullptr)
+	{
+		PlayerSkin = R_FindSkin(Skins[PlayerSkin].Name, int(cls - &PlayerClasses[0]));
+		R_GetPlayerTranslation(PlayerColor, GetColorSet(cls->Type, PlayerColorset),
+			&Skins[PlayerSkin], translationtables[tgroup][tnum]);
+	}
+	ACTION_RETURN_BOOL(true);
 }
 
 //----------------------------------------------------------------------------
@@ -1296,3 +1420,29 @@ void R_ParseTrnslate()
 		}
 	}
 }
+
+//----------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------
+
+struct FTranslation
+{
+	PalEntry colors[256];
+};
+
+DEFINE_ACTION_FUNCTION(_Translation, AddTranslation)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FTranslation);
+
+	FRemapTable NewTranslation;
+	memcpy(&NewTranslation.Palette[0], self->colors, 256 * sizeof(PalEntry));
+	for (int i = 0; i < 256; i++)
+	{
+		NewTranslation.Remap[i] = ColorMatcher.Pick(self->colors[i]);
+	}
+	int trans = NewTranslation.StoreTranslation(TRANSLATION_Custom);
+	ACTION_RETURN_INT(trans);
+}
+

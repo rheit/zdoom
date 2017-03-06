@@ -41,6 +41,8 @@
 #endif
 
 #include <limits.h>
+#include <tuple>
+#include <algorithm>
 #include "tarray.h"
 #include "name.h"
 #include "zstring.h"
@@ -155,12 +157,9 @@ struct PalEntry
 #endif
 };
 
-class PClassInventory;
-
 class FTextureID
 {
 	friend class FTextureManager;
-	friend FTextureID GetHUDIcon(PClassInventory *cls);
 	friend void R_InitSpriteDefs();
 
 public:
@@ -185,6 +184,45 @@ protected:
 private:
 	int texnum;
 };
+
+// This is for the script interface which needs to do casts from int to texture.
+class FSetTextureID : public FTextureID
+{
+public:
+	FSetTextureID(int v) : FTextureID(v) {}
+};
+
+
+struct VersionInfo
+{
+	uint16_t major;
+	uint16_t minor;
+	uint32_t revision;
+
+	bool operator <=(const VersionInfo &o) const
+	{
+		return o.major > this->major || (o.major == this->major && o.minor > this->minor) || (o.major == this->major && o.minor == this->minor && o.revision >= this->revision);
+	}
+	bool operator >=(const VersionInfo &o) const
+	{
+		return o.major < this->major || (o.major == this->major && o.minor < this->minor) || (o.major == this->major && o.minor == this->minor && o.revision <= this->revision);
+	}
+	bool operator > (const VersionInfo &o) const
+	{
+		return o.major < this->major || (o.major == this->major && o.minor < this->minor) || (o.major == this->major && o.minor == this->minor && o.revision < this->revision);
+	}
+	bool operator < (const VersionInfo &o) const
+	{
+		return o.major > this->major || (o.major == this->major && o.minor > this->minor) || (o.major == this->major && o.minor == this->minor && o.revision > this->revision);
+	}
+	void operator=(const char *string);
+};
+
+// Cannot be a constructor because Lemon would puke on it.
+inline VersionInfo MakeVersion(unsigned int ma, unsigned int mi, unsigned int re = 0)
+{
+	return{ (uint16_t)ma, (uint16_t)mi, (uint32_t)re };
+}
 
 
 

@@ -31,6 +31,7 @@
 #include "gi.h"
 #include "serializer.h"
 #include "p_spec.h"
+#include "g_levellocals.h"
 
 //============================================================================
 //
@@ -242,7 +243,7 @@ bool P_CreateCeiling(sector_t *sec, DCeiling::ECeiling type, line_t *line, int t
 	
 	// new door thinker
 	DCeiling *ceiling = new DCeiling (sec, speed, speed2, silent & ~4);
-	vertex_t *spot = sec->lines[0]->v1;
+	vertex_t *spot = sec->Lines[0]->v1;
 
 	switch (type)
 	{
@@ -498,7 +499,7 @@ bool EV_DoCeiling (DCeiling::ECeiling type, line_t *line,
 	{
 		if (!line || !(sec = line->backsector))
 			return rtn;
-		secnum = (int)(sec-sectors);
+		secnum = sec->sectornum;
 		// [RH] Hack to let manual crushers be retriggerable, too
 		tag ^= secnum | 0x1000000;
 		P_ActivateInStasisCeiling (tag);
@@ -516,7 +517,7 @@ bool EV_DoCeiling (DCeiling::ECeiling type, line_t *line,
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		rtn |= P_CreateCeiling(&sectors[secnum], type, line, tag, speed, speed2, height, crush, silent, change, hexencrush);
+		rtn |= P_CreateCeiling(&level.sectors[secnum], type, line, tag, speed, speed2, height, crush, silent, change, hexencrush);
 	}
 	return rtn;
 }
@@ -580,4 +581,19 @@ bool EV_CeilingCrushStop (int tag, bool remove)
 	}
 
 	return rtn;
+}
+
+bool EV_StopCeiling(int tag)
+{
+	FSectorTagIterator it(tag);
+	while (int sec = it.Next())
+	{
+		if (level.sectors[sec].ceilingdata)
+		{
+			SN_StopSequence(&level.sectors[sec], CHAN_CEILING);
+			level.sectors[sec].ceilingdata->Destroy();
+			level.sectors[sec].ceilingdata = nullptr;
+		}
+	}
+	return true;
 }

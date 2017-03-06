@@ -1417,6 +1417,9 @@ TXT_KILLED_ORACLE = "You've Killed The Oracle!";
 TXT_KILLED_MACIL = "You Killed Macil!";
 TXT_KILLED_LOREMASTER = "You've Killed the Loremaster!";
 
+TXT_YOUFOOL = "You Fool!  You've set off the alarm.";
+TXT_YOUREDEAD = "You're dead!  You set off the alarm.";
+
 // Strife pickup messages
 
 TXT_METALARMOR = "You picked up the Metal Armor.";
@@ -1562,6 +1565,23 @@ TXT_GOAWAY			= "Go away!";
 TXT_COMM0			= "Incoming Message";
 TXT_COMM1			= "Incoming Message from BlackBird";
 
+
+AMMO_CLIP			= "Bullets";
+AMMO_SHELLS			= "Shotgun Shells";
+AMMO_ROCKETS		= "Rockets";
+AMMO_CELLS			= "Energy Cells";
+AMMO_GOLDWAND		= "Wand Crystals";
+AMMO_CROSSBOW		= "Ethereal Arrows";
+AMMO_BLASTER		= "Claw Orbs";
+AMMO_MACE			= "Mace Spheres";
+AMMO_SKULLROD		= "Hellstaff Runes";
+AMMO_PHOENIXROD		= "Flame Orbs";
+AMMO_MANA1			= "Blue Mana";
+AMMO_MANA2			= "Green Mana";
+$ifgame(chex) AMMO_CLIP = "Mini Zorch Charge";
+$ifgame(chex) AMMO_SHELLS = "Large Zorcher Charge";
+$ifgame(chex) AMMO_ROCKETS = "Propulsor Charge";
+$ifgame(chex) AMMO_CELLS = "Phasing Zorcher Charge";
 
 // Menu Strings
 
@@ -1756,6 +1776,7 @@ MOUSEMNU_LOOKSTRAFE			= "Lookstrafe";
 
 JOYMNU_CONFIG				= "CONFIGURE CONTROLLER";
 JOYMNU_OPTIONS				= "CONTROLLER OPTIONS";
+JOYMNU_NOMENU				= "Block controller input in menu";
 
 // Player Setup Menu
 MNU_PLAYERSETUP		= "PLAYER SETUP";
@@ -1779,7 +1800,6 @@ DSPLYMNU_SCREENSIZE				= "Screen size";
 DSPLYMNU_BRIGHTNESS				= "Brightness";
 DSPLYMNU_VSYNC					= "Vertical Sync";
 DSPLYMNU_CAPFPS					= "Rendering Interpolation";
-DSPLYMNU_COLUMNMETHOD			= "Column render mode";
 DSPLYMNU_WIPETYPE				= "Screen wipe style";
 DSPLYMNU_SHOWENDOOM				= "Show ENDOOM screen";
 DSPLYMNU_BLOODFADE				= "Blood Flash Intensity";
@@ -1876,7 +1896,7 @@ MISCMNU_DEHLOAD					= "Load *.deh/*.bex lumps";
 MISCMNU_CACHENODES				= "Cache nodes";
 MISCMNU_CACHETIME				= "Time threshold for node caching";
 MISCMNU_CLEARNODECACHE			= "Clear node cache";
-
+MISCMNU_INTERSCROLL				= "Allow skipping of intermission scrollers";
 // Automap Options
 AUTOMAPMNU_TITLE				= "AUTOMAP OPTIONS";
 AUTOMAPMNU_COLORSET				= "Map color set";
@@ -2168,9 +2188,29 @@ NETMNU_HOSTOPTIONS				= "Host options";
 NETMNU_EXTRATICS				= "Extra Tics";
 NETMNU_TICBALANCE				= "Latency balancing";
 
+// Joystick menu
+
+JOYMNU_ENABLE = "Enable controller support";
+JOYMNU_DINPUT = "Enable DirectInput controllers";
+JOYMNU_XINPUT = "Enable XInput controllers";
+JOYMNU_PS2 = "Enable raw PlayStation 2 adapters";
+JOYMNU_NOCON = "No controllers detected";
+JOYMNU_CONFIG = "Configure controllers:";
+JOYMNU_DISABLED1 = "Controller support must be";
+JOYMNU_DISABLED2 = "enabled to detect any";
+JOYMNU_INVALID = "Invalid controller specified for menu";
+JOYMNU_OVRSENS = "Overall sensitivity";
+JOYMNU_AXIS = "Axis Configuration";
+JOYMNU_INVERT = "Invert";
+JOYMNU_DEADZONE = "Dead zone";
+JOYMNU_NOAXES = "No configurable axes";
+
 // Option Values
 OPTVAL_OFF					= "Off";
 OPTVAL_ON					= "On";
+OPTVAL_LOW					= "Low";
+OPTVAL_MEDIUM				= "Medium";
+OPTVAL_HIGH					= "High";
 OPTVAL_MALE					= "Male";
 OPTVAL_FEMALE				= "Female";
 OPTVAL_OTHER				= "Other";
@@ -2246,6 +2286,7 @@ OPTVAL_FRONT				= "Front";
 OPTVAL_ANIMATED				= "Animated";
 OPTVAL_ROTATED				= "Rotated";
 OPTVAL_MAPDEFINEDCOLORSONLY = "Map defined colors only";
+OPTVAL_NODOORS				= "All except doors";
 OPTVAL_DOUBLE				= "Double";
 OPTVAL_TRIPLE				= "Triple";
 OPTVAL_QUADRUPLE			= "Quadruple";
@@ -2303,6 +2344,7 @@ OPTVAL_ERRORS				= "Errors";
 OPTVAL_WARNINGS				= "Warnings";
 OPTVAL_NOTIFICATIONS		= "Notifications";
 OPTVAL_EVERYTHING			= "Everything";
+OPTVAL_FULLSCREENONLY		= "Fullscreen only";
 // Colors
 C_BRICK					= "\cabrick";
 C_TAN					= "\cbtan";
@@ -2578,3 +2620,155 @@ MUSIC_ULTIMA = "ultima";
 MUSIC_READ_M = "read_m";
 MUSIC_DM2TTL = "dm2ttl";
 MUSIC_DM2INT = "dm2int";
+
+// GZDoom exclusive:
+
+DSPLYMNU_GLOPT		= "OpenGL Options";
+DSPLYMNU_GAMMA		= "Gamma correction";
+DSPLYMNU_CONTRAST 	="Contrast";
+DSPLYMNU_HWGAMMA	= "Hardware Gamma";
+
+// OpenGL Options
+GLMNU_TITLE		= "OPENGL OPTIONS";
+GLMNU_DYNLIGHT	= "Dynamic Light Options";
+GLMNU_TEXOPT	= "Texture Options";
+GLMNU_PREFS		= "Preferences";
+
+// Texture Options
+GLTEXMNU_TITLE			= "TEXTURE OPTIONS";
+GLTEXMNU_TEXENABLED 	= "Textures enabled";
+GLTEXMNU_TEXFILTER 		= "Texture Filter mode";
+GLTEXMNU_ANISOTROPIC	= "Anisotropic filter";
+GLTEXMNU_TEXFORMAT 		= "Texture Format";
+GLTEXMNU_ENABLEHIRES 	= "Enable hires textures";
+GLTEXMNU_HQRESIZE 		= "High Quality Resize mode";
+GLTEXMNU_RESIZETEX 		= "Resize textures";
+GLTEXMNU_RESIZESPR 		= "Resize sprites";
+GLTEXMNU_RESIZEFNT 		= "Resize fonts";
+GLTEXMNU_PRECACHETEX 	= "Precache GL textures";
+GLTEXMNU_TRIMSPREDGE	= "Trim sprite edges";
+GLTEXMNU_SORTDRAWLIST 	= "Sort draw lists by texture";
+
+// Dynamic Light Options
+GLLIGHTMNU_TITLE 			= "DYNAMIC LIGHTS";
+GLLIGHTMNU_LIGHTSENABLED 	= "Dynamic Lights enabled";
+GLLIGHTMNU_LIGHTDEFS		= "Enable light definitions";
+GLLIGHTMNU_CLIPLIGHTS 		= "Clip lights";
+GLLIGHTMNU_LIGHTSPRITES 	= "Lights affect sprites";
+GLLIGHTMNU_LIGHTPARTICLES 	= "Lights affect particles";
+
+// OpenGL Preferences
+GLPREFMNU_TITLE 				= "OPENGL PREFERENCES";
+GLPREFMNU_SECLIGHTMODE 			= "Sector light mode";
+GLPREFMNU_FOGMODE 				= "Fog mode";
+GLPREFMNU_FOGFORCEFULLBRIGHT 	= "Fog forces fullbright";
+GLPREFMNU_WPNLIGHTSTR 			= "Weapon light strength";
+GLPREFMNU_ENVIRONMENTMAPMIRROR 	= "Environment map on mirrors";
+GLPREFMNU_ENV 					= "Enhanced night vision mode";
+GLPREFMNU_ENVSTEALTH 			= "ENV shows stealth monsters";
+GLPREFMNU_SPRBRIGHTFOG 			= "Force brightness in fog";
+GLPREFMNU_SPRCLIP 				= "Adjust sprite clipping";
+GLPREFMNU_SPRBLEND 				= "Smooth sprite edges";
+GLPREFMNU_FUZZSTYLE 			= "Fuzz Style";
+GLPREFMNU_SPRBILLBOARD 			= "Sprite billboard";
+GLPREFMNU_SPRBILLFACECAMERA 	= "Sprites face camera";
+GLPREFMNU_PARTICLESTYLE 		= "Particle style";
+GLPREFMNU_AMBLIGHT 				= "Ambient light level";
+GLPREFMNU_RENDERQUALITY 		= "Rendering quality";
+GLPREFMNU_VRMODE 				= "Stereo 3D VR";
+GLPREFMNU_VRQUADSTEREO 			= "Enable Quad Stereo";
+GLPREFMNU_MULTISAMPLE			= "Multisample";
+GLPREFMNU_TONEMAP				= "Tonemap Mode";
+GLPREFMNU_BLOOM					= "Bloom effect";
+GLPREFMNU_LENS					= "Lens distortion effect";
+GLPREFMNU_SSAO					= "Ambient occlusion quality";
+GLPREFMNU_SSAO_PORTALS			= "Portals with AO";
+GLPREFMNU_FXAA					= "FXAA Quality";
+GLPREFMNU_PALTONEMAPORDER		= "Tonemap Palette Order";
+GLPREFMNU_PALTONEMAPPOWER		= "Tonemap Palette Exponent";
+GLPREFMNU_SWLMBANDED			= "Banded SW Lightmode";
+
+// Option Values
+OPTVAL_SMART 				= "Smart";
+OPTVAL_SMARTER 				= "Smarter";
+OPTVAL_INFRAREDONLY 		= "Infrared only";
+OPTVAL_INFRAREDANDTORCH 	= "Infrared and torch";
+OPTVAL_ANYFIXEDCOLORMAP 	= "Any fixed colormap";
+OPTVAL_NONENEARESTMIPMAP 	= "None (nearest mipmap)";
+OPTVAL_NONELINEARMIPMAP 	= "None (linear mipmap)";
+OPTVAL_NONETRILINEAR		= "None (trilinear)";
+OPTVAL_BILINEAR 			= "Bilinear";
+OPTVAL_TRILINEAR 			= "Trilinear";
+OPTVAL_RGBA8 				= "RGBA8";
+OPTVAL_RGB5A1 				= "RGB5_A1";
+OPTVAL_RGBA4 				= "RGBA4";
+OPTVAL_RGBA2 				= "RGBA2";
+OPTVAL_COMPRRGBA 			= "COMPR_RGBA";
+OPTVAL_S3TCDXT1 			= "S3TC_DXT1";
+OPTVAL_S3TCDXT3 			= "S3TC_DXT3";
+OPTVAL_S3TCDXT5 			= "S3TC_DXT5";
+OPTVAL_2X 					= "2x";
+OPTVAL_4X 					= "4x";
+OPTVAL_8X 					= "8x";
+OPTVAL_16X 					= "16x";
+OPTVAL_32X 					= "32x";
+OPTVAL_USEASPALETTE 		= "Use as palette";
+OPTVAL_BLEND 				= "Blend";
+OPTVAL_STANDARD 			= "Standard";
+OPTVAL_BRIGHT 				= "Bright";
+OPTVAL_DARK 				= "Dark";
+OPTVAL_LEGACY 				= "Legacy";
+OPTVAL_SOFTWARE 			= "Software";
+OPTVAL_SPEED 				= "Speed";
+OPTVAL_QUALITY 				= "Quality";
+OPTVAL_OPTIMAL 				= "Optimal";
+OPTVAL_60 					= "60";
+OPTVAL_70 					= "70";
+OPTVAL_72 					= "72";
+OPTVAL_75 					= "75";
+OPTVAL_85 					= "85";
+OPTVAL_100 					= "100";
+OPTVAL_YAXIS 				= "Y Axis";
+OPTVAL_XYAXIS 				= "X/Y Axis";
+OPTVAL_SQUARE 				= "Square";
+OPTVAL_ROUND 				= "Round";
+OPTVAL_SCALE2X 				= "Scale2x";
+OPTVAL_SCALE3X 				= "Scale3x";
+OPTVAL_SCALE4X 				= "Scale4x";
+OPTVAL_HQ2X 				= "hq2x";
+OPTVAL_HQ3X 				= "hq3x";
+OPTVAL_HQ4X 				= "hq4x";
+OPTVAL_HQ2XMMX 				= "hq2x MMX";
+OPTVAL_HQ3XMMX 				= "hq3x MMX";
+OPTVAL_HQ4XMMX 				= "hq4x MMX";
+OPTVAL_RADIAL 				= "Radial";
+OPTVAL_PIXELFUZZ 			= "Pixel fuzz";
+OPTVAL_SMOOTHFUZZ 			= "Smooth fuzz";
+OPTVAL_SWIRLYFUZZ 			= "Swirly fuzz";
+OPTVAL_TRANSLUCENTFUZZ 		= "Translucent fuzz";
+OPTVAL_NOISE 				= "Noise";
+OPTVAL_SMOOTHNOISE 			= "Smooth Noise";
+OPTVAL_JAGGEDFUZZ 			= "Jagged fuzz";
+OPTVAL_NORMAL 				= "Normal";
+OPTVAL_GREENMAGENTA 		= "Green/Magenta";
+OPTVAL_REDCYAN 				= "Red/Cyan";
+OPTVAL_AMBERBLUE 			= "Amber/Blue";
+OPTVAL_LEFTEYE 				= "Left Eye";
+OPTVAL_RIGHTEYE 			= "Right Eye";
+OPTVAL_SBSFULL		    	= "Side-by-side Full";
+OPTVAL_SBSNARROW			= "Side-by-side Narrow";
+OPTVAL_TOPBOTTOM			= "Top/Bottom";
+OPTVAL_ROWINTERLEAVED		= "Row Interleaved";
+OPTVAL_COLUMNINTERLEAVED	= "Column Interleaved";
+OPTVAL_CHECKERBOARD			= "Checkerboard";
+OPTVAL_QUADBUFFERED 		= "Quad-buffered";
+OPTVAL_UNCHARTED2			= "Uncharted 2";
+OPTVAL_HEJLDAWSON			= "Hejl Dawson";
+OPTVAL_REINHARD				= "Reinhard";
+OPTVAL_PALETTE				= "Palette";
+OPTVAL_LOW					= "Low";
+OPTVAL_MEDIUM				= "Medium";
+OPTVAL_HIGH					= "High";
+OPTVAL_EXTREME				= "Extreme";
+OPTVAL_OBVERSEFIRST			= "Obverse";
+OPTVAL_REVERSEFIRST			= "Reverse";

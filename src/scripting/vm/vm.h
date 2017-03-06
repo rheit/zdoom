@@ -6,6 +6,12 @@
 #include "vectors.h"
 #include "cmdlib.h"
 #include "doomerrors.h"
+#include "memarena.h"
+#include "scripting/backend/scopebarrier.h"
+
+class DObject;
+
+extern FMemArena ClassDataAllocator;
 
 #define MAX_RETURNS		8	// Maximum number of results a function called by script code can return
 #define MAX_TRY_DEPTH	8	// Maximum number of nested TRYs in a single function
@@ -193,12 +199,14 @@ enum
 
 enum EVMAbortException
 {
+	X_OTHER,
 	X_READ_NIL,
 	X_WRITE_NIL,
 	X_TOO_MANY_TRIES,
 	X_ARRAY_OUT_OF_BOUNDS,
 	X_DIVISION_BY_ZERO,
 	X_BAD_SELF,
+	X_FORMAT_ERROR
 };
 
 class CVMAbortException : public CDoomError
@@ -208,6 +216,9 @@ public:
 	CVMAbortException(EVMAbortException reason, const char *moreinfo, va_list ap);
 	void MaybePrintMessage();
 };
+
+// This must be a separate function because the VC compiler would otherwise allocate memory on the stack for every separate instance of the exception object that may get thrown.
+void ThrowAbortException(EVMAbortException reason, const char *moreinfo, ...);
 
 enum EVMOpMode
 {
@@ -389,6 +400,11 @@ struct VMReturn
 		TagOfs = 0;
 		RegType = REGT_POINTER;
 	}
+	VMReturn() { }
+	VMReturn(int *loc) { IntAt(loc); }
+	VMReturn(double *loc) { FloatAt(loc); }
+	VMReturn(FString *loc) { StringAt(loc); }
+	VMReturn(void **loc) { PointerAt(loc); }
 };
 
 struct VMRegisters;
@@ -683,14 +699,11 @@ do_double:		if (inexact)
 	}
 };
 
-class VMFunction : public DObject
+class VMFunction
 {
-	DECLARE_ABSTRACT_CLASS(VMFunction, DObject);
-	HAS_OBJECT_POINTERS;
 public:
-	bool Native;
-	bool Final = false;				// cannot be overridden
-	bool Unsafe = false;			// Contains references to class fields that are unsafe for psp and item state calls.
+	bool Unsafe = false;
+	int VarFlags = 0; // [ZZ] this replaces 5+ bool fields
 	BYTE ImplicitArgs = 0;	// either 0 for static, 1 for method or 3 for action
 	unsigned VirtualIndex = ~0u;
 	FName Name;
@@ -699,7 +712,29 @@ public:
 
 	class PPrototype *Proto;
 
-	VMFunction(FName name = NAME_None) : Native(false), ImplicitArgs(0), Name(name), Proto(NULL) {}
+	VMFunction(FName name = NAME_None) : ImplicitArgs(0), Name(name), Proto(NULL)
+	{
+		AllFunctions.Push(this);
+	}
+	virtual ~VMFunction() {}
+
+	void *operator new(size_t size)
+	{
+		return ClassDataAllocator.Alloc(size);
+	}
+
+	void operator delete(void *block) {}
+	void operator delete[](void *block) {}
+	static void DeleteAll()
+	{
+		for (auto f : AllFunctions)
+		{
+			f->~VMFunction();
+		}
+		AllFunctions.Clear();
+	}
+	static TArray<VMFunction *> AllFunctions;
+protected:
 };
 
 // VM frame layout:
@@ -828,11 +863,9 @@ struct FStatementInfo
 
 class VMScriptFunction : public VMFunction
 {
-	DECLARE_CLASS(VMScriptFunction, VMFunction);
 public:
 	VMScriptFunction(FName name=NAME_None);
 	~VMScriptFunction();
-	size_t PropagateMark();
 	void Alloc(int numops, int numkonstd, int numkonstf, int numkonsts, int numkonsta, int numlinenumbers);
 
 	VM_ATAG *KonstATags() { return (VM_UBYTE *)(KonstA + NumKonstA); }
@@ -900,13 +933,13 @@ private:
 
 class VMNativeFunction : public VMFunction
 {
-	DECLARE_CLASS(VMNativeFunction, VMFunction);
 public:
 	typedef int (*NativeCallType)(VMValue *param, TArray<VMValue> &defaultparam, int numparam, VMReturn *ret, int numret);
 
-	VMNativeFunction() : NativeCall(NULL) { Native = true; }
-	VMNativeFunction(NativeCallType call) : NativeCall(call) { Native = true; }
-	VMNativeFunction(NativeCallType call, FName name) : VMFunction(name), NativeCall(call) { Native = true; }
+	// 8 is VARF_Native. I can't write VARF_Native because of circular references between this and dobject/dobjtype.
+	VMNativeFunction() : NativeCall(NULL) { VarFlags = 8; }
+	VMNativeFunction(NativeCallType call) : NativeCall(call) { VarFlags = 8; }
+	VMNativeFunction(NativeCallType call, FName name) : VMFunction(name), NativeCall(call) { VarFlags = 8; }
 
 	// Return value is the number of results.
 	NativeCallType NativeCall;
@@ -987,6 +1020,7 @@ void NullParam(const char *varname);
 
 // For required parameters.
 #define PARAM_INT_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_INT); int x = param[p].i;
+#define PARAM_UINT_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_INT); unsigned x = param[p].i;
 #define PARAM_BOOL_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_INT); bool x = !!param[p].i;
 #define PARAM_NAME_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_INT); FName x = ENamedName(param[p].i);
 #define PARAM_SOUND_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_INT); FSoundID x = param[p].i;
@@ -997,6 +1031,7 @@ void NullParam(const char *varname);
 #define PARAM_STATE_AT(p,x)			assert((p) < numparam); assert(param[p].Type == REGT_INT); FState *x = (FState *)StateLabels.GetState(param[p].i, self->GetClass());
 #define PARAM_STATE_ACTION_AT(p,x)	assert((p) < numparam); assert(param[p].Type == REGT_INT); FState *x = (FState *)StateLabels.GetState(param[p].i, stateowner->GetClass());
 #define PARAM_POINTER_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER); type *x = (type *)param[p].a;
+#define PARAM_POINTERTYPE_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER); type x = (type )param[p].a;
 #define PARAM_OBJECT_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == NULL)); type *x = (type *)param[p].a; assert(x == NULL || x->IsKindOf(RUNTIME_CLASS(type)));
 #define PARAM_CLASS_AT(p,x,base)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER && (param[p].atag == ATAG_OBJECT || param[p].a == NULL)); base::MetaClass *x = (base::MetaClass *)param[p].a; assert(x == NULL || x->IsDescendantOf(RUNTIME_CLASS(base)));
 #define PARAM_POINTER_NOT_NULL_AT(p,x,type)	assert((p) < numparam); assert(param[p].Type == REGT_POINTER); type *x = (type *)PARAM_NULLCHECK(param[p].a, #x);
@@ -1030,6 +1065,7 @@ void NullParam(const char *varname);
 #define PARAM_PROLOGUE				int paramnum = -1;
 
 #define PARAM_INT(x)				++paramnum; PARAM_INT_AT(paramnum,x)
+#define PARAM_UINT(x)				++paramnum; PARAM_UINT_AT(paramnum,x)
 #define PARAM_BOOL(x)				++paramnum; PARAM_BOOL_AT(paramnum,x)
 #define PARAM_NAME(x)				++paramnum; PARAM_NAME_AT(paramnum,x)
 #define PARAM_SOUND(x)				++paramnum; PARAM_SOUND_AT(paramnum,x)
@@ -1040,6 +1076,7 @@ void NullParam(const char *varname);
 #define PARAM_STATE(x)				++paramnum; PARAM_STATE_AT(paramnum,x)
 #define PARAM_STATE_ACTION(x)		++paramnum; PARAM_STATE_ACTION_AT(paramnum,x)
 #define PARAM_POINTER(x,type)		++paramnum; PARAM_POINTER_AT(paramnum,x,type)
+#define PARAM_POINTERTYPE(x,type)	++paramnum; PARAM_POINTERTYPE_AT(paramnum,x,type)
 #define PARAM_OBJECT(x,type)		++paramnum; PARAM_OBJECT_AT(paramnum,x,type)
 #define PARAM_CLASS(x,base)			++paramnum; PARAM_CLASS_AT(paramnum,x,base)
 #define PARAM_POINTER_NOT_NULL(x,type)		++paramnum; PARAM_POINTER_NOT_NULL_AT(paramnum,x,type)
@@ -1113,9 +1150,9 @@ struct AFuncDesc
 	MSVC_FSEG FieldDesc const *const VMField_##icls##_##name##_HookPtr GCC_FSEG = &VMField_##icls##_##name;
 
 #define DEFINE_FIELD_NAMED_X(cls, icls, name, scriptname) \
-	static const FieldDesc VMField_##icls##_##scriptname = { "A" #cls, #scriptname, (unsigned)myoffsetof(icls, name), (unsigned)sizeof(icls::name), 0 }; \
-	extern FieldDesc const *const VMField_##icls##_##scriptname##_HookPtr; \
-	MSVC_FSEG FieldDesc const *const VMField_##icls##_##scriptname##_HookPtr GCC_FSEG = &VMField_##icls##_##scriptname;
+	static const FieldDesc VMField_##cls##_##scriptname = { "A" #cls, #scriptname, (unsigned)myoffsetof(icls, name), (unsigned)sizeof(icls::name), 0 }; \
+	extern FieldDesc const *const VMField_##cls##_##scriptname##_HookPtr; \
+	MSVC_FSEG FieldDesc const *const VMField_##cls##_##scriptname##_HookPtr GCC_FSEG = &VMField_##cls##_##scriptname;
 
 #define DEFINE_FIELD_X_BIT(cls, icls, name, bitval) \
 	static const FieldDesc VMField_##icls##_##name = { "A" #cls, #name, (unsigned)myoffsetof(icls, name), (unsigned)sizeof(icls::name), bitval }; \
@@ -1138,7 +1175,6 @@ struct AFuncDesc
 	MSVC_FSEG FieldDesc const *const VMField_##cls##_##scriptname##_HookPtr GCC_FSEG = &VMField_##cls##_##scriptname;
 
 class AActor;
-
 
 #define ACTION_RETURN_STATE(v) do { FState *state = v; if (numret > 0) { assert(ret != NULL); ret->SetPointer(state, ATAG_STATE); return 1; } return 0; } while(0)
 #define ACTION_RETURN_POINTER(v) do { void *state = v; if (numret > 0) { assert(ret != NULL); ret->SetPointer(state, ATAG_GENERIC); return 1; } return 0; } while(0)
@@ -1182,6 +1218,6 @@ class PFunction;
 VMFunction *FindVMFunction(PClass *cls, const char *name);
 #define DECLARE_VMFUNC(cls, name) static VMFunction *name; if (name == nullptr) name = FindVMFunction(RUNTIME_CLASS(cls), #name);
 
-
+FString FStringFormat(VM_ARGS);
 
 #endif

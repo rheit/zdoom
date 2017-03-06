@@ -38,19 +38,15 @@ class APlayerPawn;
 struct line_t;
 struct sector_t;
 struct msecnode_t;
+struct portnode_t;
 struct secplane_t;
 struct FCheckPosition;
 struct FTranslatedLineTarget;
+struct FLinePortal;
 
 #include <stdlib.h>
 
 #define STEEPSLOPE		(46342/65536.)	// [RH] Minimum floorplane.c value for walking
-
-#define BONUSADD		6
-
-// mapblocks are used to check movement
-// against lines and things
-#define MAPBLOCKUNITS	128
 
 // Inspired by Maes
 extern int bmapnegx;
@@ -115,7 +111,7 @@ void	P_BloodSplatter (const DVector3 &pos, AActor *originator, DAngle hitangle);
 void	P_BloodSplatter2 (const DVector3 &pos, AActor *originator, DAngle hitangle);
 void	P_RipperBlood (AActor *mo, AActor *bleeder);
 int		P_GetThingFloorType (AActor *thing);
-void	P_ExplodeMissile (AActor *missile, line_t *explodeline, AActor *target);
+void	P_ExplodeMissile (AActor *missile, line_t *explodeline, AActor *target, bool onsky = false);
 
 AActor *P_OldSpawnMissile(AActor *source, AActor *owner, AActor *dest, PClassActor *type);
 AActor *P_SpawnMissile (AActor* source, AActor* dest, PClassActor *type, AActor* owner = NULL);
@@ -155,7 +151,7 @@ bool	P_Thing_Move (int tid, AActor *source, int mapspot, bool fog);
 int		P_Thing_Damage (int tid, AActor *whofor0, int amount, FName type);
 void	P_Thing_SetVelocity(AActor *actor, const DVector3 &vec, bool add, bool setbob);
 void P_RemoveThing(AActor * actor);
-bool P_Thing_Raise(AActor *thing, AActor *raiser);
+bool P_Thing_Raise(AActor *thing, AActor *raiser, int nocheck = false);
 bool P_Thing_CanRaise(AActor *thing);
 PClassActor *P_GetSpawnableType(int spawnnum);
 void InitSpawnablesFromMapinfo();
@@ -263,7 +259,7 @@ bool P_CheckPosition(AActor *thing, const DVector2 &pos, FCheckPosition &tm, boo
 AActor	*P_CheckOnmobj (AActor *thing);
 void	P_FakeZMovement (AActor *mo);
 bool	P_TryMove(AActor* thing, const DVector2 &pos, int dropoff, const secplane_t * onfloor, FCheckPosition &tm, bool missileCheck = false);
-bool	P_TryMove(AActor* thing, const DVector2 &pos, int dropoff, const secplane_t * onfloor = NULL);
+bool	P_TryMove(AActor* thing, const DVector2 &pos, int dropoff, const secplane_t * onfloor = NULL, bool missilecheck = false);
 
 bool	P_CheckMove(AActor *thing, const DVector2 &pos, int flags = 0);
 void	P_ApplyTorque(AActor *mo);
@@ -303,7 +299,7 @@ enum
 };
 void	P_FindFloorCeiling (AActor *actor, int flags=0);
 
-bool	P_ChangeSector (sector_t* sector, int crunch, double amt, int floorOrCeil, bool isreset);
+bool	P_ChangeSector (sector_t* sector, int crunch, double amt, int floorOrCeil, bool isreset, bool instant = false);
 
 DAngle P_AimLineAttack(AActor *t1, DAngle angle, double distance, FTranslatedLineTarget *pLineTarget = NULL, DAngle vrange = 0., int flags = 0, AActor *target = NULL, AActor *friender = NULL);
 
@@ -323,6 +319,7 @@ enum	// P_LineAttack flags
 	LAF_NORANDOMPUFFZ = 2,
 	LAF_NOIMPACTDECAL = 4,
 	LAF_NOINTERACT =	8,
+	LAF_TARGETISSOURCE = 16,
 };
 
 AActor *P_LineAttack(AActor *t1, DAngle angle, double distance, DAngle pitch, int damage, FName damageType, PClassActor *pufftype, int flags = 0, FTranslatedLineTarget *victim = NULL, int *actualdamage = NULL);
@@ -392,8 +389,14 @@ int	P_RadiusAttack (AActor *spot, AActor *source, int damage, int distance,
 						FName damageType, int flags, int fulldamagedistance=0);
 
 void	P_DelSeclist(msecnode_t *, msecnode_t *sector_t::*seclisthead);
-msecnode_t *P_AddSecnode(sector_t *s, AActor *thing, msecnode_t *nextnode, msecnode_t *&sec_thinglist);
-msecnode_t*	P_DelSecnode(msecnode_t *, msecnode_t *sector_t::*head);
+void	P_DelSeclist(portnode_t *, portnode_t *FLinePortal::*seclisthead);
+
+template<class nodetype, class linktype>
+nodetype *P_AddSecnode(linktype *s, AActor *thing, nodetype *nextnode, nodetype *&sec_thinglist);
+
+template<class nodetype, class linktype>
+nodetype* P_DelSecnode(nodetype *, nodetype *linktype::*head);
+
 msecnode_t *P_CreateSecNodeList(AActor *thing, double radius, msecnode_t *sector_list, msecnode_t *sector_t::*seclisthead);
 double	P_GetMoveFactor(const AActor *mo, double *frictionp);	// phares  3/6/98
 double		P_GetFriction(const AActor *mo, double *frictionfactor);
@@ -437,5 +440,16 @@ enum EDmgFlags
 // P_SPEC
 //
 bool P_AlignFlat (int linenum, int side, int fc);
+
+enum ETexReplaceFlags
+{
+	NOT_BOTTOM			= 1,
+	NOT_MIDDLE			= 2,
+	NOT_TOP				= 4,
+	NOT_FLOOR			= 8,
+	NOT_CEILING			= 16
+};
+
+void P_ReplaceTextures(const char *fromname, const char *toname, int flags);
 
 #endif	// __P_LOCAL__

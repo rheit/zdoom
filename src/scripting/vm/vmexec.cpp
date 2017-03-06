@@ -39,10 +39,12 @@
 #include "r_state.h"
 #include "textures/textures.h"
 #include "math/cmath.h"
+#include "stats.h"
 
-// This must be a separate function because the VC compiler would otherwise allocate memory on the stack for every separate instance of the exception object that may get thrown.
-void ThrowAbortException(EVMAbortException reason, const char *moreinfo, ...);
-// intentionally implemented in a different source file tp prevent inlining.
+extern cycle_t VMCycles[10];
+extern int VMCalls[10];
+
+// intentionally implemented in a different source file to prevent inlining.
 void ThrowVMException(VMException *x);
 
 #define IMPLEMENT_VMEXEC
@@ -199,7 +201,7 @@ void VMFillParams(VMValue *params, VMFrame *callee, int numparam)
 	VMScriptFunction *calleefunc = static_cast<VMScriptFunction *>(callee->Func);
 	const VMRegisters calleereg(callee);
 
-	assert(calleefunc != NULL && !calleefunc->Native);
+	assert(calleefunc != NULL && !(calleefunc->VarFlags & VARF_Native));
 	assert(numparam == calleefunc->NumArgs || ((int)calleefunc->DefaultArgs.Size() == calleefunc->NumArgs));
 	assert(REGT_INT == 0 && REGT_FLOAT == 1 && REGT_STRING == 2 && REGT_POINTER == 3);
 

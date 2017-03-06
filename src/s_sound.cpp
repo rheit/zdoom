@@ -53,6 +53,8 @@
 #include "serializer.h"
 #include "d_player.h"
 #include "r_state.h"
+#include "g_levellocals.h"
+#include "virtual.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -478,7 +480,20 @@ void S_PrecacheLevel ()
 		// Precache all sounds known to be used by the currently spawned actors.
 		while ( (actor = iterator.Next()) != NULL )
 		{
-			actor->MarkPrecacheSounds();
+			IFVIRTUALPTR(actor, AActor, MarkPrecacheSounds)
+			{
+				// Without the type cast this picks the 'void *' assignment...
+				VMValue params[1] = { actor };
+				GlobalVMStack.Call(func, params, 1, nullptr, 0, nullptr);
+			}
+			else
+			{
+				actor->MarkPrecacheSounds();
+			}
+		}
+		for (auto i : gameinfo.PrecachedSounds)
+		{
+			level.info->PrecacheSounds[i].MarkUsed();
 		}
 		// Precache all extra sounds requested by this map.
 		for (i = 0; i < level.info->PrecacheSounds.Size(); ++i)
@@ -677,6 +692,7 @@ static void CalcPosVel(int type, const AActor *actor, const sector_t *sector,
 		else
 		{
 			listenpos.Zero();
+			pos->Zero();
 			pgroup = 0;
 		}
 
@@ -917,6 +933,7 @@ static FSoundChan *S_StartSound(AActor *actor, const sector_t *sec, const FPolyO
 	// the referenced sound so some additional checks are required
 	int near_limit = sfx->NearLimit;
 	float limit_range = sfx->LimitRange;
+	auto pitchmask = sfx->PitchMask;
 	rolloff = &sfx->Rolloff;
 
 	// Resolve player sounds, random sounds, and aliases
@@ -1081,9 +1098,9 @@ static FSoundChan *S_StartSound(AActor *actor, const sector_t *sec, const FPolyO
 	}
 
 	// Vary the sfx pitches.
-	if (sfx->PitchMask != 0)
+	if (pitchmask != 0)
 	{
-		pitch = NORM_PITCH - (M_Random() & sfx->PitchMask) + (M_Random() & sfx->PitchMask);
+		pitch = NORM_PITCH - (M_Random() & pitchmask) + (M_Random() & pitchmask);
 	}
 	else
 	{
@@ -1239,6 +1256,7 @@ DEFINE_ACTION_FUNCTION(DObject, S_Sound)
 	PARAM_INT(channel);
 	PARAM_FLOAT_DEF(volume);
 	PARAM_FLOAT_DEF(attn);
+	S_Sound(channel, id, static_cast<float>(volume), static_cast<float>(attn));
 	return 0;
 }
 
@@ -1382,7 +1400,7 @@ sfxinfo_t *S_LoadSound(sfxinfo_t *sfx)
 			FWadLump wlump = Wads.OpenLumpNum(sfx->lumpnum);
 			BYTE *sfxdata = new BYTE[size];
 			wlump.Read(sfxdata, size);
-			SDWORD dmxlen = LittleLong(((SDWORD *)sfxdata)[1]);
+			int32_t dmxlen = LittleLong(((int32_t *)sfxdata)[1]);
             std::pair<SoundHandle,bool> snd;
 
 			// If the sound is voc, use the custom loader.
@@ -1442,7 +1460,7 @@ static void S_LoadSound3D(sfxinfo_t *sfx)
     FWadLump wlump = Wads.OpenLumpNum(sfx->lumpnum);
     BYTE *sfxdata = new BYTE[size];
     wlump.Read(sfxdata, size);
-    SDWORD dmxlen = LittleLong(((SDWORD *)sfxdata)[1]);
+    int32_t dmxlen = LittleLong(((int32_t *)sfxdata)[1]);
     std::pair<SoundHandle,bool> snd;
 
     // If the sound is voc, use the custom loader.
@@ -1851,6 +1869,15 @@ void S_PauseSound (bool notmusic, bool notsfx)
 	}
 }
 
+DEFINE_ACTION_FUNCTION(DObject, S_PauseSound)
+{
+	PARAM_PROLOGUE;
+	PARAM_BOOL(notmusic);
+	PARAM_BOOL(notsfx);
+	S_PauseSound(notmusic, notsfx);
+	return 0;
+}
+
 //==========================================================================
 //
 // S_ResumeSound
@@ -1870,6 +1897,14 @@ void S_ResumeSound (bool notsfx)
 		SoundPaused = false;
 		GSnd->SetSfxPaused (false, 0);
 	}
+}
+
+DEFINE_ACTION_FUNCTION(DObject, S_ResumeSound)
+{
+	PARAM_PROLOGUE;
+	PARAM_BOOL(notsfx);
+	S_ResumeSound(notsfx);
+	return 0;
 }
 
 //==========================================================================

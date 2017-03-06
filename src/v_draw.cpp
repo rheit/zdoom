@@ -61,6 +61,7 @@
 #include "d_net.h"
 #include "colormatcher.h"
 #include "r_data/colormaps.h"
+#include "g_levellocals.h"
 
 CUSTOM_CVAR(Int, uiscale, 2, CVAR_ARCHIVE | CVAR_NOINITCALL)
 {
@@ -90,6 +91,26 @@ CVAR (Bool, hud_scale, true, CVAR_ARCHIVE);
 static int LastPal = -1;
 static uint32 LastRGB;
 
+DEFINE_ACTION_FUNCTION(_Screen, GetWidth)
+{
+	PARAM_PROLOGUE;
+	ACTION_RETURN_INT(screen->GetWidth());
+}
+
+DEFINE_ACTION_FUNCTION(_Screen, GetHeight)
+{
+	PARAM_PROLOGUE;
+	ACTION_RETURN_INT(screen->GetHeight());
+}
+
+DEFINE_ACTION_FUNCTION(_Screen, PaletteColor)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(index);
+	if (index < 0 || index > 255) index = 0;
+	else index = GPalette.BaseColors[index];
+	ACTION_RETURN_INT(index);
+}
 
 static int PalFromRGB(uint32 rgb)
 {
@@ -114,19 +135,55 @@ static int PalFromRGB(uint32 rgb)
 	return LastPal;
 }
 
+
 void DCanvas::DrawTexture (FTexture *img, double x, double y, int tags_first, ...)
 {
-	va_list tags;
-	va_start(tags, tags_first);
+	Va_List tags;
+	va_start(tags.list, tags_first);
 	DrawParms parms;
 
 	bool res = ParseDrawTextureTags(img, x, y, tags_first, tags, &parms, false);
-	va_end(tags);
+	va_end(tags.list);
 	if (!res)
 	{
 		return;
 	}
 	DrawTextureParms(img, parms);
+}
+
+int ListGetInt(VMVa_List &tags);
+
+void DCanvas::DrawTexture(FTexture *img, double x, double y, VMVa_List &args)
+{
+	DrawParms parms;
+	uint32_t tag = ListGetInt(args);
+	bool res = ParseDrawTextureTags(img, x, y, tag, args, &parms, false);
+	if (!res) return;
+	DrawTextureParms(img, parms);
+}
+
+DEFINE_ACTION_FUNCTION(_Screen, DrawTexture)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(texid);
+	PARAM_BOOL(animate);
+	PARAM_FLOAT(x);
+	PARAM_FLOAT(y);
+
+	FTexture *tex = animate ? TexMan(FSetTextureID(texid)) : TexMan[FSetTextureID(texid)];
+	VMVa_List args = { param + 4, 0, numparam - 4 };
+	screen->DrawTexture(tex, x, y, args);
+	return 0;
+}
+
+DEFINE_ACTION_FUNCTION(_Screen, DrawHUDTexture)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(texid);
+	PARAM_FLOAT(x);
+	PARAM_FLOAT(y);
+	screen->DrawTexture(TexMan(FSetTextureID(texid)), x, y, DTA_HUDRules, HUD_Normal, TAG_END);
+	return 0;
 }
 
 void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
@@ -153,7 +210,7 @@ void DCanvas::DrawTextureParms(FTexture *img, DrawParms &parms)
 		{
 			parms.colorOverlay = PalEntry(parms.colorOverlay).InverseColor();
 		}
-		// Note that this overrides DTA_Translation in software, but not in hardware.
+		// Note that this overrides the translation in software, but not in hardware.
 		FDynamicColormap *colormap = GetSpecialLights(MAKERGB(255,255,255),
 			parms.colorOverlay & MAKEARGB(0,255,255,255), 0);
 		translation = &colormap->Maps[(APART(parms.colorOverlay)*NUMCOLORMAPS/255)*256];
@@ -409,7 +466,73 @@ bool DCanvas::SetTextureParms(DrawParms *parms, FTexture *img, double xx, double
 	return false;
 }
 
-bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag, va_list tags, DrawParms *parms, bool fortext) const
+static void ListEnd(Va_List &tags)
+{
+	va_end(tags.list);
+}
+
+static int ListGetInt(Va_List &tags)
+{
+	return va_arg(tags.list, int);
+}
+
+static inline double ListGetDouble(Va_List &tags)
+{
+	return va_arg(tags.list, double);
+}
+
+// These two options are only being used by the D3D version of the HUD weapon drawer, they serve no purpose anywhere else.
+static inline FSpecialColormap * ListGetSpecialColormap(Va_List &tags)
+{
+	return va_arg(tags.list, FSpecialColormap *);
+}
+
+static inline FColormapStyle * ListGetColormapStyle(Va_List &tags)
+{
+	return va_arg(tags.list, FColormapStyle *);
+}
+
+static void ListEnd(VMVa_List &tags)
+{
+}
+
+int ListGetInt(VMVa_List &tags)
+{
+	if (tags.curindex < tags.numargs)
+	{
+		if (tags.args[tags.curindex].Type == REGT_INT)
+		{
+			return tags.args[tags.curindex++].i;
+		}
+		ThrowAbortException(X_OTHER, "Invalid parameter in draw function, int expected");
+	}
+	return TAG_DONE;
+}
+
+static inline double ListGetDouble(VMVa_List &tags)
+{
+	if (tags.curindex < tags.numargs && tags.args[tags.curindex].Type == REGT_FLOAT)
+	{
+		return tags.args[tags.curindex++].f;
+	}
+	ThrowAbortException(X_OTHER, "Invalid parameter in draw function, float expected");
+	return 0;
+}
+
+static inline FSpecialColormap * ListGetSpecialColormap(VMVa_List &tags)
+{
+	ThrowAbortException(X_OTHER, "Invalid tag in draw function");
+	return nullptr;
+}
+
+static inline FColormapStyle * ListGetColormapStyle(VMVa_List &tags)
+{
+	ThrowAbortException(X_OTHER, "Invalid tag in draw function");
+	return nullptr;
+}
+
+template<class T>
+bool DCanvas::ParseDrawTextureTags(FTexture *img, double x, double y, DWORD tag, T& tags, DrawParms *parms, bool fortext) const
 {
 	INTBOOL boolval;
 	int intval;
@@ -420,7 +543,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	{
 		if (img == NULL || img->UseType == FTexture::TEX_Null)
 		{
-			va_end(tags);
+			ListEnd(tags);
 			return false;
 		}
 	}
@@ -428,7 +551,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	// Do some sanity checks on the coordinates.
 	if (x < -16383 || x > 16383 || y < -16383 || y > 16383)
 	{
-		va_end(tags);
+		ListEnd(tags);
 		return false;
 	}
 
@@ -449,7 +572,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	parms->colorOverlay = 0;
 	parms->alphaChannel = false;
 	parms->flipX = false;
-	parms->shadowAlpha = 0;
+	//parms->shadowAlpha = 0;
 	parms->shadowColor = 0;
 	parms->virtWidth = this->GetWidth();
 	parms->virtHeight = this->GetHeight();
@@ -470,44 +593,42 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	// doubles when passed as function arguments.)
 	while (tag != TAG_DONE)
 	{
-		DWORD data;
-
 		switch (tag)
 		{
 		default:
-			data = va_arg(tags, DWORD);
+			ListGetInt(tags);
 			break;
 
 		case DTA_DestWidth:
 			assert(fortext == false);
 			if (fortext) return false;
 			parms->cleanmode = DTA_Base;
-			parms->destwidth = va_arg(tags, int);
+			parms->destwidth = ListGetInt(tags);
 			break;
 
 		case DTA_DestWidthF:
 			assert(fortext == false);
 			if (fortext) return false;
 			parms->cleanmode = DTA_Base;
-			parms->destwidth = va_arg(tags, double);
+			parms->destwidth = ListGetDouble(tags);
 			break;
 
 		case DTA_DestHeight:
 			assert(fortext == false);
 			if (fortext) return false;
 			parms->cleanmode = DTA_Base;
-			parms->destheight = va_arg(tags, int);
+			parms->destheight = ListGetInt(tags);
 			break;
 
 		case DTA_DestHeightF:
 			assert(fortext == false);
 			if (fortext) return false;
 			parms->cleanmode = DTA_Base;
-			parms->destheight = va_arg(tags, double);
+			parms->destheight = ListGetDouble(tags);
 			break;
 
 		case DTA_Clean:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
 				parms->scalex = 1;
@@ -517,7 +638,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_CleanNoMove:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
 				parms->scalex = CleanXfac;
@@ -527,7 +648,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_CleanNoMove_1:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
 				parms->scalex = CleanXfac_1;
@@ -537,7 +658,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_320x200:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
 				parms->cleanmode = DTA_Base;
@@ -549,7 +670,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_Bottom320x200:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
 				parms->cleanmode = DTA_Base;
@@ -562,32 +683,32 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_HUDRules:
-			intval = va_arg(tags, int);
+			intval = ListGetInt(tags);
 			parms->cleanmode = intval == HUD_HorizCenter ? DTA_HUDRulesC : DTA_HUDRules;
 			break;
 
 		case DTA_VirtualWidth:
 			parms->cleanmode = DTA_Base;
-			parms->virtWidth = va_arg(tags, int);
+			parms->virtWidth = ListGetInt(tags);
 			break;
 
 		case DTA_VirtualWidthF:
 			parms->cleanmode = DTA_Base;
-			parms->virtWidth = va_arg(tags, double);
+			parms->virtWidth = ListGetDouble(tags);
 			break;
-			
+
 		case DTA_VirtualHeight:
 			parms->cleanmode = DTA_Base;
-			parms->virtHeight = va_arg(tags, int);
+			parms->virtHeight = ListGetInt(tags);
 			break;
 
 		case DTA_VirtualHeightF:
 			parms->cleanmode = DTA_Base;
-			parms->virtHeight = va_arg(tags, double);
+			parms->virtHeight = ListGetDouble(tags);
 			break;
 
 		case DTA_Fullscreen:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
 				assert(fortext == false);
@@ -599,66 +720,58 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_Alpha:
-			parms->Alpha = FIXED2FLOAT(MIN<fixed_t>(OPAQUE, va_arg (tags, fixed_t)));
-			break;
-
-		case DTA_AlphaF:
-			parms->Alpha = (float)(MIN<double>(1., va_arg(tags, double)));
+			parms->Alpha = (float)(MIN<double>(1., ListGetDouble(tags)));
 			break;
 
 		case DTA_AlphaChannel:
-			parms->alphaChannel = va_arg(tags, INTBOOL);
+			parms->alphaChannel = ListGetInt(tags);
 			break;
 
 		case DTA_FillColor:
-			parms->fillcolor = va_arg(tags, uint32);
+			parms->fillcolor = ListGetInt(tags);
 			fillcolorset = true;
 			break;
 
-		case DTA_Translation:
-			parms->remap = va_arg(tags, FRemapTable *);
-			if (parms->remap != NULL && parms->remap->Inactive)
-			{ // If it's inactive, pretend we were passed NULL instead.
-				parms->remap = NULL;
-			}
+		case DTA_TranslationIndex:
+			parms->remap = TranslationToTable(ListGetInt(tags));
 			break;
 
 		case DTA_ColorOverlay:
-			parms->colorOverlay = va_arg(tags, DWORD);
+			parms->colorOverlay = ListGetInt(tags);
 			break;
 
 		case DTA_FlipX:
-			parms->flipX = va_arg(tags, INTBOOL);
+			parms->flipX = ListGetInt(tags);
 			break;
 
 		case DTA_TopOffset:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->top = va_arg(tags, int);
+			parms->top = ListGetInt(tags);
 			break;
 
 		case DTA_TopOffsetF:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->top = va_arg(tags, double);
+			parms->top = ListGetDouble(tags);
 			break;
 
 		case DTA_LeftOffset:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->left = va_arg(tags, int);
+			parms->left = ListGetInt(tags);
 			break;
 
 		case DTA_LeftOffsetF:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->left = va_arg(tags, double);
+			parms->left = ListGetDouble(tags);
 			break;
 
 		case DTA_CenterOffset:
 			assert(fortext == false);
 			if (fortext) return false;
-			if (va_arg(tags, int))
+			if (ListGetInt(tags))
 			{
 				parms->left = img->GetScaledWidthDouble() * 0.5;
 				parms->top = img->GetScaledHeightDouble() * 0.5;
@@ -668,7 +781,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 		case DTA_CenterBottomOffset:
 			assert(fortext == false);
 			if (fortext) return false;
-			if (va_arg(tags, int))
+			if (ListGetInt(tags))
 			{
 				parms->left = img->GetScaledWidthDouble() * 0.5;
 				parms->top = img->GetScaledHeightDouble();
@@ -678,29 +791,29 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 		case DTA_WindowLeft:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->windowleft = va_arg(tags, int);
+			parms->windowleft = ListGetInt(tags);
 			break;
 
 		case DTA_WindowLeftF:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->windowleft = va_arg(tags, double);
+			parms->windowleft = ListGetDouble(tags);
 			break;
 
 		case DTA_WindowRight:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->windowright = va_arg(tags, int);
+			parms->windowright = ListGetInt(tags);
 			break;
 
 		case DTA_WindowRightF:
 			assert(fortext == false);
 			if (fortext) return false;
-			parms->windowright = va_arg(tags, double);
+			parms->windowright = ListGetDouble(tags);
 			break;
 
 		case DTA_ClipTop:
-			parms->uclip = va_arg(tags, int);
+			parms->uclip = ListGetInt(tags);
 			if (parms->uclip < 0)
 			{
 				parms->uclip = 0;
@@ -708,7 +821,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_ClipBottom:
-			parms->dclip = va_arg(tags, int);
+			parms->dclip = ListGetInt(tags);
 			if (parms->dclip > this->GetHeight())
 			{
 				parms->dclip = this->GetHeight();
@@ -716,7 +829,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_ClipLeft:
-			parms->lclip = va_arg(tags, int);
+			parms->lclip = ListGetInt(tags);
 			if (parms->lclip < 0)
 			{
 				parms->lclip = 0;
@@ -724,7 +837,7 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_ClipRight:
-			parms->rclip = va_arg(tags, int);
+			parms->rclip = ListGetInt(tags);
 			if (parms->rclip > this->GetWidth())
 			{
 				parms->rclip = this->GetWidth();
@@ -732,68 +845,73 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 			break;
 
 		case DTA_ShadowAlpha:
-			parms->shadowAlpha = MIN<fixed_t>(OPAQUE, va_arg (tags, fixed_t));
+			//parms->shadowAlpha = (float)MIN(1., ListGetDouble(tags));
 			break;
 
 		case DTA_ShadowColor:
-			parms->shadowColor = va_arg(tags, int);
+			parms->shadowColor = ListGetInt(tags);
 			break;
 
 		case DTA_Shadow:
-			boolval = va_arg(tags, INTBOOL);
+			boolval = ListGetInt(tags);
 			if (boolval)
 			{
-				parms->shadowAlpha = FRACUNIT/2;
+				//parms->shadowAlpha = 0.5;
 				parms->shadowColor = 0;
 			}
 			else
 			{
-				parms->shadowAlpha = 0;
+				//parms->shadowAlpha = 0;
 			}
 			break;
 
 		case DTA_Masked:
-			parms->masked = va_arg(tags, INTBOOL);
+			parms->masked = ListGetInt(tags);
 			break;
 
 		case DTA_BilinearFilter:
-			parms->bilinear = va_arg(tags, INTBOOL);
+			parms->bilinear = ListGetInt(tags);
 			break;
 
 		case DTA_KeepRatio:
 			// I think this is a terribly misleading name, since it actually turns
 			// *off* aspect ratio correction.
-			parms->keepratio = va_arg(tags, INTBOOL);
+			parms->keepratio = ListGetInt(tags);
 			break;
 
 		case DTA_RenderStyle:
-			parms->style.AsDWORD = va_arg(tags, DWORD);
+			parms->style.AsDWORD = ListGetInt(tags);
 			break;
 
 		case DTA_SpecialColormap:
-			parms->specialcolormap = va_arg(tags, FSpecialColormap *);
+			parms->specialcolormap = ListGetSpecialColormap(tags);
 			break;
 
 		case DTA_ColormapStyle:
-			parms->colormapstyle = va_arg(tags, FColormapStyle *);
+			parms->colormapstyle = ListGetColormapStyle(tags);
 			break;
 
 		case DTA_TextLen:
-			parms->maxstrlen = va_arg(tags, int);
+			parms->maxstrlen = ListGetInt(tags);
 			break;
 
 		case DTA_CellX:
-			parms->cellx = va_arg(tags, int);
+			parms->cellx = ListGetInt(tags);
 			break;
 
 		case DTA_CellY:
-			parms->celly = va_arg(tags, int);
+			parms->celly = ListGetInt(tags);
 			break;
 
 		}
-		tag = va_arg(tags, DWORD);
+		tag = ListGetInt(tags);
 	}
-	va_end (tags);
+	ListEnd(tags);
+
+	if (parms->remap != nullptr && parms->remap->Inactive)
+	{ // If it's inactive, pretend we were passed NULL instead.
+		parms->remap = nullptr;
+	}
 
 	if (parms->uclip >= parms->dclip || parms->lclip >= parms->rclip)
 	{
@@ -838,6 +956,10 @@ bool DCanvas::ParseDrawTextureTags (FTexture *img, double x, double y, DWORD tag
 	}
 	return true;
 }
+// explicitly instantiate both versions for v_text.cpp.
+
+template bool DCanvas::ParseDrawTextureTags<Va_List>(FTexture *img, double x, double y, DWORD tag, Va_List& tags, DrawParms *parms, bool fortext) const;
+template bool DCanvas::ParseDrawTextureTags<VMVa_List>(FTexture *img, double x, double y, DWORD tag, VMVa_List& tags, DrawParms *parms, bool fortext) const;
 
 void DCanvas::VirtualToRealCoords(double &x, double &y, double &w, double &h,
 	double vwidth, double vheight, bool vbottom, bool handleaspect) const
@@ -1231,18 +1353,18 @@ void DCanvas::Clear (int left, int top, int right, int bottom, int palcolor, uin
 	}
 }
 
-//==========================================================================
-//
-// no-ops. This is so that renderer backends can better manage the
-// processing of the subsector drawing in the automap
-//
-//==========================================================================
-
-void DCanvas::StartSimplePolys()
-{}
-
-void DCanvas::FinishSimplePolys()
-{}
+DEFINE_ACTION_FUNCTION(_Screen, Clear)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(x1);
+	PARAM_INT(y1);
+	PARAM_INT(x2);
+	PARAM_INT(y2);
+	PARAM_INT(color);
+	PARAM_INT_DEF(palcol);
+	screen->Clear(x1, y1, x2, y2, palcol, color);
+	return 0;
+}
 
 //==========================================================================
 //
@@ -1261,7 +1383,7 @@ void DCanvas::FinishSimplePolys()
 
 void DCanvas::FillSimplePoly(FTexture *tex, FVector2 *points, int npoints,
 	double originx, double originy, double scalex, double scaley, DAngle rotation,
-	FDynamicColormap *colormap, int lightlevel, int bottomclip)
+	FDynamicColormap *colormap, PalEntry flatcolor, int lightlevel, int bottomclip)
 {
 #ifndef NO_SWRENDER
 	using namespace swrenderer;
@@ -1594,6 +1716,17 @@ void V_DrawFrame (int left, int top, int width, int height)
 	screen->DrawTexture (TexMan[border->br], left+width, top+height, TAG_DONE);
 }
 
+DEFINE_ACTION_FUNCTION(_Screen, DrawFrame)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(x);
+	PARAM_INT(y);
+	PARAM_INT(w);
+	PARAM_INT(h);
+	V_DrawFrame(x, y, w, h);
+	return 0;
+}
+
 //==========================================================================
 //
 // V_DrawBorder
@@ -1651,10 +1784,10 @@ static void V_DrawViewBorder (void)
 	V_DrawBorder (0, 0, SCREENWIDTH, viewwindowy);
 	V_DrawBorder (0, viewwindowy, viewwindowx, viewheight + viewwindowy);
 	V_DrawBorder (viewwindowx + viewwidth, viewwindowy, SCREENWIDTH, viewheight + viewwindowy);
-	V_DrawBorder (0, viewwindowy + viewheight, SCREENWIDTH, ST_Y);
+	V_DrawBorder (0, viewwindowy + viewheight, SCREENWIDTH, gST_Y);
 
 	V_DrawFrame (viewwindowx, viewwindowy, viewwidth, viewheight);
-	V_MarkRect (0, 0, SCREENWIDTH, ST_Y);
+	V_MarkRect (0, 0, SCREENWIDTH, gST_Y);
 }
 
 //==========================================================================

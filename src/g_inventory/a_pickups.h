@@ -9,7 +9,6 @@
 
 class player_t;
 class FConfigFile;
-class PClassPlayerPawn;
 struct visstyle_t;
 
 /************************************************************************/
@@ -18,7 +17,7 @@ struct visstyle_t;
 
 // A pickup is anything the player can pickup (i.e. weapons, ammo, powerups, etc)
 
-enum
+enum ItemFlag
 {
 	IF_ACTIVATABLE		= 1<<0,		// can be activated
 	IF_ACTIVATED		= 1<<1,		// is currently activated
@@ -46,111 +45,42 @@ enum
 	IF_ALWAYSRESPAWN	= 1<<23,	// Always respawn, regardless of dmflag
 	IF_TRANSFER			= 1<<24,	// All inventory items that the inventory item contains is also transfered to the pickuper
 	IF_NOTELEPORTFREEZE	= 1<<25,	// does not 'freeze' the player right after teleporting.
+	IF_NOSCREENBLINK	= 1<<26,	// Does not blink the screen overlay when expiring.
+	IF_ISHEALTH			= 1<<27,	// for the DM flag so that it can recognize items that are not obviously health givers.
+	IF_ISARMOR			= 1<<28,	// for the DM flag so that it can recognize items that are not obviously armor givers.
 };
 
-
-class PClassInventory : public PClassActor
-{
-	DECLARE_CLASS(PClassInventory, PClassActor)
-public:
-	PClassInventory();
-	virtual void DeriveData(PClass *newclass);
-	virtual size_t PointerSubstitution(DObject *oldclass, DObject *newclass);
-	void Finalize(FStateDefinitions &statedef);
-
-	FString PickupMessage;
-	int GiveQuest;			// Optionally give one of the quest items.
-	FTextureID AltHUDIcon;
-	TArray<PClassPlayerPawn *> RestrictedToPlayerClass;
-	TArray<PClassPlayerPawn *> ForbiddenToPlayerClass;
-};
+typedef TFlags<ItemFlag> InvFlags;
+//typedef TFlags<ItemFlag2> ItemFlags2;
+DEFINE_TFLAGS_OPERATORS(InvFlags)
+//DEFINE_TFLAGS_OPERATORS(ItemFlags2)
 
 class AInventory : public AActor
 {
-	DECLARE_CLASS_WITH_META(AInventory, AActor, PClassInventory)
+	DECLARE_CLASS(AInventory, AActor)
 	HAS_OBJECT_POINTERS
 public:
 	
-	virtual void Touch (AActor *toucher) override;
+	virtual void Finalize(FStateDefinitions &statedef) override;
 	virtual void Serialize(FSerializer &arc) override;
 	virtual void MarkPrecacheSounds() const override;
-	virtual void BeginPlay () override;
-	virtual void Destroy () override;
+	virtual void OnDestroy() override;
 	virtual void Tick() override;
 	virtual bool Grind(bool items) override;
 
-	// virtual methods that only get overridden by special internal classes, like DehackedPickup.
-	// There is no need to expose these to scripts.
-	virtual void DepleteOrDestroy ();
-	virtual bool ShouldRespawn ();
-	virtual void DoPickupSpecial (AActor *toucher);
+	bool CallTryPickup(AActor *toucher, AActor **toucher_return = NULL);	// Wrapper for script function.
 
-	// methods that can be overridden by scripts, plus their callers.
-	virtual bool SpecialDropAction (AActor *dropper);
-	bool CallSpecialDropAction(AActor *dropper);
+	void DepleteOrDestroy ();			// virtual on the script side. 
+	bool CallUse(bool pickup);			// virtual on the script side.
+	PalEntry CallGetBlend();			// virtual on the script side.
+	double GetSpeedFactor();			// virtual on the script side.
+	bool GetNoTeleportFreeze();			// virtual on the script side.
 
-	virtual bool TryPickup(AActor *&toucher);
-	virtual bool TryPickupRestricted(AActor *&toucher);
-	bool CallTryPickup(AActor *toucher, AActor **toucher_return = NULL);	// This wraps both virtual methods plus a few more checks. 
-
-	virtual AInventory *CreateCopy(AActor *other);
-	AInventory *CallCreateCopy(AActor *other);
-
-	virtual AInventory *CreateTossable();
-	AInventory *CallCreateTossable();
-
-	virtual FString PickupMessage();
-	FString GetPickupMessage();
-
-	virtual bool HandlePickup(AInventory *item);
-	bool CallHandlePickup(AInventory *item);
-
-	virtual bool Use(bool pickup);
-	bool CallUse(bool pickup);
-
-	virtual PalEntry GetBlend();
-	PalEntry CallGetBlend();
-
-	virtual bool ShouldStay();
-	bool CallShouldStay();
-
-	virtual void DoEffect();
-	void CallDoEffect();
-
-	virtual void PlayPickupSound(AActor *toucher);
-	void CallPlayPickupSound(AActor *toucher);
-
-	virtual void AttachToOwner(AActor *other);
-	void CallAttachToOwner(AActor *other);
-
-	virtual void DetachFromOwner();
-	void CallDetachFromOwner();
-
-	// still need to be done.
-	virtual void AbsorbDamage(int damage, FName damageType, int &newdamage);
-	virtual void ModifyDamage(int damage, FName damageType, int &newdamage, bool passive);
-
-	// visual stuff is for later. Right now the VM has not yet access to the needed functionality.
-	virtual bool DrawPowerup(int x, int y);
-	virtual int AlterWeaponSprite(visstyle_t *vis);
-
-
-	// virtual on the script side only.
-	double GetSpeedFactor();
-	bool GetNoTeleportFreeze();
-	// Stuff for later when more features are exported.
-	virtual void Travelled();
-	virtual void OwnerDied();
-
-
-	bool GoAway();
-	void GoAwayAndDie();
-
-	void Hide();
 	void BecomeItem ();
 	void BecomePickup ();
 
 	bool DoRespawn();
+
 	AInventory *PrevItem();		// Returns the item preceding this one in the list.
 	AInventory *PrevInv();		// Returns the previous item with IF_INVBAR set.
 	AInventory *NextInv();		// Returns the next item with IF_INVBAR set.
@@ -163,42 +93,19 @@ public:
 	FTextureID Icon;			// Icon to show on status bar or HUD
 	int DropTime;				// Countdown after dropping
 	PClassActor *SpawnPointClass;	// For respawning like Heretic's mace
+	FTextureID AltHUDIcon;
 
-	DWORD ItemFlags;
+	InvFlags ItemFlags;
 	PClassActor *PickupFlash;	// actor to spawn as pickup flash
 
 	FSoundIDNoInit PickupSound;
-
-
-protected:
-	bool CanPickup(AActor * toucher);
-	void GiveQuest(AActor * toucher);
-
-private:
-	static int StaticLastMessageTic;
-	static FString StaticLastMessage;
 };
 
 class AStateProvider : public AInventory
 {
-	DECLARE_CLASS(AStateProvider, AInventory)
-};
-
-// CustomInventory: Supports the Use, Pickup, and Drop states from 96x
-class ACustomInventory : public AStateProvider
-{
-	DECLARE_CLASS (ACustomInventory, AStateProvider)
+	DECLARE_CLASS (AStateProvider, AInventory)
 public:
-
-	// This is used when an inventory item's use state sequence is executed.
-	bool CallStateChain (AActor *actor, FState *state);
-
-	virtual bool TryPickup (AActor *&toucher) override;
-	virtual bool Use (bool pickup) override;
-	virtual bool SpecialDropAction (AActor *dropper) override;
+	bool CallStateChain(AActor *actor, FState *state);
 };
-
-extern PClassActor *QuestItemClasses[31];
-
 
 #endif //__A_PICKUPS_H__
