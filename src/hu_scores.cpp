@@ -50,6 +50,7 @@
 #include "gstrings.h"
 #include "d_net.h"
 #include "c_dispatch.h"
+#include "g_levellocals.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -117,6 +118,16 @@ int compareteams (const void *arg1, const void *arg2)
 	}
 	return diff;
 }
+
+/*
+void HU_SortPlayers
+{
+	if (teamplay)
+	qsort(sortedplayers, MAXPLAYERS, sizeof(player_t *), compareteams);
+	else
+		qsort(sortedplayers, MAXPLAYERS, sizeof(player_t *), comparepoints);
+}
+*/
 
 bool SB_ForceActive = false;
 
@@ -251,7 +262,7 @@ static void HU_DoDrawScores (player_t *player, player_t *sortedplayers[MAXPLAYER
 	lineheight = MAX(height, maxiconheight * CleanYfac);
 	ypadding = (lineheight - height + 1) / 2;
 
-	bottom = ST_Y;
+	bottom = gST_Y;
 	y = MAX(48*CleanYfac, (bottom - MAXPLAYERS * (height + CleanYfac + 1)) / 2);
 
 	HU_DrawTimeRemaining (bottom - height);

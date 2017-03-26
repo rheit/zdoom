@@ -49,7 +49,7 @@
 #include "thingdef.h"
 #include "p_lnspec.h"
 #include "doomstat.h"
-#include "codegeneration/codegen.h"
+#include "backend/codegen.h"
 
 FRandom pr_exrandom ("EX_Random");
 
@@ -82,13 +82,13 @@ static FxExpression *ParseExpressionB (FScanner &sc, PClassActor *cls);
 static FxExpression *ParseExpressionA (FScanner &sc, PClassActor *cls);
 static FxExpression *ParseExpression0 (FScanner &sc, PClassActor *cls);
 
-FxExpression *ParseExpression (FScanner &sc, PClassActor *cls, bool mustresolve)
+FxExpression *ParseExpression (FScanner &sc, PClassActor *cls, PNamespace *spc)
 {
 	FxExpression *data = ParseExpressionM (sc, cls);
 
-	if (mustresolve)
+	if (spc)
 	{
-		FCompileContext ctx(cls, true);
+		FCompileContext ctx(spc, cls, true);
 		data = data->Resolve(ctx);
 	}
 

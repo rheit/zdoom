@@ -22,7 +22,7 @@ static int Exec(VMFrameStack *stack, const VMOP *pc, VMReturn *ret, int numret)
 	const FVoidObj *konsta;
 	const VM_ATAG *konstatag;
 
-	if (f->Func != NULL && !f->Func->Native)
+	if (f->Func != NULL && !(f->Func->VarFlags & VARF_Native))
 	{
 		sfunc = static_cast<VMScriptFunction *>(f->Func);
 		konstd = sfunc->KonstD;
@@ -109,9 +109,15 @@ begin:
 		reg.atag[a] = ATAG_GENERIC;	// using ATAG_FRAMEPOINTER will cause endless asserts.
 		NEXTOP;
 
-	OP(META):
+	OP(CLSS):
 		ASSERTA(a); ASSERTO(B);
 		reg.a[a] = ((DObject*)reg.a[B])->GetClass();	// I wish this could be done without a special opcode but there's really no good way to guarantee initialization of the Class pointer...
+		reg.atag[a] = ATAG_OBJECT;
+		NEXTOP;
+
+	OP(META):
+		ASSERTA(a); ASSERTO(B);
+		reg.a[a] = ((DObject*)reg.a[B])->GetClass()->Meta;	// I wish this could be done without a special opcode but there's really no good way to guarantee initialization of the Class pointer...
 		reg.atag[a] = ATAG_OBJECT;
 		NEXTOP;
 
@@ -197,6 +203,16 @@ begin:
 		GETADDR(PB,RC,X_READ_NIL);
 		reg.s[a] = *(FString *)ptr;
 		NEXTOP;
+	OP(LCS):
+		ASSERTS(a); ASSERTA(B); ASSERTKD(C);
+		GETADDR(PB,KC,X_READ_NIL);
+		reg.s[a] = *(const char **)ptr;
+		NEXTOP;
+	OP(LCS_R):
+		ASSERTS(a); ASSERTA(B); ASSERTD(C);
+		GETADDR(PB,RC,X_READ_NIL);
+		reg.s[a] = *(const char **)ptr;
+		NEXTOP;
 	OP(LO):
 		ASSERTA(a); ASSERTA(B); ASSERTKD(C);
 		GETADDR(PB,KC,X_READ_NIL);
@@ -207,6 +223,18 @@ begin:
 		ASSERTA(a); ASSERTA(B); ASSERTD(C);
 		GETADDR(PB,RC,X_READ_NIL);
 		reg.a[a] = GC::ReadBarrier(*(DObject **)ptr);
+		reg.atag[a] = ATAG_OBJECT;
+		NEXTOP;
+	OP(LOS):
+		ASSERTA(a); ASSERTA(B); ASSERTKD(C);
+		GETADDR(PB,KC,X_READ_NIL);
+		reg.a[a] = *(DObject **)ptr;
+		reg.atag[a] = ATAG_OBJECT;
+		NEXTOP;
+	OP(LOS_R):
+		ASSERTA(a); ASSERTA(B); ASSERTD(C);
+		GETADDR(PB,RC,X_READ_NIL);
+		reg.a[a] = *(DObject **)ptr;
 		reg.atag[a] = ATAG_OBJECT;
 		NEXTOP;
 	OP(LP):
@@ -335,6 +363,17 @@ begin:
 		GETADDR(PA,RC,X_WRITE_NIL);
 		*(void **)ptr = reg.a[B];
 		NEXTOP;
+	OP(SO):
+		ASSERTA(a); ASSERTA(B); ASSERTKD(C);
+		GETADDR(PA,KC,X_WRITE_NIL);
+		*(void **)ptr = reg.a[B];
+		GC::WriteBarrier((DObject*)*(void **)ptr);
+		NEXTOP;
+	OP(SO_R):
+		ASSERTA(a); ASSERTA(B); ASSERTD(C);
+		GETADDR(PA,RC,X_WRITE_NIL);
+		GC::WriteBarrier((DObject*)*(void **)ptr);
+		NEXTOP;
 	OP(SV2):
 		ASSERTA(a); ASSERTF(B+1); ASSERTKD(C);
 		GETADDR(PA,KC,X_WRITE_NIL);
@@ -399,21 +438,30 @@ begin:
 		reg.s[a] = reg.s[B];
 		NEXTOP;
 	OP(MOVEA):
+	{
 		ASSERTA(a); ASSERTA(B);
-		reg.a[a] = reg.a[B];
-		reg.atag[a] = reg.atag[B];
+		b = B;
+		reg.a[a] = reg.a[b];
+		reg.atag[a] = reg.atag[b];
 		NEXTOP;
+	}
 	OP(MOVEV2):
+	{
 		ASSERTF(a); ASSERTF(B);
-		reg.f[a] = reg.f[B];
-		reg.f[a+1] = reg.f[B+1];
+		b = B;
+		reg.f[a] = reg.f[b];
+		reg.f[a + 1] = reg.f[b + 1];
 		NEXTOP;
+	}
 	OP(MOVEV3):
+	{
 		ASSERTF(a); ASSERTF(B);
-		reg.f[a] = reg.f[B];
-		reg.f[a+1] = reg.f[B+1];
-		reg.f[a+2] = reg.f[B+2];
+		b = B;
+		reg.f[a] = reg.f[b];
+		reg.f[a + 1] = reg.f[b + 1];
+		reg.f[a + 2] = reg.f[b + 2];
 		NEXTOP;
+	}
 	OP(DYNCAST_R) :
 		ASSERTA(a); ASSERTA(B);	ASSERTA(C);
 		b = B;
@@ -424,6 +472,18 @@ begin:
 		ASSERTA(a); ASSERTA(B);	ASSERTKA(C);
 		b = B;
 		reg.a[a] = (reg.a[b] && ((DObject*)(reg.a[b]))->IsKindOf((PClass*)(konsta[C].o))) ? reg.a[b] : nullptr;
+		reg.atag[a] = ATAG_OBJECT;
+		NEXTOP;
+	OP(DYNCASTC_R) :
+		ASSERTA(a); ASSERTA(B);	ASSERTA(C);
+		b = B;
+		reg.a[a] = (reg.a[b] && ((PClass*)(reg.a[b]))->IsDescendantOf((PClass*)(reg.a[C]))) ? reg.a[b] : nullptr;
+		reg.atag[a] = ATAG_OBJECT;
+		NEXTOP;
+	OP(DYNCASTC_K) :
+		ASSERTA(a); ASSERTA(B);	ASSERTKA(C);
+		b = B;
+		reg.a[a] = (reg.a[b] && ((PClass*)(reg.a[b]))->IsDescendantOf((PClass*)(konsta[C].o))) ? reg.a[b] : nullptr;
 		reg.atag[a] = ATAG_OBJECT;
 		NEXTOP;
 	OP(CAST):
@@ -523,7 +583,7 @@ begin:
 					break;
 				case REGT_STRING:
 					assert(C < f->NumRegS);
-					::new(param) VMValue(reg.s[C]);
+					::new(param) VMValue(&reg.s[C]);
 					break;
 				case REGT_STRING | REGT_ADDROF:
 					assert(C < f->NumRegS);
@@ -531,7 +591,7 @@ begin:
 					break;
 				case REGT_STRING | REGT_KONST:
 					assert(C < sfunc->NumKonstS);
-					::new(param) VMValue(konsts[C]);
+					::new(param) VMValue(&konsts[C]);
 					break;
 				case REGT_POINTER:
 					assert(C < f->NumRegA);
@@ -588,6 +648,13 @@ begin:
 			reg.a[a] = p->Virtuals[C];
 		}
 		NEXTOP;
+	OP(SCOPE):
+		{
+			ASSERTA(a); ASSERTKA(C);
+			FScopeBarrier::ValidateCall(((DObject*)reg.a[a])->GetClass(), (VMFunction*)konsta[C].v, B - 1);
+		}
+		NEXTOP;
+
 	OP(CALL_K):
 		ASSERTKA(a);
 		assert(konstatag[a] == ATAG_OBJECT);
@@ -604,12 +671,15 @@ begin:
 			VMReturn returns[MAX_RETURNS];
 			int numret;
 
+			b = B;
 			FillReturns(reg, f, returns, pc+1, C);
-			if (call->Native)
+			if (call->VarFlags & VARF_Native)
 			{
 				try
 				{
-					numret = static_cast<VMNativeFunction *>(call)->NativeCall(reg.param + f->NumParam - B, call->DefaultArgs, B, returns, C);
+					VMCycles[0].Unclock();
+					numret = static_cast<VMNativeFunction *>(call)->NativeCall(reg.param + f->NumParam - b, call->DefaultArgs, b, returns, C);
+					VMCycles[0].Clock();
 				}
 				catch (CVMAbortException &err)
 				{
@@ -621,9 +691,10 @@ begin:
 			}
 			else
 			{
+				VMCalls[0]++;
 				VMScriptFunction *script = static_cast<VMScriptFunction *>(call);
 				VMFrame *newf = stack->AllocFrame(script);
-				VMFillParams(reg.param + f->NumParam - B, newf, B);
+				VMFillParams(reg.param + f->NumParam - b, newf, b);
 				try
 				{
 					numret = Exec(stack, script->Code, returns, C);
@@ -636,10 +707,7 @@ begin:
 				stack->PopFrame();
 			}
 			assert(numret == C && "Number of parameters returned differs from what was expected by the caller");
-			for (b = B; b != 0; --b)
-			{
-				reg.param[--f->NumParam].~VMValue();
-			}
+			f->NumParam -= B;
 			pc += C;			// Skip RESULTs
 		}
 		NEXTOP;
@@ -659,11 +727,14 @@ begin:
 		{
 			VMFunction *call = (VMFunction *)ptr;
 
-			if (call->Native)
+			if (call->VarFlags & VARF_Native)
 			{
 				try
 				{
-					return static_cast<VMNativeFunction *>(call)->NativeCall(reg.param + f->NumParam - B, call->DefaultArgs, B, ret, numret);
+					VMCycles[0].Unclock();
+					auto r = static_cast<VMNativeFunction *>(call)->NativeCall(reg.param + f->NumParam - B, call->DefaultArgs, B, ret, numret);
+					VMCycles[0].Clock();
+					return r;
 				}
 				catch (CVMAbortException &err)
 				{
@@ -675,6 +746,7 @@ begin:
 			}
 			else
 			{ // FIXME: Not a true tail call
+				VMCalls[0]++;
 				VMScriptFunction *script = static_cast<VMScriptFunction *>(call);
 				VMFrame *newf = stack->AllocFrame(script);
 				VMFillParams(reg.param + f->NumParam - B, newf, B);
@@ -730,6 +802,32 @@ begin:
 		// be executed.
 		assert(0);
 		NEXTOP;
+
+	OP(NEW_K):
+	OP(NEW):
+	{
+		b = B;
+		PClass *cls = (PClass*)(pc->op == OP_NEW ? reg.a[b] : konsta[b].v);
+		if (cls->ConstructNative == nullptr)
+		{
+			ThrowAbortException(X_OTHER, "Class %s requires native construction", cls->TypeName.GetChars());
+		}
+		if (cls->ObjectFlags & OF_Abstract)
+		{
+			ThrowAbortException(X_OTHER, "Cannot instantiate abstract class %s", cls->TypeName.GetChars());
+		}
+		// Creating actors here must be outright prohibited,
+		if (cls->IsDescendantOf(NAME_Actor))
+		{
+			ThrowAbortException(X_OTHER, "Cannot create actors with 'new'");
+		}
+		// [ZZ] validate readonly and between scope construction
+		c = C;
+		if (c) FScopeBarrier::ValidateNew(cls, c - 1);
+		reg.a[a] = cls->CreateNew();
+		reg.atag[a] = ATAG_OBJECT;
+		NEXTOP;
+	}
 
 	OP(TRY):
 		assert(try_depth < MAX_TRY_DEPTH);
@@ -1730,9 +1828,21 @@ static void DoCast(const VMRegisters &reg, const VMFrame *f, int a, int b, int c
 		break;
 
 	case CAST_P2S:
+	{
 		ASSERTS(a); ASSERTA(b);
-		reg.s[a].Format("%s<%p>", reg.atag[b] == ATAG_OBJECT ? (reg.a[b] == nullptr? "Object" : ((DObject*)reg.a[b])->GetClass()->TypeName.GetChars() ) : "Pointer", reg.a[b]);
-		break;
+		if (reg.a[b] == nullptr) reg.s[a] = "null";
+		else if (reg.atag[b] == ATAG_OBJECT)
+		{
+			auto op = static_cast<DObject*>(reg.a[b]);
+			if (op->IsKindOf(RUNTIME_CLASS(PClass))) reg.s[a].Format("Class<%s>", static_cast<PClass*>(op)->TypeName.GetChars());
+			else reg.s[a].Format("Object<%p>", ((DObject*)reg.a[b])->GetClass()->TypeName.GetChars());
+		}
+		else
+		{
+			reg.s[a].Format("%s<%p>", "Pointer", reg.a[b]);
+		}
+		break; 
+	}
 
 	case CAST_S2I:
 		ASSERTD(a); ASSERTS(b);
@@ -1858,7 +1968,7 @@ static void SetReturn(const VMRegisters &reg, VMFrame *frame, VMReturn *ret, VM_
 	const void *src;
 	VMScriptFunction *func = static_cast<VMScriptFunction *>(frame->Func);
 
-	assert(func != NULL && !func->Native);
+	assert(func != NULL && !(func->VarFlags & VARF_Native));
 	assert((regtype & ~REGT_KONST) == ret->RegType);
 
 	switch (regtype & REGT_TYPE)

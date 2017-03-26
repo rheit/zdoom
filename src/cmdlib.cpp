@@ -95,23 +95,6 @@ char *copystring (const char *s)
 	return b;
 }
 
-//============================================================================
-//
-// ncopystring
-//
-// If the string has no content, returns NULL. Otherwise, returns a copy.
-//
-//============================================================================
-
-char *ncopystring (const char *string)
-{
-	if (string == NULL || string[0] == 0)
-	{
-		return NULL;
-	}
-	return copystring (string);
-}
-
 //==========================================================================
 //
 // ReplaceString
@@ -429,7 +412,7 @@ bool CheckWildcards (const char *pattern, const char *text)
 void FormatGUID (char *buffer, size_t buffsize, const GUID &guid)
 {
 	mysnprintf (buffer, buffsize, "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
-		(uint32)guid.Data1, guid.Data2, guid.Data3,
+		(uint32_t)guid.Data1, guid.Data2, guid.Data3,
 		guid.Data4[0], guid.Data4[1],
 		guid.Data4[2], guid.Data4[3],
 		guid.Data4[4], guid.Data4[5],
@@ -614,16 +597,16 @@ int strbin (char *str)
 				case '6':
 				case '7':
 					c = 0;
-					for (i = 0; i < 3; i++) {
-						c <<= 3;
+					for (i = 0; i < 2; i++)
+					{
+						p++;
 						if (*p >= '0' && *p <= '7')
-							c += *p-'0';
+							c = (c << 3) + *p - '0';
 						else
 						{
 							p--;
 							break;
 						}
-						p++;
 					}
 					*str++ = c;
 					break;
@@ -717,16 +700,16 @@ FString strbin1 (const char *start)
 				case '6':
 				case '7':
 					c = 0;
-					for (i = 0; i < 3; i++) {
-						c <<= 3;
+					for (i = 0; i < 2; i++)
+					{
+						p++;
 						if (*p >= '0' && *p <= '7')
-							c += *p-'0';
+							c = (c << 3) + *p - '0';
 						else
 						{
 							p--;
 							break;
 						}
-						p++;
 					}
 					result << c;
 					break;

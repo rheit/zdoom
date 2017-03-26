@@ -27,11 +27,10 @@
 #include "v_video.h"
 #include "gi.h"
 #include "d_gui.h"
-#include "i_input.h"
+#include "g_input.h"
 #include "templates.h"
 #include "d_net.h"
 #include "d_event.h"
-#include "a_armor.h"
 
 #define QUEUESIZE		128
 #define MESSAGESIZE		128
@@ -62,11 +61,11 @@ int chatmodeon;
 static void CT_ClearChatMessage ();
 static void CT_AddChar (char c);
 static void CT_BackSpace ();
-static void ShoveChatStr (const char *str, BYTE who);
+static void ShoveChatStr (const char *str, uint8_t who);
 static bool DoSubstitution (FString &out, const char *in);
 
 static int len;
-static BYTE ChatQueue[QUEUESIZE];
+static uint8_t ChatQueue[QUEUESIZE];
 
 CVAR (String, chatmacro1, "I'm ready to kick butt!", CVAR_ARCHIVE)
 CVAR (String, chatmacro2, "I'm OK.", CVAR_ARCHIVE)
@@ -242,13 +241,13 @@ void CT_Drawer (void)
 		{
 			screen_width = SCREENWIDTH;
 			screen_height = SCREENHEIGHT;
-			st_y = ST_Y;
+			st_y = gST_Y;
 		}
 		else
 		{
 			screen_width = SCREENWIDTH / active_con_scaletext();
 			screen_height = SCREENHEIGHT / active_con_scaletext();
-			st_y = ST_Y / active_con_scaletext();
+			st_y = gST_Y / active_con_scaletext();
 		}
 
 		y += ((SCREENHEIGHT == viewheight && viewactive) || gamestate != GS_LEVEL) ? screen_height : st_y;
@@ -354,7 +353,7 @@ static void CT_ClearChatMessage ()
 //
 //===========================================================================
 
-static void ShoveChatStr (const char *str, BYTE who)
+static void ShoveChatStr (const char *str, uint8_t who)
 {
 	// Don't send empty messages
 	if (str == NULL || str[0] == '\0')
@@ -434,7 +433,7 @@ static bool DoSubstitution (FString &out, const char *in)
 		{
 			if (strnicmp(a, "armor", 5) == 0)
 			{
-				AInventory *armor = player->mo->FindInventory<ABasicArmor>();
+				AInventory *armor = player->mo->FindInventory(NAME_BasicArmor);
 				out.AppendFormat("%d", armor != NULL ? armor->Amount : 0);
 			}
 		}

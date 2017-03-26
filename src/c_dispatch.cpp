@@ -54,6 +54,7 @@
 #include "d_net.h"
 #include "d_main.h"
 #include "serializer.h"
+#include "menu/menu.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -292,17 +293,17 @@ static int ListActionCommands (const char *pattern)
 #undef get16bits
 #if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) \
   || defined(_MSC_VER) || defined (__BORLANDC__) || defined (__TURBOC__)
-#define get16bits(d) (*((const WORD *) (d)))
+#define get16bits(d) (*((const uint16_t *) (d)))
 #endif
 
 #if !defined (get16bits)
-#define get16bits(d) ((((DWORD)(((const BYTE *)(d))[1])) << 8)\
-                       +(DWORD)(((const BYTE *)(d))[0]) )
+#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
+                       +(uint32_t)(((const uint8_t *)(d))[0]) )
 #endif
 
-DWORD SuperFastHash (const char *data, size_t len)
+uint32_t SuperFastHash (const char *data, size_t len)
 {
-	DWORD hash = 0, tmp;
+	uint32_t hash = 0, tmp;
 	size_t rem;
 
 	if (len == 0 || data == NULL) return 0;
@@ -316,7 +317,7 @@ DWORD SuperFastHash (const char *data, size_t len)
 		hash  += get16bits (data);
 		tmp    = (get16bits (data+2) << 11) ^ hash;
 		hash   = (hash << 16) ^ tmp;
-		data  += 2*sizeof (WORD);
+		data  += 2*sizeof (uint16_t);
 		hash  += hash >> 11;
 	}
 
@@ -325,7 +326,7 @@ DWORD SuperFastHash (const char *data, size_t len)
 	{
 		case 3:	hash += get16bits (data);
 				hash ^= hash << 16;
-				hash ^= data[sizeof (WORD)] << 18;
+				hash ^= data[sizeof (uint16_t)] << 18;
 				hash += hash >> 11;
 				break;
 		case 2:	hash += get16bits (data);
@@ -351,12 +352,12 @@ DWORD SuperFastHash (const char *data, size_t len)
 /* A modified version to do a case-insensitive hash */
 
 #undef get16bits
-#define get16bits(d) ((((DWORD)tolower(((const BYTE *)(d))[1])) << 8)\
-                       +(DWORD)tolower(((const BYTE *)(d))[0]) )
+#define get16bits(d) ((((uint32_t)tolower(((const uint8_t *)(d))[1])) << 8)\
+                       +(uint32_t)tolower(((const uint8_t *)(d))[0]) )
 
-DWORD SuperFastHashI (const char *data, size_t len)
+uint32_t SuperFastHashI (const char *data, size_t len)
 {
-	DWORD hash = 0, tmp;
+	uint32_t hash = 0, tmp;
 	size_t rem;
 
 	if (len <= 0 || data == NULL) return 0;
@@ -370,7 +371,7 @@ DWORD SuperFastHashI (const char *data, size_t len)
 		hash  += get16bits (data);
 		tmp    = (get16bits (data+2) << 11) ^ hash;
 		hash   = (hash << 16) ^ tmp;
-		data  += 2*sizeof (WORD);
+		data  += 2*sizeof (uint16_t);
 		hash  += hash >> 11;
 	}
 
@@ -379,7 +380,7 @@ DWORD SuperFastHashI (const char *data, size_t len)
 	{
 		case 3:	hash += get16bits (data);
 				hash ^= hash << 16;
-				hash ^= tolower(data[sizeof (WORD)]) << 18;
+				hash ^= tolower(data[sizeof (uint16_t)]) << 18;
 				hash += hash >> 11;
 				break;
 		case 2:	hash += get16bits (data);
@@ -466,7 +467,7 @@ bool FButtonStatus::PressKey (int keynum)
 		}
 		Keys[open] = keynum;
 	}
-	BYTE wasdown = bDown;
+	uint8_t wasdown = bDown;
 	bDown = bWentDown = true;
 	// Returns true if this key caused the button to go down.
 	return !wasdown;
@@ -475,7 +476,7 @@ bool FButtonStatus::PressKey (int keynum)
 bool FButtonStatus::ReleaseKey (int keynum)
 {
 	int i, numdown, match;
-	BYTE wasdown = bDown;
+	uint8_t wasdown = bDown;
 
 	keynum &= KEY_DBLCLICKED-1;
 
@@ -662,6 +663,16 @@ void C_DoCommand (const char *cmd, int keynum)
 	}
 }
 
+// This is only accessible to the special menu item to run CCMDs.
+DEFINE_ACTION_FUNCTION(DOptionMenuItemCommand, DoCommand)
+{
+	if (CurrentMenu == nullptr) return 0;
+	PARAM_PROLOGUE;
+	PARAM_STRING(cmd);
+	C_DoCommand(cmd);
+	return 0;
+}
+
 void AddCommandString (char *cmd, int keynum)
 {
 	char *brkpt;
@@ -705,7 +716,7 @@ void AddCommandString (char *cmd, int keynum)
 
 					if (cmd[4] == ' ')
 					{
-						tics = strtol (cmd + 5, NULL, 0);
+						tics = (int)strtoll (cmd + 5, NULL, 0);
 					}
 					else
 					{
@@ -1040,7 +1051,11 @@ FString BuildString (int argc, FString *argv)
 
 		for (arg = 0; arg < argc; arg++)
 		{
-			if (strchr(argv[arg], '"'))
+			if (argv[arg][0] == '\0')
+			{ // It's an empty argument, we need to convert it to '""'
+				buf << "\"\" ";
+			}
+			else if (strchr(argv[arg], '"'))
 			{ // If it contains one or more quotes, we need to escape them.
 				buf << '"';
 				long substr_start = 0, quotepos;

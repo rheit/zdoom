@@ -64,7 +64,7 @@ typedef enum
 // The current state of the game: whether we are
 // playing, gazing at the intermission screen,
 // the game final animation, or a demo. 
-typedef enum
+enum gamestate_t : int
 {
 	GS_LEVEL,
 	GS_INTERMISSION,
@@ -79,7 +79,7 @@ typedef enum
 	GS_FORCEWIPEFADE = -2,
 	GS_FORCEWIPEBURN = -3,
 	GS_FORCEWIPEMELT = -4
-} gamestate_t;
+};
 
 extern	gamestate_t 	gamestate;
 
@@ -359,6 +359,7 @@ enum
 	BCOMPATF_LINKFROZENPROPS	= 1 << 6,	// Clearing PROP_TOTALLYFROZEN or PROP_FROZEN also clears the other
 	BCOMPATF_FLOATBOB			= 1 << 8,	// Use Hexen's original method of preventing floatbobbing items from falling down
 	BCOMPATF_NOSLOPEID			= 1 << 9,	// disable line IDs on slopes.
+	BCOMPATF_CLIPMIDTEX		= 1 << 10,	// Always Clip midtex's in the software renderer (required to run certain GZDoom maps)
 };
 
 // phares 3/20/98:
@@ -377,9 +378,9 @@ enum
 #define BLINKTHRESHOLD (4*32)
 
 #ifndef __BIG_ENDIAN__
-#define MAKE_ID(a,b,c,d)	((DWORD)((a)|((b)<<8)|((c)<<16)|((d)<<24)))
+#define MAKE_ID(a,b,c,d)	((uint32_t)((a)|((b)<<8)|((c)<<16)|((d)<<24)))
 #else
-#define MAKE_ID(a,b,c,d)	((DWORD)((d)|((c)<<8)|((b)<<16)|((a)<<24)))
+#define MAKE_ID(a,b,c,d)	((uint32_t)((d)|((c)<<8)|((b)<<16)|((a)<<24)))
 #endif
 
 #endif	// __DOOMDEF_H__

@@ -1,6 +1,4 @@
-#ifndef __R_BLEND_H
-#define __R_BLEND_H
-
+#pragma once
 /*
 ** r_blend.h
 ** Constants and types for specifying texture blending.
@@ -44,10 +42,6 @@
 enum
 {
 	OPAQUE = 65536,
-	TRANSLUC25 = (OPAQUE / 4),
-	TRANSLUC33 = (OPAQUE / 3),
-	TRANSLUC66 = ((OPAQUE * 2) / 3),
-	TRANSLUC75 = ((OPAQUE * 3) / 4),
 };
 
 // Legacy render styles
@@ -125,6 +119,9 @@ enum ERenderFlags
 	// Actors only: Ignore sector fade and fade to black. To fade to white,
 	// combine this with STYLEF_InvertOverlay.
 	STYLEF_FadeToBlack = 64,
+
+	// Force alpha.
+	STYLEF_ForceAlpha = 128,
 };
 
 union FRenderStyle
@@ -163,4 +160,3 @@ inline FRenderStyle &FRenderStyle::operator= (ERenderStyle legacy)
 	return *this;
 }
 
-#endif

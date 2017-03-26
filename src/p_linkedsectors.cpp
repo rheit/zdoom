@@ -37,6 +37,7 @@
 #include "p_local.h"
 #include "p_lnspec.h"
 #include "p_spec.h"
+#include "g_levellocals.h"
 
 enum
 {
@@ -86,6 +87,13 @@ bool sector_t::IsLinked(sector_t *other, bool ceiling) const
 	return false;
 }
 
+DEFINE_ACTION_FUNCTION(_Sector, isLinked)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_POINTER(other, sector_t);
+	PARAM_BOOL(ceiling);
+	ACTION_RETURN_BOOL(self->IsLinked(other, ceiling));
+}
 
 //============================================================================
 //
@@ -93,12 +101,12 @@ bool sector_t::IsLinked(sector_t *other, bool ceiling) const
 //
 //============================================================================
 
-static bool MoveCeiling(sector_t *sector, int crush, double move)
+static bool MoveCeiling(sector_t *sector, int crush, double move, bool instant)
 {
 	sector->ceilingplane.ChangeHeight (move);
 	sector->ChangePlaneTexZ(sector_t::ceiling, move);
 
-	if (P_ChangeSector(sector, crush, move, 1, true)) return false;
+	if (P_ChangeSector(sector, crush, move, 1, true, instant)) return false;
 
 	// Don't let the ceiling go below the floor
 	if (!sector->ceilingplane.isSlope() && !sector->floorplane.isSlope() &&
@@ -108,12 +116,12 @@ static bool MoveCeiling(sector_t *sector, int crush, double move)
 	return true;
 }
 
-static bool MoveFloor(sector_t *sector, int crush, double move)
+static bool MoveFloor(sector_t *sector, int crush, double move, bool instant)
 {
 	sector->floorplane.ChangeHeight (move);
 	sector->ChangePlaneTexZ(sector_t::floor, move);
 
-	if (P_ChangeSector(sector, crush, move, 0, true)) return false;
+	if (P_ChangeSector(sector, crush, move, 0, true, instant)) return false;
 
 	// Don't let the floor go above the ceiling
 	if (!sector->ceilingplane.isSlope() && !sector->floorplane.isSlope() &&
@@ -133,7 +141,7 @@ static bool MoveFloor(sector_t *sector, int crush, double move)
 //
 //============================================================================
 
-bool P_MoveLinkedSectors(sector_t *sector, int crush, double move, bool ceiling)
+bool P_MoveLinkedSectors(sector_t *sector, int crush, double move, bool ceiling, bool instant)
 {
 	extsector_t::linked::plane &scrollplane = ceiling? sector->e->Linked.Ceiling : sector->e->Linked.Floor;
 	bool ok = true;
@@ -143,55 +151,55 @@ bool P_MoveLinkedSectors(sector_t *sector, int crush, double move, bool ceiling)
 		switch(scrollplane.Sectors[i].Type)
 		{
 		case LINK_FLOOR:
-			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move);
+			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move, instant);
 			break;
 
 		case LINK_CEILING:
-			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move);
+			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move, instant);
 			break;
 
 		case LINK_BOTH:
 			if (move < 0)
 			{
-				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move);
-				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move);
+				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move, instant);
+				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move, instant);
 			}
 			else
 			{
-				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move);
-				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move);
+				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move, instant);
+				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move, instant);
 			}
 			break;
 
 		case LINK_FLOORMIRROR:
-			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move);
+			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move, instant);
 			break;
 
 		case LINK_CEILINGMIRROR:
-			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move);
+			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move, instant);
 			break;
 
 		case LINK_BOTHMIRROR:
 			if (move > 0)
 			{
-				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move);
-				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move);
+				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move, instant);
+				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move, instant);
 			}
 			else
 			{
-				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move);
-				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move);
+				ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move, instant);
+				ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move, instant);
 			}
 			break;
 
 		case LINK_FLOOR+LINK_CEILINGMIRROR:
-			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move);
-			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move);
+			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, move, instant);
+			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, -move, instant);
 			break;
 
 		case LINK_CEILING+LINK_FLOORMIRROR:
-			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move);
-			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move);
+			ok &= MoveFloor(scrollplane.Sectors[i].Sector, crush, -move, instant);
+			ok &= MoveCeiling(scrollplane.Sectors[i].Sector, crush, move, instant);
 			break;
 
 		default:
@@ -321,11 +329,13 @@ bool P_AddSectorLinks(sector_t *control, int tag, INTBOOL ceiling, int movetype)
 		FSectorTagIterator itr(tag);
 		while ((sec = itr.Next()) >= 0)
 		{
-			// Don't attach to self!
-			if (control != &sectors[sec])
+			// Don't attach to self (but allow attaching to this sector's oposite plane.
+			if (control == &level.sectors[sec])
 			{
-				AddSingleSector(scrollplane, &sectors[sec], movetype);
+				if (ceiling == sector_t::floor && movetype & LINK_FLOOR) continue;
+				if (ceiling == sector_t::ceiling && movetype & LINK_CEILING) continue;
 			}
+			AddSingleSector(scrollplane, &level.sectors[sec], movetype);
 		}
 	}
 	else
@@ -353,7 +363,7 @@ void P_AddSectorLinksByID(sector_t *control, int id, INTBOOL ceiling)
 	int line;
 	while ((line = itr.Next()) >= 0)
 	{
-		line_t *ld = &lines[line];
+		line_t *ld = &level.lines[line];
 
 		if (ld->special == Static_Init && ld->args[1] == Init_SectorLink)
 		{

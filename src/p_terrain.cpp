@@ -46,10 +46,11 @@
 #include "s_sound.h"
 #include "p_local.h"
 #include "templates.h"
+#include "actor.h"
 
 // MACROS ------------------------------------------------------------------
 
-#define SET_FIELD(type,val) *((type*)((BYTE *)fields + \
+#define SET_FIELD(type,val) *((type*)((uint8_t *)fields + \
 							parser[keyword].u.Offset)) = val;
 
 // TYPES -------------------------------------------------------------------
@@ -134,7 +135,7 @@ static void ParseDefault (FScanner &sc);
 FTerrainTypeArray TerrainTypes;
 TArray<FSplashDef> Splashes;
 TArray<FTerrainDef> Terrains;
-WORD DefaultTerrainType;
+uint16_t DefaultTerrainType;
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
@@ -546,7 +547,7 @@ static void GenericParse (FScanner &sc, FGenericParse *parser, const char **keyw
 
 		case GEN_Byte:
 			sc.MustGetNumber ();
-			SET_FIELD (BYTE, sc.Number);
+			SET_FIELD (uint8_t, sc.Number);
 			break;
 
 		case GEN_Class:

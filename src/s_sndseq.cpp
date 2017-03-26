@@ -29,12 +29,13 @@
 #include "g_level.h"
 #include "serializer.h"
 #include "d_player.h"
+#include "g_levellocals.h"
 
 // MACROS ------------------------------------------------------------------
 
 #define GetCommand(a)		((a) & 255)
-#define GetData(a)			(SDWORD(a) >> 8 )
-#define GetFloatData(a)		float((SDWORD(a) >> 8 )/65536.f)
+#define GetData(a)			(int32_t(a) >> 8 )
+#define GetFloatData(a)		float((int32_t(a) >> 8 )/65536.f)
 #define MakeCommand(a,b)	((a) | ((b) << 8))
 #define HexenPlatSeq(a)		(a)
 #define HexenDoorSeq(a)		((a) | 0x40)
@@ -96,7 +97,7 @@ typedef enum
 struct hexenseq_t
 {
 	ENamedName	Name;
-	BYTE		Seqs[4];
+	uint8_t		Seqs[4];
 };
 
 class DSeqActorNode : public DSeqNode
@@ -105,7 +106,7 @@ class DSeqActorNode : public DSeqNode
 	HAS_OBJECT_POINTERS
 public:
 	DSeqActorNode(AActor *actor, int sequence, int modenum);
-	void Destroy() override;
+	void OnDestroy() override;
 	void Serialize(FSerializer &arc);
 	void MakeSound(int loop, FSoundID id)
 	{
@@ -125,7 +126,7 @@ public:
 	}
 private:
 	DSeqActorNode() {}
-	TObjPtr<AActor> m_Actor;
+	TObjPtr<AActor*> m_Actor;
 };
 
 class DSeqPolyNode : public DSeqNode
@@ -133,7 +134,7 @@ class DSeqPolyNode : public DSeqNode
 	DECLARE_CLASS(DSeqPolyNode, DSeqNode)
 public:
 	DSeqPolyNode(FPolyObj *poly, int sequence, int modenum);
-	void Destroy() override;
+	void OnDestroy() override;
 	void Serialize(FSerializer &arc);
 	void MakeSound(int loop, FSoundID id)
 	{
@@ -161,7 +162,7 @@ class DSeqSectorNode : public DSeqNode
 	DECLARE_CLASS(DSeqSectorNode, DSeqNode)
 public:
 	DSeqSectorNode(sector_t *sec, int chan, int sequence, int modenum);
-	void Destroy() override;
+	void OnDestroy() override;
 	void Serialize(FSerializer &arc);
 	void MakeSound(int loop, FSoundID id)
 	{
@@ -202,7 +203,7 @@ struct FSoundSequencePtrArray : public TArray<FSoundSequence *>
 
 static void AssignTranslations (FScanner &sc, int seq, seqtype_t type);
 static void AssignHexenTranslations (void);
-static void AddSequence (int curseq, FName seqname, FName slot, int stopsound, const TArray<DWORD> &ScriptTemp);
+static void AddSequence (int curseq, FName seqname, FName slot, int stopsound, const TArray<uint32_t> &ScriptTemp);
 static int FindSequence (const char *searchname);
 static int FindSequence (FName seqname);
 static bool TwiddleSeqNum (int &sequence, seqtype_t type);
@@ -378,7 +379,7 @@ void DSeqNode::Serialize(FSerializer &arc)
 	}
 }
 
-void DSeqNode::Destroy()
+void DSeqNode::OnDestroy()
 {
 	// If this sequence was launched by a parent sequence, advance that
 	// sequence now.
@@ -404,7 +405,7 @@ void DSeqNode::Destroy()
 		GC::WriteBarrier(m_Next, m_Prev);
 	}
 	ActiveSequences--;
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 void DSeqNode::StopAndDestroy ()
@@ -424,9 +425,25 @@ void DSeqNode::AddChoice (int seqnum, seqtype_t type)
 	}
 }
 
+DEFINE_ACTION_FUNCTION(DSeqNode, AddChoice)
+{
+	PARAM_SELF_PROLOGUE(DSeqNode);
+	PARAM_NAME(seq);
+	PARAM_INT(mode);
+	self->AddChoice(seq, seqtype_t(mode));
+	return 0;
+}
+
+
 FName DSeqNode::GetSequenceName () const
 {
 	return Sequences[m_Sequence]->SeqName;
+}
+
+DEFINE_ACTION_FUNCTION(DSeqNode, GetSequenceName)
+{
+	PARAM_SELF_PROLOGUE(DSeqNode);
+	ACTION_RETURN_INT(self->GetSequenceName().GetIndex());
 }
 
 IMPLEMENT_CLASS(DSeqActorNode, false, true)
@@ -542,7 +559,7 @@ void S_ClearSndSeq()
 
 void S_ParseSndSeq (int levellump)
 {
-	TArray<DWORD> ScriptTemp;
+	TArray<uint32_t> ScriptTemp;
 	int lastlump, lump;
 	char seqtype = ':';
 	FName seqname;
@@ -768,13 +785,13 @@ void S_ParseSndSeq (int levellump)
 		AssignHexenTranslations ();
 }
 
-static void AddSequence (int curseq, FName seqname, FName slot, int stopsound, const TArray<DWORD> &ScriptTemp)
+static void AddSequence (int curseq, FName seqname, FName slot, int stopsound, const TArray<uint32_t> &ScriptTemp)
 {
-	Sequences[curseq] = (FSoundSequence *)M_Malloc (sizeof(FSoundSequence) + sizeof(DWORD)*ScriptTemp.Size());
+	Sequences[curseq] = (FSoundSequence *)M_Malloc (sizeof(FSoundSequence) + sizeof(uint32_t)*ScriptTemp.Size());
 	Sequences[curseq]->SeqName = seqname;
 	Sequences[curseq]->Slot = slot;
 	Sequences[curseq]->StopSound = FSoundID(stopsound);
-	memcpy (Sequences[curseq]->Script, &ScriptTemp[0], sizeof(DWORD)*ScriptTemp.Size());
+	memcpy (Sequences[curseq]->Script, &ScriptTemp[0], sizeof(uint32_t)*ScriptTemp.Size());
 	Sequences[curseq]->Script[ScriptTemp.Size()] = MakeCommand(SS_CMD_END, 0);
 }
 
@@ -868,6 +885,16 @@ DSeqNode *SN_StartSequence (AActor *actor, int sequence, seqtype_t type, int mod
 	return NULL;
 }
 
+DEFINE_ACTION_FUNCTION(AActor, StartSoundSequenceID)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_INT(seq);
+	PARAM_INT(type);
+	PARAM_INT(modenum);
+	PARAM_BOOL_DEF(nostop);
+	ACTION_RETURN_POINTER(SN_StartSequence(self, seq, seqtype_t(type), modenum, nostop));
+}
+
 DSeqNode *SN_StartSequence (sector_t *sector, int chan, int sequence, seqtype_t type, int modenum, bool nostop)
 {
 	if (!nostop)
@@ -879,6 +906,17 @@ DSeqNode *SN_StartSequence (sector_t *sector, int chan, int sequence, seqtype_t 
 		return new DSeqSectorNode (sector, chan, sequence, modenum);
 	}
 	return NULL;
+}
+
+DEFINE_ACTION_FUNCTION(_Sector, StartSoundSequenceID)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_INT(chan);
+	PARAM_INT(seq);
+	PARAM_INT(type);
+	PARAM_INT(modenum);
+	PARAM_BOOL_DEF(nostop);
+	ACTION_RETURN_POINTER(SN_StartSequence(self, chan, seq, seqtype_t(type), modenum, nostop));
 }
 
 DSeqNode *SN_StartSequence (FPolyObj *poly, int sequence, seqtype_t type, int modenum, bool nostop)
@@ -920,6 +958,15 @@ DSeqNode *SN_StartSequence (AActor *actor, FName seqname, int modenum)
 	return NULL;
 }
 
+DEFINE_ACTION_FUNCTION(AActor, StartSoundSequence)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	PARAM_NAME(seq);
+	PARAM_INT(modenum);
+	ACTION_RETURN_POINTER(SN_StartSequence(self, seq, modenum));
+}
+
+
 DSeqNode *SN_StartSequence (sector_t *sec, int chan, const char *seqname, int modenum)
 {
 	int seqnum = FindSequence(seqname);
@@ -938,6 +985,15 @@ DSeqNode *SN_StartSequence (sector_t *sec, int chan, FName seqname, int modenum)
 		return SN_StartSequence (sec, chan, seqnum, SEQ_NOTRANS, modenum);
 	}
 	return NULL;
+}
+
+DEFINE_ACTION_FUNCTION(_Sector, StartSoundSequence)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_INT(chan);
+	PARAM_NAME(seq);
+	PARAM_INT(modenum);
+	ACTION_RETURN_POINTER(SN_StartSequence(self, chan, seq, modenum));
 }
 
 DSeqNode *SN_StartSequence (FPolyObj *poly, const char *seqname, int modenum)
@@ -1000,6 +1056,13 @@ DSeqNode *SN_CheckSequence(sector_t *sector, int chan)
 	return NULL;
 }
 
+DEFINE_ACTION_FUNCTION(_Sector, CheckSoundSequence)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_INT(chan);
+	ACTION_RETURN_POINTER(SN_CheckSequence(self, chan));
+}
+
 //==========================================================================
 //
 //  SN_StopSequence
@@ -1011,6 +1074,13 @@ void SN_StopSequence (AActor *actor)
 	SN_DoStop (actor);
 }
 
+DEFINE_ACTION_FUNCTION(AActor, StopSoundSequence)
+{
+	PARAM_SELF_PROLOGUE(AActor);
+	SN_StopSequence(self);
+	return 0;
+}
+
 void SN_StopSequence (sector_t *sector, int chan)
 {
 	DSeqNode *node = SN_CheckSequence(sector, chan);
@@ -1019,6 +1089,15 @@ void SN_StopSequence (sector_t *sector, int chan)
 		node->StopAndDestroy();
 	}
 }
+
+DEFINE_ACTION_FUNCTION(_Sector, StopSoundSequence)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_INT(chan);
+	SN_StopSequence(self, chan);
+	return 0;
+}
+
 
 void SN_StopSequence (FPolyObj *poly)
 {
@@ -1040,31 +1119,31 @@ void SN_DoStop (void *source)
 	}
 }
 
-void DSeqActorNode::Destroy ()
+void DSeqActorNode::OnDestroy ()
 {
 	if (m_StopSound >= 0)
 		S_StopSound (m_Actor, CHAN_BODY);
 	if (m_StopSound >= 1)
 		MakeSound (0, m_StopSound);
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
-void DSeqSectorNode::Destroy ()
+void DSeqSectorNode::OnDestroy ()
 {
 	if (m_StopSound >= 0)
 		S_StopSound (m_Sector, Channel & 7);
 	if (m_StopSound >= 1)
 		MakeSound (0, m_StopSound);
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
-void DSeqPolyNode::Destroy ()
+void DSeqPolyNode::OnDestroy ()
 {
 	if (m_StopSound >= 0)
 		S_StopSound (m_Poly, CHAN_BODY);
 	if (m_StopSound >= 1)
 		MakeSound (0, m_StopSound);
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -1088,6 +1167,13 @@ bool SN_IsMakingLoopingSound (sector_t *sector)
 	}
 	return false;
 }
+
+DEFINE_ACTION_FUNCTION(_Sector, IsMakingLoopingSound)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	ACTION_RETURN_BOOL(SN_IsMakingLoopingSound(self));
+}
+
 
 //==========================================================================
 //
@@ -1304,7 +1390,7 @@ void SN_StopAllSequences (void)
 //
 //==========================================================================
 
-ptrdiff_t SN_GetSequenceOffset (int sequence, SDWORD *sequencePtr)
+ptrdiff_t SN_GetSequenceOffset (int sequence, int32_t *sequencePtr)
 {
 	return sequencePtr - Sequences[sequence]->Script;
 }
@@ -1323,6 +1409,15 @@ FName SN_GetSequenceSlot (int sequence, seqtype_t type)
 	}
 	return NAME_None;
 }
+
+DEFINE_ACTION_FUNCTION(DSeqNode, GetSequenceSlot)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(seq);
+	PARAM_INT(type);
+	ACTION_RETURN_INT(SN_GetSequenceSlot(seq, seqtype_t(type)).GetIndex());
+}
+
 
 //==========================================================================
 //
@@ -1349,6 +1444,16 @@ void SN_MarkPrecacheSounds(int sequence, seqtype_t type)
 		}
 	}
 }
+
+DEFINE_ACTION_FUNCTION(DSeqNode, MarkPrecacheSounds)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(seq);
+	PARAM_INT(type);
+	SN_MarkPrecacheSounds(seq, seqtype_t(type));
+	return 0;
+}
+
 
 //==========================================================================
 //
@@ -1461,7 +1566,16 @@ bool SN_AreModesSame(int seqnum, seqtype_t type, int mode1, int mode2)
 	return true;
 }
 
-bool SN_AreModesSame(const char *name, int mode1, int mode2)
+DEFINE_ACTION_FUNCTION(DSeqNode, AreModesSameID)
+{
+	PARAM_SELF_PROLOGUE(DSeqNode);
+	PARAM_INT(seqnum);
+	PARAM_INT(type);
+	PARAM_INT(mode);
+	ACTION_RETURN_BOOL(SN_AreModesSame(seqnum, seqtype_t(type), mode, self->GetModeNum()));
+}
+
+bool SN_AreModesSame(FName name, int mode1, int mode2)
 {
 	int seqnum = FindSequence(name);
 	if (seqnum >= 0)
@@ -1470,6 +1584,14 @@ bool SN_AreModesSame(const char *name, int mode1, int mode2)
 	}
 	// The sequence doesn't exist, so that makes both modes equally nonexistant.
 	return true;
+}
+
+DEFINE_ACTION_FUNCTION(DSeqNode, AreModesSame)
+{
+	PARAM_SELF_PROLOGUE(DSeqNode);
+	PARAM_NAME(seq);
+	PARAM_INT(mode);
+	ACTION_RETURN_BOOL(SN_AreModesSame(seq, mode, self->GetModeNum()));
 }
 
 //==========================================================================

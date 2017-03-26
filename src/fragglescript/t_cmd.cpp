@@ -48,6 +48,7 @@
 #include "g_level.h"
 #include "r_renderer.h"
 #include "d_player.h"
+#include "g_levellocals.h"
 
 //==========================================================================
 //
@@ -186,12 +187,15 @@ void FS_EmulateCmd(char * string)
 		{
 			sc.MustGetNumber();
 			// Using this disables most MAPINFO fog options!
-			Renderer->SetFogParams(sc.Number*70/400, 0xff000000, 0, 0);
+			level.fogdensity = sc.Number * 70 / 400;
+			level.outsidefogdensity = 0;
+			level.skyfog = 0;
+			level.info->outsidefog = 0;
 		}
 		else if (sc.Compare("gr_fogcolor"))
 		{
 			sc.MustGetString();
-			level.fadeto = strtol(sc.String, NULL, 16);
+			level.fadeto = (uint32_t)strtoull(sc.String, NULL, 16);
 		}
 
 		else

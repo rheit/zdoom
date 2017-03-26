@@ -55,7 +55,6 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#define USE_WINDOWS_DWORD
 #include "doomtype.h"
 
 #include "c_dispatch.h"
@@ -69,10 +68,11 @@
 #include "m_argv.h"
 #include "r_defs.h"
 #include "v_text.h"
-#include "r_swrenderer.h"
+#include "swrenderer/r_swrenderer.h"
 #include "version.h"
 
 #include "win32iface.h"
+#include "win32swiface.h"
 
 #include "optwin32.h"
 
@@ -223,8 +223,8 @@ bool Win32Video::InitD3D9 ()
 
 	// Enumerate available display modes.
 	FreeModes ();
-	AddD3DModes (m_Adapter, D3DFMT_X8R8G8B8);
-	AddD3DModes (m_Adapter, D3DFMT_R5G6B5);
+	AddD3DModes (m_Adapter);
+	AddD3DModes (m_Adapter);
 	if (Args->CheckParm ("-2"))
 	{ // Force all modes to be pixel-doubled.
 		ScaleModes (1);
@@ -251,6 +251,12 @@ d3drelease:
 closelib:
 	FreeLibrary (D3D9_dll);
 	return false;
+}
+
+static HRESULT WINAPI EnumDDModesCB(LPDDSURFACEDESC desc, void *data)
+{
+	((Win32Video *)data)->AddMode(desc->dwWidth, desc->dwHeight, 8, desc->dwHeight, 0);
+	return DDENUMRET_OK;
 }
 
 void Win32Video::InitDDraw ()
@@ -336,7 +342,7 @@ bool Win32Video::GoFullscreen (bool yes)
 	HRESULT hr[2];
 	int count;
 
-	// FIXME: Do this right for D3D. (This function is only called by the movie player when using D3D.)
+	// FIXME: Do this right for D3D.
 	if (D3D != NULL)
 	{
 		return yes;
@@ -372,7 +378,7 @@ bool Win32Video::GoFullscreen (bool yes)
 	return false;
 }
 
-// Flips to the GDI surface and clears it; used by the movie player
+// Flips to the GDI surface and clears it
 void Win32Video::BlankForGDI ()
 {
 	static_cast<BaseWinFB *> (screen)->Blank ();
@@ -436,23 +442,20 @@ void Win32Video::DumpAdapters()
 
 // Mode enumeration --------------------------------------------------------
 
-HRESULT WINAPI Win32Video::EnumDDModesCB (LPDDSURFACEDESC desc, void *data)
+void Win32Video::AddD3DModes (unsigned adapter)
 {
-	((Win32Video *)data)->AddMode (desc->dwWidth, desc->dwHeight, 8, desc->dwHeight, 0);
-	return DDENUMRET_OK;
-}
-
-void Win32Video::AddD3DModes (UINT adapter, D3DFORMAT format)
-{
-	UINT modecount, i;
-	D3DDISPLAYMODE mode;
-
-	modecount = D3D->GetAdapterModeCount (adapter, format);
-	for (i = 0; i < modecount; ++i)
+	for (D3DFORMAT format : { D3DFMT_X8R8G8B8, D3DFMT_R5G6B5})
 	{
-		if (D3D_OK == D3D->EnumAdapterModes (adapter, format, i, &mode))
+		UINT modecount, i;
+		D3DDISPLAYMODE mode;
+
+		modecount = D3D->GetAdapterModeCount(adapter, format);
+		for (i = 0; i < modecount; ++i)
 		{
-			AddMode (mode.Width, mode.Height, 8, mode.Height, 0);
+			if (D3D_OK == D3D->EnumAdapterModes(adapter, format, i, &mode))
+			{
+				AddMode(mode.Width, mode.Height, 8, mode.Height, 0);
+			}
 		}
 	}
 }
@@ -632,7 +635,7 @@ bool Win32Video::NextMode (int *width, int *height, bool *letterbox)
 	return false;
 }
 
-DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscreen, DFrameBuffer *old)
+DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool bgra, bool fullscreen, DFrameBuffer *old)
 {
 	static int retry = 0;
 	static int owidth, oheight;
@@ -641,6 +644,11 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 	PalEntry flashColor;
 	int flashAmount;
 
+	if (fullscreen)
+	{
+		I_ClosestResolution(&width, &height, D3D ? 32 : 8);
+	}
+
 	LOG4 ("CreateFB %d %d %d %p\n", width, height, fullscreen, old);
 
 	if (old != NULL)
@@ -648,7 +656,8 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 		BaseWinFB *fb = static_cast<BaseWinFB *> (old);
 		if (fb->Width == width &&
 			fb->Height == height &&
-			fb->Windowed == !fullscreen)
+			fb->Windowed == !fullscreen &&
+			fb->Bgra == bgra)
 		{
 			return old;
 		}
@@ -665,12 +674,13 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 
 	if (D3D != NULL)
 	{
-		fb = new D3DFB (m_Adapter, width, height, fullscreen);
+		fb = new D3DFB (m_Adapter, width, height, bgra, fullscreen);
 	}
 	else
 	{
 		fb = new DDrawFB (width, height, fullscreen);
 	}
+
 	LOG1 ("New fb created @ %p\n", fb);
 
 	// If we could not create the framebuffer, try again with slightly
@@ -729,7 +739,7 @@ DFrameBuffer *Win32Video::CreateFrameBuffer (int width, int height, bool fullscr
 		}
 
 		++retry;
-		fb = static_cast<DDrawFB *>(CreateFrameBuffer (width, height, fullscreen, NULL));
+		fb = static_cast<DDrawFB *>(CreateFrameBuffer (width, height, bgra, fullscreen, NULL));
 	}
 	retry = 0;
 
@@ -751,15 +761,15 @@ void Win32Video::SetWindowedScale (float scale)
 //
 //==========================================================================
 
-void BaseWinFB::ScaleCoordsFromWindow(SWORD &x, SWORD &y)
+void BaseWinFB::ScaleCoordsFromWindow(int16_t &x, int16_t &y)
 {
 	RECT rect;
 
 	int TrueHeight = GetTrueHeight();
 	if (GetClientRect(Window, &rect))
 	{
-		x = SWORD(x * Width / (rect.right - rect.left));
-		y = SWORD(y * TrueHeight / (rect.bottom - rect.top));
+		x = int16_t(x * Width / (rect.right - rect.left));
+		y = int16_t(y * TrueHeight / (rect.bottom - rect.top));
 	}
 	// Subtract letterboxing borders
 	y -= (TrueHeight - Height) / 2;
@@ -835,4 +845,12 @@ void I_SetFPSLimit(int limit)
 static void StopFPSLimit()
 {
 	I_SetFPSLimit(0);
+}
+
+void I_FPSLimit()
+{
+	if (FPSLimitEvent != NULL)
+	{
+		WaitForSingleObject(FPSLimitEvent, 1000);
+	}
 }

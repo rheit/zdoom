@@ -42,6 +42,31 @@
 
 // CODE --------------------------------------------------------------------
 
+void VersionInfo::operator=(const char *string)
+{
+	char *endp;
+	major = (int16_t)clamp<unsigned long long>(strtoull(string, &endp, 10), 0, USHRT_MAX);
+	if (*endp == '.')
+	{
+		minor = (int16_t)clamp<unsigned long long>(strtoull(endp + 1, &endp, 10), 0, USHRT_MAX);
+		if (*endp == '.')
+		{
+			revision = (int16_t)clamp<unsigned long long>(strtoull(endp + 1, &endp, 10), 0, USHRT_MAX);
+			if (*endp != 0) major = USHRT_MAX;
+		}
+		else if (*endp == 0)
+		{
+			revision = 0;
+		}
+		else major = USHRT_MAX;
+	}
+	else if (*endp == 0)
+	{
+		minor = revision = 0;
+	}
+	else major = USHRT_MAX;
+}
+
 //==========================================================================
 //
 // FScanner Constructor
@@ -175,7 +200,7 @@ void FScanner::Open (const char *name)
 
 void FScanner::OpenFile (const char *name)
 {
-	BYTE *filebuf;
+	uint8_t *filebuf;
 	int filesize;
 
 	Close ();
@@ -554,12 +579,12 @@ bool FScanner::GetToken ()
 				String[StringLen - 2] == 'u' || String[StringLen - 2] == 'U')
 			{
 				TokenType = TK_UIntConst;
-				Number = strtoul(String, &stopper, 0);
+				Number = (int)strtoull(String, &stopper, 0);
 				Float = (unsigned)Number;
 			}
 			else
 			{
-				Number = strtol(String, &stopper, 0);
+				Number = (int)strtoll(String, &stopper, 0);
 				Float = Number;
 			}
 		}
@@ -660,7 +685,7 @@ bool FScanner::GetNumber ()
 		}
 		else
 		{
-			Number = strtol (String, &stopper, 0);
+			Number = (int)strtoll (String, &stopper, 0);
 			if (*stopper != 0)
 			{
 				ScriptError ("SC_GetNumber: Bad numeric constant \"%s\".", String);
@@ -715,7 +740,7 @@ bool FScanner::CheckNumber ()
 		}
 		else
 		{
-			Number = strtol (String, &stopper, 0);
+			Number = (int)strtoll (String, &stopper, 0);
 			if (*stopper != 0)
 			{
 				UnGet();
@@ -1008,6 +1033,7 @@ void FScanner::CheckOpen()
 int FScriptPosition::ErrorCounter;
 int FScriptPosition::WarnCounter;
 bool FScriptPosition::StrictErrors;	// makes all OPTERROR messages real errors.
+bool FScriptPosition::errorout;		// call I_Error instead of printing the error itself.
 
 FScriptPosition::FScriptPosition(const FScriptPosition &other)
 {
@@ -1054,6 +1080,8 @@ void FScriptPosition::Message (int severity, const char *message, ...) const
 	{
 		severity = StrictErrors || strictdecorate ? MSG_ERROR : MSG_WARNING;
 	}
+	// This is mainly for catching the error with an exception handler.
+	if (severity == MSG_ERROR && errorout) severity = MSG_FATAL;
 
 	if (message == NULL)
 	{

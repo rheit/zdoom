@@ -83,8 +83,8 @@ public:
 
 	virtual void SetSfxVolume(float volume);
 	virtual void SetMusicVolume(float volume);
-	virtual std::pair<SoundHandle,bool> LoadSound(BYTE *sfxdata, int length, bool monoize);
-	virtual std::pair<SoundHandle,bool> LoadSoundRaw(BYTE *sfxdata, int length, int frequency, int channels, int bits, int loopstart, int loopend = -1, bool monoize = false);
+	virtual std::pair<SoundHandle,bool> LoadSound(uint8_t *sfxdata, int length, bool monoize);
+	virtual std::pair<SoundHandle,bool> LoadSoundRaw(uint8_t *sfxdata, int length, int frequency, int channels, int bits, int loopstart, int loopend = -1, bool monoize = false);
 	virtual void UnloadSound(SoundHandle sfx);
 	virtual unsigned int GetMSLength(SoundHandle sfx);
 	virtual unsigned int GetSampleLength(SoundHandle sfx);
@@ -130,6 +130,8 @@ public:
 	virtual void PrintStatus();
 	virtual void PrintDriversList();
 	virtual FString GatherStats();
+
+	virtual MIDIDevice* CreateMIDIDevice() const override;
 
 private:
     struct {
@@ -219,8 +221,8 @@ private:
 
 	const ReverbContainer *PrevEnvironment;
 
-    typedef TMap<WORD,ALuint> EffectMap;
-    typedef TMapIterator<WORD,ALuint> EffectMapIter;
+    typedef TMap<uint16_t,ALuint> EffectMap;
+    typedef TMapIterator<uint16_t,ALuint> EffectMapIter;
     ALuint EnvSlot;
     ALuint EnvFilters[2];
     EffectMap EnvEffects;

@@ -40,6 +40,8 @@
 #include "c_dispatch.h"
 #include "v_text.h"
 #include "thingdef.h"
+#include "r_state.h"
+
 
 // stores indices for symbolic state labels for some old-style DECORATE functions.
 FStateLabelStorage StateLabels;
@@ -48,6 +50,40 @@ FStateLabelStorage StateLabels;
 // states, but a single state cannot be owned by more than one
 // actor. States are archived by recording the actor they belong
 // to and the index into that actor's list of states.
+
+
+//==========================================================================
+//
+// This wraps everything needed to get a current sprite from a state into
+// one single script function.
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION(FState, GetSpriteTexture)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FState);
+	PARAM_INT(rotation);
+	PARAM_INT_DEF(skin);
+	PARAM_FLOAT_DEF(scalex);
+	PARAM_FLOAT_DEF(scaley);
+
+	spriteframe_t *sprframe;
+	if (skin == 0)
+	{
+		sprframe = &SpriteFrames[sprites[self->sprite].spriteframes + self->GetFrame()];
+	}
+	else
+	{
+		sprframe = &SpriteFrames[sprites[Skins[skin].sprite].spriteframes + self->GetFrame()];
+		scalex = Skins[skin].Scale.X;
+		scaley = Skins[skin].Scale.Y;
+	}
+	if (numret > 0) ret[0].SetInt(sprframe->Texture[rotation].GetIndex());
+	if (numret > 1) ret[1].SetInt(!!(sprframe->Flip & (1 << rotation)));
+	if (numret > 2) ret[2].SetVector2(DVector2(scalex, scaley));
+	return MIN(3, numret);
+}
+
 
 //==========================================================================
 //
@@ -403,7 +439,7 @@ FStateDefine *FStateDefinitions::FindStateAddress(const char *name)
 //
 //==========================================================================
 
-void FStateDefinitions::SetStateLabel(const char *statename, FState *state, BYTE defflags)
+void FStateDefinitions::SetStateLabel(const char *statename, FState *state, uint8_t defflags)
 {
 	FStateDefine *std = FindStateAddress(statename);
 	std->State = state;
@@ -729,7 +765,7 @@ FState *FStateDefinitions::ResolveGotoLabel (AActor *actor, PClassActor *mytype,
 		*pt = '\0';
 		offset = pt + 1;
 	}
-	v = offset ? strtol (offset, NULL, 0) : 0;
+	v = offset ? (int)strtoll (offset, NULL, 0) : 0;
 
 	// Get the state's address.
 	if (type == mytype)
@@ -1091,4 +1127,10 @@ DEFINE_ACTION_FUNCTION(FState, DistanceTo)
 		if (other >= o1->OwnedStates && other < o1->OwnedStates + o1->NumOwnedStates) retv = int(other - self);
 	}
 	ACTION_RETURN_INT(retv);
+}
+
+DEFINE_ACTION_FUNCTION(FState, ValidateSpriteFrame)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FState);
+	ACTION_RETURN_BOOL(self->Frame < sprites[self->sprite].numframes);
 }

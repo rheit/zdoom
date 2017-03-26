@@ -6,7 +6,6 @@
 #include "m_bbox.h"
 
 struct FPortalGroupArray;
-class ASkyViewpoint;
 struct portnode_t;
 //============================================================================
 //
@@ -30,7 +29,7 @@ struct FDisplacement
 {
 	DVector2 pos;
 	bool isSet;
-	BYTE indirect;	// just for illustration.
+	uint8_t indirect;	// just for illustration.
 
 };
 
@@ -184,14 +183,14 @@ struct FLinePortal
 	line_t *mOrigin;
 	line_t *mDestination;
 	DVector2 mDisplacement;
-	BYTE mType;
-	BYTE mFlags;
-	BYTE mDefFlags;
-	BYTE mAlign;
+	uint8_t mType;
+	uint8_t mFlags;
+	uint8_t mDefFlags;
+	uint8_t mAlign;
 	DAngle mAngleDiff;
 	double mSinRot;
 	double mCosRot;
-	portnode_t *render_thinglist;
+	portnode_t *lineportal_thinglist;
 };
 
 extern TArray<FLinePortal> linePortals;
@@ -228,7 +227,7 @@ struct FSectorPortal
 	sector_t *mDestination;
 	DVector2 mDisplacement;
 	double mPlaneZ;
-	TObjPtr<AActor> mSkybox;
+	TObjPtr<AActor*> mSkybox;
 
 	bool MergeAllowed() const
 	{
@@ -236,8 +235,6 @@ struct FSectorPortal
 		return (mType == PORTS_STACKEDSECTORTHING || (mType == PORTS_SKYVIEWPOINT && (mFlags & PORTSF_SKYFLATONLY)));
 	}
 };
-
-extern TArray<FSectorPortal> sectorPortals;
 
 //============================================================================
 //
@@ -256,7 +253,7 @@ inline int P_NumPortalGroups()
 {
 	return Displacements.size;
 }
-unsigned P_GetSkyboxPortal(ASkyViewpoint *actor);
+unsigned P_GetSkyboxPortal(AActor *actor);
 unsigned P_GetPortal(int type, int plane, sector_t *orgsec, sector_t *destsec, const DVector2 &displacement);
 unsigned P_GetStackPortal(AActor *point, int plane);
 

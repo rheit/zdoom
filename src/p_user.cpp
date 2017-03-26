@@ -59,8 +59,9 @@
 #include "a_morph.h"
 #include "p_spec.h"
 #include "virtual.h"
-#include "a_armor.h"
-#include "a_ammo.h"
+#include "g_levellocals.h"
+#include "actorinlines.h"
+#include "r_data/r_translate.h"
 
 static FRandom pr_skullpop ("SkullPop");
 
@@ -85,6 +86,16 @@ CUSTOM_CVAR(Float, cl_predict_lerpthreshold, 2.00f, CVAR_ARCHIVE | CVAR_GLOBALCO
 	P_PredictionLerpReset();
 }
 
+ColorSetList ColorSets;
+PainFlashList PainFlashes;
+
+// [Nash] FOV cvar setting
+CUSTOM_CVAR(Float, fov, 90.f, CVAR_ARCHIVE | CVAR_USERINFO | CVAR_NOINITCALL)
+{
+	player_t *p = &players[consoleplayer];
+	p->SetFOV(fov);
+}
+
 struct PredictPos
 {
 	int gametic;
@@ -94,10 +105,20 @@ struct PredictPos
 static int PredictionLerptics;
 
 static player_t PredictionPlayerBackup;
-static BYTE PredictionActorBackup[sizeof(APlayerPawn)];
-static TArray<sector_t *> PredictionTouchingSectorsBackup;
+static uint8_t PredictionActorBackup[sizeof(APlayerPawn)];
 static TArray<AActor *> PredictionSectorListBackup;
-static TArray<msecnode_t *> PredictionSector_sprev_Backup;
+
+static TArray<sector_t *> PredictionTouchingSectorsBackup;
+static TArray<msecnode_t *> PredictionTouchingSectors_sprev_Backup;
+
+static TArray<sector_t *> PredictionRenderSectorsBackup;
+static TArray<msecnode_t *> PredictionRenderSectors_sprev_Backup;
+
+static TArray<sector_t *> PredictionPortalSectorsBackup;
+static TArray<msecnode_t *> PredictionPortalSectors_sprev_Backup;
+
+static TArray<FLinePortal *> PredictionPortalLinesBackup;
+static TArray<portnode_t *> PredictionPortalLines_sprev_Backup;
 
 // [GRB] Custom player classes
 TArray<FPlayerClass> PlayerClasses;
@@ -130,17 +151,31 @@ bool FPlayerClass::CheckSkin (int skin)
 	return false;
 }
 
+DEFINE_ACTION_FUNCTION(FPlayerClass, CheckSkin)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FPlayerClass);
+	PARAM_INT(skin);
+	ACTION_RETURN_BOOL(self->CheckSkin(skin));
+}
+
 //===========================================================================
 //
 // GetDisplayName
 //
 //===========================================================================
 
-FString GetPrintableDisplayName(PClassPlayerPawn *cls)
+FString GetPrintableDisplayName(PClassActor *cls)
 { 
 	// Fixme; This needs a decent way to access the string table without creating a mess.
 	// [RH] ????
 	return cls->DisplayName;
+}
+
+DEFINE_ACTION_FUNCTION(APlayerPawn, GetPrintableDisplayName)
+{
+	PARAM_PROLOGUE;
+	PARAM_CLASS(type, AActor);
+	ACTION_RETURN_STRING(type->DisplayName);
 }
 
 bool ValidatePlayerClass(PClassActor *ti, const char *name)
@@ -155,7 +190,7 @@ bool ValidatePlayerClass(PClassActor *ti, const char *name)
 		Printf("Invalid player class '%s'\n", name);
 		return false;
 	}
-	else if (static_cast<PClassPlayerPawn *>(ti)->DisplayName.IsEmpty())
+	else if (ti->DisplayName.IsEmpty())
 	{
 		Printf ("Missing displayname for player class '%s'\n", name);
 		return false;
@@ -174,7 +209,7 @@ void SetupPlayerClasses ()
 		if (ValidatePlayerClass(cls, gameinfo.PlayerClasses[i]))
 		{
 			newclass.Flags = 0;
-			newclass.Type = static_cast<PClassPlayerPawn *>(cls);
+			newclass.Type = cls;
 			if ((GetDefaultByType(cls)->flags6 & MF6_NOMENU))
 			{
 				newclass.Flags |= PCF_NOMENU;
@@ -202,7 +237,7 @@ CCMD (addplayerclass)
 		{
 			FPlayerClass newclass;
 
-			newclass.Type = static_cast<PClassPlayerPawn *>(ti);
+			newclass.Type = ti;
 			newclass.Flags = 0;
 
 			int arg = 2;
@@ -523,65 +558,80 @@ int player_t::GetSpawnClass()
 	return static_cast<APlayerPawn*>(GetDefaultByType(type))->SpawnMask;
 }
 
-//===========================================================================
-//
-// PClassPlayerPawn
-//
-//===========================================================================
-
-IMPLEMENT_CLASS(PClassPlayerPawn, false, false)
-
-PClassPlayerPawn::PClassPlayerPawn()
+// [Nash] Set FOV
+void player_t::SetFOV(float fov)
 {
-	for (size_t i = 0; i < countof(HexenArmor); ++i)
+	player_t *p = &players[consoleplayer];
+	if (p != nullptr && p->mo != nullptr)
 	{
-		HexenArmor[i] = 0;
+		if (dmflags & DF_NO_FOV)
+		{
+			if (consoleplayer == Net_Arbitrator)
+			{
+				Net_WriteByte(DEM_MYFOV);
+			}
+			else
+			{
+				Printf("A setting controller has disabled FOV changes.\n");
+				return;
+			}
+		}
+		else
+		{
+			Net_WriteByte(DEM_MYFOV);
+		}
+		Net_WriteByte((uint8_t)clamp<float>(fov, 5.f, 179.f));
 	}
-	ColorRangeStart = 0;
-	ColorRangeEnd = 0;
 }
 
-void PClassPlayerPawn::DeriveData(PClass *newclass)
+DEFINE_ACTION_FUNCTION(_PlayerInfo, SetFOV)
 {
-	assert(newclass->IsKindOf(RUNTIME_CLASS(PClassPlayerPawn)));
-	Super::DeriveData(newclass);
-	PClassPlayerPawn *newp = static_cast<PClassPlayerPawn *>(newclass);
-	size_t i;
-
-	newp->DisplayName = DisplayName;
-	newp->SoundClass = SoundClass;
-	newp->Face = Face;
-	newp->InvulMode = InvulMode;
-	newp->HealingRadiusType = HealingRadiusType;
-	newp->ColorRangeStart = ColorRangeStart;
-	newp->ColorRangeEnd = ColorRangeEnd;
-	newp->ColorSets = ColorSets;
-	for (i = 0; i < countof(HexenArmor); ++i)
-	{
-		newp->HexenArmor[i] = HexenArmor[i];
-	}
-	for (i = 0; i < countof(Slot); ++i)
-	{
-		newp->Slot[i] = Slot[i];
-	}
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	PARAM_FLOAT(fov);
+	self->SetFOV((float)fov);
+	return 0;
 }
+
+//===========================================================================
+//
+// EnumColorsets
+//
+// Only used by the menu so it doesn't really matter that it's a bit
+// inefficient.
+//
+//===========================================================================
 
 static int intcmp(const void *a, const void *b)
 {
 	return *(const int *)a - *(const int *)b;
 }
 
-void PClassPlayerPawn::EnumColorSets(TArray<int> *out)
+void EnumColorSets(PClassActor *cls, TArray<int> *out)
 {
-	out->Clear();
-	FPlayerColorSetMap::Iterator it(ColorSets);
-	FPlayerColorSetMap::Pair *pair;
+	TArray<int> deleteds;
 
-	while (it.NextPair(pair))
+	out->Clear();
+	for (int i = ColorSets.Size() - 1; i >= 0; i--)
 	{
-		out->Push(pair->Key);
+		if (std::get<0>(ColorSets[i])->IsAncestorOf(cls))
+		{
+			int v = std::get<1>(ColorSets[i]);
+			if (out->Find(v) == out->Size() && deleteds.Find(v) == deleteds.Size())
+			{
+				if (std::get<2>(ColorSets[i]).Name == NAME_None) deleteds.Push(v);
+				else out->Push(v);
+			}
+		}
 	}
 	qsort(&(*out)[0], out->Size(), sizeof(int), intcmp);
+}
+
+DEFINE_ACTION_FUNCTION(FPlayerClass, EnumColorSets)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FPlayerClass);
+	PARAM_POINTER(out, TArray<int>);
+	EnumColorSets(self->Type, out);
+	return 0;
 }
 
 //==========================================================================
@@ -589,20 +639,49 @@ void PClassPlayerPawn::EnumColorSets(TArray<int> *out)
 //
 //==========================================================================
 
-bool PClassPlayerPawn::GetPainFlash(FName type, PalEntry *color) const
+FPlayerColorSet *GetColorSet(PClassActor *cls, int setnum)
 {
-	const PClassPlayerPawn *info = this;
-
-	while (info != NULL)
+	for (int i = ColorSets.Size() - 1; i >= 0; i--)
 	{
-		const PalEntry *flash = info->PainFlashes.CheckKey(type);
-		if (flash != NULL)
+		if (std::get<1>(ColorSets[i]) == setnum &&
+			std::get<0>(ColorSets[i])->IsAncestorOf(cls))
 		{
-			*color = *flash;
+			auto c = &std::get<2>(ColorSets[i]);
+			return c->Name != NAME_None ? c : nullptr;
+		}
+	}
+	return nullptr;
+}
+
+DEFINE_ACTION_FUNCTION(FPlayerClass, GetColorSetName)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FPlayerClass);
+	PARAM_INT(setnum);
+	auto p = GetColorSet(self->Type, setnum);
+	ACTION_RETURN_INT(p ? p->Name.GetIndex() : 0);
+}
+
+//==========================================================================
+//
+//
+//==========================================================================
+
+bool player_t::GetPainFlash(FName type, PalEntry *color) const
+{
+	PClass *info = mo->GetClass();
+
+	// go backwards through the list and return the first item with a 
+	// matching damage type for an ancestor of our class. 
+	// This will always return the best fit because any parent class
+	// must be processed before its children.
+	for (int i = PainFlashes.Size() - 1; i >= 0; i--)
+	{
+		if (std::get<1>(PainFlashes[i]) == type &&
+			std::get<0>(PainFlashes[i])->IsAncestorOf(info))
+		{
+			*color = std::get<2>(PainFlashes[i]);
 			return true;
 		}
-		// Try parent class
-		info = dyn_cast<PClassPlayerPawn>(info->ParentClass);
 	}
 	return false;
 }
@@ -627,6 +706,68 @@ void player_t::SendPitchLimits() const
 	}
 }
 
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetUserName)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_STRING(self->userinfo.GetName());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetNeverSwitch)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_BOOL(self->userinfo.GetNeverSwitch());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetColor)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetColor());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetColorSet)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetColorSet());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetPlayerClassNum)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetPlayerClassNum());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetSkin)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetSkin());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetGender)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetGender());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetAutoaim)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_FLOAT(self->userinfo.GetAutoaim());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetTeam)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetTeam());
+}
+
+DEFINE_ACTION_FUNCTION(_PlayerInfo, GetNoAutostartMap)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	ACTION_RETURN_INT(self->userinfo.GetNoAutostartMap());
+}
+
+
 //===========================================================================
 //
 // APlayerPawn
@@ -638,10 +779,7 @@ IMPLEMENT_CLASS(APlayerPawn, false, true)
 IMPLEMENT_POINTERS_START(APlayerPawn)
 	IMPLEMENT_POINTER(InvFirst)
 	IMPLEMENT_POINTER(InvSel)
-	IMPLEMENT_POINTER(FlechetteType)
 IMPLEMENT_POINTERS_END
-
-IMPLEMENT_CLASS(APlayerChunk, false, false)
 
 void APlayerPawn::Serialize(FSerializer &arc)
 {
@@ -650,6 +788,7 @@ void APlayerPawn::Serialize(FSerializer &arc)
 
 	arc("jumpz", JumpZ, def->JumpZ)
 		("maxhealth", MaxHealth, def->MaxHealth)
+		("bonushealth", BonusHealth, def->BonusHealth)
 		("runhealth", RunHealth, def->RunHealth)
 		("spawnmask", SpawnMask, def->SpawnMask)
 		("forwardmove1", ForwardMove1, def->ForwardMove1)
@@ -669,7 +808,8 @@ void APlayerPawn::Serialize(FSerializer &arc)
 		("userange", UseRange, def->UseRange)
 		("aircapacity", AirCapacity, def->AirCapacity)
 		("viewheight", ViewHeight, def->ViewHeight)
-		("viewbob", ViewBob, def->ViewBob);
+		("viewbob", ViewBob, def->ViewBob)
+		("fullheight", FullHeight, def->FullHeight);
 }
 
 //===========================================================================
@@ -694,7 +834,7 @@ void APlayerPawn::BeginPlay ()
 {
 	Super::BeginPlay ();
 	ChangeStatNum (STAT_PLAYER);
-
+	FullHeight = Height;
 	// Check whether a PWADs normal sprite is to be combined with the base WADs
 	// crouch sprite. In such a case the sprites normally don't match and it is
 	// best to disable the crouch sprite.
@@ -746,11 +886,11 @@ void APlayerPawn::Tick()
 {
 	if (player != NULL && player->mo == this && player->CanCrouch() && player->playerstate != PST_DEAD)
 	{
-		Height = GetDefault()->Height * player->crouchfactor;
+		Height = FullHeight * player->crouchfactor;
 	}
 	else
 	{
-		if (health > 0) Height = GetDefault()->Height;
+		if (health > 0) Height = FullHeight;
 	}
 	Super::Tick();
 }
@@ -931,18 +1071,18 @@ bool APlayerPawn::UseInventory (AInventory *item)
 //
 //===========================================================================
 
-AWeapon *APlayerPawn::BestWeapon(PClassAmmo *ammotype)
+AWeapon *APlayerPawn::BestWeapon(PClassActor *ammotype)
 {
 	AWeapon *bestMatch = NULL;
 	int bestOrder = INT_MAX;
 	AInventory *item;
 	AWeapon *weap;
-	bool tomed = NULL != FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true);
+	bool tomed = NULL != FindInventory (PClass::FindActor(NAME_PowerWeaponLevel2), true);
 
 	// Find the best weapon the player has.
 	for (item = Inventory; item != NULL; item = item->Inventory)
 	{
-		if (!item->IsKindOf (RUNTIME_CLASS(AWeapon)))
+		if (!item->IsKindOf(NAME_Weapon))
 			continue;
 
 		weap = static_cast<AWeapon *> (item);
@@ -993,7 +1133,7 @@ AWeapon *APlayerPawn::BestWeapon(PClassAmmo *ammotype)
 //
 //===========================================================================
 
-AWeapon *APlayerPawn::PickNewWeapon(PClassAmmo *ammotype)
+AWeapon *APlayerPawn::PickNewWeapon(PClassActor *ammotype)
 {
 	AWeapon *best = BestWeapon (ammotype);
 
@@ -1021,7 +1161,7 @@ AWeapon *APlayerPawn::PickNewWeapon(PClassAmmo *ammotype)
 //
 //===========================================================================
 
-void APlayerPawn::CheckWeaponSwitch(PClassAmmo *ammotype)
+void APlayerPawn::CheckWeaponSwitch(PClassActor *ammotype)
 {
 	if (!player->userinfo.GetNeverSwitch() &&
 		player->PendingWeapon == WP_NOCHANGE && 
@@ -1037,6 +1177,13 @@ void APlayerPawn::CheckWeaponSwitch(PClassAmmo *ammotype)
 	}
 }
 
+DEFINE_ACTION_FUNCTION(APlayerPawn, CheckWeaponSwitch)
+{
+	PARAM_SELF_PROLOGUE(APlayerPawn);
+	PARAM_OBJECT(ammotype, PClassActor);
+	self->CheckWeaponSwitch(ammotype);
+	return 0;
+}
 //===========================================================================
 //
 // APlayerPawn :: GiveDeathmatchInventory
@@ -1050,12 +1197,12 @@ void APlayerPawn::GiveDeathmatchInventory()
 {
 	for (unsigned int i = 0; i < PClassActor::AllActorClasses.Size(); ++i)
 	{
-		if (PClassActor::AllActorClasses[i]->IsDescendantOf (RUNTIME_CLASS(AKey)))
+		if (PClassActor::AllActorClasses[i]->IsDescendantOf (PClass::FindActor(NAME_Key)))
 		{
-			AKey *key = (AKey *)GetDefaultByType (PClassActor::AllActorClasses[i]);
-			if (key->KeyNumber != 0)
+			AInventory *key = (AInventory*)GetDefaultByType (PClassActor::AllActorClasses[i]);
+			if (key->special1 != 0)
 			{
-				key = static_cast<AKey *>(Spawn(static_cast<PClassActor *>(PClassActor::AllActorClasses[i])));
+				key = (AInventory*)Spawn(PClassActor::AllActorClasses[i]);
 				if (!key->CallTryPickup (this))
 				{
 					key->Destroy ();
@@ -1108,44 +1255,43 @@ void APlayerPawn::FilterCoopRespawnInventory (APlayerPawn *oldplayer)
 
 			if ((dmflags & DF_COOP_LOSE_KEYS) &&
 				defitem == NULL &&
-				item->IsKindOf(RUNTIME_CLASS(AKey)))
+				item->IsKindOf(NAME_Key))
 			{
 				item->Destroy();
 			}
 			else if ((dmflags & DF_COOP_LOSE_WEAPONS) &&
 				defitem == NULL &&
-				item->IsKindOf(RUNTIME_CLASS(AWeapon)))
+				item->IsKindOf(NAME_Weapon))
 			{
 				item->Destroy();
 			}
 			else if ((dmflags & DF_COOP_LOSE_ARMOR) &&
-				item->IsKindOf(RUNTIME_CLASS(AArmor)))
+				item->IsKindOf(NAME_Armor))
 			{
 				if (defitem == NULL)
 				{
 					item->Destroy();
 				}
-				else if (item->IsKindOf(RUNTIME_CLASS(ABasicArmor)))
+				else if (item->IsKindOf(NAME_BasicArmor))
 				{
-					static_cast<ABasicArmor*>(item)->SavePercent = static_cast<ABasicArmor*>(defitem)->SavePercent;
+					item->IntVar(NAME_SavePercent) = defitem->IntVar(NAME_SavePercent);
 					item->Amount = defitem->Amount;
 				}
-				else if (item->IsKindOf(RUNTIME_CLASS(AHexenArmor)))
+				else if (item->IsKindOf(NAME_HexenArmor))
 				{
-					static_cast<AHexenArmor*>(item)->Slots[0] = static_cast<AHexenArmor*>(defitem)->Slots[0];
-					static_cast<AHexenArmor*>(item)->Slots[1] = static_cast<AHexenArmor*>(defitem)->Slots[1];
-					static_cast<AHexenArmor*>(item)->Slots[2] = static_cast<AHexenArmor*>(defitem)->Slots[2];
-					static_cast<AHexenArmor*>(item)->Slots[3] = static_cast<AHexenArmor*>(defitem)->Slots[3];
+					double *SlotsTo = (double*)item->ScriptVar(NAME_Slots, nullptr);
+					double *SlotsFrom = (double*)defitem->ScriptVar(NAME_Slots, nullptr);
+					memcpy(SlotsTo, SlotsFrom, 4 * sizeof(double)); 
 				}
 			}
 			else if ((dmflags & DF_COOP_LOSE_POWERUPS) &&
 				defitem == NULL &&
-				item->IsKindOf(RUNTIME_CLASS(APowerupGiver)))
+				item->IsKindOf(NAME_PowerupGiver))
 			{
 				item->Destroy();
 			}
 			else if ((dmflags & (DF_COOP_LOSE_AMMO | DF_COOP_HALVE_AMMO)) &&
-				item->IsKindOf(RUNTIME_CLASS(AAmmo)))
+				item->IsKindOf(NAME_Ammo))
 			{
 				if (defitem == NULL)
 				{
@@ -1196,14 +1342,12 @@ const char *APlayerPawn::GetSoundClass() const
 	if (player != NULL &&
 		(player->mo == NULL || !(player->mo->flags4 &MF4_NOSKIN)) &&
 		(unsigned int)player->userinfo.GetSkin() >= PlayerClasses.Size () &&
-		(size_t)player->userinfo.GetSkin() < numskins)
+		(unsigned)player->userinfo.GetSkin() < Skins.Size())
 	{
-		return skins[player->userinfo.GetSkin()].name;
+		return Skins[player->userinfo.GetSkin()].Name.GetChars();
 	}
 
-	// [GRB]
-	PClassPlayerPawn *pclass = GetClass();
-	return pclass->SoundClass.IsNotEmpty() ? pclass->SoundClass.GetChars() : "player";
+	return SoundClass != NAME_None? SoundClass.GetChars() : "player";
 }
 
 //===========================================================================
@@ -1214,15 +1358,18 @@ const char *APlayerPawn::GetSoundClass() const
 //
 //===========================================================================
 
-int APlayerPawn::GetMaxHealth() const 
+int APlayerPawn::GetMaxHealth(bool withupgrades) const 
 { 
-	return MaxHealth > 0? MaxHealth : ((i_compatflags&COMPATF_DEHHEALTH)? 100 : deh.MaxHealth);
+	int ret = MaxHealth > 0? MaxHealth : ((i_compatflags&COMPATF_DEHHEALTH)? 100 : deh.MaxHealth);
+	if (withupgrades) ret += stamina + BonusHealth;
+	return ret;
 }
 
 DEFINE_ACTION_FUNCTION(APlayerPawn, GetMaxHealth)
 {
 	PARAM_SELF_PROLOGUE(APlayerPawn);
-	ACTION_RETURN_INT(self->GetMaxHealth());
+	PARAM_BOOL_DEF(withupgrades);
+	ACTION_RETURN_INT(self->GetMaxHealth(withupgrades));
 }
 
 //===========================================================================
@@ -1340,26 +1487,27 @@ void APlayerPawn::GiveDefaultInventory ()
 	// HexenArmor must always be the first item in the inventory because
 	// it provides player class based protection that should not affect
 	// any other protection item.
-	PClassPlayerPawn *myclass = GetClass();
-	GiveInventoryType(RUNTIME_CLASS(AHexenArmor));
-	AHexenArmor *harmor = FindInventory<AHexenArmor>();
-	harmor->Slots[4] = myclass->HexenArmor[0];
+	auto myclass = GetClass();
+	GiveInventoryType(PClass::FindActor(NAME_HexenArmor));
+	auto harmor = FindInventory(NAME_HexenArmor);
+
+	double *Slots = (double*)harmor->ScriptVar(NAME_Slots, nullptr);
+	double *SlotsIncrement = (double*)harmor->ScriptVar(NAME_SlotsIncrement, nullptr);
+	Slots[4] = HexenArmor[0];
 	for (int i = 0; i < 4; ++i)
 	{
-		harmor->SlotsIncrement[i] = myclass->HexenArmor[i + 1];
+		SlotsIncrement[i] = HexenArmor[i + 1];
 	}
 
 	// BasicArmor must come right after that. It should not affect any
 	// other protection item as well but needs to process the damage
 	// before the HexenArmor does.
-	ABasicArmor *barmor = Spawn<ABasicArmor> ();
+	auto barmor = (AInventory*)Spawn(NAME_BasicArmor);
 	barmor->BecomeItem ();
-	barmor->SavePercent = 0;
-	barmor->Amount = 0;
 	AddInventory (barmor);
 
 	// Now add the items from the DECORATE definition
-	DDropItem *di = GetDropItems();
+	auto di = GetDropItems();
 
 	while (di)
 	{
@@ -1384,7 +1532,7 @@ void APlayerPawn::GiveDefaultInventory ()
 					item = static_cast<AInventory *>(Spawn(ti));
 					item->ItemFlags |= IF_IGNORESKILL;	// no skill multiplicators here
 					item->Amount = di->Amount;
-					if (item->IsKindOf(RUNTIME_CLASS(AWeapon)))
+					if (item->IsKindOf(NAME_Weapon))
 					{
 						// To allow better control any weapon is emptied of
 						// ammo before being given to the player.
@@ -1404,7 +1552,7 @@ void APlayerPawn::GiveDefaultInventory ()
 						item = NULL;
 					}
 				}
-				if (item != NULL && item->IsKindOf(RUNTIME_CLASS(AWeapon)) &&
+				if (item != NULL && item->IsKindOf(NAME_Weapon) &&
 					static_cast<AWeapon*>(item)->CheckAmmo(AWeapon::EitherFire, false))
 				{
 					player->ReadyWeapon = player->PendingWeapon = static_cast<AWeapon *> (item);
@@ -1489,7 +1637,7 @@ void APlayerPawn::Die (AActor *source, AActor *inflictor, int dmgflags)
 				AInventory *item;
 
 				// kgDROP - start - modified copy from a_action.cpp
-				DDropItem *di = weap->GetDropItems();
+				auto di = weap->GetDropItems();
 
 				if (di != NULL)
 				{
@@ -1508,7 +1656,7 @@ void APlayerPawn::Die (AActor *source, AActor *inflictor, int dmgflags)
 					weap->SpawnState != ::GetDefault<AActor>()->SpawnState)
 				{
 					item = P_DropItem (this, weap->GetClass(), -1, 256);
-					if (item != NULL && item->IsKindOf(RUNTIME_CLASS(AWeapon)))
+					if (item != NULL && item->IsKindOf(NAME_Weapon))
 					{
 						if (weap->AmmoGive1 && weap->Ammo1)
 						{
@@ -1675,15 +1823,15 @@ DEFINE_ACTION_FUNCTION(AActor, A_PlayerScream)
 DEFINE_ACTION_FUNCTION(AActor, A_SkullPop)
 {
 	PARAM_SELF_PROLOGUE(AActor);
-	PARAM_CLASS_DEF(spawntype, APlayerChunk);
+	PARAM_CLASS_DEF(spawntype, APlayerPawn);
 
 	APlayerPawn *mo;
 	player_t *player;
 
 	// [GRB] Parameterized version
-	if (spawntype == NULL || !spawntype->IsDescendantOf(RUNTIME_CLASS(APlayerChunk)))
+	if (spawntype == NULL || !spawntype->IsDescendantOf("PlayerChunk"))
 	{
-		spawntype = dyn_cast<PClassPlayerPawn>(PClass::FindClass("BloodySkull"));
+		spawntype = PClass::FindActor("BloodySkull");
 		if (spawntype == NULL)
 			return 0;
 	}
@@ -1751,8 +1899,8 @@ void P_CheckPlayerSprite(AActor *actor, int &spritenum, DVector2 &scale)
 	{
 		// Convert from default scale to skin scale.
 		DVector2 defscale = actor->GetDefault()->Scale;
-		scale.X *= skins[player->userinfo.GetSkin()].Scale.X / defscale.X;
-		scale.Y *= skins[player->userinfo.GetSkin()].Scale.Y / defscale.Y;
+		scale.X *= Skins[player->userinfo.GetSkin()].Scale.X / defscale.X;
+		scale.Y *= Skins[player->userinfo.GetSkin()].Scale.Y / defscale.Y;
 	}
 
 	// Set the crouch sprite?
@@ -1763,10 +1911,10 @@ void P_CheckPlayerSprite(AActor *actor, int &spritenum, DVector2 &scale)
 			crouchspriteno = player->mo->crouchsprite;
 		}
 		else if (!(actor->flags4 & MF4_NOSKIN) &&
-				(spritenum == skins[player->userinfo.GetSkin()].sprite ||
-				 spritenum == skins[player->userinfo.GetSkin()].crouchsprite))
+				(spritenum == Skins[player->userinfo.GetSkin()].sprite ||
+				 spritenum == Skins[player->userinfo.GetSkin()].crouchsprite))
 		{
-			crouchspriteno = skins[player->userinfo.GetSkin()].crouchsprite;
+			crouchspriteno = Skins[player->userinfo.GetSkin()].crouchsprite;
 		}
 		else
 		{ // no sprite -> squash the existing one
@@ -2050,7 +2198,7 @@ void P_MovePlayer (player_t *player)
 			msecnode_t *n = player->mo->touching_sectorlist;
 			while (n != NULL)
 			{
-				fprintf (debugfile, "%td ", n->m_sector-sectors);
+				fprintf (debugfile, "%d ", n->m_sector->sectornum);
 				n = n->m_tnext;
 			}
 			fprintf (debugfile, "]\n");
@@ -2178,7 +2326,7 @@ void P_DeathThink (player_t *player)
 	player->TickPSprites();
 
 	player->onground = (player->mo->Z() <= player->mo->floorz);
-	if (player->mo->IsKindOf (RUNTIME_CLASS(APlayerChunk)))
+	if (player->mo->IsKindOf (PClass::FindActor("PlayerChunk")))
 	{ // Flying bloody skull or flying ice chunk
 		player->viewheight = 6;
 		player->deltaviewheight = 0;
@@ -2282,7 +2430,7 @@ void P_DeathThink (player_t *player)
 
 void P_CrouchMove(player_t * player, int direction)
 {
-	double defaultheight = player->mo->GetDefault()->Height;
+	double defaultheight = player->mo->FullHeight;
 	double savedheight = player->mo->Height;
 	double crouchspeed = direction * CROUCHSPEED;
 	double oldheight = player->viewheight;
@@ -2593,9 +2741,19 @@ void P_PlayerThink (player_t *player)
 			else if (level.IsJumpingAllowed() && player->onground && player->jumpTics == 0)
 			{
 				double jumpvelz = player->mo->JumpZ * 35 / TICRATE;
+				double jumpfac = 0;
 
 				// [BC] If the player has the high jump power, double his jump velocity.
-				if ( player->cheats & CF_HIGHJUMP )	jumpvelz *= 2;
+				// (actually, pick the best factors from all active items.)
+				for (auto p = player->mo->Inventory; p != nullptr; p = p->Inventory)
+				{
+					if (p->IsKindOf(NAME_PowerHighJump))
+					{
+						double f = p->FloatVar(NAME_Strength);
+						if (f > jumpfac) jumpfac = f;
+					}
+				}
+				if (jumpfac > 0) jumpvelz *= jumpfac;
 
 				player->mo->Vel.Z += jumpvelz;
 				player->mo->flags2 &= ~MF2_ONMOBJ;
@@ -2722,7 +2880,7 @@ void P_PlayerThink (player_t *player)
 		// Apply degeneration.
 		if (dmflags2 & DF2_YES_DEGENERATION)
 		{
-			int maxhealth = player->mo->GetMaxHealth() + player->mo->stamina;
+			int maxhealth = player->mo->GetMaxHealth(true);
 			if ((level.time % TICRATE) == 0 && player->health > maxhealth)
 			{
 				if (player->health - 5 < maxhealth)
@@ -2775,6 +2933,100 @@ bool P_LerpCalculate(AActor *pmo, PredictPos from, PredictPos to, PredictPos &re
 	return (delta.LengthSquared() > cl_predict_lerpthreshold && scale <= 1.00f);
 }
 
+template<class nodetype, class linktype>
+void BackupNodeList(AActor *act, nodetype *head, nodetype *linktype::*otherlist, TArray<nodetype*, nodetype*> &prevbackup, TArray<linktype *, linktype *> &otherbackup)
+{
+	// The ordering of the touching_sectorlist needs to remain unchanged
+	// Also store a copy of all previous sector_thinglist nodes
+	prevbackup.Clear();
+	otherbackup.Clear();
+
+	for (auto mnode = head; mnode != nullptr; mnode = mnode->m_tnext)
+	{
+		otherbackup.Push(mnode->m_sector);
+
+		for (auto snode = mnode->m_sector->*otherlist; snode; snode = snode->m_snext)
+		{
+			if (snode->m_thing == act)
+			{
+				prevbackup.Push(snode->m_sprev);
+				break;
+			}
+		}
+	}
+}
+
+template<class nodetype, class linktype>
+nodetype *RestoreNodeList(AActor *act, nodetype *head, nodetype *linktype::*otherlist, TArray<nodetype*, nodetype*> &prevbackup, TArray<linktype *, linktype *> &otherbackup)
+{
+	// Destroy old refrences
+	nodetype *node = head;
+	while (node)
+	{
+		node->m_thing = NULL;
+		node = node->m_tnext;
+	}
+
+	// Make the sector_list match the player's touching_sectorlist before it got predicted.
+	P_DelSeclist(head, otherlist);
+	head = NULL;
+	for (auto i = otherbackup.Size(); i-- > 0;)
+	{
+		head = P_AddSecnode(otherbackup[i], act, head, otherbackup[i]->*otherlist);
+	}
+	//act->touching_sectorlist = ctx.sector_list;	// Attach to thing
+	//ctx.sector_list = NULL;		// clear for next time
+
+	// In the old code this block never executed because of the commented-out NULL assignment above. Needs to be checked
+	node = head;
+	while (node)
+	{
+		if (node->m_thing == NULL)
+		{
+			if (node == head)
+				head = node->m_tnext;
+			node = P_DelSecnode(node, otherlist);
+		}
+		else
+		{
+			node = node->m_tnext;
+		}
+	}
+
+	nodetype *snode;
+
+	// Restore sector thinglist order
+	for (auto i = otherbackup.Size(); i-- > 0;)
+	{
+		// If we were already the head node, then nothing needs to change
+		if (prevbackup[i] == NULL)
+			continue;
+
+		for (snode = otherbackup[i]->*otherlist; snode; snode = snode->m_snext)
+		{
+			if (snode->m_thing == act)
+			{
+				if (snode->m_sprev)
+					snode->m_sprev->m_snext = snode->m_snext;
+				else
+					snode->m_sector->*otherlist = snode->m_snext;
+				if (snode->m_snext)
+					snode->m_snext->m_sprev = snode->m_sprev;
+
+				snode->m_sprev = prevbackup[i];
+
+				// At the moment, we don't exist in the list anymore, but we do know what our previous node is, so we set its current m_snext->m_sprev to us.
+				if (snode->m_sprev->m_snext)
+					snode->m_sprev->m_snext->m_sprev = snode;
+				snode->m_snext = snode->m_sprev->m_snext;
+				snode->m_sprev->m_snext = snode;
+				break;
+			}
+		}
+	}
+	return head;
+}
+
 void P_PredictPlayer (player_t *player)
 {
 	int maxtic;
@@ -2803,34 +3055,16 @@ void P_PredictPlayer (player_t *player)
 	PredictionPlayerBackup = *player;
 
 	APlayerPawn *act = player->mo;
-	memcpy(PredictionActorBackup, &act->snext, sizeof(APlayerPawn) - ((BYTE *)&act->snext - (BYTE *)act));
+	memcpy(PredictionActorBackup, &act->snext, sizeof(APlayerPawn) - ((uint8_t *)&act->snext - (uint8_t *)act));
 
 	act->flags &= ~MF_PICKUP;
 	act->flags2 &= ~MF2_PUSHWALL;
 	player->cheats |= CF_PREDICTING;
 
-	// The ordering of the touching_sectorlist needs to remain unchanged
-	// Also store a copy of all previous sector_thinglist nodes
-	msecnode_t *mnode = act->touching_sectorlist;
-	msecnode_t *snode;
-	PredictionSector_sprev_Backup.Clear();
-	PredictionTouchingSectorsBackup.Clear ();
-
-	while (mnode != NULL)
-	{
-		PredictionTouchingSectorsBackup.Push (mnode->m_sector);
-
-		for (snode = mnode->m_sector->touching_thinglist; snode; snode = snode->m_snext)
-		{
-			if (snode->m_thing == act)
-			{
-				PredictionSector_sprev_Backup.Push(snode->m_sprev);
-				break;
-			}
-		}
-
-		mnode = mnode->m_tnext;
-	}
+	BackupNodeList(act, act->touching_sectorlist, &sector_t::touching_thinglist, PredictionTouchingSectors_sprev_Backup, PredictionTouchingSectorsBackup);
+	BackupNodeList(act, act->touching_rendersectors, &sector_t::touching_renderthings, PredictionRenderSectors_sprev_Backup, PredictionRenderSectorsBackup);
+	BackupNodeList(act, act->touching_sectorportallist, &sector_t::sectorportal_thinglist, PredictionPortalSectors_sprev_Backup, PredictionPortalSectorsBackup);
+	BackupNodeList(act, act->touching_lineportallist, &FLinePortal::lineportal_thinglist, PredictionPortalLines_sprev_Backup, PredictionPortalLinesBackup);
 
 	// Keep an ordered list off all actors in the linked sector.
 	PredictionSectorListBackup.Clear();
@@ -2930,7 +3164,7 @@ void P_UnPredictPlayer ()
 		APlayerPawn *act = player->mo;
 		AActor *savedcamera = player->camera;
 
-		TObjPtr<AInventory> InvSel = act->InvSel;
+		TObjPtr<AInventory*> InvSel = act->InvSel;
 		int inventorytics = player->inventorytics;
 
 		*player = PredictionPlayerBackup;
@@ -2940,8 +3174,14 @@ void P_UnPredictPlayer ()
 		player->camera = savedcamera;
 
 		FLinkContext ctx;
+		// Unlink from all list, includeing those which are not being handled by UnlinkFromWorld.
+		auto sectorportal_list = act->touching_sectorportallist;
+		auto lineportal_list = act->touching_lineportallist;
+		act->touching_sectorportallist = nullptr;
+		act->touching_lineportallist = nullptr;
+
 		act->UnlinkFromWorld(&ctx);
-		memcpy(&act->snext, PredictionActorBackup, sizeof(APlayerPawn) - ((BYTE *)&act->snext - (BYTE *)act));
+		memcpy(&act->snext, PredictionActorBackup, sizeof(APlayerPawn) - ((uint8_t *)&act->snext - (uint8_t *)act));
 
 		// The blockmap ordering needs to remain unchanged, too.
 		// Restore sector links and refrences.
@@ -2968,71 +3208,10 @@ void P_UnPredictPlayer ()
 				*link = me;
 			}
 
-			// Destroy old refrences
-			msecnode_t *node = ctx.sector_list;
-			while (node)
-			{
-				node->m_thing = NULL;
-				node = node->m_tnext;
-			}
-
-			// Make the sector_list match the player's touching_sectorlist before it got predicted.
-			P_DelSeclist(ctx.sector_list, &sector_t::touching_thinglist);
-			ctx.sector_list = NULL;
-			for (i = PredictionTouchingSectorsBackup.Size(); i-- > 0;)
-			{
-				ctx.sector_list = P_AddSecnode(PredictionTouchingSectorsBackup[i], act, ctx.sector_list, PredictionTouchingSectorsBackup[i]->touching_thinglist);
-			}
-			act->touching_sectorlist = ctx.sector_list;	// Attach to thing
-			ctx.sector_list = NULL;		// clear for next time
-
-			// Huh???
-			node = ctx.sector_list;
-			while (node)
-			{
-				if (node->m_thing == NULL)
-				{
-					if (node == ctx.sector_list)
-						ctx.sector_list = node->m_tnext;
-					node = P_DelSecnode(node, &sector_t::touching_thinglist);
-				}
-				else
-				{
-					node = node->m_tnext;
-				}
-			}
-
-			msecnode_t *snode;
-
-			// Restore sector thinglist order
-			for (i = PredictionTouchingSectorsBackup.Size(); i-- > 0;)
-			{
-				// If we were already the head node, then nothing needs to change
-				if (PredictionSector_sprev_Backup[i] == NULL)
-					continue;
-
-				for (snode = PredictionTouchingSectorsBackup[i]->touching_thinglist; snode; snode = snode->m_snext)
-				{
-					if (snode->m_thing == act)
-					{
-						if (snode->m_sprev)
-							snode->m_sprev->m_snext = snode->m_snext;
-						else
-							snode->m_sector->touching_thinglist = snode->m_snext;
-						if (snode->m_snext)
-							snode->m_snext->m_sprev = snode->m_sprev;
-
-						snode->m_sprev = PredictionSector_sprev_Backup[i];
-
-						// At the moment, we don't exist in the list anymore, but we do know what our previous node is, so we set its current m_snext->m_sprev to us.
-						if (snode->m_sprev->m_snext)
-							snode->m_sprev->m_snext->m_sprev = snode;
-						snode->m_snext = snode->m_sprev->m_snext;
-						snode->m_sprev->m_snext = snode;
-						break;
-					}
-				}
-			}
+			act->touching_sectorlist = RestoreNodeList(act, ctx.sector_list, &sector_t::touching_thinglist, PredictionTouchingSectors_sprev_Backup, PredictionTouchingSectorsBackup);
+			act->touching_rendersectors = RestoreNodeList(act, ctx.render_list, &sector_t::touching_renderthings, PredictionRenderSectors_sprev_Backup, PredictionRenderSectorsBackup);
+			act->touching_sectorportallist = RestoreNodeList(act, sectorportal_list, &sector_t::sectorportal_thinglist, PredictionPortalSectors_sprev_Backup, PredictionPortalSectorsBackup);
+			act->touching_lineportallist = RestoreNodeList(act, lineportal_list, &FLinePortal::lineportal_thinglist, PredictionPortalLines_sprev_Backup, PredictionPortalLinesBackup);
 		}
 
 		// Now fix the pointers in the blocknode chain
@@ -3174,6 +3353,7 @@ bool P_IsPlayerTotallyFrozen(const player_t *player)
 
 DEFINE_FIELD(APlayerPawn, crouchsprite)
 DEFINE_FIELD(APlayerPawn, MaxHealth)
+DEFINE_FIELD(APlayerPawn, BonusHealth)
 DEFINE_FIELD(APlayerPawn, MugShotMaxHealth)
 DEFINE_FIELD(APlayerPawn, RunHealth)
 DEFINE_FIELD(APlayerPawn, PlayerFlags)
@@ -3197,19 +3377,14 @@ DEFINE_FIELD(APlayerPawn, AirCapacity)
 DEFINE_FIELD(APlayerPawn, FlechetteType)
 DEFINE_FIELD(APlayerPawn, DamageFade)
 DEFINE_FIELD(APlayerPawn, ViewBob)
-
-DEFINE_FIELD(PClassPlayerPawn, HealingRadiusType)
-DEFINE_FIELD(PClassPlayerPawn, DisplayName)
-DEFINE_FIELD(PClassPlayerPawn, SoundClass)
-DEFINE_FIELD(PClassPlayerPawn, Face)
-DEFINE_FIELD(PClassPlayerPawn, Portrait)
-DEFINE_FIELD(PClassPlayerPawn, Slot)
-DEFINE_FIELD(PClassPlayerPawn, InvulMode)
-DEFINE_FIELD(PClassPlayerPawn, HexenArmor)
-DEFINE_FIELD(PClassPlayerPawn, ColorRangeStart)
-DEFINE_FIELD(PClassPlayerPawn, ColorRangeEnd)
-DEFINE_FIELD(PClassPlayerPawn, ColorSets)
-DEFINE_FIELD(PClassPlayerPawn, PainFlashes)
+DEFINE_FIELD(APlayerPawn, FullHeight)
+DEFINE_FIELD(APlayerPawn, SoundClass)
+DEFINE_FIELD(APlayerPawn, Face)
+DEFINE_FIELD(APlayerPawn, Portrait)
+DEFINE_FIELD(APlayerPawn, Slot)
+DEFINE_FIELD(APlayerPawn, HexenArmor)
+DEFINE_FIELD(APlayerPawn, ColorRangeStart)
+DEFINE_FIELD(APlayerPawn, ColorRangeEnd)
 
 DEFINE_FIELD_X(PlayerInfo, player_t, mo)
 DEFINE_FIELD_X(PlayerInfo, player_t, playerstate)
@@ -3296,3 +3471,8 @@ DEFINE_FIELD_X(PlayerInfo, player_t, cmd)
 DEFINE_FIELD_X(PlayerInfo, player_t, original_cmd)
 DEFINE_FIELD_X(PlayerInfo, player_t, userinfo)
 DEFINE_FIELD_X(PlayerInfo, player_t, weapons)
+DEFINE_FIELD_NAMED_X(PlayerInfo, player_t, cmd.ucmd.buttons, buttons)
+
+DEFINE_FIELD(FPlayerClass, Type)
+DEFINE_FIELD(FPlayerClass, Flags)
+DEFINE_FIELD(FPlayerClass, Skins)

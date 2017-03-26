@@ -61,6 +61,7 @@ Everything that is changed is marked (maybe commented) with "Added by MC"
 #include "d_netinf.h"
 #include "d_player.h"
 #include "doomerrors.h"
+#include "events.h"
 
 static FRandom pr_botspawn ("BotSpawn");
 
@@ -308,7 +309,7 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 	return true;
 }
 
-void FCajunMaster::TryAddBot (BYTE **stream, int player)
+void FCajunMaster::TryAddBot (uint8_t **stream, int player)
 {
 	int botshift = ReadByte (stream);
 	char *info = ReadString (stream);
@@ -331,7 +332,7 @@ void FCajunMaster::TryAddBot (BYTE **stream, int player)
 		}
 	}
 
-	if (DoAddBot ((BYTE *)info, skill))
+	if (DoAddBot ((uint8_t *)info, skill))
 	{
 		//Increment this.
 		botnum++;
@@ -352,7 +353,7 @@ void FCajunMaster::TryAddBot (BYTE **stream, int player)
 	delete[] info;
 }
 
-bool FCajunMaster::DoAddBot (BYTE *info, botskill_t skill)
+bool FCajunMaster::DoAddBot (uint8_t *info, botskill_t skill)
 {
 	int bnum;
 
@@ -386,11 +387,6 @@ bool FCajunMaster::DoAddBot (BYTE *info, botskill_t skill)
 		Printf ("%s joined the game\n", players[bnum].userinfo.GetName());
 
 	G_DoReborn (bnum, true);
-	if (StatusBar != NULL)
-	{
-		StatusBar->MultiplayerChanged ();
-	}
-
 	return true;
 }
 
@@ -418,6 +414,9 @@ void FCajunMaster::RemoveAllBots (bool fromlist)
 					}
 				}
 			}
+			// [ZZ] run event hook
+			E_PlayerDisconnected(i);
+			//
 			FBehavior::StaticStartTypedScripts (SCRIPT_Disconnect, players[i].mo, true, i, true);
 			ClearPlayer (i, !fromlist);
 		}
@@ -560,7 +559,7 @@ bool FCajunMaster::LoadBots ()
 			case BOTCFG_TEAM:
 				{
 					char teamstr[16];
-					BYTE teamnum;
+					uint8_t teamnum;
 
 					sc.MustGetString ();
 					if (IsNum (sc.String))
@@ -627,4 +626,12 @@ ADD_STAT (bots)
 		BotThinkCycles.TimeMS(), BotSupportCycles.TimeMS(),
 		BotWTG);
 	return out;
+}
+
+DEFINE_ACTION_FUNCTION(FLevelLocals, RemoveAllBots)
+{
+	PARAM_PROLOGUE;
+	PARAM_BOOL(fromlist);
+	bglobal.RemoveAllBots(fromlist);
+	return 0;
 }

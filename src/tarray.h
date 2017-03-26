@@ -1,3 +1,4 @@
+#pragma once
 /*
 ** tarray.h
 ** Templated, automatically resizing array
@@ -32,8 +33,6 @@
 **
 */
 
-#ifndef __TARRAY_H__
-#define __TARRAY_H__
 
 #include <stdlib.h>
 #include <assert.h>
@@ -71,8 +70,8 @@ protected:
 struct FArray
 {
 	void *Array;
-	unsigned int Most;
 	unsigned int Count;
+	unsigned int Most;
 };
 
 // T is the type stored in the array.
@@ -367,6 +366,14 @@ public:
 		}
 		Count = amount;
 	}
+	void Alloc(unsigned int amount)
+	{
+		// first destroys all content and then rebuilds the array.
+		if (Count > 0) DoDelete(0, Count - 1);
+		Count = 0;
+		Resize(amount);
+		ShrinkToFit();
+	}
 	// Reserves amount entries at the end of the array, but does nothing
 	// with them.
 	unsigned int Reserve (unsigned int amount)
@@ -396,10 +403,15 @@ public:
 			Count = 0;
 		}
 	}
+	void Reset()
+	{
+		Clear();
+		ShrinkToFit();
+	}
 private:
 	T *Array;
-	unsigned int Most;
 	unsigned int Count;
+	unsigned int Most;
 
 	void DoCopy (const TArray<T> &other)
 	{
@@ -465,6 +477,62 @@ public:
 		}
 		this->Clear();
 	}
+};
+
+// This is not a real dynamic array but just a wrapper around a pointer reference.
+// Used for wrapping some memory allocated elsewhere into a VM compatible data structure.
+
+template <class T>
+class TStaticPointedArray
+{
+public:
+
+	typedef TIterator<T>                       iterator;
+	typedef TIterator<const T>                 const_iterator;
+
+	iterator begin()
+	{
+		return &Array[0];
+	}
+	const_iterator begin() const
+	{
+		return &Array[0];
+	}
+	const_iterator cbegin() const
+	{
+		return &Array[0];
+	}
+
+	iterator end()
+	{
+		return &Array[Count];
+	}
+	const_iterator end() const
+	{
+		return &Array[Count];
+	}
+	const_iterator cend() const
+	{
+		return &Array[Count];
+	}
+
+	void Init(T *ptr, unsigned cnt)
+	{
+		Array = ptr;
+		Count = cnt;
+	}
+	// Return a reference to an element
+	T &operator[] (size_t index) const
+	{
+		return Array[index];
+	}
+	unsigned int Size() const
+	{
+		return Count;
+	}
+	// Some code needs to access these directly so they cannot be private.
+	T *Array;
+	unsigned int Count;
 };
 
 // TAutoGrowArray -----------------------------------------------------------
@@ -1119,4 +1187,3 @@ protected:
 	hash_t Position;
 };
 
-#endif //__TARRAY_H__

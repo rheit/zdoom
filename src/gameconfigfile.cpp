@@ -354,6 +354,21 @@ void FGameConfigFile::DoGlobalSetup ()
 					SetValueForKey ("5", "use ArtiInvulnerability2");
 				}
 			}
+			if (last < 212)
+			{
+				FBaseCVar *var = FindCVar("hud_scale", NULL);
+				if (var != NULL)
+				{
+					var->ResetToDefault();
+				}
+				var = FindCVar("snd_channels", NULL);
+				if (var != NULL)
+				{
+					// old settings were default 32, minimum 8, new settings are default 128, minimum 64.
+					UCVarValue v = var->GetGenericRep(CVAR_Int);
+					if (v.Int < 64) var->ResetToDefault();
+				}
+			}
 		}
 	}
 }
@@ -488,7 +503,7 @@ void FGameConfigFile::ReadNetVars ()
 
 // Read cvars from a cvar section of the ini. Flags are the flags to give
 // to newly-created cvars that were not already defined.
-void FGameConfigFile::ReadCVars (DWORD flags)
+void FGameConfigFile::ReadCVars (uint32_t flags)
 {
 	const char *key, *value;
 	FBaseCVar *cvar;

@@ -47,7 +47,7 @@
 #include "decallib.h"
 #include "i_system.h"
 #include "thingdef.h"
-#include "codegeneration/codegen.h"
+#include "backend/codegen.h"
 #include "r_data/r_translate.h"
 
 // TYPES -------------------------------------------------------------------
@@ -64,40 +64,6 @@ struct FExtraInfo
 	bool bExplosive;
 	double DeathHeight, BurnHeight;
 };
-
-class AFakeInventory : public AInventory
-{
-	DECLARE_CLASS (AFakeInventory, AInventory);
-public:
-	bool Respawnable;
-
-	bool ShouldRespawn ()
-	{
-		return Respawnable && Super::ShouldRespawn();
-	}
-
-	bool TryPickup (AActor *&toucher)
-	{
-		INTBOOL success = P_ExecuteSpecial(special, NULL, toucher, false,
-			args[0], args[1], args[2], args[3], args[4]);
-
-		if (success)
-		{
-			GoAwayAndDie ();
-			return true;
-		}
-		return false;
-	}
-
-	void DoPickupSpecial (AActor *toucher)
-	{
-		// The special was already executed by TryPickup, so do nothing here
-	}
-};
-
-IMPLEMENT_CLASS(AFakeInventory, false, false)
-
-DEFINE_FIELD(AFakeInventory, Respawnable)
 
 // PUBLIC FUNCTION PROTOTYPES ----------------------------------------------
 
@@ -127,16 +93,6 @@ static const char *RenderStyles[] =
 
 //==========================================================================
 //
-//==========================================================================
-DEFINE_CLASS_PROPERTY(respawns, 0, FakeInventory)
-{
-	defaults->Respawnable = true;
-}
-
-
-
-//==========================================================================
-//
 // ParseOldDecoration
 //
 // Reads an old style decoration object
@@ -144,7 +100,7 @@ DEFINE_CLASS_PROPERTY(respawns, 0, FakeInventory)
 //==========================================================================
 PClassActor *DecoDerivedClass(const FScriptPosition &sc, PClassActor *parent, FName typeName);
 
-void ParseOldDecoration(FScanner &sc, EDefinitionType def)
+void ParseOldDecoration(FScanner &sc, EDefinitionType def, PNamespace *ns)
 {
 	Baggage bag;
 	TArray<FState> StateArray;
@@ -154,14 +110,16 @@ void ParseOldDecoration(FScanner &sc, EDefinitionType def)
 	PClassActor *parent;
 	FName typeName;
 
-	parent = (def == DEF_Pickup) ? RUNTIME_CLASS(AFakeInventory) : RUNTIME_CLASS(AActor);
+	parent = (def == DEF_Pickup) ? PClass::FindActor("FakeInventory") : RUNTIME_CLASS(AActor);
 
 	sc.MustGetString();
 	typeName = FName(sc.String);
 	type = DecoDerivedClass(FScriptPosition(sc), parent, typeName);
 	ResetBaggage(&bag, parent);
+	bag.Namespace = ns;
 	bag.Info = type;
 	bag.fromDecorate = true;
+	bag.Version = { 2, 0, 0 };
 #ifdef _DEBUG
 	bag.ClassName = type->TypeName;
 #endif
@@ -266,7 +224,7 @@ void ParseOldDecoration(FScanner &sc, EDefinitionType def)
 				{
 					extra.DeathHeight = ((AActor*)(type->Defaults))->Height;
 				}
-				type->DeathHeight = extra.DeathHeight;
+				((AActor*)(type->Defaults))->FloatVar("DeathHeight") = extra.DeathHeight;
 			}
 			bag.statedef.SetStateLabel("Death", &type->OwnedStates[extra.DeathStart]);
 		}
@@ -305,7 +263,7 @@ void ParseOldDecoration(FScanner &sc, EDefinitionType def)
 			}
 
 			if (extra.BurnHeight == 0) extra.BurnHeight = ((AActor*)(type->Defaults))->Height;
-			type->BurnHeight = extra.BurnHeight;
+			((AActor*)(type->Defaults))->FloatVar("BurnHeight") = extra.BurnHeight;
 
 			bag.statedef.SetStateLabel("Burn", &type->OwnedStates[extra.FireDeathStart]);
 		}
@@ -360,7 +318,7 @@ void ParseOldDecoration(FScanner &sc, EDefinitionType def)
 static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 	FExtraInfo &extra, EDefinitionType def, FScanner &sc, TArray<FState> &StateArray, TArray<FScriptPosition> &SourceLines)
 {
-	AFakeInventory *const inv = static_cast<AFakeInventory *>(defaults);
+	AInventory *const inv = static_cast<AInventory *>(defaults);
 	char sprite[5] = "TNT1";
 
 	sc.MustGetString ();
@@ -373,7 +331,7 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 			{
 				sc.ScriptError ("DoomEdNum must be in the range [-1,32767]");
 			}
-			bag.Info->DoomEdNum = (SWORD)sc.Number;
+			bag.Info->DoomEdNum = (int16_t)sc.Number;
 		}
 		else if (sc.Compare ("SpawnNum"))
 		{
@@ -382,7 +340,7 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 			{
 				sc.ScriptError ("SpawnNum must be in the range [0,255]");
 			}
-			bag.Info->SpawnID = (BYTE)sc.Number;
+			bag.Info->SpawnID = (uint8_t)sc.Number;
 		}
 		else if (sc.Compare ("Sprite") || (
 			(def == DEF_BreakableDecoration || def == DEF_Projectile) &&
@@ -488,18 +446,18 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 		else if (def == DEF_Projectile && sc.Compare ("ExplosionRadius"))
 		{
 			sc.MustGetNumber ();
-			bag.Info->ExplosionRadius = sc.Number;
+			defaults->IntVar(NAME_ExplosionRadius) = sc.Number;
 			extra.bExplosive = true;
 		}
 		else if (def == DEF_Projectile && sc.Compare ("ExplosionDamage"))
 		{
 			sc.MustGetNumber ();
-			bag.Info->ExplosionDamage = sc.Number;
+			defaults->IntVar(NAME_ExplosionDamage) = sc.Number;
 			extra.bExplosive = true;
 		}
 		else if (def == DEF_Projectile && sc.Compare ("DoNotHurtShooter"))
 		{
-			bag.Info->DontHurtShooter = true;
+			defaults->BoolVar(NAME_DontHurtShooter) = true;
 		}
 		else if (def == DEF_Projectile && sc.Compare ("Damage"))
 		{
@@ -526,7 +484,7 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 		else if (sc.Compare ("Mass"))
 		{
 			sc.MustGetFloat ();
-			defaults->Mass = SDWORD(sc.Float);
+			defaults->Mass = int32_t(sc.Float);
 		}
 		else if (sc.Compare ("Translation1"))
 		{
@@ -584,11 +542,11 @@ static void ParseInsideDecoration (Baggage &bag, AActor *defaults,
 		else if (def == DEF_Pickup && sc.Compare ("PickupMessage"))
 		{
 			sc.MustGetString ();
-			static_cast<PClassInventory *>(bag.Info)->PickupMessage = sc.String;
+			inv->StringVar(NAME_PickupMsg) = sc.String;
 		}
 		else if (def == DEF_Pickup && sc.Compare ("Respawns"))
 		{
-			inv->Respawnable = true;
+			inv->BoolVar(NAME_Respawnable) = true;
 		}
 		else if (def == DEF_BreakableDecoration && sc.Compare ("SolidOnDeath"))
 		{
@@ -678,7 +636,7 @@ static void ParseSpriteFrames (PClassActor *info, TArray<FState> &states, TArray
 			char *stop;
 
 			*colon = 0;
-			rate = strtol (token, &stop, 10);
+			rate = (int)strtoll (token, &stop, 10);
 			if (stop == token || rate < 1 || rate > 65534)
 			{
 				sc.ScriptError ("Rates must be in the range [0,65534]");

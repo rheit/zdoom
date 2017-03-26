@@ -35,16 +35,12 @@
 #define __G_LEVEL_H__
 
 #include "doomtype.h"
-#include "doomdef.h"
 #include "sc_man.h"
-#include "s_sound.h"
-#include "p_acs.h"
-#include "textures/textures.h"
 #include "resourcefiles/file_zip.h"
 
 struct level_info_t;
 struct cluster_info_t;
-class FScanner;
+class FSerializer;
 
 #if defined(_MSC_VER)
 #pragma section(".yreg$u",read)
@@ -54,6 +50,24 @@ class FScanner;
 #define MSVC_YSEG
 #define GCC_YSEG __attribute__((section(SECTION_YREG))) __attribute__((used))
 #endif
+
+// The structure used to control scripts between maps
+struct acsdefered_t
+{
+	enum EType
+	{
+		defexecute,
+		defexealways,
+		defsuspend,
+		defterminate
+	} type;
+	int script;
+	int args[3];
+	int playernum;
+};
+
+FSerializer &Serialize(FSerializer &arc, const char *key, acsdefered_t &defer, acsdefered_t *def);
+
 
 struct FIntermissionDescriptor;
 struct FIntermissionAction;
@@ -148,7 +162,7 @@ enum ELevelFlags : unsigned int
 	LEVEL_MONSTERSTELEFRAG		= 0x00000400,
 	LEVEL_ACTOWNSPECIAL			= 0x00000800,
 	LEVEL_SNDSEQTOTALCTRL		= 0x00001000,
-	LEVEL_FORCENOSKYSTRETCH		= 0x00002000,
+	LEVEL_FORCETILEDSKY		= 0x00002000,
 
 	LEVEL_CROUCH_NO				= 0x00004000,
 	LEVEL_JUMP_NO				= 0x00008000,
@@ -175,7 +189,7 @@ enum ELevelFlags : unsigned int
 	LEVEL_CHANGEMAPCHEAT		= 0x40000000,	// Don't display cluster messages
 	LEVEL_VISITED				= 0x80000000,	// Used for intermission map
 
-	// The flags QWORD is now split into 2 DWORDs 
+	// The flags uint64_t is now split into 2 DWORDs 
 	LEVEL2_RANDOMPLAYERSTARTS	= 0x00000001,	// Select single player starts randomnly (no voodoo dolls)
 	LEVEL2_ALLMAP				= 0x00000002,	// The player picked up a map on this level
 
@@ -223,13 +237,17 @@ enum ELevelFlags : unsigned int
 	
 	// More flags!
 	LEVEL3_FORCEFAKECONTRAST	= 0x00000001,	// forces fake contrast even with fog enabled
+	LEVEL3_REMOVEITEMS			= 0x00000002,	// kills all INVBAR items on map change.
+	LEVEL3_ATTENUATE			= 0x00000004,	// attenuate lights?
+	LEVEL3_NOLIGHTFADE			= 0x00000008,	// no light fading to black.
+	LEVEL3_NOCOLOREDSPRITELIGHTING = 0x00000010,	// draw sprites only with color-less light
 };
 
 
 struct FSpecialAction
 {
 	FName Type;					// this is initialized before the actors...
-	BYTE Action;
+	uint8_t Action;
 	int Args[5];				// must allow 16 bit tags for 666 & 667!
 };
 
@@ -287,34 +305,40 @@ struct level_info_t
 	int			cluster;
 	int			partime;
 	int			sucktime;
-	DWORD		flags;
-	DWORD		flags2;
-	DWORD		flags3;
+	int32_t		flags;
+	uint32_t	flags2;
+	uint32_t	flags3;
 
 	FString		Music;
 	FString		LevelName;
-	SBYTE		WallVertLight, WallHorizLight;
+	int8_t		WallVertLight, WallHorizLight;
 	int			musicorder;
 	FCompressedBuffer	Snapshot;
 	TArray<acsdefered_t> deferred;
 	float		skyspeed1;
 	float		skyspeed2;
-	DWORD		fadeto;
-	DWORD		outsidefog;
+	uint32_t	fadeto;
+	uint32_t	outsidefog;
 	int			cdtrack;
 	unsigned int cdid;
 	double		gravity;
 	double		aircontrol;
 	int			WarpTrans;
 	int			airsupply;
-	DWORD		compatflags, compatflags2;
-	DWORD		compatmask, compatmask2;
+	uint32_t	compatflags, compatflags2;
+	uint32_t	compatmask, compatmask2;
 	FString		Translator;	// for converting Doom-format linedef and sector types.
 	int			DefaultEnvironment;	// Default sound environment for the map.
 	FName		Intermission;
 	FName		deathsequence;
 	FName		slideshow;
-
+	uint32_t	hazardcolor;
+	uint32_t	hazardflash;
+	int			fogdensity;
+	int			outsidefogdensity;
+	int			skyfog;
+	float		pixelstretch;
+	
 	// Redirection: If any player is carrying the specified item, then
 	// you go to the RedirectMap instead of this one.
 	FName		RedirectType;
@@ -324,6 +348,7 @@ struct level_info_t
 	FString		ExitPic;
 	FString 	InterMusic;
 	int			intermusicorder;
+	TMap <FName, std::pair<FString, int> > MapInterMusic;
 
 	FString		SoundInfo;
 	FString		SndSeq;
@@ -335,9 +360,11 @@ struct level_info_t
 
 	TArray<FSpecialAction> specialactions;
 
-	TArray<FSoundID> PrecacheSounds;
+	TArray<int> PrecacheSounds;
 	TArray<FString> PrecacheTextures;
 	TArray<FName> PrecacheClasses;
+	
+	TArray<FString> EventHandlers;
 
 	level_info_t() 
 	{ 
@@ -376,76 +403,6 @@ struct level_info_t
 	}
 };
 
-struct FLevelLocals
-{
-	void Tick ();
-	void AddScroller (int secnum);
-
-	BYTE		md5[16];			// for savegame validation. If the MD5 does not match the savegame won't be loaded.
-	int			time;			// time in the hub
-	int			maptime;		// time in the map
-	int			totaltime;		// time in the game
-	int			starttime;
-	int			partime;
-	int			sucktime;
-
-	level_info_t *info;
-	int			cluster;
-	int			clusterflags;
-	int			levelnum;
-	int			lumpnum;
-	FString		LevelName;
-	FString		MapName;			// the lump name (E1M1, MAP01, etc)
-	FString		NextMap;			// go here when using the regular exit
-	FString		NextSecretMap;		// map to go to when used secret exit
-	EMapType	maptype;
-
-	DWORD		flags;
-	DWORD		flags2;
-	DWORD		flags3;
-
-	DWORD		fadeto;					// The color the palette fades to (usually black)
-	DWORD		outsidefog;				// The fog for sectors with sky ceilings
-
-	FString		Music;
-	int			musicorder;
-	int			cdtrack;
-	unsigned int cdid;
-	FTextureID	skytexture1;
-	FTextureID	skytexture2;
-
-	float		skyspeed1;				// Scrolling speed of sky textures, in pixels per ms
-	float		skyspeed2;
-
-	int			total_secrets;
-	int			found_secrets;
-
-	int			total_items;
-	int			found_items;
-
-	int			total_monsters;
-	int			killed_monsters;
-
-	double		gravity;
-	double		aircontrol;
-	double		airfriction;
-	int			airsupply;
-	int			DefaultEnvironment;		// Default sound environment.
-
-	TArray<DVector2>	Scrolls;		// NULL if no DScrollers in this level
-
-	SBYTE		WallVertLight;			// Light diffs for vert/horiz walls
-	SBYTE		WallHorizLight;
-
-	bool		FromSnapshot;			// The current map was restored from a snapshot
-
-	double		teamdamage;
-
-	bool		IsJumpingAllowed() const;
-	bool		IsCrouchingAllowed() const;
-	bool		IsFreelookAllowed() const;
-};
-
 
 struct cluster_info_t
 {
@@ -473,8 +430,7 @@ struct cluster_info_t
 #define CLUSTER_LOOKUPENTERTEXT	0x00000020	// Enter text is the name of a language string
 #define CLUSTER_LOOKUPNAME		0x00000040	// Name is the name of a language string
 #define CLUSTER_LOOKUPCLUSTERNAME 0x00000080	// Cluster name is the name of a language string
-
-extern FLevelLocals level;
+#define CLUSTER_ALLOWINTERMISSION 0x00000100  // Allow intermissions between levels in a hub.
 
 extern TArray<level_info_t> wadlevelinfos;
 extern TArray<cluster_info_t> wadclusterinfos;
@@ -564,6 +520,7 @@ enum EFSkillProperty	// floating point properties
 	SKILLP_Aggressiveness,
 	SKILLP_MonsterHealth,
 	SKILLP_FriendlyHealth,
+	SKILLP_KickbackFactor,
 };
 
 int G_SkillProperty(ESkillProperty prop);
@@ -581,6 +538,7 @@ struct FSkillInfo
 	double DamageFactor;
 	double ArmorFactor;
 	double HealthFactor;
+	double KickbackFactor;
 
 	bool FastMonsters;
 	bool SlowMonsters;
@@ -589,6 +547,7 @@ struct FSkillInfo
 
 	bool EasyBossBrain;
 	bool EasyKey;
+	bool NoMenu;
 	int RespawnCounter;
 	int RespawnLimit;
 	double Aggressiveness;

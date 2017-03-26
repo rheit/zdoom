@@ -52,7 +52,7 @@ struct FStateDefine
 	FName Label;
 	TArray<FStateDefine> Children;
 	FState *State;
-	BYTE DefineFlags;
+	uint8_t DefineFlags;
 };
 
 class FStateDefinitions
@@ -83,7 +83,7 @@ public:
 		lastlabel = -1;
 	}
 
-	void SetStateLabel(const char *statename, FState *state, BYTE defflags = SDF_STATE);
+	void SetStateLabel(const char *statename, FState *state, uint8_t defflags = SDF_STATE);
 	void AddStateLabel(const char *statename);
 	int GetStateLabelIndex (FName statename);
 	void InstallStates(PClassActor *info, AActor *defaults);
@@ -110,29 +110,31 @@ FScriptPosition & GetStateSource(FState *state);
 // Extra info maintained while defining an actor.
 //
 //==========================================================================
-class DDropItem;
+struct FDropItem;
 
 struct Baggage
 {
 #ifdef _DEBUG
 	FString ClassName;	// This is here so that during debugging the class name can be seen
 #endif
+	PNamespace *Namespace;
 	PClassActor *Info;
 	bool DropItemSet;
 	bool StateSet;
 	bool fromDecorate;
 	int CurrentState;
 	int Lumpnum;
+	VersionInfo Version;
 	FStateDefinitions statedef;
 
-	DDropItem *DropItemList;
+	FDropItem *DropItemList;
 
 	FScriptPosition ScriptPosition;
 };
 
 inline void ResetBaggage (Baggage *bag, PClassActor *stateclass)
 {
-	bag->DropItemList = NULL;
+	bag->DropItemList = nullptr;
 	bag->DropItemSet = false;
 	bag->CurrentState = 0;
 	bag->fromDecorate = true;
@@ -150,17 +152,17 @@ AFuncDesc *FindFunction(PStruct *cls, const char * string);
 FieldDesc *FindField(PStruct *cls, const char * string);
 
 
-FxExpression *ParseExpression(FScanner &sc, PClassActor *cls, bool mustresolve = false);
+FxExpression *ParseExpression(FScanner &sc, PClassActor *cls, PNamespace *resolvenspc = nullptr);
 void ParseStates(FScanner &sc, PClassActor *actor, AActor *defaults, Baggage &bag);
 void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression *> &out_params,
 	PFunction *afd, FString statestring, FStateDefinitions *statedef);
 FxExpression *ParseActions(FScanner &sc, FState state, FString statestring, Baggage &bag, bool &endswithret);
 class FxVMFunctionCall *ParseAction(FScanner &sc, FState state, FString statestring, Baggage &bag);
 FName CheckCastKludges(FName in);
-void SetImplicitArgs(TArray<PType *> *args, TArray<DWORD> *argflags, TArray<FName> *argnames, PStruct *cls, DWORD funcflags, int useflags);
+void SetImplicitArgs(TArray<PType *> *args, TArray<uint32_t> *argflags, TArray<FName> *argnames, PStruct *cls, uint32_t funcflags, int useflags);
 PFunction *CreateAnonymousFunction(PClass *containingclass, PType *returntype, int flags);
 PFunction *FindClassMemberFunction(PStruct *cls, PStruct *funccls, FName name, FScriptPosition &sc, bool *error);
-void CreateDamageFunction(PClassActor *info, AActor *defaults, FxExpression *id, bool fromDecorate, int lumpnum);
+void CreateDamageFunction(PNamespace *ns, const VersionInfo &ver, PClassActor *info, AActor *defaults, FxExpression *id, bool fromDecorate, int lumpnum);
 
 //==========================================================================
 //
@@ -169,7 +171,7 @@ void CreateDamageFunction(PClassActor *info, AActor *defaults, FxExpression *id,
 //==========================================================================
 
 void HandleActorFlag(FScanner &sc, Baggage &bag, const char *part1, const char *part2, int mod);
-FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool constant);
+FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type);
 
 
 enum 
@@ -187,6 +189,7 @@ enum
 	DEPF_HEXENBOUNCE,
 	DEPF_DOOMBOUNCE,
 	DEPF_INTERHUBSTRIP,
+	DEPF_NOTRAIL,
 };
 
 // Types of old style decorations
@@ -229,7 +232,7 @@ struct FPropertyInfo
 {
 	const char *name;
 	const char *params;
-	const PClass * const *cls;
+	const char *clsname;
 	PropHandler Handler;
 	int category;
 };
@@ -241,16 +244,23 @@ int MatchString (const char *in, const char **strings);
 #define DEFINE_PROPERTY_BASE(name, paramlist, clas, cat) \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params); \
 	static FPropertyInfo Prop_##name##_##paramlist##_##clas = \
-		{ #name, #paramlist, &RUNTIME_CLASS_CASTLESS(A##clas), (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
+		{ #name, #paramlist, #clas, (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
 	MSVC_PSEG FPropertyInfo *infoptr_##name##_##paramlist##_##clas GCC_PSEG = &Prop_##name##_##paramlist##_##clas; \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params)
 
 #define DEFINE_PREFIXED_PROPERTY_BASE(prefix, name, paramlist, clas, cat) \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params); \
 	static FPropertyInfo Prop_##name##_##paramlist##_##clas = \
-{ #prefix"."#name, #paramlist, &RUNTIME_CLASS_CASTLESS(A##clas), (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
+{ #prefix"."#name, #paramlist, #clas, (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
 	MSVC_PSEG FPropertyInfo *infoptr_##name##_##paramlist##_##clas GCC_PSEG = &Prop_##name##_##paramlist##_##clas; \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params)
+
+#define DEFINE_PREFIXED_SCRIPTED_PROPERTY_BASE(prefix, name, paramlist, clas, cat) \
+	static void Handler_##name##_##paramlist##_##clas(AActor *defaults, PClassActor *info, Baggage &bag, FPropParam *params); \
+	static FPropertyInfo Prop_##name##_##paramlist##_##clas = \
+{ #prefix"."#name, #paramlist, #clas, (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
+	MSVC_PSEG FPropertyInfo *infoptr_##name##_##paramlist##_##clas GCC_PSEG = &Prop_##name##_##paramlist##_##clas; \
+	static void Handler_##name##_##paramlist##_##clas(AActor *defaults, PClassActor *info, Baggage &bag, FPropParam *params)
 
 
 #define DEFINE_PROPERTY(name, paramlist, clas) DEFINE_PROPERTY_BASE(name, paramlist, clas, CAT_PROPERTY)
@@ -258,6 +268,9 @@ int MatchString (const char *in, const char **strings);
 
 #define DEFINE_CLASS_PROPERTY(name, paramlist, clas) DEFINE_PREFIXED_PROPERTY_BASE(clas, name, paramlist, clas, CAT_PROPERTY)
 #define DEFINE_CLASS_PROPERTY_PREFIX(prefix, name, paramlist, clas) DEFINE_PREFIXED_PROPERTY_BASE(prefix, name, paramlist, clas, CAT_PROPERTY)
+
+#define DEFINE_SCRIPTED_PROPERTY(name, paramlist, clas) DEFINE_PREFIXED_SCRIPTED_PROPERTY_BASE(clas, name, paramlist, clas, CAT_PROPERTY)
+#define DEFINE_SCRIPTED_PROPERTY_PREFIX(prefix, name, paramlist, clas) DEFINE_PREFIXED_SCRIPTED_PROPERTY_BASE(prefix, name, paramlist, clas, CAT_PROPERTY)
 
 #define PROP_PARM_COUNT (params[0].i)
 

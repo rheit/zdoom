@@ -35,11 +35,7 @@
 #define __INFO_H__
 
 #include <stddef.h>
-#if !defined(_WIN32)
-#include <inttypes.h>		// for intptr_t
-#else
-#include <stdint.h>			// for mingw
-#endif
+#include <stdint.h>
 
 #include "dobject.h"
 #include "doomdef.h"
@@ -53,6 +49,7 @@ class FScanner;
 struct FActorInfo;
 class FIntCVar;
 class FStateDefinitions;
+class FInternalLightAssociation;
 
 enum EStateDefineFlags
 {
@@ -118,9 +115,9 @@ struct FState
 	uint16_t	StateFlags;
 	uint8_t		Frame;
 	uint8_t		UseFlags;		
-	uint8_t		DefineFlags;	// Unused byte so let's use it during state creation.
-	int32_t		Misc1;			// Was changed to SBYTE, reverted to long for MBF compat
-	int32_t		Misc2;			// Was changed to BYTE, reverted to long for MBF compat
+	uint8_t		DefineFlags;
+	int32_t		Misc1;			// Was changed to int8_t, reverted to long for MBF compat
+	int32_t		Misc2;			// Was changed to uint8_t, reverted to long for MBF compat
 public:
 	inline int GetFrame() const
 	{
@@ -170,7 +167,7 @@ public:
 	{
 		return NextState;
 	}
-	inline void SetFrame(BYTE frame)
+	inline void SetFrame(uint8_t frame)
 	{
 		Frame = frame - 'A';
 	}
@@ -214,6 +211,7 @@ struct DamageTypeDefinition
 public:
 	DamageTypeDefinition() { Clear(); }
 
+	FString Obituary;
 	double DefaultFactor;
 	bool ReplaceFactor;
 	bool NoArmor;
@@ -221,24 +219,26 @@ public:
 	void Apply(FName type);
 	void Clear()
 	{
+		Obituary = "";
 		DefaultFactor = 1.;
 		ReplaceFactor = false;
 		NoArmor = false;
 	}
 
-	static DamageTypeDefinition *Get(FName type);
 	static bool IgnoreArmor(FName type);
-	static double GetMobjDamageFactor(FName type, DmgFactors const * const factors);
 	static int ApplyMobjDamageFactor(int damage, FName type, DmgFactors const * const factors);
+	static FString GetObituary(FName type);
+
+private:
+	static double GetMobjDamageFactor(FName type, DmgFactors const * const factors);
+	static DamageTypeDefinition *Get(FName type);
 };
 
-class DDropItem;
-class PClassPlayerPawn;
+struct FDropItem;
 
 class PClassActor : public PClass
 {
 	DECLARE_CLASS(PClassActor, PClass);
-	HAS_OBJECT_POINTERS;
 protected:
 public:
 	static void StaticInit ();
@@ -250,14 +250,12 @@ public:
 
 	virtual size_t PointerSubstitution(DObject *oldclass, DObject *newclass);
 	void BuildDefaults();
-	void ApplyDefaults(BYTE *defaults);
+	void ApplyDefaults(uint8_t *defaults);
 	void RegisterIDs();
 	void SetDamageFactor(FName type, double factor);
 	void SetPainChance(FName type, int chance);
-	size_t PropagateMark();
 	bool SetReplacement(FName replaceName);
-	void SetDropItems(DDropItem *drops);
-	virtual void Finalize(FStateDefinitions &statedef);
+	void SetDropItems(FDropItem *drops);
 
 	FState *FindState(int numnames, FName *names, bool exact=false) const;
 	FState *FindStateByString(const char *name, bool exact=false);
@@ -274,48 +272,32 @@ public:
 	PClassActor *GetReplacement(bool lookskill=true);
 	PClassActor *GetReplacee(bool lookskill=true);
 
+	TArray<FInternalLightAssociation *> LightAssociations;
 	FState *OwnedStates;
 	PClassActor *Replacement;
 	PClassActor *Replacee;
 	int NumOwnedStates;
-	BYTE GameFilter;
+	uint8_t GameFilter;
 	uint8_t DefaultStateUsage; // state flag defaults for blocks without a qualifier.
-	WORD SpawnID;
-	WORD ConversationID;
-	SWORD DoomEdNum;
+	uint16_t SpawnID;
+	uint16_t ConversationID;
+	int16_t DoomEdNum;
 	FStateLabels *StateList;
 	DmgFactors *DamageFactors;
 	PainChanceList *PainChances;
 
-	TArray<PClassPlayerPawn *> VisibleToPlayerClass;
+	TArray<PClassActor *> VisibleToPlayerClass;
 
-	FString Obituary;		// Player was killed by this actor
-	FString HitObituary;	// Player was killed by this actor in melee
-	double DeathHeight;	// Height on normal death
-	double BurnHeight;		// Height on burning death
-	PalEntry BloodColor;	// Colorized blood
-	int GibHealth;			// Negative health below which this monster dies an extreme death
-	int WoundHealth;		// Health needed to enter wound state
-	double FastSpeed;		// speed in fast mode
-	double RDFactor;		// Radius damage factor
-	double CameraHeight;	// Height of camera when used as such
-	FSoundID HowlSound;		// Sound being played when electrocuted or poisoned
-	FName BloodType;		// Blood replacement type
-	FName BloodType2;		// Bloopsplatter replacement type
-	FName BloodType3;		// AxeBlood replacement type
-
-	DDropItem *DropItems;
+	FDropItem *DropItems;
 	FString SourceLumpName;
 	FIntCVar *distancecheck;
 
-	// Old Decorate compatibility stuff
-	bool DontHurtShooter;
-	int ExplosionRadius;
-	int ExplosionDamage;
-	int MeleeDamage;
-	FSoundID MeleeSound;
-	FName MissileName;
-	double MissileHeight;
+	// These are only valid for inventory items.
+	TArray<PClassActor *> RestrictedToPlayerClass;
+	TArray<PClassActor *> ForbiddenToPlayerClass;
+
+	// This is from PClassPlayerPawn
+	FString DisplayName;
 
 	// For those times when being able to scan every kind of actor is convenient
 	static TArray<PClassActor *> AllActorClasses;

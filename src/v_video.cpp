@@ -66,12 +66,16 @@
 #include "menu/menu.h"
 #include "r_data/voxels.h"
 
+EXTERN_CVAR(Bool, r_blendmethod)
+
 int active_con_scale();
 
 FRenderer *Renderer;
 
 IMPLEMENT_CLASS(DCanvas, true, false)
 IMPLEMENT_CLASS(DFrameBuffer, true, false)
+EXTERN_CVAR (Bool, swtruecolor)
+EXTERN_CVAR (Bool, fullscreen)
 
 #if defined(_DEBUG) && defined(_M_IX86) && !defined(__MINGW32__)
 #define DBGBREAK	{ __asm int 3 }
@@ -84,7 +88,7 @@ class DDummyFrameBuffer : public DFrameBuffer
 	DECLARE_CLASS (DDummyFrameBuffer, DFrameBuffer);
 public:
 	DDummyFrameBuffer (int width, int height)
-		: DFrameBuffer (0, 0)
+		: DFrameBuffer (0, 0, false)
 	{
 		Width = width;
 		Height = height;
@@ -118,14 +122,13 @@ class FPaletteTester : public FTexture
 public:
 	FPaletteTester ();
 
-	const BYTE *GetColumn(unsigned int column, const Span **spans_out);
-	const BYTE *GetPixels();
-	void Unload();
+	const uint8_t *GetColumn(unsigned int column, const Span **spans_out);
+	const uint8_t *GetPixels();
 	bool CheckModified();
 	void SetTranslation(int num);
 
 protected:
-	BYTE Pixels[16*16];
+	uint8_t Pixels[16*16];
 	int CurTranslation;
 	int WantTranslation;
 	static const Span DummySpan[2];
@@ -139,16 +142,14 @@ int DisplayWidth, DisplayHeight, DisplayBits;
 
 FFont *SmallFont, *SmallFont2, *BigFont, *ConFont, *IntermissionFont;
 
-extern "C" {
-DWORD Col2RGB8[65][256];
-DWORD *Col2RGB8_LessPrecision[65];
-DWORD Col2RGB8_Inverse[65][256];
+uint32_t Col2RGB8[65][256];
+uint32_t *Col2RGB8_LessPrecision[65];
+uint32_t Col2RGB8_Inverse[65][256];
 ColorTable32k RGB32k;
 ColorTable256k RGB256k;
-}
 
 
-static DWORD Col2RGB8_2[63][256];
+static uint32_t Col2RGB8_2[63][256];
 
 // [RH] The framebuffer is no longer a mere byte array.
 // There's also only one, not four.
@@ -211,13 +212,14 @@ DCanvas *DCanvas::CanvasChain = NULL;
 //
 //==========================================================================
 
-DCanvas::DCanvas (int _width, int _height)
+DCanvas::DCanvas (int _width, int _height, bool _bgra)
 {
 	// Init member vars
 	Buffer = NULL;
 	LockCount = 0;
 	Width = _width;
 	Height = _height;
+	Bgra = _bgra;
 
 	// Add to list of active canvases
 	Next = CanvasChain;
@@ -328,75 +330,25 @@ void DCanvas::Dim (PalEntry color)
 	{
 		float dim[4] = { color.r/255.f, color.g/255.f, color.b/255.f, color.a/255.f };
 		V_AddBlend (dimmer.r/255.f, dimmer.g/255.f, dimmer.b/255.f, amount, dim);
-		dimmer = PalEntry (BYTE(dim[0]*255), BYTE(dim[1]*255), BYTE(dim[2]*255));
+		dimmer = PalEntry (uint8_t(dim[0]*255), uint8_t(dim[1]*255), uint8_t(dim[2]*255));
 		amount = dim[3];
 	}
 	Dim (dimmer, amount, 0, 0, Width, Height);
 }
 
-//==========================================================================
-//
-// DCanvas :: Dim
-//
-// Applies a colored overlay to an area of the screen.
-//
-//==========================================================================
-
-void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
+DEFINE_ACTION_FUNCTION(_Screen, Dim)
 {
-	if (damount == 0.f)
-		return;
-
-	DWORD *bg2rgb;
-	DWORD fg;
-	int gap;
-	BYTE *spot;
-	int x, y;
-
-	if (x1 >= Width || y1 >= Height)
-	{
-		return;
-	}
-	if (x1 + w > Width)
-	{
-		w = Width - x1;
-	}
-	if (y1 + h > Height)
-	{
-		h = Height - y1;
-	}
-	if (w <= 0 || h <= 0)
-	{
-		return;
-	}
-
-	{
-		int amount;
-
-		amount = (int)(damount * 64);
-		bg2rgb = Col2RGB8[64-amount];
-
-		fg = (((color.r * amount) >> 4) << 20) |
-			  ((color.g * amount) >> 4) |
-			 (((color.b * amount) >> 4) << 10);
-	}
-
-	spot = Buffer + x1 + y1*Pitch;
-	gap = Pitch - w;
-	for (y = h; y != 0; y--)
-	{
-		for (x = w; x != 0; x--)
-		{
-			DWORD bg;
-
-			bg = bg2rgb[(*spot)&0xff];
-			bg = (fg+bg) | 0x1f07c1f;
-			*spot = RGB32k.All[bg&(bg>>15)];
-			spot++;
-		}
-		spot += gap;
-	}
+	PARAM_PROLOGUE;
+	PARAM_INT(color);
+	PARAM_FLOAT(amount);
+	PARAM_INT(x1);
+	PARAM_INT(y1);
+	PARAM_INT(w);
+	PARAM_INT(h);
+	screen->Dim(color, float(amount), x1, y1, w, h);
+	return 0;
 }
+
 
 //==========================================================================
 //
@@ -407,12 +359,12 @@ void DCanvas::Dim (PalEntry color, float damount, int x1, int y1, int w, int h)
 //
 //==========================================================================
 
-void DCanvas::GetScreenshotBuffer(const BYTE *&buffer, int &pitch, ESSType &color_type)
+void DCanvas::GetScreenshotBuffer(const uint8_t *&buffer, int &pitch, ESSType &color_type)
 {
 	Lock(true);
 	buffer = GetBuffer();
-	pitch = GetPitch();
-	color_type = SS_PAL;
+	pitch = IsBgra() ? GetPitch() * 4 : GetPitch();
+	color_type = IsBgra() ? SS_BGRA : SS_PAL;
 }
 
 //==========================================================================
@@ -440,7 +392,7 @@ void DCanvas::ReleaseScreenshotBuffer()
 //
 //==========================================================================
 
-int V_GetColorFromString (const DWORD *palette, const char *cstr, FScriptPosition *sc)
+int V_GetColorFromString (const uint32_t *palette, const char *cstr, FScriptPosition *sc)
 {
 	int c[3], i, p;
 	char val[3];
@@ -632,7 +584,7 @@ FString V_GetColorStringByName (const char *name, FScriptPosition *sc)
 //
 //==========================================================================
 
-int V_GetColor (const DWORD *palette, const char *str, FScriptPosition *sc)
+int V_GetColor (const uint32_t *palette, const char *str, FScriptPosition *sc)
 {
 	FString string = V_GetColorStringByName (str, sc);
 	int res;
@@ -648,7 +600,7 @@ int V_GetColor (const DWORD *palette, const char *str, FScriptPosition *sc)
 	return res;
 }
 
-int V_GetColor(const DWORD *palette, FScanner &sc)
+int V_GetColor(const uint32_t *palette, FScanner &sc)
 {
 	FScriptPosition scc = sc;
 	return V_GetColor(palette, sc.String, &scc);
@@ -715,18 +667,17 @@ static void BuildTransTable (const PalEntry *palette)
 //
 //==========================================================================
 
-void DCanvas::CalcGamma (float gamma, BYTE gammalookup[256])
+void DCanvas::CalcGamma (float gamma, uint8_t gammalookup[256])
 {
 	// I found this formula on the web at
 	// <http://panda.mostang.com/sane/sane-gamma.html>,
 	// but that page no longer exits.
-
 	double invgamma = 1.f / gamma;
 	int i;
 
 	for (i = 0; i < 256; i++)
 	{
-		gammalookup[i] = (BYTE)(255.0 * pow (i / 255.0, invgamma));
+		gammalookup[i] = (uint8_t)(255.0 * pow (i / 255.0, invgamma) + 0.5);
 	}
 }
 
@@ -738,8 +689,8 @@ void DCanvas::CalcGamma (float gamma, BYTE gammalookup[256])
 //
 //==========================================================================
 
-DSimpleCanvas::DSimpleCanvas (int width, int height)
-	: DCanvas (width, height)
+DSimpleCanvas::DSimpleCanvas (int width, int height, bool bgra)
+	: DCanvas (width, height, bgra)
 {
 	MemBuffer = nullptr;
 	Resize(width, height);
@@ -791,8 +742,9 @@ void DSimpleCanvas::Resize(int width, int height)
 			Pitch = width + MAX(0, CPU.DataL1LineSize - 8);
 		}
 	}
-	MemBuffer = new BYTE[Pitch * height];
-	memset(MemBuffer, 0, Pitch * height);
+	int bytes_per_pixel = Bgra ? 4 : 1;
+	MemBuffer = new uint8_t[Pitch * height * bytes_per_pixel];
+	memset (MemBuffer, 0, Pitch * height * bytes_per_pixel);
 }
 
 //==========================================================================
@@ -861,8 +813,8 @@ void DSimpleCanvas::Unlock ()
 //
 //==========================================================================
 
-DFrameBuffer::DFrameBuffer (int width, int height)
-	: DSimpleCanvas (width, height)
+DFrameBuffer::DFrameBuffer (int width, int height, bool bgra)
+	: DSimpleCanvas (width, height, bgra)
 {
 	LastMS = LastSec = FrameCount = LastCount = LastTic = 0;
 	Accel2D = false;
@@ -870,6 +822,70 @@ DFrameBuffer::DFrameBuffer (int width, int height)
 	VideoWidth = width;
 	VideoHeight = height;
 }
+
+//==========================================================================
+//
+// DFrameBuffer :: PostprocessBgra
+//
+// Copies data to destination buffer while performing gamma and flash.
+// This is only needed if a target cannot do this with shaders.
+//
+//==========================================================================
+
+void DFrameBuffer::CopyWithGammaBgra(void *output, int pitch, const uint8_t *gammared, const uint8_t *gammagreen, const uint8_t *gammablue, PalEntry flash, int flash_amount)
+{
+	const uint8_t *gammatables[3] = { gammared, gammagreen, gammablue };
+
+	if (flash_amount > 0)
+	{
+		uint16_t inv_flash_amount = 256 - flash_amount;
+		uint16_t flash_red = flash.r * flash_amount;
+		uint16_t flash_green = flash.g * flash_amount;
+		uint16_t flash_blue = flash.b * flash_amount;
+		
+		for (int y = 0; y < Height; y++)
+		{
+			uint8_t *dest = (uint8_t*)output + y * pitch;
+			uint8_t *src = MemBuffer + y * Pitch * 4;
+			for (int x = 0;  x < Width; x++)
+			{
+				uint16_t fg_red = src[2];
+				uint16_t fg_green = src[1];
+				uint16_t fg_blue = src[0];
+				uint16_t red = (fg_red * inv_flash_amount + flash_red) >> 8;
+				uint16_t green = (fg_green * inv_flash_amount + flash_green) >> 8;
+				uint16_t blue = (fg_blue * inv_flash_amount + flash_blue) >> 8;
+
+				dest[0] = gammatables[2][blue];
+				dest[1] = gammatables[1][green];
+				dest[2] = gammatables[0][red];
+				dest[3] = 0xff;
+
+				dest += 4;
+				src += 4;
+			}
+		}
+	}
+	else
+	{
+		for (int y = 0; y < Height; y++)
+		{
+			uint8_t *dest = (uint8_t*)output + y * pitch;
+			uint8_t *src = MemBuffer + y * Pitch * 4;
+			for (int x = 0;  x < Width; x++)
+			{
+				dest[0] = gammatables[2][src[0]];
+				dest[1] = gammatables[1][src[1]];
+				dest[2] = gammatables[0][src[2]];
+				dest[3] = 0xff;
+
+				dest += 4;
+				src += 4;
+			}
+		}
+	}
+}
+
 
 //==========================================================================
 //
@@ -884,8 +900,8 @@ void DFrameBuffer::DrawRateStuff ()
 	// Draws frame time and cumulative fps
 	if (vid_fps)
 	{
-		DWORD ms = I_FPSTime();
-		DWORD howlong = ms - LastMS;
+		uint32_t ms = I_FPSTime();
+		uint32_t howlong = ms - LastMS;
 		if ((signed)howlong >= 0)
 		{
 			char fpsbuff[40];
@@ -905,7 +921,7 @@ void DFrameBuffer::DrawRateStuff ()
 					DTA_VirtualHeight, screen->GetHeight() / textScale,
 					DTA_KeepRatio, true, TAG_DONE);
 
-			DWORD thisSec = ms/1000;
+			uint32_t thisSec = ms/1000;
 			if (LastSec < thisSec)
 			{
 				LastCount = FrameCount / (thisSec - LastSec);
@@ -922,7 +938,7 @@ void DFrameBuffer::DrawRateStuff ()
 	{
 		int i = I_GetTime(false);
 		int tics = i - LastTic;
-		BYTE *buffer = GetBuffer();
+		uint8_t *buffer = GetBuffer();
 
 		LastTic = i;
 		if (tics > 20) tics = 20;
@@ -930,10 +946,21 @@ void DFrameBuffer::DrawRateStuff ()
 		// Buffer can be NULL if we're doing hardware accelerated 2D
 		if (buffer != NULL)
 		{
-			buffer += (GetHeight()-1) * GetPitch();
-			
-			for (i = 0; i < tics*2; i += 2)		buffer[i] = 0xff;
-			for ( ; i < 20*2; i += 2)			buffer[i] = 0x00;
+			if (IsBgra())
+			{
+				uint32_t *buffer32 = (uint32_t*)buffer;
+				buffer32 += (GetHeight() - 1) * GetPitch();
+
+				for (i = 0; i < tics * 2; i += 2)	buffer32[i] = 0xffffffff;
+				for (; i < 20 * 2; i += 2)			buffer32[i] = 0xff000000;
+			}
+			else
+			{
+				buffer += (GetHeight() - 1) * GetPitch();
+
+				for (i = 0; i < tics * 2; i += 2)	buffer[i] = 0xff;
+				for (; i < 20 * 2; i += 2)			buffer[i] = 0x00;
+			}
 		}
 		else
 		{
@@ -1008,21 +1035,11 @@ void FPaletteTester::SetTranslation(int num)
 
 //==========================================================================
 //
-// FPaletteTester :: Unload
-//
-//==========================================================================
-
-void FPaletteTester::Unload()
-{
-}
-
-//==========================================================================
-//
 // FPaletteTester :: GetColumn
 //
 //==========================================================================
 
-const BYTE *FPaletteTester::GetColumn (unsigned int column, const Span **spans_out)
+const uint8_t *FPaletteTester::GetColumn (unsigned int column, const Span **spans_out)
 {
 	if (CurTranslation != WantTranslation)
 	{
@@ -1042,7 +1059,7 @@ const BYTE *FPaletteTester::GetColumn (unsigned int column, const Span **spans_o
 //
 //==========================================================================
 
-const BYTE *FPaletteTester::GetPixels ()
+const uint8_t *FPaletteTester::GetPixels ()
 {
 	if (CurTranslation != WantTranslation)
 	{
@@ -1060,7 +1077,7 @@ const BYTE *FPaletteTester::GetPixels ()
 void FPaletteTester::MakeTexture()
 {
 	int i, j, k, t;
-	BYTE *p;
+	uint8_t *p;
 
 	t = WantTranslation;
 	p = Pixels;
@@ -1086,7 +1103,7 @@ void FPaletteTester::MakeTexture()
 //
 //==========================================================================
 
-void DFrameBuffer::CopyFromBuff (BYTE *src, int srcPitch, int width, int height, BYTE *dest)
+void DFrameBuffer::CopyFromBuff (uint8_t *src, int srcPitch, int width, int height, uint8_t *dest)
 {
 	if (Pitch == width && Pitch == Width && srcPitch == width)
 	{
@@ -1367,7 +1384,7 @@ void V_OutputResized (int width, int height)
 	setsizeneeded = true;
 	if (StatusBar != NULL)
 	{
-		StatusBar->ScreenSizeChanged();
+		StatusBar->CallScreenSizeChanged();
 	}
 	C_NewModeAdjust();
 }
@@ -1378,6 +1395,12 @@ void V_CalcCleanFacs (int designwidth, int designheight, int realwidth, int real
 	int cwidth;
 	int cheight;
 	int cx1, cy1, cx2, cy2;
+
+	// For larger screems always use at least a 16:9 ratio for clean factor calculation, even if the actual ratio is narrower.
+	if (realwidth > 1280 && (double)realwidth / realheight < 16./9)
+	{
+		realheight = realwidth * 9 / 16;
+	}
 
 	ratio = ActiveRatio(realwidth, realheight);
 	if (AspectTallerThanWide(ratio))
@@ -1396,7 +1419,7 @@ void V_CalcCleanFacs (int designwidth, int designheight, int realwidth, int real
 	cy1 = MAX(cheight / designheight, 1);
 	cx2 = MAX(realwidth / designwidth, 1);
 	cy2 = MAX(realheight / designheight, 1);
-	if (abs(cx1 - cy1) <= abs(cx2 - cy2))
+	if (abs(cx1 - cy1) <= abs(cx2 - cy2) || MAX(cx1, cx2) >= 4)
 	{ // e.g. 640x360 looks better with this.
 		*cleanx = cx1;
 		*cleany = cy1;
@@ -1474,6 +1497,9 @@ CCMD (vid_setmode)
 	{
 		goodmode = true;
 	}
+
+	if (!fullscreen)
+		goodmode = true;
 
 	if (goodmode)
 	{
@@ -1608,7 +1634,7 @@ CUSTOM_CVAR (Bool, vid_nowidescreen, false, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 	setsizeneeded = true;
 	if (StatusBar != NULL)
 	{
-		StatusBar->ScreenSizeChanged();
+		StatusBar->CallScreenSizeChanged();
 	}
 }
 
@@ -1617,7 +1643,7 @@ CUSTOM_CVAR (Int, vid_aspect, 0, CVAR_GLOBALCONFIG|CVAR_ARCHIVE)
 	setsizeneeded = true;
 	if (StatusBar != NULL)
 	{
-		StatusBar->ScreenSizeChanged();
+		StatusBar->CallScreenSizeChanged();
 	}
 }
 
@@ -1672,6 +1698,11 @@ float ActiveRatio(int width, int height, float *trueratio)
 	if (trueratio)
 		*trueratio = ratio;
 	return (fakeratio != -1) ? forcedRatioTypes[fakeratio] : ratio;
+}
+
+DEFINE_ACTION_FUNCTION(_Screen, GetAspectRatio)
+{
+	ACTION_RETURN_FLOAT(ActiveRatio(screen->GetWidth(), screen->GetHeight(), nullptr));
 }
 
 // Tries to guess the physical dimensions of the screen based on the
@@ -1763,3 +1794,17 @@ CCMD(vid_listadapters)
 	if (Video != NULL)
 		Video->DumpAdapters();
 }
+
+DEFINE_GLOBAL(SmallFont)
+DEFINE_GLOBAL(SmallFont2)
+DEFINE_GLOBAL(BigFont)
+DEFINE_GLOBAL(ConFont)
+DEFINE_GLOBAL(IntermissionFont)
+DEFINE_GLOBAL(CleanXfac)
+DEFINE_GLOBAL(CleanYfac)
+DEFINE_GLOBAL(CleanWidth)
+DEFINE_GLOBAL(CleanHeight)
+DEFINE_GLOBAL(CleanXfac_1)
+DEFINE_GLOBAL(CleanYfac_1)
+DEFINE_GLOBAL(CleanWidth_1)
+DEFINE_GLOBAL(CleanHeight_1)

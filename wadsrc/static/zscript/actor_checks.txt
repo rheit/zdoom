@@ -106,11 +106,15 @@ extend class Actor
 	
 	//==========================================================================
 	//
-	// 
+	// rather pointless these days to do it this way.
 	//
 	//==========================================================================
 
-	native bool CheckArmorType(name Type, int amount = 1);
+	bool CheckArmorType(name Type, int amount = 1)
+	{
+		let myarmor = BasicArmor(FindInventory("BasicArmor"));
+		return myarmor != null && myarmor.ArmorType == type && myarmor.Amount >= amount;
+	}
 
 	action state A_JumpIfArmorType(name Type, statelabel label, int amount = 1)
 	{
@@ -166,7 +170,7 @@ extend class Actor
 
 	private native bool CheckFlag(string flagname, int check_pointer = AAPTR_DEFAULT);
 
-	deprecated action state A_CheckFlag(string flagname, statelabel label, int check_pointer = AAPTR_DEFAULT)
+	deprecated("2.3") action state A_CheckFlag(string flagname, statelabel label, int check_pointer = AAPTR_DEFAULT)
 	{
 		return CheckFlag(flagname, check_pointer)? ResolveState(label) : null;
 	}

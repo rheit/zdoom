@@ -156,7 +156,7 @@ void DThinker::SaveList(FSerializer &arc, DThinker *node)
 void DThinker::SerializeThinkers(FSerializer &arc, bool hubLoad)
 {
 	//DThinker *thinker;
-	//BYTE stat;
+	//uint8_t stat;
 	//int statcount;
 	int i;
 
@@ -183,7 +183,7 @@ void DThinker::SerializeThinkers(FSerializer &arc, bool hubLoad)
 					int size = arc.ArraySize();
 					for (int j = 0; j < size; j++)
 					{
-						DThinker *thinker;
+						DThinker *thinker = nullptr;
 						arc(nullptr, thinker);
 						if (thinker != nullptr)
 						{
@@ -253,7 +253,7 @@ DThinker::~DThinker ()
 	assert(NextThinker == NULL && PrevThinker == NULL);
 }
 
-void DThinker::Destroy ()
+void DThinker::OnDestroy ()
 {
 	assert((NextThinker != NULL && PrevThinker != NULL) ||
 		   (NextThinker == NULL && PrevThinker == NULL));
@@ -261,7 +261,7 @@ void DThinker::Destroy ()
 	{
 		Remove();
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -309,6 +309,7 @@ DEFINE_ACTION_FUNCTION(DThinker, PostBeginPlay)
 
 void DThinker::CallPostBeginPlay()
 {
+	ObjectFlags |= OF_Spawned;
 	IFVIRTUAL(DThinker, PostBeginPlay)
 	{
 		// Without the type cast this picks the 'void *' assignment...
@@ -421,7 +422,7 @@ void DThinker::DestroyAllThinkers ()
 
 	for (i = 0; i <= MAX_STATNUM; i++)
 	{
-		if (i != STAT_TRAVELLING)
+		if (i != STAT_TRAVELLING && i != STAT_STATIC)
 		{
 			DestroyThinkersInList (Thinkers[i]);
 			DestroyThinkersInList (FreshThinkers[i]);
@@ -675,6 +676,9 @@ DThinker *FThinkerIterator::Next (bool exact)
 					{
 						return thinker;
 					}
+					// This can actually happen when a Destroy call on 'thinker' happens to destroy 'm_CurrThinker'.
+					// In that case there is no chance to recover, we have to terminate the iteration of this list.
+					if (m_CurrThinker == nullptr) break;
 				}
 			}
 			if ((m_SearchingFresh = !m_SearchingFresh))
@@ -705,16 +709,20 @@ DThinker *FThinkerIterator::Next (bool exact)
 
 class DThinkerIterator : public DObject, public FThinkerIterator
 {
-	DECLARE_CLASS(DThinkerIterator, DObject)
+	DECLARE_ABSTRACT_CLASS(DThinkerIterator, DObject)
+
+	DThinkerIterator()
+	{
+	}
 
 public:
-	DThinkerIterator(PClass *cls = nullptr, int statnum = MAX_STATNUM + 1)
+	DThinkerIterator(PClass *cls, int statnum = MAX_STATNUM + 1)
 		: FThinkerIterator(cls, statnum)
 	{
 	}
 };
 
-IMPLEMENT_CLASS(DThinkerIterator, false, false);
+IMPLEMENT_CLASS(DThinkerIterator, true, false);
 DEFINE_ACTION_FUNCTION(DThinkerIterator, Create)
 {
 	PARAM_PROLOGUE;

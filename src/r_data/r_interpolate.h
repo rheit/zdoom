@@ -15,8 +15,8 @@ class DInterpolation : public DObject
 	DECLARE_ABSTRACT_CLASS(DInterpolation, DObject)
 	HAS_OBJECT_POINTERS
 
-	TObjPtr<DInterpolation> Next;
-	TObjPtr<DInterpolation> Prev;
+	TObjPtr<DInterpolation*> Next;
+	TObjPtr<DInterpolation*> Prev;
 
 protected:
 	int refcount;
@@ -27,7 +27,7 @@ public:
 	int AddRef();
 	int DelRef(bool force = false);
 
-	void Destroy() override;
+	void OnDestroy() override;
 	virtual void UpdateInterpolation() = 0;
 	virtual void Restore() = 0;
 	virtual void Interpolate(double smoothratio) = 0;
@@ -43,7 +43,7 @@ public:
 
 struct FInterpolator
 {
-	TObjPtr<DInterpolation> Head;
+	TObjPtr<DInterpolation*> Head;
 	bool didInterp;
 	int count;
 

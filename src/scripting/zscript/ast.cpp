@@ -44,21 +44,23 @@ static const char *BuiltInTypeNames[] =
 {
 	"sint8", "uint8",
 	"sint16", "uint16",
-	"sint32", "uint32",
+	"sint32", "uint32_t",
 	"intauto",
 
 	"bool",
-	"float32", "float64", "floatauto",
+	"float64", "floatauto",
 	"string",
 	"vector2",
 	"vector3",
 	"name",
+
 	"color",
 	"state",
 	"sound",
 
 	"usertype",
-
+	"nativetype",
+	"let",
 };
 
 class FLispString
@@ -112,7 +114,7 @@ public:
 			}
 			else
 			{ // Move hanging ( characters to the new line
-				Str.Truncate(long(Str.Len() - ConsecOpens));
+				Str.Truncate(Str.Len() - ConsecOpens);
 				NestDepth -= ConsecOpens;
 			}
 			Str << '\n';
@@ -336,6 +338,26 @@ static void PrintStruct(FLispString &out, ZCC_TreeNode *node)
 	out.Close();
 }
 
+static void PrintProperty(FLispString &out, ZCC_TreeNode *node)
+{
+	ZCC_Property *snode = (ZCC_Property *)node;
+	out.Break();
+	out.Open("property");
+	out.AddName(snode->NodeName);
+	PrintNodes(out, snode->Body, false, true);
+	out.Close();
+}
+
+static void PrintStaticArrayState(FLispString &out, ZCC_TreeNode *node)
+{
+	auto *snode = (ZCC_StaticArrayStatement *)node;
+	out.Break();
+	out.Open("static-array");
+	out.AddName(snode->Id);
+	PrintNodes(out, snode->Values, false, true);
+	out.Close();
+}
+
 static void PrintEnum(FLispString &out, ZCC_TreeNode *node)
 {
 	ZCC_Enum *enode = (ZCC_Enum *)node;
@@ -462,8 +484,9 @@ static void PrintBasicType(FLispString &out, ZCC_TreeNode *node)
 	out.Open("basic-type");
 	PrintNodes(out, tnode->ArraySize);
 	PrintBuiltInType(out, tnode->Type);
-	if (tnode->Type == ZCC_UserType)
+	if (tnode->Type == ZCC_UserType || tnode->Type == ZCC_NativeType)
 	{
+		if (tnode->Type == ZCC_NativeType) out.Add("@", 1);
 		PrintNodes(out, tnode->UserType, false);
 	}
 	out.Close();
@@ -503,7 +526,7 @@ static void OpenExprType(FLispString &out, EZCCExprType type)
 
 	if (unsigned(type) < PEX_COUNT_OF)
 	{
-		mysnprintf(buf, countof(buf), "expr-%s", ZCC_OpInfo[type].OpName);
+		mysnprintf(buf, countof(buf), "expr %d", type);
 	}
 	else
 	{
@@ -934,6 +957,8 @@ void (* const TreeNodePrinter[NUM_AST_NODE_TYPES])(FLispString &, ZCC_TreeNode *
 	PrintVectorInitializer,
 	PrintDeclFlags,
 	PrintExprClassCast,
+	PrintStaticArrayState,
+	PrintProperty,
 };
 
 FString ZCC_PrintAST(ZCC_TreeNode *root)

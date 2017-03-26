@@ -33,55 +33,22 @@
 //	for rendering.
 //
 
-extern "C" int			viewwidth;
-extern "C" int			viewheight;
+extern int				viewwindowx;
+extern int				viewwindowy;
+extern int				viewwidth;
+extern int				viewheight;
 
 //
 // Lookup tables for map data.
 //
 extern TArray<spritedef_t> sprites;
-extern DWORD NumStdSprites;
+extern uint32_t NumStdSprites;
 
-extern int				numvertexes;
-extern vertex_t*		vertexes;
-extern int				numvertexdatas;
-extern vertexdata_t*		vertexdatas;
-
-extern int				numsegs;
-extern seg_t*			segs;
-
-extern int				numsectors;
-extern sector_t*		sectors;
-
-extern int				numsubsectors;
-extern subsector_t* 	subsectors;
-
-extern int				numnodes;
-extern node_t*			nodes;
-
-extern int				numlines;
-extern line_t*			lines;
-
-extern int				numsides;
-extern side_t*			sides;
-
-extern TArray<zone_t>	Zones;
-
-extern node_t * 		gamenodes;
-extern int 				numgamenodes;
-
-extern subsector_t * 	gamesubsectors;
-extern int 				numgamesubsectors;
-
+extern TArray<vertexdata_t> vertexdatas;
 
 //
 // POV data.
 //
-extern AActor*			camera;		// [RH] camera instead of viewplayer
-extern sector_t*		viewsector;	// [RH] keep track of sector viewing from
-
-namespace swrenderer { extern angle_t			xtoviewangle[MAXWIDTH+1]; }
-extern DAngle			FieldOfView;
 
 int R_FindSkin (const char *name, int pclass);	// [RH] Find a skin
 

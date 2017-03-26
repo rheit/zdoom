@@ -32,23 +32,14 @@
 #include "p_maputl.h"
 #include "r_utility.h"
 #include "p_blockmap.h"
+#include "g_levellocals.h"
+#include "actorinlines.h"
 
 // MACROS ------------------------------------------------------------------
 
 #define PO_MAXPOLYSEGS 64
 
 // TYPES -------------------------------------------------------------------
-
-inline vertex_t *side_t::V1() const
-{
-	return this == linedef->sidedef[0]? linedef->v1 : linedef->v2;
-}
-
-inline vertex_t *side_t::V2() const
-{
-	return this == linedef->sidedef[0]? linedef->v2 : linedef->v1;
-}
-
 
 class DRotatePoly : public DPolyAction
 {
@@ -148,8 +139,6 @@ static void ReleaseAllPolyNodes();
 
 // EXTERNAL DATA DECLARATIONS ----------------------------------------------
 
-extern seg_t *segs;
-
 // PUBLIC DATA DEFINITIONS -------------------------------------------------
 
 polyblock_t **PolyBlockMap;
@@ -159,7 +148,7 @@ polyspawns_t *polyspawns; // [RH] Let P_SpawnMapThings() find our thingies for u
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
-static TArray<SDWORD> KnownPolySides;
+static TArray<int32_t> KnownPolySides;
 static FPolyNode *FreePolyNodes;
 
 // CODE --------------------------------------------------------------------
@@ -199,7 +188,7 @@ DPolyAction::DPolyAction (int polyNum)
 	SetInterpolation ();
 }
 
-void DPolyAction::Destroy()
+void DPolyAction::OnDestroy()
 {
 	FPolyObj *poly = PO_GetPolyobj (m_PolyObj);
 
@@ -209,7 +198,7 @@ void DPolyAction::Destroy()
 	}
 
 	StopInterpolation();
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 void DPolyAction::Stop()
@@ -1080,10 +1069,10 @@ void FPolyObj::UnLinkPolyobj ()
 	// remove the polyobj from each blockmap section
 	for(j = bbox[BOXBOTTOM]; j <= bbox[BOXTOP]; j++)
 	{
-		index = j*bmapwidth;
+		index = j*level.blockmap.bmapwidth;
 		for(i = bbox[BOXLEFT]; i <= bbox[BOXRIGHT]; i++)
 		{
-			if(i >= 0 && i < bmapwidth && j >= 0 && j < bmapheight)
+			if(i >= 0 && i < level.blockmap.bmapwidth && j >= 0 && j < level.blockmap.bmapheight)
 			{
 				link = PolyBlockMap[index+i];
 				while(link != NULL && link->polyobj != this)
@@ -1116,13 +1105,15 @@ bool FPolyObj::CheckMobjBlocking (side_t *sd)
 	line_t *ld;
 	bool blocked;
 	bool performBlockingThrust;
+	int bmapwidth = level.blockmap.bmapwidth;
+	int bmapheight = level.blockmap.bmapheight;
 
 	ld = sd->linedef;
 
-	top = GetBlockY(ld->bbox[BOXTOP]);
-	bottom = GetBlockY(ld->bbox[BOXBOTTOM]);
-	left = GetBlockX(ld->bbox[BOXLEFT]);
-	right = GetBlockX(ld->bbox[BOXRIGHT]);
+	top = level.blockmap.GetBlockY(ld->bbox[BOXTOP]);
+	bottom = level.blockmap.GetBlockY(ld->bbox[BOXBOTTOM]);
+	left = level.blockmap.GetBlockX(ld->bbox[BOXLEFT]);
+	right = level.blockmap.GetBlockX(ld->bbox[BOXRIGHT]);
 
 	blocked = false;
 	checker.Clear();
@@ -1140,7 +1131,7 @@ bool FPolyObj::CheckMobjBlocking (side_t *sd)
 	{
 		for (i = left; i <= right; i++)
 		{
-			for (block = blocklinks[j+i]; block != NULL; block = block->NextActor)
+			for (block = level.blockmap.blocklinks[j+i]; block != NULL; block = block->NextActor)
 			{
 				mobj = block->Me;
 				for (k = (int)checker.Size()-1; k >= 0; --k)
@@ -1241,6 +1232,8 @@ void FPolyObj::LinkPolyobj ()
 {
 	polyblock_t **link;
 	polyblock_t *tempLink;
+	int bmapwidth = level.blockmap.bmapwidth;
+	int bmapheight = level.blockmap.bmapheight;
 
 	// calculate the polyobj bbox
 	Bounds.ClearBox();
@@ -1253,10 +1246,10 @@ void FPolyObj::LinkPolyobj ()
 		vt = Sidedefs[i]->linedef->v2;
 		Bounds.AddToBox(vt->fPos());
 	}
-	bbox[BOXRIGHT] = GetBlockX(Bounds.Right());
-	bbox[BOXLEFT] = GetBlockX(Bounds.Left());
-	bbox[BOXTOP] = GetBlockY(Bounds.Top());
-	bbox[BOXBOTTOM] = GetBlockY(Bounds.Bottom());
+	bbox[BOXRIGHT] = level.blockmap.GetBlockX(Bounds.Right());
+	bbox[BOXLEFT] = level.blockmap.GetBlockX(Bounds.Left());
+	bbox[BOXTOP] = level.blockmap.GetBlockY(Bounds.Top());
+	bbox[BOXBOTTOM] = level.blockmap.GetBlockY(Bounds.Bottom());
 	// add the polyobj to each blockmap section
 	for(int j = bbox[BOXBOTTOM]*bmapwidth; j <= bbox[BOXTOP]*bmapwidth;
 		j += bmapwidth)
@@ -1409,6 +1402,8 @@ void FPolyObj::ClosestPoint(const DVector2 &fpos, DVector2 &out, side_t **side) 
 static void InitBlockMap (void)
 {
 	int i;
+	int bmapwidth = level.blockmap.bmapwidth;
+	int bmapheight = level.blockmap.bmapheight;
 
 	PolyBlockMap = new polyblock_t *[bmapwidth*bmapheight];
 	memset (PolyBlockMap, 0, bmapwidth*bmapheight*sizeof(polyblock_t *));
@@ -1429,11 +1424,11 @@ static void InitBlockMap (void)
 
 static void InitSideLists ()
 {
-	for (int i = 0; i < numsides; ++i)
+	for (unsigned i = 0; i < level.sides.Size(); ++i)
 	{
-		if (sides[i].linedef != NULL &&
-			(sides[i].linedef->special == Polyobj_StartLine ||
-			 sides[i].linedef->special == Polyobj_ExplicitLine))
+		if (level.sides[i].linedef != NULL &&
+			(level.sides[i].linedef->special == Polyobj_StartLine ||
+				level.sides[i].linedef->special == Polyobj_ExplicitLine))
 		{
 			KnownPolySides.Push (i);
 		}
@@ -1460,7 +1455,7 @@ static void KillSideLists ()
 //
 //==========================================================================
 
-static void AddPolyVert(TArray<DWORD> &vnum, DWORD vert)
+static void AddPolyVert(TArray<uint32_t> &vnum, uint32_t vert)
 {
 	for (unsigned int i = vnum.Size() - 1; i-- != 0; )
 	{
@@ -1485,22 +1480,22 @@ static void AddPolyVert(TArray<DWORD> &vnum, DWORD vert)
 
 static void IterFindPolySides (FPolyObj *po, side_t *side)
 {
-	static TArray<DWORD> vnum;
+	static TArray<uint32_t> vnum;
 	unsigned int vnumat;
 
 	assert(sidetemp != NULL);
 
 	vnum.Clear();
-	vnum.Push(DWORD(side->V1() - vertexes));
+	vnum.Push(uint32_t(side->V1()->Index()));
 	vnumat = 0;
 
 	while (vnum.Size() != vnumat)
 	{
-		DWORD sidenum = sidetemp[vnum[vnumat++]].b.first;
+		uint32_t sidenum = sidetemp[vnum[vnumat++]].b.first;
 		while (sidenum != NO_SIDE)
 		{
-			po->Sidedefs.Push(&sides[sidenum]);
-			AddPolyVert(vnum, DWORD(sides[sidenum].V2() - vertexes));
+			po->Sidedefs.Push(&level.sides[sidenum]);
+			AddPolyVert(vnum, uint32_t(level.sides[sidenum].V2()->Index()));
 			sidenum = sidetemp[sidenum].b.next;
 		}
 	}
@@ -1534,7 +1529,7 @@ static void SpawnPolyobj (int index, int tag, int type)
 		po->bBlocked = false;
 		po->bHasPortals = 0;
 
-		side_t *sd = &sides[i];
+		side_t *sd = &level.sides[i];
 		
 		if (sd->linedef->special == Polyobj_StartLine &&
 			sd->linedef->args[0] == tag)
@@ -1570,14 +1565,14 @@ static void SpawnPolyobj (int index, int tag, int type)
 			i = KnownPolySides[ii];
 
 			if (i >= 0 &&
-				sides[i].linedef->special == Polyobj_ExplicitLine &&
-				sides[i].linedef->args[0] == tag)
+				level.sides[i].linedef->special == Polyobj_ExplicitLine &&
+				level.sides[i].linedef->args[0] == tag)
 			{
-				if (!sides[i].linedef->args[1])
+				if (!level.sides[i].linedef->args[1])
 				{
-					I_Error("SpawnPolyobj: Explicit line missing order number in poly %d, linedef %d.\n", tag, int(sides[i].linedef - lines));
+					I_Error("SpawnPolyobj: Explicit line missing order number in poly %d, linedef %d.\n", tag, level.sides[i].linedef->Index());
 				}
-				po->Sidedefs.Push (&sides[i]);
+				po->Sidedefs.Push (&level.sides[i]);
 			}
 		}
 		qsort(&po->Sidedefs[0], po->Sidedefs.Size(), sizeof(po->Sidedefs[0]), posicmp);
@@ -1604,7 +1599,7 @@ static void SpawnPolyobj (int index, int tag, int type)
 			if (port && (port->mDefFlags & PORTF_PASSABLE))
 			{
 				int type = port->mType == PORTT_LINKED ? 2 : 1;
-				if (po->bHasPortals < type) po->bHasPortals = (BYTE)type;
+				if (po->bHasPortals < type) po->bHasPortals = (uint8_t)type;
 			}
 			l->validcount = validcount;
 			po->Linedefs.Push(l);
@@ -1752,35 +1747,26 @@ void PO_Init (void)
 	// [RH] Don't need the side lists anymore
 	KillSideLists ();
 
-	for(int i=0;i<numnodes;i++)
-	{
-		node_t *no = &nodes[i];
-		double fdx = FIXED2DBL(no->dx);
-		double fdy = FIXED2DBL(no->dy);
-		no->len = (float)g_sqrt(fdx * fdx + fdy * fdy);
-	}
-
 	// mark all subsectors which have a seg belonging to a polyobj
 	// These ones should not be rendered on the textured automap.
-	for (int i = 0; i < numsubsectors; i++)
+	for (auto &ss : level.subsectors)
 	{
-		subsector_t *ss = &subsectors[i];
-		for(DWORD j=0;j<ss->numlines; j++)
+		for(uint32_t j=0;j<ss.numlines; j++)
 		{
-			if (ss->firstline[j].sidedef != NULL &&
-				ss->firstline[j].sidedef->Flags & WALLF_POLYOBJ)
+			if (ss.firstline[j].sidedef != NULL &&
+				ss.firstline[j].sidedef->Flags & WALLF_POLYOBJ)
 			{
-				ss->flags |= SSECF_POLYORG;
+				ss.flags |= SSECF_POLYORG;
 				break;
 			}
 		}
 	}
 	// clear all polyobj specials so that they do not obstruct using other lines.
-	for (int i = 0; i < numlines; i++)
+	for (auto &line : level.lines)
 	{
-		if (lines[i].special == Polyobj_ExplicitLine || lines[i].special == Polyobj_StartLine)
+		if (line.special == Polyobj_ExplicitLine || line.special == Polyobj_StartLine)
 		{
-			lines[i].special = 0;
+			line.special = 0;
 		}
 	}
 }
@@ -2081,7 +2067,7 @@ static void SplitPoly(FPolyNode *pnode, void *node, float bbox[4])
 	else
 	{
 		// we reached a subsector so we can link the node with this subsector
-		subsector_t *sub = (subsector_t *)((BYTE *)node - 1);
+		subsector_t *sub = (subsector_t *)((uint8_t *)node - 1);
 
 		// Link node to subsector
 		pnode->pnext = sub->polys;
@@ -2140,7 +2126,7 @@ void FPolyObj::CreateSubsectorLinks()
 	}
 	if (!(i_compatflags & COMPATF_POLYOBJ))
 	{
-		SplitPoly(node, nodes + numnodes - 1, dummybbox);
+		SplitPoly(node, level.HeadNode(), dummybbox);
 	}
 	else
 	{

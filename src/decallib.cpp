@@ -49,11 +49,12 @@
 #include "colormatcher.h"
 #include "b_bot.h"
 #include "serializer.h"
+#include "g_levellocals.h"
 
 FDecalLib DecalLibrary;
 
 static double ReadScale (FScanner &sc);
-static TArray<BYTE> DecalTranslations;
+static TArray<uint8_t> DecalTranslations;
 
 // A decal group holds multiple decals and returns one randomly
 // when GetDecal() is called.
@@ -75,7 +76,7 @@ public:
 	{
 		Choices.ReplaceValues(from, to);
 	}
-	void AddDecal (FDecalBase *decal, WORD weight)
+	void AddDecal (FDecalBase *decal, uint16_t weight)
 	{
 		Choices.AddEntry (decal, weight);
 	}
@@ -88,12 +89,12 @@ private:
 
 struct FDecalLib::FTranslation
 {
-	FTranslation (DWORD start, DWORD end);
-	FTranslation *LocateTranslation (DWORD start, DWORD end);
+	FTranslation (uint32_t start, uint32_t end);
+	FTranslation *LocateTranslation (uint32_t start, uint32_t end);
 
-	DWORD StartColor, EndColor;
+	uint32_t StartColor, EndColor;
 	FTranslation *Next;
-	WORD Index;
+	uint16_t Index;
 };
 
 struct FDecalAnimator
@@ -114,7 +115,7 @@ struct DDecalThinker : public DThinker
 public:
 	DDecalThinker (DBaseDecal *decal) : DThinker (STAT_DECALTHINKER), TheDecal (decal) {}
 	void Serialize(FSerializer &arc);
-	TObjPtr<DBaseDecal> TheDecal;
+	TObjPtr<DBaseDecal*> TheDecal;
 protected:
 	DDecalThinker () : DThinker (STAT_DECALTHINKER) {}
 };
@@ -421,7 +422,7 @@ void FDecalLib::ReadDecals(FScanner &sc)
 	}
 }
 
-WORD FDecalLib::GetDecalID (FScanner &sc)
+uint16_t FDecalLib::GetDecalID (FScanner &sc)
 {
 	sc.MustGetString ();
 	if (!IsNum (sc.String))
@@ -436,14 +437,14 @@ WORD FDecalLib::GetDecalID (FScanner &sc)
 		{
 			sc.ScriptError ("Decal ID must be between 1 and 65535");
 		}
-		return (WORD)num;
+		return (uint16_t)num;
 	}
 }
 
 void FDecalLib::ParseDecal (FScanner &sc)
 {
 	FString decalName;
-	WORD decalNum;
+	uint16_t decalNum;
 	FDecalTemplate newdecal;
 	FTextureID picnum;
 	int lumpnum;
@@ -545,7 +546,7 @@ void FDecalLib::ParseDecal (FScanner &sc)
 			break;
 
 		case DECAL_COLORS:
-			DWORD startcolor, endcolor;
+			uint32_t startcolor, endcolor;
 
 			sc.MustGetString (); startcolor = V_GetColor (NULL, sc);
 			sc.MustGetString (); endcolor   = V_GetColor (NULL, sc);
@@ -568,7 +569,7 @@ void FDecalLib::ParseDecal (FScanner &sc)
 void FDecalLib::ParseDecalGroup (FScanner &sc)
 {
 	FString groupName;
-	WORD decalNum;
+	uint16_t decalNum;
 	FDecalBase *targetDecal;
 	FDecalGroup *group;
 
@@ -870,7 +871,7 @@ void FDecalLib::ReplaceDecalRef (FDecalBase *from, FDecalBase *to, FDecalBase *r
 	root->ReplaceDecalRef (from, to);
 }
 
-void FDecalLib::AddDecal (const char *name, WORD num, const FDecalTemplate &decal)
+void FDecalLib::AddDecal (const char *name, uint16_t num, const FDecalTemplate &decal)
 {
 	FDecalTemplate *newDecal = new FDecalTemplate;
 
@@ -943,7 +944,7 @@ void FDecalLib::AddDecal (FDecalBase *decal)
 	}
 }
 
-const FDecalTemplate *FDecalLib::GetDecalByNum (WORD num) const
+const FDecalTemplate *FDecalLib::GetDecalByNum (uint16_t num) const
 {
 	if (num == 0)
 	{
@@ -971,7 +972,7 @@ const FDecalTemplate *FDecalLib::GetDecalByName (const char *name) const
 	return NULL;
 }
 
-FDecalBase *FDecalLib::ScanTreeForNum (const WORD num, FDecalBase *root)
+FDecalBase *FDecalLib::ScanTreeForNum (const uint16_t num, FDecalBase *root)
 {
 	while (root != NULL)
 	{
@@ -1008,7 +1009,7 @@ FDecalBase *FDecalLib::ScanTreeForName (const char *name, FDecalBase *root)
 	return root;
 }
 
-FDecalLib::FTranslation *FDecalLib::GenerateTranslation (DWORD start, DWORD end)
+FDecalLib::FTranslation *FDecalLib::GenerateTranslation (uint32_t start, uint32_t end)
 {
 	FTranslation *trans;
 
@@ -1068,11 +1069,11 @@ const FDecalTemplate *FDecalTemplate::GetDecal () const
 	return this;
 }
 
-FDecalLib::FTranslation::FTranslation (DWORD start, DWORD end)
+FDecalLib::FTranslation::FTranslation (uint32_t start, uint32_t end)
 {
-	DWORD ri, gi, bi, rs, gs, bs;
+	uint32_t ri, gi, bi, rs, gs, bs;
 	PalEntry *first, *last;
-	BYTE *table;
+	uint8_t *table;
 	unsigned int i, tablei;
 
 	StartColor = start;
@@ -1108,10 +1109,10 @@ FDecalLib::FTranslation::FTranslation (DWORD start, DWORD end)
 		table[i] = ColorMatcher.Pick (ri >> 24, gi >> 24, bi >> 24);
 	}
 	table[0] = table[1];
-	Index = (WORD)TRANSLATION(TRANSLATION_Decals, tablei >> 8);
+	Index = (uint16_t)TRANSLATION(TRANSLATION_Decals, tablei >> 8);
 }
 
-FDecalLib::FTranslation *FDecalLib::FTranslation::LocateTranslation (DWORD start, DWORD end)
+FDecalLib::FTranslation *FDecalLib::FTranslation::LocateTranslation (uint32_t start, uint32_t end)
 {
 	FTranslation *trans = this;
 

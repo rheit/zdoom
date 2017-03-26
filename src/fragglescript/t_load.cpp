@@ -43,6 +43,7 @@
 #include "cmdlib.h"
 #include "p_lnspec.h"
 #include "gi.h"
+#include "g_levellocals.h"
 #include "xlat/xlat.h"
 
 void T_Init();
@@ -72,15 +73,18 @@ struct FFsOptions : public FOptionalMapinfoData
 	{
 		identifier = "fragglescript";
 		nocheckposition = false;
+		setcolormaterial = false;
 	}
 	virtual FOptionalMapinfoData *Clone() const
 	{
 		FFsOptions *newopt = new FFsOptions;
 		newopt->identifier = identifier;
 		newopt->nocheckposition = nocheckposition;
+		newopt->setcolormaterial = setcolormaterial;
 		return newopt;
 	}
 	bool nocheckposition;
+	bool setcolormaterial;
 };
 
 DEFINE_MAP_OPTION(fs_nocheckposition, false)
@@ -95,6 +99,21 @@ DEFINE_MAP_OPTION(fs_nocheckposition, false)
 	else
 	{
 		opt->nocheckposition = true;
+	}
+}
+
+DEFINE_MAP_OPTION(fs_setcolormaterial, false)
+{
+	FFsOptions *opt = info->GetOptData<FFsOptions>("fragglescript");
+
+	if (parse.CheckAssign())
+	{
+		parse.sc.MustGetNumber();
+		opt->setcolormaterial = !!parse.sc.Number;
+	}
+	else
+	{
+		opt->setcolormaterial = true;
 	}
 }
 
@@ -306,6 +325,12 @@ bool FScriptLoader::ParseInfo(MapData * map)
 		if (opt != NULL)
 		{
 			DFraggleThinker::ActiveThinker->nocheckposition = opt->nocheckposition;
+			DFraggleThinker::ActiveThinker->setcolormaterial = opt->setcolormaterial;
+		}
+		else
+		{
+			DFraggleThinker::ActiveThinker->nocheckposition = false;
+			DFraggleThinker::ActiveThinker->setcolormaterial = false;
 		}
 	}
 
@@ -355,7 +380,7 @@ void T_AddSpawnedThing(AActor * ac)
 {
 	if (DFraggleThinker::ActiveThinker)
 	{
-		TArray<TObjPtr<AActor> > &SpawnedThings = DFraggleThinker::ActiveThinker->SpawnedThings;
+		auto &SpawnedThings = DFraggleThinker::ActiveThinker->SpawnedThings;
 		SpawnedThings.Push(GC::ReadBarrier(ac));
 	}
 }

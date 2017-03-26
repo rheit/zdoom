@@ -143,9 +143,9 @@ class Inquisitor : Actor
 		A_PlaySound ("inquisitor/jump", CHAN_ITEM, 1, true);
 		AddZ(64);
 		A_FaceTarget ();
-		speed = Speed * (2./3);
-		VelFromAngle(speed);
-		double dist = DistanceBySpeed(target, speed);
+		let localspeed = Speed * (2./3);
+		VelFromAngle(localspeed);
+		double dist = DistanceBySpeed(target, localspeed);
 		Vel.Z = (target.pos.z - pos.z) / dist;
 		reactiontime = 60;
 		bNoGravity = true;
@@ -171,9 +171,12 @@ class Inquisitor : Actor
 	void A_TossArm ()
 	{
 		Actor foo = Spawn("InquisitorArm", Pos + (0,0,24), ALLOW_REPLACE);
-		foo.angle = angle - 90. + Random2[Inquisitor]() * (360./1024.);
-		foo.VelFromAngle(foo.Speed / 8);
-		foo.Vel.Z = random[Inquisitor]() / 64.;
+		if (foo != null)
+		{
+			foo.angle = angle - 90. + Random2[Inquisitor]() * (360./1024.);
+			foo.VelFromAngle(foo.Speed / 8);
+			foo.Vel.Z = random[Inquisitor]() / 64.;
+		}
 	}
 
 	

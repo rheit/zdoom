@@ -45,17 +45,17 @@ enum EGenericEvent
 // Event structure.
 struct event_t
 {
-	BYTE		type;
-	BYTE		subtype;
-	SWORD 		data1;		// keys / mouse/joystick buttons
-	SWORD		data2;
-	SWORD		data3;
+	uint8_t		type;
+	uint8_t		subtype;
+	int16_t 		data1;		// keys / mouse/joystick buttons
+	int16_t		data2;
+	int16_t		data3;
 	int 		x;			// mouse/joystick x move
 	int 		y;			// mouse/joystick y move
 };
 
  
-typedef enum
+enum gameaction_t : int
 {
 	ga_nothing,
 	ga_loadlevel,
@@ -75,7 +75,7 @@ typedef enum
 	ga_screenshot,
 	ga_togglemap,
 	ga_fullconsole,
-} gameaction_t;
+};
 
 
 

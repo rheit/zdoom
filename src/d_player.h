@@ -26,10 +26,9 @@
 // Finally, for odd reasons, the player input
 // is buffered within the player data struct,
 // as commands per game tick.
-#include "d_ticcmd.h"
+#include "d_protocol.h"
 #include "doomstat.h"
 
-#include "a_artifacts.h"
 #include "a_weapons.h"
 
 // The player data structure depends on a number
@@ -52,54 +51,32 @@ struct FPlayerColorSet
 {
 	struct ExtraRange
 	{
-		BYTE RangeStart, RangeEnd;	// colors to remap
-		BYTE FirstColor, LastColor;	// colors to map to
+		uint8_t RangeStart, RangeEnd;	// colors to remap
+		uint8_t FirstColor, LastColor;	// colors to map to
 	};
 
 	FName Name;			// Name of this color
 
 	int Lump;			// Lump to read the translation from, otherwise use next 2 fields
-	BYTE FirstColor, LastColor;		// Describes the range of colors to use for the translation
+	uint8_t FirstColor, LastColor;		// Describes the range of colors to use for the translation
 
-	BYTE RepresentativeColor;		// A palette entry representative of this translation,
+	uint8_t RepresentativeColor;		// A palette entry representative of this translation,
 									// for map arrows and status bar backgrounds and such
-	BYTE NumExtraRanges;
+	uint8_t NumExtraRanges;
 	ExtraRange Extra[6];
 };
 
-typedef TMap<int, FPlayerColorSet> FPlayerColorSetMap;
-typedef TMap<FName, PalEntry> PainFlashList;
+typedef TArray<std::tuple<PClass*, FName, PalEntry>> PainFlashList;
+typedef TArray<std::tuple<PClass*, int, FPlayerColorSet>> ColorSetList;
 
-class PClassPlayerPawn : public PClassActor
-{
-	DECLARE_CLASS(PClassPlayerPawn, PClassActor);
-protected:
-public:
-	PClassPlayerPawn();
-	virtual void DeriveData(PClass *newclass);
-	void EnumColorSets(TArray<int> *out);
-	FPlayerColorSet *GetColorSet(int setnum) { return ColorSets.CheckKey(setnum); }
-	void SetPainFlash(FName type, PalEntry color);
-	bool GetPainFlash(FName type, PalEntry *color) const;
+extern PainFlashList PainFlashes;
+extern ColorSetList ColorSets;
 
-	FString DisplayName;	// Display name (used in menus, etc.)
-	FString SoundClass;		// Sound class
-	FString Face;			// Doom status bar face (when used)
-	FString Portrait;
-	FString Slot[10];
-	FName InvulMode;
-	FName HealingRadiusType;
-	double HexenArmor[5];
-	BYTE ColorRangeStart;	// Skin color range
-	BYTE ColorRangeEnd;
-	FPlayerColorSetMap ColorSets;
-	PainFlashList PainFlashes;
-};
-FString GetPrintableDisplayName(PClassPlayerPawn *cls);
+FString GetPrintableDisplayName(PClassActor *cls);
 
 class APlayerPawn : public AActor
 {
-	DECLARE_CLASS_WITH_META(APlayerPawn, AActor, PClassPlayerPawn)
+	DECLARE_CLASS(APlayerPawn, AActor)
 	HAS_OBJECT_POINTERS
 public:
 	
@@ -116,13 +93,13 @@ public:
 	virtual bool UpdateWaterLevel (bool splash) override;
 
 	bool ResetAirSupply (bool playgasp = true);
-	int GetMaxHealth() const;
+	int GetMaxHealth(bool withupgrades = false) const;
 	void TweakSpeeds (double &forwardmove, double &sidemove);
 	void MorphPlayerThink ();
 	void ActivateMorphWeapon ();
-	AWeapon *PickNewWeapon (PClassAmmo *ammotype);
-	AWeapon *BestWeapon (PClassAmmo *ammotype);
-	void CheckWeaponSwitch(PClassAmmo *ammotype);
+	AWeapon *PickNewWeapon (PClassActor *ammotype);
+	AWeapon *BestWeapon (PClassActor *ammotype);
+	void CheckWeaponSwitch(PClassActor *ammotype);
 	void GiveDeathmatchInventory ();
 	void FilterCoopRespawnInventory (APlayerPawn *oldplayer);
 
@@ -148,11 +125,14 @@ public:
 
 	int			crouchsprite;
 	int			MaxHealth;
+	int			BonusHealth;
+
 	int			MugShotMaxHealth;
 	int			RunHealth;
 	int			PlayerFlags;
-	TObjPtr<AInventory> InvFirst;		// first inventory item displayed on inventory bar
-	TObjPtr<AInventory> InvSel;			// selected inventory item
+	double		FullHeight;
+	TObjPtr<AInventory*> InvFirst;		// first inventory item displayed on inventory bar
+	TObjPtr<AInventory*> InvSel;			// selected inventory item
 
 	// [GRB] Player class properties
 	double		JumpZ;
@@ -176,11 +156,15 @@ public:
 	// [SP] ViewBob Multiplier
 	double		ViewBob;
 
-};
+	// Former class properties that were moved into the object to get rid of the meta class.
+	FNameNoInit SoundClass;		// Sound class
+	FNameNoInit Face;			// Doom status bar face (when used)
+	FNameNoInit Portrait;
+	FNameNoInit Slot[10];
+	double HexenArmor[5];
+	uint8_t ColorRangeStart;	// Skin color range
+	uint8_t ColorRangeEnd;
 
-class APlayerChunk : public APlayerPawn
-{
-	DECLARE_CLASS (APlayerChunk, APlayerPawn)
 };
 
 //
@@ -225,13 +209,7 @@ typedef enum
 	CF_TOTALLYFROZEN	= 1 << 12,		// [RH] All players can do is press +use
 	CF_PREDICTING		= 1 << 13,		// [RH] Player movement is being predicted
 	CF_INTERPVIEW		= 1 << 14,		// [RH] view was changed outside of input, so interpolate one frame
-	CF_DRAIN			= 1 << 16,		// Player owns a drain powerup
-	CF_HIGHJUMP			= 1 << 18,		// more Skulltag flags. Implementation not guaranteed though. ;)
-	CF_REFLECTION		= 1 << 19,
-	CF_PROSPERITY		= 1 << 20,
-	CF_DOUBLEFIRINGSPEED= 1 << 21,		// Player owns a double firing speed artifact
 	CF_EXTREMELYDEAD	= 1 << 22,		// [RH] Reliably let the status bar know about extreme deaths.
-	CF_INFINITEAMMO		= 1 << 23,		// Player owns an infinite ammo artifact
 	CF_BUDDHA2			= 1 << 24,		// [MC] Absolute buddha. No voodoo can kill it either.
 	CF_GODMODE2			= 1 << 25,		// [MC] Absolute godmode. No voodoo can kill it either.
 	CF_BUDDHA			= 1 << 27,		// [SP] Buddha mode - take damage, but don't die
@@ -277,8 +255,8 @@ public:
 
 	bool CheckSkin (int skin);
 
-	PClassPlayerPawn *Type;
-	DWORD Flags;
+	PClassActor *Type;
+	uint32_t Flags;
 	TArray<int> Skins;
 };
 
@@ -313,6 +291,11 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 			return aim;
 		}
 	}
+	// Same but unfiltered.
+	double GetAutoaim() const
+	{
+		return *static_cast<FFloatCVar *>(*CheckKey(NAME_Autoaim));
+	}
 	const char *GetName() const
 	{
 		return *static_cast<FStringCVar *>(*CheckKey(NAME_Name));
@@ -325,7 +308,7 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	{
 		return *static_cast<FIntCVar *>(*CheckKey(NAME_ColorSet));
 	}
-	uint32 GetColor() const
+	uint32_t GetColor() const
 	{
 		return *static_cast<FColorCVar *>(*CheckKey(NAME_Color));
 	}
@@ -349,7 +332,7 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	{
 		return *static_cast<FIntCVar *>(*CheckKey(NAME_PlayerClass));
 	}
-	PClassPlayerPawn *GetPlayerClassType() const
+	PClassActor *GetPlayerClassType() const
 	{
 		return PlayerClasses[GetPlayerClassNum()].Type;
 	}
@@ -373,8 +356,8 @@ struct userinfo_t : TMap<FName,FBaseCVar *>
 	int GenderChanged(const char *gendername);
 	int PlayerClassChanged(const char *classname);
 	int PlayerClassNumChanged(int classnum);
-	uint32 ColorChanged(const char *colorname);
-	uint32 ColorChanged(uint32 colorval);
+	uint32_t ColorChanged(const char *colorname);
+	uint32_t ColorChanged(uint32_t colorval);
 	int ColorSetChanged(int setnum);
 };
 
@@ -400,14 +383,14 @@ public:
 	void SendPitchLimits() const;
 
 	APlayerPawn	*mo;
-	BYTE		playerstate;
+	uint8_t		playerstate;
 	ticcmd_t	cmd;
 	usercmd_t	original_cmd;
-	DWORD		original_oldbuttons;
+	uint32_t		original_oldbuttons;
 
 	userinfo_t	userinfo;				// [RH] who is this?
 	
-	PClassPlayerPawn *cls;				// class of associated PlayerPawn
+	PClassActor *cls;				// class of associated PlayerPawn
 
 	float		DesiredFOV;				// desired field of vision
 	float		FOV;					// current field of vision
@@ -423,28 +406,28 @@ public:
 	DVector2 Vel;
 
 	bool		centering;
-	BYTE		turnticks;
+	uint8_t		turnticks;
 
 
 	bool		attackdown;
 	bool		usedown;
-	DWORD		oldbuttons;
+	uint32_t		oldbuttons;
 	int			health;					// only used between levels, mo->health
 										// is used during levels
 
 	int			inventorytics;
-	BYTE		CurrentPlayerClass;		// class # for this player instance
+	uint8_t		CurrentPlayerClass;		// class # for this player instance
 
 	int			frags[MAXPLAYERS];		// kills of other players
 	int			fragcount;				// [RH] Cumulative frags for this player
 	int			lastkilltime;			// [RH] For multikills
-	BYTE		multicount;
-	BYTE		spreecount;				// [RH] Keep track of killing sprees
-	WORD		WeaponState;
+	uint8_t		multicount;
+	uint8_t		spreecount;				// [RH] Keep track of killing sprees
+	uint16_t		WeaponState;
 
 	AWeapon	   *ReadyWeapon;
 	AWeapon	   *PendingWeapon;			// WP_NOCHANGE if not changing
-	TObjPtr<DPSprite> psprites; // view sprites (gun, etc)
+	TObjPtr<DPSprite*> psprites; // view sprites (gun, etc)
 
 	int			cheats;					// bit flags
 	int			timefreezer;			// Player has an active time freezer
@@ -459,36 +442,36 @@ public:
 	int			poisoncount;			// screen flash for poison damage
 	FName		poisontype;				// type of poison damage to apply
 	FName		poisonpaintype;			// type of Pain state to enter for poison damage
-	TObjPtr<AActor>		poisoner;		// NULL for non-player actors
-	TObjPtr<AActor>		attacker;		// who did damage (NULL for floors)
+	TObjPtr<AActor*>		poisoner;		// NULL for non-player actors
+	TObjPtr<AActor*>		attacker;		// who did damage (NULL for floors)
 	int			extralight;				// so gun flashes light up areas
 	short		fixedcolormap;			// can be set to REDCOLORMAP, etc.
 	short		fixedlightlevel;
 	int			morphTics;				// player is a chicken/pig if > 0
-	PClassPlayerPawn *MorphedPlayerClass;		// [MH] (for SBARINFO) class # for this player instance when morphed
+	PClassActor *MorphedPlayerClass;		// [MH] (for SBARINFO) class # for this player instance when morphed
 	int			MorphStyle;				// which effects to apply for this player instance when morphed
 	PClassActor *MorphExitFlash;		// flash to apply when demorphing (cache of value given to P_MorphPlayer)
-	TObjPtr<AWeapon>	PremorphWeapon;		// ready weapon before morphing
+	TObjPtr<AWeapon*>	PremorphWeapon;		// ready weapon before morphing
 	int			chickenPeck;			// chicken peck countdown
 	int			jumpTics;				// delay the next jump for a moment
 	bool		onground;				// Identifies if this player is on the ground or other object
 
 	int			respawn_time;			// [RH] delay respawning until this tic
-	TObjPtr<AActor>		camera;			// [RH] Whose eyes this player sees through
+	TObjPtr<AActor*>		camera;			// [RH] Whose eyes this player sees through
 
 	int			air_finished;			// [RH] Time when you start drowning
 
 	FName		LastDamageType;			// [RH] For damage-specific pain and death sounds
 
-	TObjPtr<AActor> MUSINFOactor;		// For MUSINFO purposes
-	SBYTE		MUSINFOtics;
+	TObjPtr<AActor*> MUSINFOactor;		// For MUSINFO purposes
+	int8_t		MUSINFOtics;
 
 	bool		settings_controller;	// Player can control game settings.
-	SBYTE		crouching;
-	SBYTE		crouchdir;
+	int8_t		crouching;
+	int8_t		crouchdir;
 
 	//Added by MC:
-	TObjPtr<DBot> Bot;
+	TObjPtr<DBot*> Bot;
 
 	float		BlendR;		// [RH] Final blending values
 	float		BlendG;
@@ -507,7 +490,7 @@ public:
 	FWeaponSlots weapons;
 
 	// [CW] I moved these here for multiplayer conversation support.
-	TObjPtr<AActor> ConversationNPC, ConversationPC;
+	TObjPtr<AActor*> ConversationNPC, ConversationPC;
 	DAngle ConversationNPCAngle;
 	bool ConversationFaceTalker;
 
@@ -544,12 +527,19 @@ public:
 	// Make sure that a state is properly set after calling this unless
 	// you are 100% sure the context already implies the layer exists.
 	DPSprite *GetPSprite(PSPLayers layer);
+
+	bool GetPainFlash(FName type, PalEntry *color) const;
+
+	// [Nash] set player FOV
+	void SetFOV(float fov);
 };
 
 // Bookkeeping on players - state.
 extern player_t players[MAXPLAYERS];
 
 void P_CheckPlayerSprite(AActor *mo, int &spritenum, DVector2 &scale);
+void EnumColorSets(PClassActor *pc, TArray<int> *out);
+FPlayerColorSet *GetColorSet(PClassActor *pc, int setnum);
 
 inline void AActor::SetFriendPlayer(player_t *player)
 {

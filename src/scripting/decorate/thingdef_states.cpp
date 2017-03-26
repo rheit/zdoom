@@ -53,10 +53,9 @@
 #include "s_sound.h"
 #include "i_system.h"
 #include "colormatcher.h"
-#include "codegeneration/codegen.h"
-#include "version.h"
+#include "backend/codegen.h"
 #include "templates.h"
-#include "vmbuilder.h"
+#include "backend/vmbuilder.h"
 
 //==========================================================================
 //***
@@ -316,9 +315,7 @@ do_stop:
 					do
 					{
 						sc.MustGetString();
-						#ifdef DYNLIGHT
-							AddStateLight(&state, sc.String);
-						#endif
+						AddStateLight(&state, sc.String);
 					}
 					while (sc.CheckString(","));
 					sc.MustGetStringName(")");
@@ -343,7 +340,7 @@ endofstate:
 			if (ScriptCode != nullptr)
 			{
 				auto funcsym = CreateAnonymousFunction(actor, nullptr, state.UseFlags);
-				state.ActionFunc = FunctionBuildList.AddFunction(funcsym, ScriptCode, FStringf("%s.StateFunction.%d", actor->TypeName.GetChars(), bag.statedef.GetStateCount()), true, bag.statedef.GetStateCount(), int(statestring.Len()), sc.LumpNum);
+				state.ActionFunc = FunctionBuildList.AddFunction(bag.Namespace, bag.Version, funcsym, ScriptCode, FStringf("%s.StateFunction.%d", actor->TypeName.GetChars(), bag.statedef.GetStateCount()), true, bag.statedef.GetStateCount(), int(statestring.Len()), sc.LumpNum);
 			}
 			int count = bag.statedef.AddStates(&state, statestring, scp);
 			if (count < 0)
@@ -613,7 +610,7 @@ void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression
 	PFunction *afd, FString statestring, FStateDefinitions *statedef)
 {
 	const TArray<PType *> &params = afd->Variants[0].Proto->ArgumentTypes;
-	const TArray<DWORD> &paramflags = afd->Variants[0].ArgFlags;
+	const TArray<uint32_t> &paramflags = afd->Variants[0].ArgFlags;
 	int numparams = (int)params.Size();
 	int pnum = 0;
 	bool zeroparm;
@@ -671,7 +668,7 @@ void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression
 		else
 		{
 			// Use the generic parameter parser for everything else
-			x = ParseParameter(sc, cls, params[pnum], false);
+			x = ParseParameter(sc, cls, params[pnum]);
 		}
 		out_params.Push(x);
 		pnum++;

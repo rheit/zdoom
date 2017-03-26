@@ -24,7 +24,6 @@
 
 #include "textures/textures.h"
 
-
 extern FTextureID	skyflatnum;
 extern fixed_t		sky1cyl,		sky2cyl;
 extern FTextureID	sky1texture,	sky2texture;
@@ -39,6 +38,6 @@ extern int		freelookviewheight;
 
 // Called whenever the sky changes.
 void R_InitSkyMap		();
-void R_UpdateSky (DWORD mstime);
+void R_UpdateSky (uint32_t mstime);
 
 #endif //__R_SKY_H__

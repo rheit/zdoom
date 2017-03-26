@@ -32,6 +32,8 @@
 #include "p_maputl.h"
 #include "p_local.h"
 #include "d_player.h"
+#include "g_levellocals.h"
+#include "actorinlines.h"
 
 CVAR(Bool, var_pushers, true, CVAR_SERVERINFO);
 
@@ -65,7 +67,7 @@ public:
 
 protected:
 	EPusher m_Type;
-	TObjPtr<AActor> m_Source;// Point source if point pusher
+	TObjPtr<AActor*> m_Source;// Point source if point pusher
 	DVector2 m_PushVec;
 	double m_Magnitude;		// Vector strength for point pusher
 	double m_Radius;		// Effective radius for point pusher
@@ -192,7 +194,7 @@ void DPusher::Tick ()
 	if (!var_pushers)
 		return;
 
-	sec = sectors + m_Affectee;
+	sec = &level.sectors[m_Affectee];
 
 	// Be sure the special sector type is still turned on. If so, proceed.
 	// Else, bail out; the sector type has been changed on us.
@@ -339,7 +341,7 @@ AActor *P_GetPushThing (int s)
 	AActor* thing;
 	sector_t* sec;
 
-	sec = sectors + s;
+	sec = &level.sectors[s];
 	thing = sec->thinglist;
 
 	while (thing &&
@@ -358,11 +360,10 @@ AActor *P_GetPushThing (int s)
 
 void P_SpawnPushers ()
 {
-	int i;
-	line_t *l = lines;
+	line_t *l = &level.lines[0];
 	int s;
 
-	for (i = 0; i < numlines; i++, l++)
+	for (unsigned i = 0; i < level.lines.Size(); i++, l++)
 	{
 		switch (l->special)
 		{
@@ -406,8 +407,7 @@ void P_SpawnPushers ()
 					if (thing->GetClass()->TypeName == NAME_PointPusher ||
 						thing->GetClass()->TypeName == NAME_PointPuller)
 					{
-						new DPusher (DPusher::p_push, l->args[3] ? l : NULL, l->args[2],
-									 0, thing, int(thing->Sector - sectors));
+						new DPusher (DPusher::p_push, l->args[3] ? l : NULL, l->args[2], 0, thing, thing->Sector->Index());
 					}
 				}
 			}
@@ -447,7 +447,7 @@ void AdjustPusher (int tag, int magnitude, int angle, bool wind)
 		unsigned int i;
 		for (i = 0; i < numcollected; i++)
 		{
-			if (Collection[i].RefNum == sectors[secnum].sectornum)
+			if (Collection[i].RefNum == secnum)
 				break;
 		}
 		if (i == numcollected)

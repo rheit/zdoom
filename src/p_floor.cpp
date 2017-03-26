@@ -32,6 +32,7 @@
 #include "p_3dmidtex.h"
 #include "p_spec.h"
 #include "r_data/r_interpolate.h"
+#include "g_levellocals.h"
 
 //==========================================================================
 //
@@ -86,7 +87,8 @@ void DFloor::Serialize(FSerializer &arc)
 		("pausetime", m_PauseTime)
 		("steptime", m_StepTime)
 		("persteptime", m_PerStepTime)
-		("crushmode", m_Hexencrush);
+		("crushmode", m_Hexencrush)
+		("instant", m_Instant);
 }
 
 //==========================================================================
@@ -129,7 +131,7 @@ void DFloor::Tick ()
 	if (m_Type == waitStair)
 		return;
 
-	res = m_Sector->MoveFloor (m_Speed, m_FloorDestDist, m_Crush, m_Direction, m_Hexencrush);
+	res = m_Sector->MoveFloor (m_Speed, m_FloorDestDist, m_Crush, m_Direction, m_Hexencrush, m_Instant);
 	
 	if (res == EMoveResult::pastdest)
 	{
@@ -184,19 +186,19 @@ void DFloor::Tick ()
 				sector_t *sec = m_Sector;
 				sec->stairlock = -1;				// thinker done, promote lock to -1
 
-				while (sec->prevsec != -1 && sectors[sec->prevsec].stairlock != -2)
-					sec = &sectors[sec->prevsec];	// search for a non-done thinker
+				while (sec->prevsec != -1 && level.sectors[sec->prevsec].stairlock != -2)
+					sec = &level.sectors[sec->prevsec];	// search for a non-done thinker
 				if (sec->prevsec == -1)				// if all thinkers previous are done
 				{
 					sec = m_Sector;			// search forward
-					while (sec->nextsec != -1 && sectors[sec->nextsec].stairlock != -2) 
-						sec = &sectors[sec->nextsec];
+					while (sec->nextsec != -1 && level.sectors[sec->nextsec].stairlock != -2)
+						sec = &level.sectors[sec->nextsec];
 					if (sec->nextsec == -1)			// if all thinkers ahead are done too
 					{
 						while (sec->prevsec != -1)	// clear all locks
 						{
 							sec->stairlock = 0;
-							sec = &sectors[sec->prevsec];
+							sec = &level.sectors[sec->prevsec];
 						}
 						sec->stairlock = 0;
 					}
@@ -286,6 +288,7 @@ bool P_CreateFloor(sector_t *sec, DFloor::EFloor floortype, line_t *line,
 	floor->m_Speed = speed;
 	floor->m_ResetCount = 0;				// [RH]
 	floor->m_OrgDist = sec->floorplane.fD();	// [RH]
+	floor->m_Instant = false;
 
 	switch (floortype)
 	{
@@ -451,6 +454,7 @@ bool P_CreateFloor(sector_t *sec, DFloor::EFloor floortype, line_t *line,
 		(floor->m_Speed >= fabs(sec->floorplane.fD() - floor->m_FloorDestDist)))	// moving in one step
 	{
 		floor->StopInterpolation(true);
+		floor->m_Instant = true;
 
 		// [Graf Zahl]
 		// Don't make sounds for instant movement hacks but make an exception for
@@ -525,7 +529,7 @@ bool EV_DoFloor (DFloor::EFloor floortype, line_t *line, int tag,
 	FSectorTagIterator it(tag, line);
 	while ((secnum = it.Next()) >= 0)
 	{
-		rtn |= P_CreateFloor(&sectors[secnum], floortype, line, speed, height, crush, change, hexencrush, hereticlower);
+		rtn |= P_CreateFloor(&level.sectors[secnum], floortype, line, speed, height, crush, change, hexencrush, hereticlower);
 	}
 	return rtn;
 }
@@ -544,7 +548,7 @@ bool EV_FloorCrushStop (int tag)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sec = sectors + secnum;
+		sector_t *sec = &level.sectors[secnum];
 
 		if (sec->floordata && sec->floordata->IsKindOf (RUNTIME_CLASS(DFloor)) &&
 			barrier_cast<DFloor *>(sec->floordata)->m_Type == DFloor::floorRaiseAndCrush)
@@ -557,6 +561,21 @@ bool EV_FloorCrushStop (int tag)
 	return true;
 }
 
+// same as above but stops any floor mover that was active on the given sector.
+bool EV_StopFloor(int tag)
+{
+	FSectorTagIterator it(tag);
+	while (int sec = it.Next())
+	{
+		if (level.sectors[sec].floordata)
+		{
+			SN_StopSequence(&level.sectors[sec], CHAN_FLOOR);
+			level.sectors[sec].floordata->Destroy();
+			level.sectors[sec].floordata = nullptr;
+		}
+	}
+	return true;
+}
 //==========================================================================
 //
 // BUILD A STAIRCASE!
@@ -575,7 +594,6 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 	int					osecnum;	//jff 3/4/98 save old loop index
 	double 				height;
 	double				stairstep;
-	int 				i;
 	int 				newsecnum = -1;
 	FTextureID			texture;
 	int 				ok;
@@ -600,7 +618,7 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 	bool compatible = tag != 0 && (i_compatflags & COMPATF_STAIRINDEX);
 	while ((secnum = itr.NextCompat(compatible, secnum)) >= 0)
 	{
-		sec = &sectors[secnum];
+		sec = &level.sectors[secnum];
 
 		// ALREADY MOVING?	IF SO, KEEP GOING...
 		//jff 2/26/98 add special lockout condition to wait for entire
@@ -622,8 +640,9 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 		floor->m_Delay = delay;
 		floor->m_PauseTime = 0;
 		floor->m_StepTime = floor->m_PerStepTime = persteptime;
+		floor->m_Instant = false;
 
-		floor->m_Crush = (!(usespecials & DFloor::stairUseSpecials) && speed == 4) ? 10 : -1; //jff 2/27/98 fix uninitialized crush field
+		floor->m_Crush = (usespecials & DFloor::stairCrush) ? 10 : -1; //jff 2/27/98 fix uninitialized crush field
 		floor->m_Hexencrush = false;
 
 		floor->m_Speed = speed;
@@ -660,26 +679,25 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 						sec = tsec;
 						continue;
 					}
-					
+					newsecnum = tsec->Index();
 				}
-				newsecnum = (int)(tsec - sectors);
 			}
 			else
 			{
-				for (i = 0; i < sec->linecount; i++)
+				for (auto line : sec->Lines)
 				{
-					if ( !((sec->lines[i])->flags & ML_TWOSIDED) )
+					if ( !(line->flags & ML_TWOSIDED) )
 						continue;
 
-					tsec = (sec->lines[i])->frontsector;
-					newsecnum = (int)(tsec-sectors);
+					tsec = line->frontsector;
+					newsecnum = tsec->sectornum;
 
 					if (secnum != newsecnum)
 						continue;
 
-					tsec = (sec->lines[i])->backsector;
+					tsec = line->backsector;
 					if (!tsec) continue;	//jff 5/7/98 if no backside, continue
-					newsecnum = (int)(tsec - sectors);
+					newsecnum = tsec->sectornum;
 
 					if (!igntxt && tsec->GetTexture(sector_t::floor) != texture)
 						continue;
@@ -738,13 +756,14 @@ bool EV_BuildStairs (int tag, DFloor::EStair type, line_t *line,
 				//jff 2/27/98 fix uninitialized crush field
 				floor->m_Crush = (!(usespecials & DFloor::stairUseSpecials) && speed == 4) ? 10 : -1; //jff 2/27/98 fix uninitialized crush field
 				floor->m_Hexencrush = false;
+				floor->m_Instant = false;
 				floor->m_ResetCount = reset;	// [RH] Tics until reset (0 if never)
 				floor->m_OrgDist = sec->floorplane.fD();	// [RH] Height to reset to
 			}
 		} while (ok);
 		// [RH] make sure the first sector doesn't point to a previous one, otherwise
 		// it can infinite loop when the first sector stops moving.
-		sectors[osecnum].prevsec = -1;	
+		level.sectors[osecnum].prevsec = -1;
 	}
 	return rtn;
 }
@@ -762,7 +781,6 @@ bool EV_DoDonut (int tag, line_t *line, double pillarspeed, double slimespeed)
 	sector_t*			s3;
 	int 				secnum;
 	bool 				rtn;
-	int 				i;
 	DFloor*				floor;
 	vertex_t*			spot;
 	double				height;
@@ -772,26 +790,26 @@ bool EV_DoDonut (int tag, line_t *line, double pillarspeed, double slimespeed)
 	FSectorTagIterator itr(tag, line);
 	while ((secnum = itr.Next()) >= 0)
 	{
-		s1 = &sectors[secnum];					// s1 is pillar's sector
+		s1 = &level.sectors[secnum];					// s1 is pillar's sector
 
 		// ALREADY MOVING?	IF SO, KEEP GOING...
 		if (s1->PlaneMoving(sector_t::floor))
 			continue; // safe now, because we check that tag is non-0 in the looping condition [fdari]
 						
 		rtn = true;
-		s2 = getNextSector (s1->lines[0], s1);	// s2 is pool's sector
+		s2 = getNextSector (s1->Lines[0], s1);	// s2 is pool's sector
 		if (!s2)								// note lowest numbered line around
 			continue;							// pillar must be two-sided
 
 		if (s2->PlaneMoving(sector_t::floor))
 			continue;
 
-		for (i = 0; i < s2->linecount; i++)
+		for (auto ln : s2->Lines)
 		{
-			if (!(s2->lines[i]->flags & ML_TWOSIDED) ||
-				(s2->lines[i]->backsector == s1))
+			if (!(ln->flags & ML_TWOSIDED) ||
+				(ln->backsector == s1))
 				continue;
-			s3 = s2->lines[i]->backsector;
+			s3 = ln->backsector;
 			
 			//	Spawn rising slime
 			floor = new DFloor (s2);
@@ -801,6 +819,7 @@ bool EV_DoDonut (int tag, line_t *line, double pillarspeed, double slimespeed)
 			floor->m_Direction = 1;
 			floor->m_Sector = s2;
 			floor->m_Speed = slimespeed;
+			floor->m_Instant = false;
 			floor->m_Texture = s3->GetTexture(sector_t::floor);
 			floor->m_NewSpecial.Clear();
 			height = s3->FindHighestFloorPoint (&spot);
@@ -815,6 +834,7 @@ bool EV_DoDonut (int tag, line_t *line, double pillarspeed, double slimespeed)
 			floor->m_Direction = -1;
 			floor->m_Sector = s1;
 			floor->m_Speed = pillarspeed;
+			floor->m_Instant = false;
 			height = s3->FindHighestFloorPoint (&spot);
 			floor->m_FloorDestDist = s1->floorplane.PointToDist (spot, height);
 			floor->StartFloorSound ();
@@ -868,7 +888,7 @@ void DElevator::Serialize(FSerializer &arc)
 //
 //==========================================================================
 
-void DElevator::Destroy()
+void DElevator::OnDestroy()
 {
 	if (m_Interp_Ceiling != NULL)
 	{
@@ -880,7 +900,7 @@ void DElevator::Destroy()
 		m_Interp_Floor->DelRef();
 		m_Interp_Floor = NULL;
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -989,7 +1009,7 @@ bool EV_DoElevator (line_t *line, DElevator::EElevator elevtype,
 	// act on all sectors with the same tag as the triggering linedef
 	while ((secnum = itr.Next()) >= 0)
 	{
-		sec = &sectors[secnum];
+		sec = &level.sectors[secnum];
 		// If either floor or ceiling is already activated, skip it
 		if (sec->PlaneMoving(sector_t::floor) || sec->ceilingdata) //jff 2/22/98
 			continue; // the loop used to break at the end if tag were 0, but would miss that step if "continue" occured [FDARI]
@@ -1082,7 +1102,7 @@ bool EV_DoChange (line_t *line, EChange changetype, int tag)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sec = &sectors[secnum];
+		sec = &level.sectors[secnum];
               
 		rtn = true;
 
@@ -1297,7 +1317,7 @@ bool EV_StartWaggle (int tag, line_t *line, int height, int speed, int offset,
 
 	while ((sectorIndex = itr.Next()) >= 0)
 	{
-		sector = &sectors[sectorIndex];
+		sector = &level.sectors[sectorIndex];
 		if ((!ceiling && sector->PlaneMoving(sector_t::floor)) || 
 			(ceiling && sector->PlaneMoving(sector_t::ceiling)))
 		{ // Already busy with another thinker

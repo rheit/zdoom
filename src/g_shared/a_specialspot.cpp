@@ -46,7 +46,7 @@ static FRandom pr_spawnmace ("SpawnMace");
 
 IMPLEMENT_CLASS(DSpotState, false, false)
 IMPLEMENT_CLASS(ASpecialSpot, false, false)
-TObjPtr<DSpotState> DSpotState::SpotState;
+TObjPtr<DSpotState*> DSpotState::SpotState;
 
 //----------------------------------------------------------------------------
 //
@@ -220,13 +220,13 @@ DSpotState::DSpotState ()
 //
 //----------------------------------------------------------------------------
 
-void DSpotState::Destroy ()
+void DSpotState::OnDestroy ()
 {
 	SpotLists.Clear();
 	SpotLists.ShrinkToFit();
 
 	SpotState = NULL;
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //----------------------------------------------------------------------------
@@ -389,11 +389,11 @@ void ASpecialSpot::BeginPlay()
 //
 //----------------------------------------------------------------------------
 
-void ASpecialSpot::Destroy()
+void ASpecialSpot::OnDestroy()
 {
 	DSpotState *state = DSpotState::GetSpotState(false);
 	if (state != NULL) state->RemoveSpot(this);
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 // Mace spawn spot ----------------------------------------------------------

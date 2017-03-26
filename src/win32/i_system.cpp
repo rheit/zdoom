@@ -4,6 +4,8 @@
 **
 **---------------------------------------------------------------------------
 ** Copyright 1998-2009 Randy Heit
+** Copyright (C) 2007-2012 Skulltag Development Team
+** Copyright (C) 2007-2016 Zandronum Development Team
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -17,6 +19,15 @@
 **    documentation and/or other materials provided with the distribution.
 ** 3. The name of the author may not be used to endorse or promote products
 **    derived from this software without specific prior written permission.
+** 4. Redistributions in any form must be accompanied by information on how to
+**    obtain complete source code for the software and any accompanying software
+**    that uses the software. The source code must either be included in the
+**    distribution or be available for no more than the cost of distribution plus
+**    a nominal fee, and must be freely redistributable under reasonable
+**    conditions. For an executable file, complete source code means the source
+**    code for all modules it contains. It does not include source code for
+**    modules or files that typically accompany the major components of the
+**    operating system on which the executable file runs.
 **
 ** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
 ** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -52,7 +63,6 @@
 #include <richedit.h>
 #include <wincrypt.h>
 
-#define USE_WINDOWS_DWORD
 #include "hardware.h"
 #include "doomerrors.h"
 #include <math.h>
@@ -127,6 +137,12 @@ static void DestroyCustomCursor();
 
 EXTERN_CVAR(String, language);
 EXTERN_CVAR (Bool, queryiwad);
+// Used on welcome/IWAD screen.
+EXTERN_CVAR (Int, vid_renderer)
+EXTERN_CVAR (Bool, fullscreen)
+EXTERN_CVAR (Bool, disableautoload)
+EXTERN_CVAR (Bool, autoloadlights)
+EXTERN_CVAR (Bool, autoloadbrightmaps)
 
 extern HWND Window, ConWindow, GameTitleWindow;
 extern HANDLE StdOut;
@@ -146,7 +162,7 @@ UINT TimerPeriod;
 UINT TimerEventID;
 UINT MillisecondsPerTic;
 HANDLE NewTicArrived;
-uint32 LanguageIDs[4];
+uint32_t LanguageIDs[4];
 
 int (*I_GetTime) (bool saveMS);
 int (*I_WaitForTic) (int);
@@ -470,7 +486,7 @@ static void CALLBACK TimerTicked(UINT id, UINT msg, DWORD_PTR user, DWORD_PTR dw
 //
 //==========================================================================
 
-double I_GetTimeFrac(uint32 *ms)
+double I_GetTimeFrac(uint32_t *ms)
 {
 	DWORD now = timeGetTime();
 	if (ms != NULL)
@@ -663,11 +679,11 @@ void SetLanguageIDs()
 	}
 	else
 	{
-		DWORD lang = 0;
+		uint32_t lang = 0;
 
-		((BYTE *)&lang)[0] = (language)[0];
-		((BYTE *)&lang)[1] = (language)[1];
-		((BYTE *)&lang)[2] = (language)[2];
+		((uint8_t *)&lang)[0] = (language)[0];
+		((uint8_t *)&lang)[1] = (language)[1];
+		((uint8_t *)&lang)[2] = (language)[2];
 		LanguageIDs[0] = lang;
 		LanguageIDs[1] = lang;
 		LanguageIDs[2] = lang;
@@ -893,7 +909,7 @@ void ToEditControl(HWND edit, const char *buf, wchar_t *wbuf, int bpos)
 	};
 	for (int i = 0; i <= bpos; ++i)
 	{
-		wchar_t code = (BYTE)buf[i];
+		wchar_t code = (uint8_t)buf[i];
 		if (code >= 0x1D && code <= 0x1F)
 		{ // The bar characters, most commonly used to indicate map changes
 			code = 0x2550;	// Box Drawings Double Horizontal
@@ -968,7 +984,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 		}
 		else
 		{
-			const BYTE *color_id = (const BYTE *)cp + 1;
+			const uint8_t *color_id = (const uint8_t *)cp + 1;
 			EColorRange range = V_ParseFontColor(color_id, CR_UNTRANSLATED, CR_YELLOW);
 			cp = (const char *)color_id;
 
@@ -982,7 +998,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 					// eight basic colors, and each comes in a dark and a bright
 					// variety.
 					float h, s, v, r, g, b;
-					WORD attrib = 0;
+					int attrib = 0;
 
 					RGBtoHSV(color.r / 255.f, color.g / 255.f, color.b / 255.f, &h, &s, &v);
 					if (s != 0)
@@ -999,7 +1015,7 @@ static void DoPrintStr(const char *cp, HWND edit, HANDLE StdOut)
 						else if (v < 0.90) attrib = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
 						else			   attrib = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;
 					}
-					SetConsoleTextAttribute(StdOut, attrib);
+					SetConsoleTextAttribute(StdOut, (WORD)attrib);
 				}
 				if (edit != NULL)
 				{
@@ -1159,6 +1175,23 @@ BOOL CALLBACK IWADBoxCallback(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			newlabel.Format(GAMESIG " %s: %s", GetVersionString(), label);
 			SetWindowText(hDlg, newlabel.GetChars());
 		}
+
+		// [SP] Upstreamed from Zandronum
+		char	szString[256];
+
+		// Check the current video settings.
+		SendDlgItemMessage( hDlg, vid_renderer ? IDC_WELCOME_OPENGL : IDC_WELCOME_SOFTWARE, BM_SETCHECK, BST_CHECKED, 0 );
+		SendDlgItemMessage( hDlg, IDC_WELCOME_FULLSCREEN, BM_SETCHECK, fullscreen ? BST_CHECKED : BST_UNCHECKED, 0 );
+
+		// [SP] This is our's
+		SendDlgItemMessage( hDlg, IDC_WELCOME_NOAUTOLOAD, BM_SETCHECK, disableautoload ? BST_CHECKED : BST_UNCHECKED, 0 );
+		SendDlgItemMessage( hDlg, IDC_WELCOME_LIGHTS, BM_SETCHECK, autoloadlights ? BST_CHECKED : BST_UNCHECKED, 0 );
+		SendDlgItemMessage( hDlg, IDC_WELCOME_BRIGHTMAPS, BM_SETCHECK, autoloadbrightmaps ? BST_CHECKED : BST_UNCHECKED, 0 );
+
+		// Set up our version string.
+		sprintf(szString, "Version %s.", GetVersionString());
+		SetDlgItemText (hDlg, IDC_WELCOME_VERSION, szString);
+
 		// Populate the list with all the IWADs found
 		ctrl = GetDlgItem(hDlg, IDC_IWADLIST);
 		for (i = 0; i < NumWads; i++)
@@ -1192,6 +1225,14 @@ BOOL CALLBACK IWADBoxCallback(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			(LOWORD(wParam) == IDC_IWADLIST && HIWORD(wParam) == LBN_DBLCLK))
 		{
 			SetQueryIWad(hDlg);
+			// [SP] Upstreamed from Zandronum
+			vid_renderer = SendDlgItemMessage( hDlg, IDC_WELCOME_OPENGL, BM_GETCHECK, 0, 0 ) == BST_CHECKED;
+			fullscreen = SendDlgItemMessage( hDlg, IDC_WELCOME_FULLSCREEN, BM_GETCHECK, 0, 0 ) == BST_CHECKED;
+
+			// [SP] This is our's.
+			disableautoload = SendDlgItemMessage( hDlg, IDC_WELCOME_NOAUTOLOAD, BM_GETCHECK, 0, 0 ) == BST_CHECKED;
+			autoloadlights = SendDlgItemMessage( hDlg, IDC_WELCOME_LIGHTS, BM_GETCHECK, 0, 0 ) == BST_CHECKED;
+			autoloadbrightmaps = SendDlgItemMessage( hDlg, IDC_WELCOME_BRIGHTMAPS, BM_GETCHECK, 0, 0 ) == BST_CHECKED;
 			ctrl = GetDlgItem (hDlg, IDC_IWADLIST);
 			EndDialog(hDlg, SendMessage (ctrl, LB_GETCURSEL, 0, 0));
 		}
@@ -1334,7 +1375,7 @@ static HCURSOR CreateCompatibleCursor(FTexture *cursorpic)
 	Rectangle(xor_mask_dc, 0, 0, 32, 32);
 
 	FBitmap bmp;
-	const BYTE *pixels;
+	const uint8_t *pixels;
 
 	bmp.Create(picwidth, picheight);
 	cursorpic->CopyTrueColorPixels(&bmp, 0, 0);
@@ -1345,7 +1386,7 @@ static HCURSOR CreateCompatibleCursor(FTexture *cursorpic)
 	{
 		for (int x = 0; x < picwidth; ++x)
 		{
-			const BYTE *bgra = &pixels[x*4 + y*bmp.GetPitch()];
+			const uint8_t *bgra = &pixels[x*4 + y*bmp.GetPitch()];
 			if (bgra[3] != 0)
 			{
 				SetPixelV(and_mask_dc, x, y, RGB(0,0,0));
@@ -1421,7 +1462,7 @@ static HCURSOR CreateAlphaCursor(FTexture *cursorpic)
 	// a negative pitch so that CopyTrueColorPixels will use GDI's orientation.
 	if (scale == 1)
 	{
-		FBitmap bmp((BYTE *)bits + 31 * 32 * 4, -32 * 4, 32, 32);
+		FBitmap bmp((uint8_t *)bits + 31 * 32 * 4, -32 * 4, 32, 32);
 		cursorpic->CopyTrueColorPixels(&bmp, 0, 0);
 	}
 	else
@@ -1429,7 +1470,7 @@ static HCURSOR CreateAlphaCursor(FTexture *cursorpic)
 		TArray<uint32_t> unscaled;
 		unscaled.Resize(32 * 32);
 		for (int i = 0; i < 32 * 32; i++) unscaled[i] = 0;
-		FBitmap bmp((BYTE *)&unscaled[0] + 31 * 32 * 4, -32 * 4, 32, 32);
+		FBitmap bmp((uint8_t *)&unscaled[0] + 31 * 32 * 4, -32 * 4, 32, 32);
 		cursorpic->CopyTrueColorPixels(&bmp, 0, 0);
 		uint32_t *scaled = (uint32_t*)bits;
 		for (int y = 0; y < 32 * scale; y++)
@@ -1456,11 +1497,11 @@ static HCURSOR CreateBitmapCursor(int xhot, int yhot, HBITMAP and_mask, HBITMAP 
 {
 	ICONINFO iconinfo =
 	{
-		FALSE,			// fIcon
+		FALSE,		// fIcon
 		(DWORD)xhot,	// xHotspot
 		(DWORD)yhot,	// yHotspot
-		and_mask,		// hbmMask
-		color_mask		// hbmColor
+		and_mask,	// hbmMask
+		color_mask	// hbmColor
 	};
 	HCURSOR cursor = CreateIconIndirect(&iconinfo);
 
@@ -1724,7 +1765,7 @@ unsigned int I_MakeRNGSeed()
 	{
 		return (unsigned int)time(NULL);
 	}
-	if (!CryptGenRandom(prov, sizeof(seed), (BYTE *)&seed))
+	if (!CryptGenRandom(prov, sizeof(seed), (uint8_t *)&seed))
 	{
 		seed = (unsigned int)time(NULL);
 	}
@@ -1792,9 +1833,9 @@ int VS14Stat(const char *path, struct _stat64i32 *buffer)
 	buffer->st_uid = 0;
 	buffer->st_gid = 0;
 	buffer->st_size = data.nFileSizeLow;
-	buffer->st_atime = (*(QWORD*)&data.ftLastAccessTime) / 10000000 - 11644473600LL;
-	buffer->st_mtime = (*(QWORD*)&data.ftLastWriteTime) / 10000000 - 11644473600LL;
-	buffer->st_ctime = (*(QWORD*)&data.ftCreationTime) / 10000000 - 11644473600LL;
+	buffer->st_atime = (*(uint64_t*)&data.ftLastAccessTime) / 10000000 - 11644473600LL;
+	buffer->st_mtime = (*(uint64_t*)&data.ftLastWriteTime) / 10000000 - 11644473600LL;
+	buffer->st_ctime = (*(uint64_t*)&data.ftCreationTime) / 10000000 - 11644473600LL;
 	return 0;
 }
 #endif

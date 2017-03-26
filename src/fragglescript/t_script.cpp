@@ -55,6 +55,7 @@
 #include "doomerrors.h"
 #include "doomstat.h"
 #include "serializer.h"
+#include "g_levellocals.h"
 
 //==========================================================================
 //
@@ -183,7 +184,7 @@ DFsScript::~DFsScript()
 //
 //==========================================================================
 
-void DFsScript::Destroy()
+void DFsScript::OnDestroy()
 {
 	ClearVariables(true);
 	ClearSections();
@@ -193,7 +194,7 @@ void DFsScript::Destroy()
 	data = NULL;
 	parent = NULL;
 	trigger = NULL;
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -333,7 +334,7 @@ DRunningScript::DRunningScript(AActor *trigger, DFsScript *owner, int index)
 //
 //==========================================================================
 
-void DRunningScript::Destroy()
+void DRunningScript::OnDestroy()
 {
 	int i;
 	DFsVariable *current, *next;
@@ -351,7 +352,7 @@ void DRunningScript::Destroy()
 		}
 		variables[i] = NULL;
     }
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -387,7 +388,7 @@ IMPLEMENT_POINTERS_START(DFraggleThinker)
 	IMPLEMENT_POINTER(LevelScript)
 IMPLEMENT_POINTERS_END
 
-TObjPtr<DFraggleThinker> DFraggleThinker::ActiveThinker;
+TObjPtr<DFraggleThinker*> DFraggleThinker::ActiveThinker;
 
 //==========================================================================
 //
@@ -420,7 +421,7 @@ DFraggleThinker::DFraggleThinker()
 //
 //==========================================================================
 
-void DFraggleThinker::Destroy()
+void DFraggleThinker::OnDestroy()
 {
 	DRunningScript *p = RunningScripts;
 	while (p)
@@ -437,7 +438,7 @@ void DFraggleThinker::Destroy()
 
 	SpawnedThings.Clear();
 	ActiveThinker = NULL;
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -489,7 +490,7 @@ bool DFraggleThinker::wait_finished(DRunningScript *script)
 			FSectorTagIterator itr(script->wait_data);
 			while ((secnum = itr.Next()) >= 0)
 			{
-				sector_t *sec = &sectors[secnum];
+				sector_t *sec = &level.sectors[secnum];
 				if(sec->floordata || sec->ceilingdata || sec->lightingdata)
 					return false;        // not finished
 			}

@@ -35,6 +35,7 @@
 #include "templates.h"
 #include "renderstyle.h"
 #include "c_cvars.h"
+#include "serializer.h"
 
 CVAR (Bool, r_drawtrans, true, 0)
 CVAR (Int, r_drawfuzz, 1, CVAR_ARCHIVE)
@@ -64,7 +65,7 @@ FRenderStyle LegacyRenderStyles[STYLE_Count] =
 #else
 FRenderStyle LegacyRenderStyles[STYLE_Count];
 
-static const BYTE Styles[STYLE_Count * 4] =
+static const uint8_t Styles[STYLE_Count * 4] =
 {
 	STYLEOP_None, 		STYLEALPHA_Zero,	STYLEALPHA_Zero,	0,
 	STYLEOP_Add,		STYLEALPHA_Src,		STYLEALPHA_InvSrc,	STYLEF_Alpha1,
@@ -103,7 +104,7 @@ double GetAlpha(int type, double alpha)
 	switch (type)
 	{
 	case STYLEALPHA_Zero:		return 0;
-	case STYLEALPHA_One:		return OPAQUE;
+	case STYLEALPHA_One:		return 1.;
 	case STYLEALPHA_Src:		return alpha;
 	case STYLEALPHA_InvSrc:		return 1. - alpha;
 	default:					return 0;
@@ -190,4 +191,9 @@ void FRenderStyle::CheckFuzz()
 	{
 		BlendOp = STYLEOP_Fuzz;
 	}
+}
+
+FSerializer &Serialize(FSerializer &arc, const char *key, FRenderStyle &style, FRenderStyle *def)
+{
+	return arc.Array(key, &style.BlendOp, def ? &def->BlendOp : nullptr, 4);
 }

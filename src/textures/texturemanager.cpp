@@ -261,6 +261,15 @@ FTextureID FTextureManager::CheckForTexture (const char *name, int usetype, BITF
 	return FTextureID(-1);
 }
 
+DEFINE_ACTION_FUNCTION(_TexMan, CheckForTexture)
+{
+	PARAM_PROLOGUE;
+	PARAM_STRING(name);
+	PARAM_INT(type);
+	PARAM_INT_DEF(flags);
+	ACTION_RETURN_INT(TexMan.CheckForTexture(name, type, flags).GetIndex());
+}
+
 //==========================================================================
 //
 // FTextureManager :: ListTextures
@@ -755,7 +764,7 @@ void FTextureManager::LoadTextureDefs(int wadnum, const char *lumpname)
 void FTextureManager::AddPatches (int lumpnum)
 {
 	FWadLump *file = Wads.ReopenLumpNum (lumpnum);
-	DWORD numpatches, i;
+	uint32_t numpatches, i;
 	char name[9];
 
 	*file >> numpatches;
@@ -967,6 +976,7 @@ void FTextureManager::SortTexturesByType(int start, int end)
 // FTextureManager :: Init
 //
 //==========================================================================
+FTexture *GetBackdropTexture();
 
 void FTextureManager::Init()
 {
@@ -978,6 +988,7 @@ void FTextureManager::Init()
 
 	// Texture 0 is a dummy texture used to indicate "no texture"
 	AddTexture (new FDummyTexture);
+	AddTexture(GetBackdropTexture());
 
 	int wadcnt = Wads.GetNumWads();
 	for(int i = 0; i< wadcnt; i++)
@@ -1170,7 +1181,7 @@ int FTextureManager::CountLumpTextures (int lumpnum)
 	if (lumpnum >= 0)
 	{
 		FWadLump file = Wads.OpenLumpNum (lumpnum); 
-		DWORD numtex;
+		uint32_t numtex;
 
 		file >> numtex;
 		return int(numtex) >= 0 ? numtex : 0;
@@ -1178,6 +1189,82 @@ int FTextureManager::CountLumpTextures (int lumpnum)
 	return 0;
 }
 
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION(_TexMan, GetSize)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(texid);
+	auto tex = TexMan.ByIndex(texid);
+	int x, y;
+	if (tex != nullptr)
+	{
+		x = tex->GetWidth();
+		y = tex->GetHeight();
+	}
+	else x = y = -1;
+	if (numret > 0) ret[0].SetInt(x);
+	if (numret > 1) ret[1].SetInt(y);
+	return MIN(numret, 2);
+}
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION(_TexMan, GetScaledSize)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(texid);
+	auto tex = TexMan.ByIndex(texid);
+	if (tex != nullptr)
+	{
+		ACTION_RETURN_VEC2(DVector2(tex->GetScaledWidthDouble(), tex->GetScaledHeightDouble()));
+	}
+	ACTION_RETURN_VEC2(DVector2(-1, -1));
+}
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION(_TexMan, GetScaledOffset)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(texid);
+	auto tex = TexMan.ByIndex(texid);
+	if (tex != nullptr)
+	{
+		ACTION_RETURN_VEC2(DVector2(tex->GetScaledLeftOffsetDouble(), tex->GetScaledTopOffsetDouble()));
+	}
+	ACTION_RETURN_VEC2(DVector2(-1, -1));
+}
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
+
+DEFINE_ACTION_FUNCTION(_TexMan, CheckRealHeight)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(texid);
+	auto tex = TexMan.ByIndex(texid);
+	if (tex != nullptr)
+	{
+		ACTION_RETURN_INT(tex->CheckRealHeight());
+	}
+	ACTION_RETURN_INT(-1);
+}
 
 //==========================================================================
 //

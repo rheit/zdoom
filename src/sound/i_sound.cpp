@@ -32,19 +32,6 @@
 **
 */
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <mmsystem.h>
-#include "resource.h"
-extern HWND Window;
-extern HINSTANCE g_hInst;
-#define USE_WINDOWS_DWORD
-#else
-#define FALSE 0
-#define TRUE 1
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -52,7 +39,6 @@ extern HINSTANCE g_hInst;
 #include "doomtype.h"
 #include <math.h>
 
-#include "except.h"
 #include "fmodsound.h"
 #include "oalsound.h"
 
@@ -125,6 +111,8 @@ CUSTOM_CVAR (Float, snd_sfxvolume, 1.f, CVAR_ARCHIVE|CVAR_GLOBALCONFIG|CVAR_NOIN
 	}
 }
 
+class MIDIStreamer;
+
 class NullSoundRenderer : public SoundRenderer
 {
 public:
@@ -135,12 +123,12 @@ public:
 	void SetMusicVolume (float volume)
 	{
 	}
-	std::pair<SoundHandle,bool> LoadSound(BYTE *sfxdata, int length, bool monoize)
+	std::pair<SoundHandle,bool> LoadSound(uint8_t *sfxdata, int length, bool monoize)
 	{
 		SoundHandle retval = { NULL };
 		return std::make_pair(retval, true);
 	}
-	std::pair<SoundHandle,bool> LoadSoundRaw(BYTE *sfxdata, int length, int frequency, int channels, int bits, int loopstart, int loopend, bool monoize)
+	std::pair<SoundHandle,bool> LoadSoundRaw(uint8_t *sfxdata, int length, int frequency, int channels, int bits, int loopstart, int loopend, bool monoize)
 	{
 		SoundHandle retval = { NULL };
         return std::make_pair(retval, true);
@@ -249,6 +237,11 @@ public:
 	FString GatherStats ()
 	{
 		return "Null sound module has no stats.";
+	}
+
+	virtual MIDIDevice* CreateMIDIDevice() const override
+	{
+		return nullptr;
 	}
 };
 
@@ -456,9 +449,9 @@ FString SoundStream::GetStats()
 //
 //==========================================================================
 
-std::pair<SoundHandle,bool> SoundRenderer::LoadSoundVoc(BYTE *sfxdata, int length, bool monoize)
+std::pair<SoundHandle,bool> SoundRenderer::LoadSoundVoc(uint8_t *sfxdata, int length, bool monoize)
 {
-	BYTE * data = NULL;
+	uint8_t * data = NULL;
 	int len, frequency, channels, bits, loopstart, loopend;
 	len = frequency = channels = bits = 0;
 	loopstart = loopend = -1;
@@ -563,7 +556,7 @@ std::pair<SoundHandle,bool> SoundRenderer::LoadSoundVoc(BYTE *sfxdata, int lengt
 		// Second pass to write the data
 		if (okay)
 		{
-			data = new BYTE[len];
+			data = new uint8_t[len];
 			i = 26;
 			int j = 0;
 			while (i < length)
@@ -615,8 +608,8 @@ SoundDecoder *SoundRenderer::CreateDecoder(FileReader *reader)
     SoundDecoder *decoder = NULL;
     int pos = reader->Tell();
 
-#ifdef HAVE_MPG123
-		decoder = new MPG123Decoder;
+#ifdef HAVE_SNDFILE
+		decoder = new SndFileDecoder;
 		if (decoder->open(reader))
 			return decoder;
 		reader->Seek(pos, SEEK_SET);
@@ -624,8 +617,8 @@ SoundDecoder *SoundRenderer::CreateDecoder(FileReader *reader)
 		delete decoder;
 		decoder = NULL;
 #endif
-#ifdef HAVE_SNDFILE
-		decoder = new SndFileDecoder;
+#ifdef HAVE_MPG123
+		decoder = new MPG123Decoder;
 		if (decoder->open(reader))
 			return decoder;
 		reader->Seek(pos, SEEK_SET);

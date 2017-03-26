@@ -10,7 +10,7 @@
 #include "p_local.h"
 #include "b_bot.h"
 #include "g_game.h"
-#include "d_ticcmd.h"
+#include "d_protocol.h"
 #include "m_random.h"
 #include "i_system.h"
 #include "p_lnspec.h"
@@ -21,6 +21,7 @@
 #include "d_player.h"
 #include "p_spec.h"
 #include "p_checkposition.h"
+#include "actorinlines.h"
 #include "math/cmath.h"
 
 static FRandom pr_botopendoor ("BotOpenDoor");
@@ -65,11 +66,11 @@ bool DBot::Move (ticcmd_t *cmd)
 	bool try_ok;
 	int good;
 
-	if (player->mo->movedir == DI_NODIR)
+	if (player->mo->movedir >= DI_NODIR)
+	{
+		player->mo->movedir = DI_NODIR;	// make sure it's valid.
 		return false;
-
-	if ((unsigned)player->mo->movedir >= 8)
-		I_Error ("Weird bot movedir!");
+	}
 
 	tryx = player->mo->X() + 8*xspeed[player->mo->movedir];
 	tryy = player->mo->Y() + 8*yspeed[player->mo->movedir];

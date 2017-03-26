@@ -32,6 +32,7 @@
 #include "p_lnspec.h"
 #include "doomstat.h"
 #include "p_maputl.h"
+#include "g_levellocals.h"
 
 // State.
 #include "r_state.h"
@@ -154,8 +155,8 @@ public:
 	void		Serialize(FSerializer &arc);
 	void		Tick();
 protected:
-	BYTE		m_BaseLevel;
-	BYTE		m_Phase;
+	uint8_t		m_BaseLevel;
+	uint8_t		m_Phase;
 private:
 	DPhased();
 	DPhased(sector_t *sector, int baselevel);
@@ -324,7 +325,7 @@ void EV_StartLightFlickering (int tag, int upper, int lower)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		new DFlicker (&sectors[secnum], upper, lower);
+		new DFlicker (&level.sectors[secnum], upper, lower);
 	}
 }
 
@@ -501,7 +502,7 @@ void EV_StartLightStrobing (int tag, int upper, int lower, int utics, int ltics)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sec = &sectors[secnum];
+		sector_t *sec = &level.sectors[secnum];
 		if (sec->lightingdata)
 			continue;
 		
@@ -515,7 +516,7 @@ void EV_StartLightStrobing (int tag, int utics, int ltics)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sec = &sectors[secnum];
+		sector_t *sec = &level.sectors[secnum];
 		if (sec->lightingdata)
 			continue;
 		
@@ -537,12 +538,12 @@ void EV_TurnTagLightsOff (int tag)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sector = sectors + secnum;
+		sector_t *sector = &level.sectors[secnum];
 		int min = sector->lightlevel;
 
-		for (int i = 0; i < sector->linecount; i++)
+		for (auto ln : sector->Lines)
 		{
-			sector_t *tsec = getNextSector (sector->lines[i],sector);
+			sector_t *tsec = getNextSector (ln, sector);
 			if (!tsec)
 				continue;
 			if (tsec->lightlevel < min)
@@ -566,7 +567,7 @@ void EV_LightTurnOn (int tag, int bright)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sector = sectors + secnum;
+		sector_t *sector = &level.sectors[secnum];
 		int tbright = bright; //jff 5/17/98 search for maximum PER sector
 
 		// bright = -1 means to search ([RH] Not 0)
@@ -574,11 +575,9 @@ void EV_LightTurnOn (int tag, int bright)
 		// surrounding sector
 		if (bright < 0)
 		{
-			int j;
-
-			for (j = 0; j < sector->linecount; j++)
+			for (auto ln : sector->Lines)
 			{
-				sector_t *temp = getNextSector (sector->lines[j], sector);
+				sector_t *temp = getNextSector(ln, sector);
 
 				if (!temp)
 					continue;
@@ -621,12 +620,12 @@ void EV_LightTurnOnPartway (int tag, double frac)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *temp, *sector = &sectors[secnum];
-		int j, bright = 0, min = sector->lightlevel;
+		sector_t *temp, *sector = &level.sectors[secnum];
+		int bright = 0, min = sector->lightlevel;
 
-		for (j = 0; j < sector->linecount; ++j)
+		for (auto ln : sector->Lines)
 		{
-			if ((temp = getNextSector (sector->lines[j], sector)) != NULL)
+			if ((temp = getNextSector (ln, sector)) != nullptr)
 			{
 				if (temp->lightlevel > bright)
 				{
@@ -657,7 +656,7 @@ void EV_LightChange (int tag, int value)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sectors[secnum].SetLightLevel(sectors[secnum].lightlevel + value);
+		level.sectors[secnum].SetLightLevel(level.sectors[secnum].lightlevel + value);
 	}
 }
 
@@ -823,7 +822,7 @@ void EV_StartLightGlowing (int tag, int upper, int lower, int tics)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sec = &sectors[secnum];
+		sector_t *sec = &level.sectors[secnum];
 		if (sec->lightingdata)
 			continue;
 		
@@ -843,7 +842,7 @@ void EV_StartLightFading (int tag, int value, int tics)
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		sector_t *sec = &sectors[secnum];
+		sector_t *sec = &level.sectors[secnum];
 		if (sec->lightingdata)
 			continue;
 
