@@ -1,20 +1,23 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //		Base class for effects on sectors.
@@ -25,11 +28,13 @@
 #include "dsectoreffect.h"
 #include "gi.h"
 #include "p_local.h"
+#include "g_levellocals.h"
 #include "p_3dmidtex.h"
 #include "r_data/r_interpolate.h"
 #include "statnums.h"
 #include "serializer.h"
 #include "doomstat.h"
+#include "vm.h"
 
 IMPLEMENT_CLASS(DSectorEffect, false, false)
 
@@ -39,7 +44,7 @@ DSectorEffect::DSectorEffect ()
 	m_Sector = NULL;
 }
 
-void DSectorEffect::Destroy()
+void DSectorEffect::OnDestroy()
 {
 	if (m_Sector)
 	{
@@ -56,7 +61,7 @@ void DSectorEffect::Destroy()
 			m_Sector->lightingdata = NULL;
 		}
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 DSectorEffect::DSectorEffect (sector_t *sector)
@@ -71,15 +76,14 @@ void DSectorEffect::Serialize(FSerializer &arc)
 	arc("sector", m_Sector);
 }
 
-IMPLEMENT_CLASS(DMover, false, true)
+DEFINE_FIELD(DSectorEffect, m_Sector)
+
+
+IMPLEMENT_CLASS(DMover, true, true)
 
 IMPLEMENT_POINTERS_START(DMover)
 	IMPLEMENT_POINTER(interpolation)
 IMPLEMENT_POINTERS_END
-
-DMover::DMover ()
-{
-}
 
 DMover::DMover (sector_t *sector)
 	: DSectorEffect (sector)
@@ -87,10 +91,10 @@ DMover::DMover (sector_t *sector)
 	interpolation = NULL;
 }
 
-void DMover::Destroy()
+void DMover::OnDestroy()
 {
 	StopInterpolation();
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 void DMover::Serialize(FSerializer &arc)
@@ -108,11 +112,8 @@ void DMover::StopInterpolation(bool force)
 	}
 }
 
-IMPLEMENT_CLASS(DMovingFloor, false, false)
+IMPLEMENT_CLASS(DMovingFloor, true, false)
 
-DMovingFloor::DMovingFloor ()
-{
-}
 
 DMovingFloor::DMovingFloor (sector_t *sector)
 	: DMover (sector)
@@ -121,11 +122,8 @@ DMovingFloor::DMovingFloor (sector_t *sector)
 	interpolation = sector->SetInterpolation(sector_t::FloorMove, true);
 }
 
-IMPLEMENT_CLASS(DMovingCeiling, false, false)
+IMPLEMENT_CLASS(DMovingCeiling, true, false)
 
-DMovingCeiling::DMovingCeiling ()
-{
-}
 
 DMovingCeiling::DMovingCeiling (sector_t *sector, bool interpolate)
 	: DMover (sector)
@@ -134,17 +132,17 @@ DMovingCeiling::DMovingCeiling (sector_t *sector, bool interpolate)
 	if (interpolate) interpolation = sector->SetInterpolation(sector_t::CeilingMove, true);
 }
 
-bool sector_t::MoveAttached(int crush, double move, int floorOrCeiling, bool resetfailed)
+bool sector_t::MoveAttached(int crush, double move, int floorOrCeiling, bool resetfailed, bool instant)
 {
-	if (!P_Scroll3dMidtex(this, crush, move, !!floorOrCeiling) && resetfailed)
+	if (!P_Scroll3dMidtex(this, crush, move, !!floorOrCeiling, instant) && resetfailed)
 	{
-		P_Scroll3dMidtex(this, crush, -move, !!floorOrCeiling);
+		P_Scroll3dMidtex(this, crush, -move, !!floorOrCeiling, instant);
 		return false;
 	}
-	if (!P_MoveLinkedSectors(this, crush, move, !!floorOrCeiling) && resetfailed)
+	if (!P_MoveLinkedSectors(this, crush, move, !!floorOrCeiling, instant) && resetfailed)
 	{
-		P_MoveLinkedSectors(this, crush, -move, !!floorOrCeiling);
-		P_Scroll3dMidtex(this, crush, -move, !!floorOrCeiling);
+		P_MoveLinkedSectors(this, crush, -move, !!floorOrCeiling, instant);
+		P_Scroll3dMidtex(this, crush, -move, !!floorOrCeiling, instant);
 		return false;
 	}
 	return true;
@@ -156,7 +154,7 @@ bool sector_t::MoveAttached(int crush, double move, int floorOrCeiling, bool res
 //		(Use -1 to prevent it from trying to crush)
 //		dest is the desired d value for the plane
 //
-EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direction, bool hexencrush)
+EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direction, bool hexencrush, bool instant)
 {
 	bool	 	flag;
 	double 	lastpos;
@@ -174,15 +172,15 @@ EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direct
 		{
 			move = floorplane.HeightDiff(lastpos, dest);
 
-			if (!MoveAttached(crush, move, 0, true)) return EMoveResult::crushed;
+			if (!MoveAttached(crush, move, 0, true, instant)) return EMoveResult::crushed;
 
 			floorplane.setD(dest);
-			flag = P_ChangeSector(this, crush, move, 0, false);
+			flag = P_ChangeSector(this, crush, move, 0, false, instant);
 			if (flag)
 			{
 				floorplane.setD(lastpos);
-				P_ChangeSector(this, crush, -move, 0, true);
-				MoveAttached(crush, -move, 0, false);
+				P_ChangeSector(this, crush, -move, 0, true, instant);
+				MoveAttached(crush, -move, 0, false, instant);
 			}
 			else
 			{
@@ -193,16 +191,16 @@ EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direct
 		}
 		else
 		{
-			if (!MoveAttached(crush, -speed, 0, true)) return EMoveResult::crushed;
+			if (!MoveAttached(crush, -speed, 0, true, instant)) return EMoveResult::crushed;
 
 			floorplane.setD(movedest);
 
-			flag = P_ChangeSector(this, crush, -speed, 0, false);
+			flag = P_ChangeSector(this, crush, -speed, 0, false, instant);
 			if (flag)
 			{
 				floorplane.setD(lastpos);
-				P_ChangeSector(this, crush, speed, 0, true);
-				MoveAttached(crush, speed, 0, false);
+				P_ChangeSector(this, crush, speed, 0, true, instant);
+				MoveAttached(crush, speed, 0, false, instant);
 				return EMoveResult::crushed;
 			}
 			else
@@ -231,16 +229,16 @@ EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direct
 		{
 			move = floorplane.HeightDiff(lastpos, dest);
 
-			if (!MoveAttached(crush, move, 0, true)) return EMoveResult::crushed;
+			if (!MoveAttached(crush, move, 0, true, instant)) return EMoveResult::crushed;
 
 			floorplane.setD(dest);
 
-			flag = P_ChangeSector(this, crush, move, 0, false);
+			flag = P_ChangeSector(this, crush, move, 0, false, instant);
 			if (flag)
 			{
 				floorplane.setD(lastpos);
-				P_ChangeSector(this, crush, -move, 0, true);
-				MoveAttached(crush, -move, 0, false);
+				P_ChangeSector(this, crush, -move, 0, true, instant);
+				MoveAttached(crush, -move, 0, false, instant);
 			}
 			else
 			{
@@ -251,12 +249,12 @@ EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direct
 		}
 		else
 		{
-			if (!MoveAttached(crush, speed, 0, true)) return EMoveResult::crushed;
+			if (!MoveAttached(crush, speed, 0, true, instant)) return EMoveResult::crushed;
 
 			floorplane.setD(movedest);
 
 			// COULD GET CRUSHED
-			flag = P_ChangeSector(this, crush, speed, 0, false);
+			flag = P_ChangeSector(this, crush, speed, 0, false, instant);
 			if (flag)
 			{
 				if (crush >= 0 && !hexencrush)
@@ -266,8 +264,8 @@ EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direct
 					return EMoveResult::crushed;
 				}
 				floorplane.setD(lastpos);
-				P_ChangeSector(this, crush, -speed, 0, true);
-				MoveAttached(crush, -speed, 0, false);
+				P_ChangeSector(this, crush, -speed, 0, true, instant);
+				MoveAttached(crush, -speed, 0, false, instant);
 				return EMoveResult::crushed;
 			}
 			ChangePlaneTexZ(sector_t::floor, floorplane.HeightDiff(lastpos));
@@ -277,6 +275,19 @@ EMoveResult sector_t::MoveFloor(double speed, double dest, int crush, int direct
 	}
 	return EMoveResult::ok;
 }
+
+DEFINE_ACTION_FUNCTION(_Sector, MoveFloor)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_FLOAT(speed);
+	PARAM_FLOAT(dest);
+	PARAM_INT(crush);
+	PARAM_INT(dir);
+	PARAM_BOOL(hex);
+	PARAM_BOOL_DEF(inst);
+	ACTION_RETURN_INT((int)self->MoveFloor(speed, dest, crush, dir, hex, inst));
+}
+
 
 EMoveResult sector_t::MoveCeiling(double speed, double dest, int crush, int direction, bool hexencrush)
 {
@@ -390,4 +401,15 @@ EMoveResult sector_t::MoveCeiling(double speed, double dest, int crush, int dire
 		break;
 	}
 	return EMoveResult::ok;
+}
+
+DEFINE_ACTION_FUNCTION(_Sector, MoveCeiling)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(sector_t);
+	PARAM_FLOAT(speed);
+	PARAM_FLOAT(dest);
+	PARAM_INT(crush);
+	PARAM_INT(dir);
+	PARAM_BOOL(hex);
+	ACTION_RETURN_INT((int)self->MoveCeiling(speed, dest, crush, dir, hex));
 }

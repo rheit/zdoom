@@ -62,7 +62,7 @@ public:
 
 	DSectorPlaneInterpolation() {}
 	DSectorPlaneInterpolation(sector_t *sector, bool plane, bool attach);
-	void Destroy() override;
+	void OnDestroy() override;
 	void UpdateInterpolation();
 	void Restore();
 	void Interpolate(double smoothratio);
@@ -91,7 +91,7 @@ public:
 
 	DSectorScrollInterpolation() {}
 	DSectorScrollInterpolation(sector_t *sector, bool plane);
-	void Destroy() override;
+	void OnDestroy() override;
 	void UpdateInterpolation();
 	void Restore();
 	void Interpolate(double smoothratio);
@@ -119,7 +119,7 @@ public:
 
 	DWallScrollInterpolation() {}
 	DWallScrollInterpolation(side_t *side, int part);
-	void Destroy() override;
+	void OnDestroy() override;
 	void UpdateInterpolation();
 	void Restore();
 	void Interpolate(double smoothratio);
@@ -146,7 +146,7 @@ public:
 
 	DPolyobjInterpolation() {}
 	DPolyobjInterpolation(FPolyObj *poly);
-	void Destroy() override;
+	void OnDestroy() override;
 	void UpdateInterpolation();
 	void Restore();
 	void Interpolate(double smoothratio);
@@ -247,9 +247,9 @@ void FInterpolator::RemoveInterpolation(DInterpolation *interp)
 		if (interp->Prev != NULL) interp->Prev->Next = interp->Next;
 		if (interp->Next != NULL) interp->Next->Prev = interp->Prev;
 	}
-	interp->Next = NULL;
-	interp->Prev = NULL;
-	count--;
+		interp->Next = NULL;
+		interp->Prev = NULL;
+		count--;
 }
 
 //==========================================================================
@@ -364,11 +364,11 @@ int DInterpolation::DelRef(bool force)
 //
 //==========================================================================
 
-void DInterpolation::Destroy()
+void DInterpolation::OnDestroy()
 {
 	interpolator.RemoveInterpolation(this);
 	refcount = 0;
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -419,7 +419,7 @@ DSectorPlaneInterpolation::DSectorPlaneInterpolation(sector_t *_sector, bool _pl
 //
 //==========================================================================
 
-void DSectorPlaneInterpolation::Destroy()
+void DSectorPlaneInterpolation::OnDestroy()
 {
 	if (sector != nullptr)
 	{
@@ -437,7 +437,7 @@ void DSectorPlaneInterpolation::Destroy()
 	{
 		attached[i]->DelRef();
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -471,12 +471,12 @@ void DSectorPlaneInterpolation::Restore()
 	if (!ceiling)
 	{
 		sector->floorplane.setD(bakheight);
-		sector->SetPlaneTexZ(sector_t::floor, baktexz);
+		sector->SetPlaneTexZ(sector_t::floor, baktexz, true);
 	}
 	else
 	{
 		sector->ceilingplane.setD(bakheight);
-		sector->SetPlaneTexZ(sector_t::ceiling, baktexz);
+		sector->SetPlaneTexZ(sector_t::ceiling, baktexz, true);
 	}
 	P_RecalculateAttached3DFloors(sector);
 	sector->CheckPortalPlane(ceiling? sector_t::ceiling : sector_t::floor);
@@ -514,8 +514,8 @@ void DSectorPlaneInterpolation::Interpolate(double smoothratio)
 	else
 	{
 		pplane->setD(oldheight + (bakheight - oldheight) * smoothratio);
-		sector->SetPlaneTexZ(pos, oldtexz + (baktexz - oldtexz) * smoothratio);
-		P_RecalculateAttached3DFloors(sector);
+		sector->SetPlaneTexZ(pos, oldtexz + (baktexz - oldtexz) * smoothratio, true);
+	P_RecalculateAttached3DFloors(sector);
 		sector->CheckPortalPlane(pos);
 	}
 }
@@ -597,7 +597,7 @@ DSectorScrollInterpolation::DSectorScrollInterpolation(sector_t *_sector, bool _
 //
 //==========================================================================
 
-void DSectorScrollInterpolation::Destroy()
+void DSectorScrollInterpolation::OnDestroy()
 {
 	if (sector != nullptr)
 	{
@@ -611,7 +611,7 @@ void DSectorScrollInterpolation::Destroy()
 		}
 		sector = nullptr;
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -702,14 +702,14 @@ DWallScrollInterpolation::DWallScrollInterpolation(side_t *_side, int _part)
 //
 //==========================================================================
 
-void DWallScrollInterpolation::Destroy()
+void DWallScrollInterpolation::OnDestroy()
 {
 	if (side != nullptr)
 	{
 		side->textures[part].interpolation = nullptr;
 		side = nullptr;
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -800,13 +800,13 @@ DPolyobjInterpolation::DPolyobjInterpolation(FPolyObj *po)
 //
 //==========================================================================
 
-void DPolyobjInterpolation::Destroy()
+void DPolyobjInterpolation::OnDestroy()
 {
 	if (poly != nullptr)
 	{
 		poly->interpolation = nullptr;
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //==========================================================================
@@ -907,7 +907,7 @@ DInterpolation *side_t::SetInterpolation(int position)
 {
 	if (textures[position].interpolation == NULL)
 	{
-		textures[position].interpolation = new DWallScrollInterpolation(this, position);
+		textures[position].interpolation = Create<DWallScrollInterpolation>(this, position);
 	}
 	textures[position].interpolation->AddRef();
 	GC::WriteBarrier(textures[position].interpolation);
@@ -942,19 +942,19 @@ DInterpolation *sector_t::SetInterpolation(int position, bool attach)
 		switch (position)
 		{
 		case sector_t::CeilingMove:
-			interp = new DSectorPlaneInterpolation(this, true, attach);
+			interp = Create<DSectorPlaneInterpolation>(this, true, attach);
 			break;
 
 		case sector_t::FloorMove:
-			interp = new DSectorPlaneInterpolation(this, false, attach);
+			interp = Create<DSectorPlaneInterpolation>(this, false, attach);
 			break;
 
 		case sector_t::CeilingScroll:
-			interp = new DSectorScrollInterpolation(this, true);
+			interp = Create<DSectorScrollInterpolation>(this, true);
 			break;
 
 		case sector_t::FloorScroll:
-			interp = new DSectorScrollInterpolation(this, false);
+			interp = Create<DSectorScrollInterpolation>(this, false);
 			break;
 
 		default:
@@ -981,7 +981,7 @@ DInterpolation *FPolyObj::SetInterpolation()
 	}
 	else
 	{
-		interpolation = new DPolyobjInterpolation(this);
+		interpolation = Create<DPolyobjInterpolation>(this);
 		interpolation->AddRef();
 	}
 	GC::WriteBarrier(interpolation);

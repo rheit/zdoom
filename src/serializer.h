@@ -6,6 +6,7 @@
 #include "tarray.h"
 #include "r_defs.h"
 #include "resourcefiles/file_zip.h"
+#include "tflags.h"
 
 extern bool save_full;
 
@@ -14,10 +15,15 @@ struct usercmd_t;
 
 struct FWriter;
 struct FReader;
-
-extern TArray<sector_t>	loadsectors;
-extern TArray<line_t>	loadlines;
-extern TArray<side_t>	loadsides;
+class PClass;
+class PClassActor;
+struct FStrifeDialogueNode;
+class FFont;
+struct FState;
+struct FDoorAnimation;
+class FSoundID;
+struct FPolyObj;
+union FRenderStyle;
 
 inline bool nullcmp(const void *buffer, size_t length)
 {
@@ -68,6 +74,7 @@ public:
 
 	~FSerializer()
 	{
+		mErrors = 0;	// The destructor may not throw an exception so silence the error checker.
 		Close();
 	}
 	bool OpenWriter(bool pretty = true);
@@ -208,8 +215,15 @@ FSerializer &Serialize(FSerializer &arc, const char *key, TObjPtr<T> &value, TOb
 	return arc; 
 }
 
+template<class T>
+FSerializer &Serialize(FSerializer &arc, const char *key, TObjPtr<T> &value, T *)
+{
+	Serialize(arc, key, value.o, nullptr);
+	return arc;
+}
+
 template<class T, class TT>
-FSerializer &Serialize(FSerializer &arc, const char *key, TArray<T, TT> &value, TArray<T, TT> *)
+FSerializer &Serialize(FSerializer &arc, const char *key, TArray<T, TT> &value, TArray<T, TT> *def)
 {
 	if (arc.isWriting())
 	{
@@ -227,7 +241,7 @@ FSerializer &Serialize(FSerializer &arc, const char *key, TArray<T, TT> &value, 
 	}
 	for (unsigned i = 0; i < value.Size(); i++)
 	{
-		Serialize(arc, nullptr, value[i], (T*)nullptr);
+		Serialize(arc, nullptr, value[i], def? &(*def)[i] : nullptr);
 	}
 	arc.EndArray();
 	return arc;
@@ -241,7 +255,6 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, player_t *&
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, line_t *&value, line_t **defval);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, side_t *&value, side_t **defval);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, vertex_t *&value, vertex_t **defval);
-template<> FSerializer &Serialize(FSerializer &arc, const char *key, FDynamicColormap *&cm, FDynamicColormap **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, PClassActor *&clst, PClassActor **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, PClass *&clst, PClass **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, FStrifeDialogueNode *&node, FStrifeDialogueNode **def);
@@ -249,11 +262,6 @@ template<> FSerializer &Serialize(FSerializer &arc, const char *key, FString *&p
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, FDoorAnimation *&pstr, FDoorAnimation **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, char *&pstr, char **def);
 template<> FSerializer &Serialize(FSerializer &arc, const char *key, FFont *&font, FFont **def);
-
-template<> inline FSerializer &Serialize(FSerializer &arc, const char *key, PClassPlayerPawn *&clst, PClassPlayerPawn **def)
-{
-	return Serialize(arc, key, (PClassActor *&)clst, (PClassActor **)def);
-}
 
 FSerializer &Serialize(FSerializer &arc, const char *key, FState *&state, FState **def, bool *retcode);
 template<> inline FSerializer &Serialize(FSerializer &arc, const char *key, FState *&state, FState **def)
@@ -287,10 +295,7 @@ inline FSerializer &Serialize(FSerializer &arc, const char *key, PalEntry &pe, P
 	return Serialize(arc, key, pe.d, def? &def->d : nullptr);
 }
 
-inline FSerializer &Serialize(FSerializer &arc, const char *key, FRenderStyle &style, FRenderStyle *def)
-{
-	return arc.Array(key, &style.BlendOp, def ? &def->BlendOp : nullptr, 4);
-}
+FSerializer &Serialize(FSerializer &arc, const char *key, FRenderStyle &style, FRenderStyle *def);
 
 template<class T, class TT>
 FSerializer &Serialize(FSerializer &arc, const char *key, TFlags<T, TT> &flags, TFlags<T, TT> *def)

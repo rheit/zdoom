@@ -1,3 +1,36 @@
+/*
+**
+**
+**---------------------------------------------------------------------------
+** Copyright 2005-2016 Randy Heit
+** All rights reserved.
+**
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions
+** are met:
+**
+** 1. Redistributions of source code must retain the above copyright
+**    notice, this list of conditions and the following disclaimer.
+** 2. Redistributions in binary form must reproduce the above copyright
+**    notice, this list of conditions and the following disclaimer in the
+**    documentation and/or other materials provided with the distribution.
+** 3. The name of the author may not be used to endorse or promote products
+**    derived from this software without specific prior written permission.
+**
+** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+** OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+** IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+** INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+** NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+** THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**---------------------------------------------------------------------------
+**
+*/
+
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_WINNT 0x0500
 #define _WIN32_IE 0x0500
@@ -9,7 +42,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#define USE_WINDOWS_DWORD
 #include "resource.h"
 #include "s_sound.h"
 #include "templates.h"
@@ -56,8 +88,8 @@ typedef struct w32apiFixedOFNA {
 	LPCSTR lpstrInitialDir;
 	LPCSTR lpstrTitle;
 	DWORD Flags;
-	WORD nFileOffset;
-	WORD nFileExtension;
+	uint16_t nFileOffset;
+	uint16_t nFileExtension;
 	LPCSTR lpstrDefExt;
 	LPARAM lCustData;
 	LPOFNHOOKPROC lpfnHook;
@@ -255,7 +287,7 @@ void PopulateEnvDropDown (HWND hCtl, bool showIDs, const ReverbContainer *defEnv
 	}
 }
 
-void SetIDEdits (HWND hDlg, WORD id)
+void SetIDEdits (HWND hDlg, uint16_t id)
 {
 	char text[4];
 
@@ -292,7 +324,7 @@ void PopulateEnvList (HWND hCtl, bool show, const ReverbContainer *defEnv)
 	SendMessage (hCtl, WM_SETREDRAW, TRUE, 0);
 }
 
-WORD FirstFreeID (WORD base, bool builtin)
+uint16_t FirstFreeID (uint16_t base, bool builtin)
 {
 	int tryCount = 0;
 	int priID = HIBYTE(base);
@@ -316,7 +348,7 @@ WORD FirstFreeID (WORD base, bool builtin)
 
 	for (;;)
 	{
-		WORD lastID = Environments->ID;
+		uint16_t lastID = Environments->ID;
 		const ReverbContainer *env = Environments->Next;
 
 		// Find the lowest-numbered free ID with the same primary ID as base

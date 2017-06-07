@@ -1,3 +1,35 @@
+/*
+** i_input.cpp
+**
+**---------------------------------------------------------------------------
+** Copyright 2005-2016 Randy Heit
+** All rights reserved.
+**
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions
+** are met:
+**
+** 1. Redistributions of source code must retain the above copyright
+**    notice, this list of conditions and the following disclaimer.
+** 2. Redistributions in binary form must reproduce the above copyright
+**    notice, this list of conditions and the following disclaimer in the
+**    documentation and/or other materials provided with the distribution.
+** 3. The name of the author may not be used to endorse or promote products
+**    derived from this software without specific prior written permission.
+**
+** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+** OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+** IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+** INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+** NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+** THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**---------------------------------------------------------------------------
+**
+*/
 #include <SDL.h>
 #include <ctype.h>
 #include "doomtype.h"
@@ -17,6 +49,7 @@
 #include "dikeys.h"
 #include "templates.h"
 #include "s_sound.h"
+#include "events.h"
 
 static void I_CheckGUICapture ();
 static void I_CheckNativeMouse ();
@@ -109,9 +142,9 @@ static const SDL_Scancode DIKToKeyScan[256] =
 	SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN, SDL_SCANCODE_UNKNOWN
 };
 
-static TMap<SDL_Keycode, BYTE> InitKeySymMap ()
+static TMap<SDL_Keycode, uint8_t> InitKeySymMap ()
 {
-	TMap<SDL_Keycode, BYTE> KeySymToDIK;
+	TMap<SDL_Keycode, uint8_t> KeySymToDIK;
 
 	for (int i = 0; i < 256; ++i)
 	{
@@ -126,11 +159,11 @@ static TMap<SDL_Keycode, BYTE> InitKeySymMap ()
 
 	return KeySymToDIK;
 }
-static const TMap<SDL_Keycode, BYTE> KeySymToDIK(InitKeySymMap());
+static const TMap<SDL_Keycode, uint8_t> KeySymToDIK(InitKeySymMap());
 
-static TMap<SDL_Scancode, BYTE> InitKeyScanMap ()
+static TMap<SDL_Scancode, uint8_t> InitKeyScanMap ()
 {
-	TMap<SDL_Scancode, BYTE> KeyScanToDIK;
+	TMap<SDL_Scancode, uint8_t> KeyScanToDIK;
 
 	for (int i = 0; i < 256; ++i)
 	{
@@ -139,7 +172,7 @@ static TMap<SDL_Scancode, BYTE> InitKeyScanMap ()
 
 	return KeyScanToDIK;
 }
-static const TMap<SDL_Scancode, BYTE> KeyScanToDIK(InitKeyScanMap());
+static const TMap<SDL_Scancode, uint8_t> KeyScanToDIK(InitKeyScanMap());
 
 static void I_CheckGUICapture ()
 {
@@ -153,6 +186,10 @@ static void I_CheckGUICapture ()
 	{
 		wantCapt = (menuactive == MENU_On || menuactive == MENU_OnNoPause);
 	}
+
+	// [ZZ] check active event handlers that want the UI processing
+	if (!wantCapt && E_CheckUiProcessors())
+		wantCapt = true;
 
 	if (wantCapt != GUICapture)
 	{
@@ -331,6 +368,12 @@ void MessagePump (const SDL_Event &sev)
 				event.subtype = sev.type == SDL_MOUSEBUTTONDOWN ? EV_GUI_LButtonDown : EV_GUI_LButtonUp;
 				event.subtype += (sev.button.button - 1) * 3;
 			}
+
+			SDL_Keymod kmod = SDL_GetModState();
+			event.data3 = ((kmod & KMOD_SHIFT) ? GKM_SHIFT : 0) |
+				((kmod & KMOD_CTRL) ? GKM_CTRL : 0) |
+				((kmod & KMOD_ALT) ? GKM_ALT : 0);
+
 			D_PostEvent(&event);
 		}
 		break;
@@ -340,6 +383,10 @@ void MessagePump (const SDL_Event &sev)
 		{
 			event.type = EV_GUI_Event;
 			event.subtype = sev.wheel.y > 0 ? EV_GUI_WheelUp : EV_GUI_WheelDown;
+			SDL_Keymod kmod = SDL_GetModState();
+			event.data3 = ((kmod & KMOD_SHIFT) ? GKM_SHIFT : 0) |
+				((kmod & KMOD_CTRL) ? GKM_CTRL : 0) |
+				((kmod & KMOD_ALT) ? GKM_ALT : 0);
 			D_PostEvent (&event);
 		}
 		else
@@ -362,9 +409,9 @@ void MessagePump (const SDL_Event &sev)
 			// If that fails, then we'll do a lookup against the scan code,
 			// which may not return the right key, but at least the key should
 			// work in the game.
-			if (const BYTE *dik = KeySymToDIK.CheckKey (sev.key.keysym.sym))
+			if (const uint8_t *dik = KeySymToDIK.CheckKey (sev.key.keysym.sym))
 				event.data1 = *dik;
-			else if (const BYTE *dik = KeyScanToDIK.CheckKey (sev.key.keysym.scancode))
+			else if (const uint8_t *dik = KeyScanToDIK.CheckKey (sev.key.keysym.scancode))
 				event.data1 = *dik;
 
 			if (event.data1)
@@ -380,9 +427,10 @@ void MessagePump (const SDL_Event &sev)
 		{
 			event.type = EV_GUI_Event;
 			event.subtype = sev.type == SDL_KEYDOWN ? EV_GUI_KeyDown : EV_GUI_KeyUp;
-			event.data3 = ((sev.key.keysym.mod & KMOD_SHIFT) ? GKM_SHIFT : 0) |
-						  ((sev.key.keysym.mod & KMOD_CTRL) ? GKM_CTRL : 0) |
-						  ((sev.key.keysym.mod & KMOD_ALT) ? GKM_ALT : 0);
+			SDL_Keymod kmod = SDL_GetModState();
+			event.data3 = ((kmod & KMOD_SHIFT) ? GKM_SHIFT : 0) |
+				((kmod & KMOD_CTRL) ? GKM_CTRL : 0) |
+				((kmod & KMOD_ALT) ? GKM_ALT : 0);
 
 			if (event.subtype == EV_GUI_KeyDown)
 			{
@@ -443,6 +491,7 @@ void MessagePump (const SDL_Event &sev)
 			event.type = EV_GUI_Event;
 			event.subtype = EV_GUI_Char;
 			event.data1 = sev.text.text[0];
+			event.data2 = !!(SDL_GetModState() & KMOD_ALT);
 			D_PostEvent (&event);
 		}
 		break;

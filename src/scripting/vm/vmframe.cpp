@@ -35,20 +35,24 @@
 #include <new>
 #include "dobject.h"
 #include "v_text.h"
+#include "stats.h"
+#include "c_dispatch.h"
+#include "templates.h"
+#include "vmintern.h"
+#include "types.h"
 
+cycle_t VMCycles[10];
+int VMCalls[10];
+
+#if 0
 IMPLEMENT_CLASS(VMException, false, false)
-IMPLEMENT_CLASS(VMFunction, true, true)
+#endif
 
-IMPLEMENT_POINTERS_START(VMFunction)
-	IMPLEMENT_POINTER(Proto)
-IMPLEMENT_POINTERS_END
+TArray<VMFunction *> VMFunction::AllFunctions;
 
-IMPLEMENT_CLASS(VMScriptFunction, false, false)
-IMPLEMENT_CLASS(VMNativeFunction, false, false)
 
 VMScriptFunction::VMScriptFunction(FName name)
 {
-	Native = false;
 	Name = name;
 	LineInfo = nullptr;
 	Code = NULL;
@@ -82,7 +86,6 @@ VMScriptFunction::~VMScriptFunction()
 				KonstS[i].~FString();
 			}
 		}
-		M_Free(Code);
 	}
 }
 
@@ -95,11 +98,11 @@ void VMScriptFunction::Alloc(int numops, int numkonstd, int numkonstf, int numko
 	assert(numkonsts >= 0 && numkonsts <= 65535);
 	assert(numkonsta >= 0 && numkonsta <= 65535);
 	assert(numlinenumbers >= 0 && numlinenumbers <= 65535);
-	void *mem = M_Malloc(numops * sizeof(VMOP) +
+	void *mem = ClassDataAllocator.Alloc(numops * sizeof(VMOP) +
 						 numkonstd * sizeof(int) +
 						 numkonstf * sizeof(double) +
 						 numkonsts * sizeof(FString) +
-						 numkonsta * (sizeof(FVoidObj) + 1) +
+						 numkonsta * sizeof(FVoidObj) +
 						 numlinenumbers * sizeof(FStatementInfo));
 	Code = (VMOP *)mem;
 	mem = (void *)((VMOP *)mem + numops);
@@ -159,24 +162,6 @@ void VMScriptFunction::Alloc(int numops, int numkonstd, int numkonstf, int numko
 	NumKonstF = numkonstf;
 	NumKonstS = numkonsts;
 	NumKonstA = numkonsta;
-}
-
-size_t VMScriptFunction::PropagateMark()
-{
-	if (KonstA != NULL)
-	{
-		FVoidObj *konsta = KonstA;
-		VM_UBYTE *atag = KonstATags();
-		for (int count = NumKonstA; count > 0; --count)
-		{
-			if (*atag++ == ATAG_OBJECT)
-			{
-				GC::Mark(konsta->o);
-			}
-			konsta++;
-		}
-	}
-	return NumKonstA * sizeof(void *) + Super::PropagateMark();
 }
 
 void VMScriptFunction::InitExtra(void *addr)
@@ -268,6 +253,7 @@ VMFrameStack::~VMFrameStack()
 			next = block->NextBlock;
 			delete[] (VM_UBYTE *)block;
 		}
+		Blocks = NULL;
 	}
 	if (UnusedBlocks != NULL)
 	{
@@ -277,9 +263,8 @@ VMFrameStack::~VMFrameStack()
 			next = block->NextBlock;
 			delete[] (VM_UBYTE *)block;
 		}
+		UnusedBlocks = NULL;
 	}
-	Blocks = NULL;
-	UnusedBlocks = NULL;
 }
 
 //===========================================================================
@@ -293,9 +278,7 @@ VMFrameStack::~VMFrameStack()
 
 VMFrame *VMFrameStack::AllocFrame(VMScriptFunction *func)
 {
-	int size = VMFrame::FrameSize(func->NumRegD, func->NumRegF, func->NumRegS, func->NumRegA,
-		func->MaxParam, func->ExtraSpace);
-	VMFrame *frame = Alloc(size);
+	VMFrame *frame = Alloc(func->StackSize);
 	frame->Func = func;
 	frame->NumRegD = func->NumRegD;
 	frame->NumRegF = func->NumRegF;
@@ -404,12 +387,6 @@ VMFrame *VMFrameStack::PopFrame()
 	{
 		(regs++)->~FString();
 	}
-	// Free any parameters this frame left behind.
-	VMValue *param = frame->GetParam();
-	for (int i = frame->NumParam; i != 0; --i)
-	{
-		(param++)->~VMValue();
-	}
 	VMFrame *parent = frame->ParentFrame;
 	if (parent == NULL)
 	{
@@ -451,26 +428,46 @@ VMFrame *VMFrameStack::PopFrame()
 //
 //===========================================================================
 
-int VMFrameStack::Call(VMFunction *func, VMValue *params, int numparams, VMReturn *results, int numresults, VMException **trap)
+int VMCall(VMFunction *func, VMValue *params, int numparams, VMReturn *results, int numresults/*, VMException **trap*/)
 {
-	assert(this == &GlobalVMStack);	// why would anyone even want to create a local stack?
 	bool allocated = false;
 	try
 	{	
-		if (func->Native)
+		if (func->VarFlags & VARF_Native)
 		{
 			return static_cast<VMNativeFunction *>(func)->NativeCall(params, func->DefaultArgs, numparams, results, numresults);
 		}
 		else
 		{
-			AllocFrame(static_cast<VMScriptFunction *>(func));
-			allocated = true;
-			VMFillParams(params, TopFrame(), numparams);
-			int numret = VMExec(this, static_cast<VMScriptFunction *>(func)->Code, results, numresults);
-			PopFrame();
-			return numret;
+			auto code = static_cast<VMScriptFunction *>(func)->Code;
+			// handle empty functions consisting of a single return explicitly so that empty virtual callbacks do not need to set up an entire VM frame.
+			// code cann be null here in case of some non-fatal DECORATE errors.
+			if (code == nullptr || code->word == (0x00808000|OP_RET))
+			{
+				return 0;
+			}
+			else if (code->word == (0x00048000|OP_RET))
+			{
+				if (numresults == 0) return 0;
+				results[0].SetInt(static_cast<VMScriptFunction *>(func)->KonstD[0]);
+				return 1;
+			}
+			else
+			{
+				VMCycles[0].Clock();
+				VMCalls[0]++;
+				auto &stack = GlobalVMStack;
+				stack.AllocFrame(static_cast<VMScriptFunction *>(func));
+				allocated = true;
+				VMFillParams(params, stack.TopFrame(), numparams);
+				int numret = VMExec(&stack, code, results, numresults);
+				stack.PopFrame();
+				VMCycles[0].Unclock();
+				return numret;
+			}
 		}
 	}
+#if 0
 	catch (VMException *exception)
 	{
 		if (allocated)
@@ -484,11 +481,12 @@ int VMFrameStack::Call(VMFunction *func, VMValue *params, int numparams, VMRetur
 		}
 		throw;
 	}
+#endif
 	catch (...)
 	{
 		if (allocated)
 		{
-			PopFrame();
+			GlobalVMStack.PopFrame();
 		}
 		throw;
 	}
@@ -525,6 +523,14 @@ CVMAbortException::CVMAbortException(EVMAbortException reason, const char *morei
 
 	case X_BAD_SELF:
 		AppendMessage("invalid self pointer.");
+		break;
+
+	case X_FORMAT_ERROR:
+		AppendMessage("string format failed.");
+		break;
+
+	case X_OTHER:
+		// no prepended message.
 		break;
 
 	default:
@@ -564,12 +570,70 @@ void ThrowAbortException(EVMAbortException reason, const char *moreinfo, ...)
 	va_end(ap);
 }
 
+DEFINE_ACTION_FUNCTION(DObject, ThrowAbortException)
+{
+	PARAM_PROLOGUE;
+	FString s = FStringFormat(param, defaultparam, numparam, ret, numret);
+	ThrowAbortException(X_OTHER, s.GetChars());
+	return 0;
+}
+
 void NullParam(const char *varname)
 {
 	ThrowAbortException(X_READ_NIL, "In function parameter %s", varname);
 }
 
+#if 0
 void ThrowVMException(VMException *x)
 {
 	throw x;
 }
+#endif
+
+
+ADD_STAT(VM)
+{
+	double added = 0;
+	int addedc = 0;
+	double peak = 0;
+	for (auto d : VMCycles)
+	{
+		added += d.TimeMS();
+		peak = MAX<double>(peak, d.TimeMS());
+	}
+	for (auto d : VMCalls) addedc += d;
+	memmove(&VMCycles[1], &VMCycles[0], 9 * sizeof(cycle_t));
+	memmove(&VMCalls[1], &VMCalls[0], 9 * sizeof(int));
+	VMCycles[0].Reset();
+	VMCalls[0] = 0;
+	return FStringf("VM time in last 10 tics: %f ms, %d calls, peak = %f ms", added, addedc, peak);
+}
+
+//-----------------------------------------------------------------------------
+//
+//
+//
+//-----------------------------------------------------------------------------
+CCMD(vmengine)
+{
+	if (argv.argc() == 2)
+	{
+		if (stricmp(argv[1], "default") == 0)
+		{
+			VMSelectEngine(VMEngine_Default);
+			return;
+		}
+		else if (stricmp(argv[1], "checked") == 0)
+		{
+			VMSelectEngine(VMEngine_Checked);
+			return;
+		}
+		else if (stricmp(argv[1], "unchecked") == 0)
+		{
+			VMSelectEngine(VMEngine_Unchecked);
+			return;
+		}
+	}
+	Printf("Usage: vmengine <default|checked|unchecked>\n");
+}
+

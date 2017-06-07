@@ -1,20 +1,25 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1994-1996 Raven Software
+// Copyright 1998-1998 Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //		Enemy thinking, AI.
@@ -51,7 +56,9 @@
 #include "p_spec.h"
 #include "p_checkposition.h"
 #include "math/cmath.h"
-#include "a_ammo.h"
+#include "g_levellocals.h"
+#include "vm.h"
+#include "actorinlines.h"
 
 #include "gi.h"
 
@@ -161,10 +168,8 @@ static void P_RecursiveSound(sector_t *sec, AActor *soundtarget, bool splash, AA
 	bool checkabove = !sec->PortalBlocksSound(sector_t::ceiling);
 	bool checkbelow = !sec->PortalBlocksSound(sector_t::floor);
 
-	for (int i = 0; i < sec->linecount; i++)
+	for (auto check : sec->Lines)
 	{
-		line_t *check = sec->lines[i];
-
 		// check sector portals
 		// I wish there was a better method to do this than randomly looking through the portal at a few places...
 		if (checkabove)
@@ -350,7 +355,7 @@ bool AActor::CheckMeleeRange ()
 
 	double dist;
 		
-	if (!pl)
+	if (!pl || (Sector->Flags & SECF_NOATTACK))
 		return false;
 				
 	dist = Distance2D (pl);
@@ -399,7 +404,7 @@ bool P_CheckMeleeRange2 (AActor *actor)
 	double dist;
 
 
-	if (!actor->target)
+	if (!actor->target || (actor->Sector->Flags & SECF_NOATTACK))
 	{
 		return false;
 	}
@@ -446,6 +451,8 @@ bool P_CheckMissileRange (AActor *actor)
 {
 	double dist;
 		
+	if ((actor->Sector->Flags & SECF_NOATTACK)) return false;
+
 	if (!P_CheckSight (actor, actor->target, SF_SEEPASTBLOCKEVERYTHING))
 		return false;
 		
@@ -571,8 +578,9 @@ bool P_Move (AActor *actor)
 		return true;
 	}
 
-	if (actor->movedir == DI_NODIR)
+	if (actor->movedir >= DI_NODIR)
 	{
+		actor->movedir = DI_NODIR;	// make sure it's valid.
 		return false;
 	}
 
@@ -585,9 +593,6 @@ bool P_Move (AActor *actor)
 	{
 		return false;
 	}
-
-	if ((unsigned)actor->movedir >= 8)
-		I_Error ("Weird actor->movedir!");
 
 	// killough 10/98: allow dogs to drop off of taller ledges sometimes.
 	// dropoff==1 means always allow it, dropoff==2 means only up to 128 high,
@@ -714,7 +719,7 @@ bool P_Move (AActor *actor)
 				if (actor->floorsector->SecActTarget != NULL &&
 					actor->floorz == actor->floorsector->floorplane.ZatPoint(actor->PosRelative(actor->floorsector)))
 				{
-					actor->floorsector->SecActTarget->TriggerAction(actor, SECSPAC_HitFloor);
+					actor->floorsector->TriggerSectorActions(actor, SECSPAC_HitFloor);
 				}
 				P_CheckFor3DFloorHit(actor, actor->Z());
 			}
@@ -991,7 +996,8 @@ void P_NewChaseDir(AActor * actor)
 		if (!(actor->flags6 & MF6_NOFEAR))
 		{
 			if ((actor->target->player != NULL && (actor->target->player->cheats & CF_FRIGHTENING)) || 
-				(actor->flags4 & MF4_FRIGHTENED))
+				(actor->flags4 & MF4_FRIGHTENED) ||
+				(actor->target->flags8 & MF8_FRIGHTENING))
 			{
 				delta = -delta;
 			}
@@ -1434,7 +1440,7 @@ AActor *LookForTIDInBlock (AActor *lookee, int index, void *extparams)
 	AActor *link;
 	AActor *other;
 	
-	for (block = blocklinks[index]; block != NULL; block = block->NextActor)
+	for (block = level.blockmap.blocklinks[index]; block != NULL; block = block->NextActor)
 	{
 		link = block->Me;
 
@@ -1613,7 +1619,7 @@ AActor *LookForEnemiesInBlock (AActor *lookee, int index, void *extparam)
 	AActor *other;
 	FLookExParams *params = (FLookExParams *)extparam;
 	
-	for (block = blocklinks[index]; block != NULL; block = block->NextActor)
+	for (block = level.blockmap.blocklinks[index]; block != NULL; block = block->NextActor)
 	{
 		link = block->Me;
 
@@ -2050,7 +2056,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Look)
 		}
 	}
 
-	if (self->target)
+	if (self->target && self->SeeState)
 	{
 		self->SetState (self->SeeState);
 	}
@@ -2650,7 +2656,7 @@ void A_DoChase (AActor *actor, bool fastchase, FState *meleestate, FState *missi
 
 	// [RH] Scared monsters attack less frequently
 	if (((actor->target->player == NULL ||
-		!(actor->target->player->cheats & CF_FRIGHTENING)) &&
+		!((actor->target->player->cheats & CF_FRIGHTENING) || (actor->target->flags8 & MF8_FRIGHTENING))) &&
 		!(actor->flags4 & MF4_FRIGHTENED)) ||
 		pr_scaredycat() < 43)
 	{
@@ -3218,18 +3224,18 @@ DEFINE_ACTION_FUNCTION(AActor, A_ActiveSound)
 //---------------------------------------------------------------------------
 void ModifyDropAmount(AInventory *inv, int dropamount)
 {
-	int flagmask = IF_IGNORESKILL;
+	auto flagmask = IF_IGNORESKILL;
 	double dropammofactor = G_SkillProperty(SKILLP_DropAmmoFactor);
 	// Default drop amount is half of regular amount * regular ammo multiplication
 	if (dropammofactor == -1) 
 	{
 		dropammofactor = 0.5;
-		flagmask = 0;
+		flagmask = ItemFlag(0);
 	}
 
 	if (dropamount > 0)
 	{
-		if (flagmask != 0 && inv->IsKindOf(RUNTIME_CLASS(AAmmo)))
+		if (flagmask != 0 && inv->IsKindOf(NAME_Ammo))
 		{
 			inv->Amount = int(dropamount * dropammofactor);
 			inv->ItemFlags |= IF_IGNORESKILL;
@@ -3239,10 +3245,10 @@ void ModifyDropAmount(AInventory *inv, int dropamount)
 			inv->Amount = dropamount;
 		}
 	}
-	else if (inv->IsKindOf (RUNTIME_CLASS(AAmmo)))
+	else if (inv->IsKindOf (PClass::FindActor(NAME_Ammo)))
 	{
 		// Half ammo when dropped by bad guys.
-		int amount = static_cast<PClassAmmo *>(inv->GetClass())->DropAmount;
+		int amount = inv->IntVar("DropAmount");
 		if (amount <= 0)
 		{
 			amount = MAX(1, int(inv->Amount * dropammofactor));
@@ -3250,23 +3256,32 @@ void ModifyDropAmount(AInventory *inv, int dropamount)
 		inv->Amount = amount;
 		inv->ItemFlags |= flagmask;
 	}
-	else if (inv->IsKindOf (RUNTIME_CLASS(AWeaponGiver)))
+	else if (inv->IsKindOf (PClass::FindActor(NAME_WeaponGiver)))
 	{
-		static_cast<AWeaponGiver *>(inv)->DropAmmoFactor = dropammofactor;
+		inv->FloatVar("AmmoFactor") = dropammofactor;
 		inv->ItemFlags |= flagmask;
 	}
-	else if (inv->IsKindOf (RUNTIME_CLASS(AWeapon)))
+	else if (inv->IsKindOf(NAME_Weapon))
 	{
 		// The same goes for ammo from a weapon.
 		static_cast<AWeapon *>(inv)->AmmoGive1 = int(static_cast<AWeapon *>(inv)->AmmoGive1 * dropammofactor);
 		static_cast<AWeapon *>(inv)->AmmoGive2 = int(static_cast<AWeapon *>(inv)->AmmoGive2 * dropammofactor);
 		inv->ItemFlags |= flagmask;
 	}			
-	else if (inv->IsKindOf (RUNTIME_CLASS(ADehackedPickup)))
+	else if (inv->IsKindOf (PClass::FindClass(NAME_DehackedPickup)))
 	{
 		// For weapons and ammo modified by Dehacked we need to flag the item.
-		static_cast<ADehackedPickup *>(inv)->droppedbymonster = true;
+		inv->BoolVar("droppedbymonster") = true;
 	}
+}
+
+// todo: make this a scripted virtual function so it can better deal with some of the classes involved.
+DEFINE_ACTION_FUNCTION(AInventory, ModifyDropAmount)
+{
+	PARAM_SELF_PROLOGUE(AInventory);
+	PARAM_INT(dropamount);
+	ModifyDropAmount(self, dropamount);
+	return 0;
 }
 
 //---------------------------------------------------------------------------
@@ -3314,11 +3329,19 @@ AInventory *P_DropItem (AActor *source, PClassActor *type, int dropamount, int c
 				AInventory *inv = static_cast<AInventory *>(mo);
 				ModifyDropAmount(inv, dropamount);
 				inv->ItemFlags |= IF_TOSSED;
-				if (inv->CallSpecialDropAction (source))
+
+				IFVIRTUALPTR(inv, AInventory, SpecialDropAction)
 				{
-					// The special action indicates that the item should not spawn
-					inv->Destroy();
-					return NULL;
+					VMValue params[2] = { inv, source };
+					int retval;
+					VMReturn ret(&retval);
+					VMCall(func, params, 2, &ret, 1);
+					if (retval)
+					{
+						// The special action indicates that the item should not spawn
+						inv->Destroy();
+						return NULL;
+					}
 				}
 				return inv;
 			}

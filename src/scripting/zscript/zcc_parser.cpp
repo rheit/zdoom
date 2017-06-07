@@ -41,6 +41,7 @@
 #include "i_system.h"
 #include "m_argv.h"
 #include "v_text.h"
+#include "version.h"
 #include "zcc_parser.h"
 #include "zcc_compile.h"
 
@@ -63,14 +64,14 @@ void AddInclude(ZCC_ExprConstant *node)
 
 struct TokenMapEntry
 {
-	SWORD TokenType;
-	WORD TokenName;
-	TokenMapEntry(SWORD a, WORD b)
+	int16_t TokenType;
+	uint16_t TokenName;
+	TokenMapEntry(int16_t a, uint16_t b)
 	: TokenType(a), TokenName(b)
 	{ }
 };
-static TMap<SWORD, TokenMapEntry> TokenMap;
-static SWORD BackTokenMap[YYERRORSYMBOL];	// YYERRORSYMBOL immediately follows the terminals described by the grammar
+static TMap<int16_t, TokenMapEntry> TokenMap;
+static int16_t BackTokenMap[YYERRORSYMBOL];	// YYERRORSYMBOL immediately follows the terminals described by the grammar
 
 #define TOKENDEF2(sc, zcc, name)	{ TokenMapEntry tme(zcc, name); TokenMap.Insert(sc, tme); } BackTokenMap[zcc] = sc
 #define TOKENDEF(sc, zcc)			TOKENDEF2(sc, zcc, NAME_None)
@@ -91,6 +92,7 @@ static void InitTokenMap()
 	TOKENDEF (TK_XorEq,			ZCC_XOREQ);
 	TOKENDEF ('?',				ZCC_QUESTION);
 	TOKENDEF (':',				ZCC_COLON);
+	TOKENDEF ('@',				ZCC_ATSIGN);
 	TOKENDEF (TK_OrOr,			ZCC_OROR);
 	TOKENDEF (TK_AndAnd,		ZCC_ANDAND);
 	TOKENDEF (TK_Eq,			ZCC_EQEQ);
@@ -136,14 +138,22 @@ static void InitTokenMap()
 	TOKENDEF (TK_Protected,		ZCC_PROTECTED);
 	TOKENDEF (TK_Latent,		ZCC_LATENT);
 	TOKENDEF (TK_Virtual,		ZCC_VIRTUAL);
+	TOKENDEF (TK_VarArg,        ZCC_VARARG);
+	TOKENDEF (TK_UI,			ZCC_UI);
+	TOKENDEF (TK_Play,			ZCC_PLAY);
+	TOKENDEF (TK_ClearScope,	ZCC_CLEARSCOPE);
+	TOKENDEF (TK_VirtualScope,  ZCC_VIRTUALSCOPE);
 	TOKENDEF (TK_Override,		ZCC_OVERRIDE);
 	TOKENDEF (TK_Final,			ZCC_FINAL);
 	TOKENDEF (TK_Meta,			ZCC_META);
 	TOKENDEF (TK_Deprecated,	ZCC_DEPRECATED);
+	TOKENDEF (TK_Version,		ZCC_VERSION);
 	TOKENDEF (TK_ReadOnly,		ZCC_READONLY);
 	TOKENDEF ('{',				ZCC_LBRACE);
 	TOKENDEF ('}',				ZCC_RBRACE);
 	TOKENDEF (TK_Struct,		ZCC_STRUCT);
+	TOKENDEF (TK_Property,		ZCC_PROPERTY);
+	TOKENDEF (TK_Transient,		ZCC_TRANSIENT);
 	TOKENDEF (TK_Enum,			ZCC_ENUM);
 	TOKENDEF2(TK_SByte,			ZCC_SBYTE,		NAME_sByte);
 	TOKENDEF2(TK_Byte,			ZCC_BYTE,		NAME_Byte);
@@ -172,7 +182,6 @@ static void InitTokenMap()
 	TOKENDEF (']',				ZCC_RBRACKET);
 	TOKENDEF (TK_In,			ZCC_IN);
 	TOKENDEF (TK_Out,			ZCC_OUT);
-	TOKENDEF (TK_Optional,		ZCC_OPTIONAL);
 	TOKENDEF (TK_Super,			ZCC_SUPER);
 	TOKENDEF (TK_Null,			ZCC_NULLPTR);
 	TOKENDEF ('~',				ZCC_TILDE);
@@ -223,29 +232,38 @@ static void InitTokenMap()
 #undef TOKENDEF
 #undef TOKENDEF2
 
-static void ParseSingleFile(const char *filename, int lump, void *parser, ZCCParseState &state)
+//**--------------------------------------------------------------------------
+
+static void ParseSingleFile(FScanner *pSC, const char *filename, int lump, void *parser, ZCCParseState &state)
 {
 	int tokentype;
 	//bool failed;
 	ZCCToken value;
-	FScanner sc;
+	FScanner lsc;
 
-	if (filename != nullptr)
+	if (pSC == nullptr)
 	{
-		lump = Wads.CheckNumForFullName(filename, true);
-		if (lump >= 0)
+		if (filename != nullptr)
 		{
-			sc.OpenLumpNum(lump);
+			lump = Wads.CheckNumForFullName(filename, true);
+			if (lump >= 0)
+			{
+				lsc.OpenLumpNum(lump);
+			}
+			else
+			{
+				Printf("Could not find script lump '%s'\n", filename);
+				return;
+			}
 		}
-		else
-		{
-			Printf("Could not find script lump '%s'\n", filename);
-			return;
-		}
-	}
-	else sc.OpenLumpNum(lump);
+		else lsc.OpenLumpNum(lump);
 
+		pSC = &lsc;
+	}
+	FScanner &sc = *pSC;
+	sc.SetParseVersion(state.ParseVersion);
 	state.sc = &sc;
+
 	while (sc.GetToken())
 	{
 		value.SourceLoc = sc.GetMessageLine();
@@ -276,6 +294,7 @@ static void ParseSingleFile(const char *filename, int lump, void *parser, ZCCPar
 			tokentype = ZCC_FLOATCONST;
 			break;
 
+		case TK_None:	// 'NONE' is a token for SBARINFO but not here.
 		case TK_Identifier:
 			value.Int = FName(sc.String);
 			tokentype = ZCC_IDENTIFIER;
@@ -284,6 +303,25 @@ static void ParseSingleFile(const char *filename, int lump, void *parser, ZCCPar
 		case TK_NonWhitespace:
 			value.Int = FName(sc.String);
 			tokentype = ZCC_NWS;
+			break;
+
+		case TK_Static:
+			sc.MustGetAnyToken();
+			// The oh so wonderful grammar has problems with the 'const' token thanks to the overly broad rule for constants,
+			// which effectively prevents use of this token nearly anywhere else. So in order to get 'static const' through
+			// on the class/struct level we have to muck around with the token type here so that both words get combined into 
+			// a single token that doesn't make the grammar throw a fit.
+			if (sc.TokenType == TK_Const)
+			{
+				tokentype = ZCC_STATICCONST;
+				value.Int = NAME_Staticconst;
+			}
+			else
+			{
+				tokentype = ZCC_STATIC;
+				value.Int = NAME_Static;
+				sc.UnGet();
+			}
 			break;
 
 		default:
@@ -308,11 +346,15 @@ parse_end:
 	state.sc = nullptr;
 }
 
+//**--------------------------------------------------------------------------
+
 static void DoParse(int lumpnum)
 {
 	FScanner sc;
 	void *parser;
 	ZCCToken value;
+	auto baselump = lumpnum;
+	auto fileno = Wads.GetLumpFile(lumpnum);
 
 	parser = ZCCParseAlloc(malloc);
 	ZCCParseState state;
@@ -329,9 +371,47 @@ static void DoParse(int lumpnum)
 #endif
 
 	sc.OpenLumpNum(lumpnum);
+	sc.SetParseVersion({ 2, 4 });	// To get 'version' we need parse version 2.4 for the initial test
 	auto saved = sc.SavePos();
 
-	ParseSingleFile(nullptr, lumpnum, parser, state);
+	if (sc.GetToken())
+	{
+		if (sc.TokenType == TK_Version)
+		{
+			char *endp;
+			sc.MustGetString();
+			state.ParseVersion.major = (int16_t)clamp<unsigned long long>(strtoull(sc.String, &endp, 10), 0, USHRT_MAX);
+			if (*endp != '.')
+			{
+				sc.ScriptError("Bad version directive");
+			}
+			state.ParseVersion.minor = (int16_t)clamp<unsigned long long>(strtoll(endp + 1, &endp, 10), 0, USHRT_MAX);
+			if (*endp == '.')
+			{
+				state.ParseVersion.revision = (int16_t)clamp<unsigned long long>(strtoll(endp + 1, &endp, 10), 0, USHRT_MAX);
+			}
+			else state.ParseVersion.revision = 0;
+			if (*endp != 0)
+			{
+				sc.ScriptError("Bad version directive");
+			}
+			if (state.ParseVersion.major == USHRT_MAX || state.ParseVersion.minor == USHRT_MAX || state.ParseVersion.revision == USHRT_MAX)
+			{
+				sc.ScriptError("Bad version directive");
+			}
+			if (state.ParseVersion > MakeVersion(VER_MAJOR, VER_MINOR, VER_REVISION))
+			{
+				sc.ScriptError("Version mismatch. %d.%d.%d expected but only %d.%d.%d supported", state.ParseVersion.major, state.ParseVersion.minor, state.ParseVersion.revision, VER_MAJOR, VER_MINOR, VER_REVISION);
+			}
+		}
+		else
+		{
+			state.ParseVersion = MakeVersion(2, 3);	// 2.3 is the first version of ZScript.
+			sc.RestorePos(saved);
+		}
+	}
+
+	ParseSingleFile(&sc, nullptr, lumpnum, parser, state);
 	for (unsigned i = 0; i < Includes.Size(); i++)
 	{
 		lumpnum = Wads.CheckNumForFullName(Includes[i], true);
@@ -341,7 +421,14 @@ static void DoParse(int lumpnum)
 		}
 		else
 		{
-			ParseSingleFile(nullptr, lumpnum, parser, state);
+			auto fileno2 = Wads.GetLumpFile(lumpnum);
+			if (fileno == 0 && fileno2 != 0)
+			{
+				I_FatalError("File %s is overriding core lump %s.",
+					Wads.GetWadFullName(Wads.GetLumpFile(baselump)), Includes[i].GetChars());
+			}
+
+			ParseSingleFile(nullptr, nullptr, lumpnum, parser, state);
 		}
 	}
 	Includes.Clear();
@@ -383,7 +470,8 @@ static void DoParse(int lumpnum)
 	}
 
 	PSymbolTable symtable;
-	ZCCCompiler cc(state, NULL, symtable, GlobalSymbols, lumpnum);
+	auto newns = Wads.GetLumpFile(lumpnum) == 0 ? Namespaces.GlobalNamespace : Namespaces.NewNamespace(Wads.GetLumpFile(lumpnum));
+	ZCCCompiler cc(state, NULL, symtable, newns, lumpnum, state.ParseVersion);
 	cc.Compile();
 
 	if (FScriptPosition::ErrorCounter > 0)
@@ -405,35 +493,14 @@ void ParseScripts()
 	{
 		InitTokenMap();
 	}
-	ZCC_InitOperators();
-	ZCC_InitConversions();
-
 	int lump, lastlump = 0;
 	FScriptPosition::ResetErrorCounter();
 
 	while ((lump = Wads.FindLump("ZSCRIPT", &lastlump)) != -1)
 	{
 		DoParse(lump);
-		if (!Args->CheckParm("-zscript"))
-		{
-			return;
-		}
-	}
-	Printf(TEXTCOLOR_PURPLE "WARNING!!!\n");
-	Printf(TEXTCOLOR_PURPLE "As of this version, Zscript is still considered a feature in development which can change " TEXTCOLOR_RED "WITHOUT WARNING!!!\n");
-	Printf(TEXTCOLOR_PURPLE "Use at your own risk!\n");
-
-}
-
-/*
-CCMD(parse)
-{
-	if (argv.argc() == 2)
-	{
-		DoParse(argv[1]);
 	}
 }
-*/
 
 static FString ZCCTokenName(int terminal)
 {

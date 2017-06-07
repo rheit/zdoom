@@ -1,14 +1,27 @@
-
-//**************************************************************************
-//**
-//** p_pspr.c : Heretic 2 : Raven Software, Corp.
-//**
-//** $RCSfile: p_pspr.c,v $
-//** $Revision: 1.105 $
-//** $Date: 96/01/06 03:23:35 $
-//** $Author: bgokey $
-//**
-//**************************************************************************
+//-----------------------------------------------------------------------------
+//
+// Copyright 1993-1996 id Software
+// Copyright 1994-1996 Raven Software
+// Copyright 1998-1998 Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
+// Copyright 2016 Leonard2
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
+//
 
 // HEADER FILES ------------------------------------------------------------
 
@@ -30,12 +43,13 @@
 #include "serializer.h"
 #include "v_text.h"
 #include "cmdlib.h"
+#include "g_levellocals.h"
+#include "vm.h"
 
 
 // MACROS ------------------------------------------------------------------
 
 #define LOWERSPEED				6.
-#define RAISESPEED				6.
 
 // TYPES -------------------------------------------------------------------
 
@@ -112,6 +126,7 @@ DEFINE_FIELD(DPSprite, Next)
 DEFINE_FIELD(DPSprite, Owner)
 DEFINE_FIELD(DPSprite, Sprite)
 DEFINE_FIELD(DPSprite, Frame)
+DEFINE_FIELD(DPSprite, Flags)
 DEFINE_FIELD(DPSprite, ID)
 DEFINE_FIELD(DPSprite, processPending)
 DEFINE_FIELD(DPSprite, x)
@@ -120,6 +135,7 @@ DEFINE_FIELD(DPSprite, oldx)
 DEFINE_FIELD(DPSprite, oldy)
 DEFINE_FIELD(DPSprite, firstTic)
 DEFINE_FIELD(DPSprite, Tics)
+DEFINE_FIELD(DPSprite, alpha)
 DEFINE_FIELD_BIT(DPSprite, Flags, bAddWeapon, PSPF_ADDWEAPON)
 DEFINE_FIELD_BIT(DPSprite, Flags, bAddBob, PSPF_ADDBOB)
 DEFINE_FIELD_BIT(DPSprite, Flags, bPowDouble, PSPF_POWDOUBLE)
@@ -136,13 +152,16 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
 : x(.0), y(.0),
   oldx(.0), oldy(.0),
   firstTic(true),
-  Sprite(0),
   Flags(0),
   Caller(caller),
   Owner(owner),
+  Sprite(0),
   ID(id),
   processPending(true)
 {
+	alpha = 1;
+	Renderstyle = STYLE_Normal;
+
 	DPSprite *prev = nullptr;
 	DPSprite *next = Owner->psprites;
 	while (next != nullptr && next->ID < ID)
@@ -166,7 +185,7 @@ DPSprite::DPSprite(player_t *owner, AActor *caller, int id)
 	if (Next && Next->ID == ID && ID != 0)
 		Next->Destroy(); // Replace it.
 
-	if (Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) || Caller->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
+	if (Caller->IsKindOf(NAME_Weapon) || Caller->IsKindOf(RUNTIME_CLASS(APlayerPawn)))
 		Flags = (PSPF_ADDWEAPON|PSPF_ADDBOB|PSPF_POWDOUBLE|PSPF_CVARFAST);
 }
 
@@ -232,7 +251,7 @@ DPSprite *player_t::GetPSprite(PSPLayers layer)
 	{
 		if (mo != nullptr)
 		{
-			newcaller = mo->FindInventory(RUNTIME_CLASS(APowerTargeter), true);
+			newcaller = mo->FindInventory(NAME_PowerTargeter, true);
 		}
 	}
 	else if (layer == PSP_STRIFEHANDS)
@@ -249,7 +268,7 @@ DPSprite *player_t::GetPSprite(PSPLayers layer)
 	DPSprite *pspr = FindPSprite(layer);
 	if (pspr == nullptr)
 	{
-		pspr = new DPSprite(this, newcaller, layer);
+		pspr = Create<DPSprite>(this, newcaller, layer);
 	}
 	else
 	{
@@ -291,6 +310,82 @@ DEFINE_ACTION_FUNCTION(_PlayerInfo, GetPSprite)	// the underscore is needed to g
 	ACTION_RETURN_OBJECT(self->GetPSprite((PSPLayers)id));
 }
 
+
+
+std::pair<FRenderStyle, float> DPSprite::GetRenderStyle(FRenderStyle ownerstyle, double owneralpha)
+{
+	FRenderStyle returnstyle, mystyle;
+	double returnalpha;
+
+	ownerstyle.CheckFuzz();
+	mystyle = Renderstyle;
+	mystyle.CheckFuzz();
+	if (Flags & PSPF_RENDERSTYLE)
+	{
+		if (Flags & PSPF_FORCESTYLE)
+		{
+			returnstyle = mystyle;
+		}
+		else if (ownerstyle.BlendOp != STYLEOP_Add)
+		{
+			// all styles that do more than simple blending need to be fully preserved.
+			returnstyle = ownerstyle;
+		}
+		else
+		{
+			returnstyle = mystyle;
+			if (ownerstyle.DestAlpha == STYLEALPHA_One)
+			{
+				// If the owner is additive and the overlay translucent, force additive result.
+				returnstyle.DestAlpha = STYLEALPHA_One;
+			}
+			if (ownerstyle.Flags & (STYLEF_ColorIsFixed|STYLEF_RedIsAlpha))
+			{
+				// If the owner's style is a stencil type, this must be preserved.
+				returnstyle.Flags = ownerstyle.Flags;
+			}
+		}
+	}
+	else
+	{
+		returnstyle = ownerstyle;
+	}
+
+	if ((Flags & PSPF_FORCEALPHA) && returnstyle.BlendOp != STYLEOP_Fuzz && returnstyle.BlendOp != STYLEOP_Shadow)
+	{
+		// ALWAYS take priority if asked for, except fuzz. Fuzz does absolutely nothing
+		// no matter what way it's changed.
+		returnalpha = alpha;
+		returnstyle.Flags &= ~(STYLEF_Alpha1 | STYLEF_TransSoulsAlpha);
+	}
+	else if (Flags & PSPF_ALPHA)
+	{
+		// Set the alpha based on if using the overlay's own or not. Also adjust
+		// and override the alpha if not forced.
+		if (returnstyle.BlendOp != STYLEOP_Add)
+		{
+			returnalpha = owneralpha;
+		}
+		else
+		{
+			returnalpha = owneralpha * alpha;
+		}
+	}
+	else
+	{
+		returnalpha = owneralpha;
+	}
+
+	// Should normal renderstyle come out on top at the end and we desire alpha,
+	// switch it to translucent. Normal never applies any sort of alpha.
+	if (returnstyle.BlendOp == STYLEOP_Add && returnstyle.SrcAlpha == STYLEALPHA_One && returnstyle.DestAlpha == STYLEALPHA_Zero && returnalpha < 1.)
+	{
+		returnstyle = LegacyRenderStyles[STYLE_Translucent];
+		returnalpha = owneralpha * alpha;
+	}
+
+	return{ returnstyle, clamp<float>(float(returnalpha), 0.f, 1.f) };
+}
 
 //---------------------------------------------------------------------------
 //
@@ -345,18 +440,16 @@ void DPSprite::SetState(FState *newstate, bool pending)
 
 		if (!(newstate->UseFlags & (SUF_OVERLAY|SUF_WEAPON)))	// Weapon and overlay are mostly the same, the main difference is that weapon states restrict the self pointer to class Actor.
 		{
-			auto so = FState::StaticFindStateOwner(newstate);
-			Printf(TEXTCOLOR_RED "State %s.%d not flagged for use in overlays or weapons\n", so->TypeName.GetChars(), int(newstate - so->OwnedStates));
+			Printf(TEXTCOLOR_RED "State %s not flagged for use in overlays or weapons\n", FState::StaticGetStateName(newstate).GetChars());
 			State = nullptr;
 			Destroy();
 			return;
 		}
 		else if (!(newstate->UseFlags & SUF_WEAPON))
 		{
-			if (Caller->IsKindOf(RUNTIME_CLASS(AWeapon)))
+			if (Caller->IsKindOf(NAME_Weapon))
 			{
-				auto so = FState::StaticFindStateOwner(newstate);
-				Printf(TEXTCOLOR_RED "State %s.%d not flagged for use in weapons\n", so->TypeName.GetChars(), int(newstate - so->OwnedStates));
+				Printf(TEXTCOLOR_RED "State %s not flagged for use in weapons\n", FState::StaticGetStateName(newstate).GetChars());
 				State = nullptr;
 				Destroy();
 				return;
@@ -409,9 +502,8 @@ void DPSprite::SetState(FState *newstate, bool pending)
 			if (newstate->ActionFunc != nullptr && newstate->ActionFunc->Unsafe)
 			{
 				// If an unsafe function (i.e. one that accesses user variables) is being detected, print a warning once and remove the bogus function. We may not call it because that would inevitably crash.
-				auto owner = FState::StaticFindStateOwner(newstate);
-				Printf(TEXTCOLOR_RED "Unsafe state call in state %s.%d to %s which accesses user variables. The action function has been removed from this state\n",
-					owner->TypeName.GetChars(), int(newstate - owner->OwnedStates), newstate->ActionFunc->PrintableName.GetChars());
+				Printf(TEXTCOLOR_RED "Unsafe state call in state %sd to %s which accesses user variables. The action function has been removed from this state\n", 
+					FState::StaticGetStateName(newstate).GetChars(), newstate->ActionFunc->PrintableName.GetChars());
 				newstate->ActionFunc = nullptr;
 			}
 			if (newstate->CallAction(Owner->mo, Caller, &stp, &nextstate))
@@ -480,7 +572,7 @@ void P_BringUpWeapon (player_t *player)
 	if (weapon != nullptr &&
 		weapon->SisterWeapon &&
 		weapon->SisterWeapon->WeaponFlags & WIF_POWERED_UP &&
-		player->mo->FindInventory (RUNTIME_CLASS(APowerWeaponLevel2), true))
+		player->mo->FindInventory (PClass::FindActor(NAME_PowerWeaponLevel2), true))
 	{
 		weapon = weapon->SisterWeapon;
 	}
@@ -506,78 +598,11 @@ void P_BringUpWeapon (player_t *player)
 	}
 }
 
-//---------------------------------------------------------------------------
-//
-// PROC P_FireWeapon
-//
-//---------------------------------------------------------------------------
-
-void P_FireWeapon (player_t *player, FState *state)
+DEFINE_ACTION_FUNCTION(_PlayerInfo, BringUpWeapon)
 {
-	AWeapon *weapon;
-
-	// [SO] 9/2/02: People were able to do an awful lot of damage
-	// when they were observers...
-	if (player->Bot == nullptr && bot_observer)
-	{
-		return;
-	}
-
-	weapon = player->ReadyWeapon;
-	if (weapon == nullptr || !weapon->CheckAmmo (AWeapon::PrimaryFire, true))
-	{
-		return;
-	}
-
-	player->mo->PlayAttacking ();
-	weapon->bAltFire = false;
-	if (state == nullptr)
-	{
-		state = weapon->GetAtkState(!!player->refire);
-	}
-	P_SetPsprite(player, PSP_WEAPON, state);
-	if (!(weapon->WeaponFlags & WIF_NOALERT))
-	{
-		P_NoiseAlert (player->mo, player->mo, false);
-	}
-}
-
-//---------------------------------------------------------------------------
-//
-// PROC P_FireWeaponAlt
-//
-//---------------------------------------------------------------------------
-
-void P_FireWeaponAlt (player_t *player, FState *state)
-{
-	AWeapon *weapon;
-
-	// [SO] 9/2/02: People were able to do an awful lot of damage
-	// when they were observers...
-	if (player->Bot == nullptr && bot_observer)
-	{
-		return;
-	}
-
-	weapon = player->ReadyWeapon;
-	if (weapon == nullptr || weapon->FindState(NAME_AltFire) == nullptr || !weapon->CheckAmmo (AWeapon::AltFire, true))
-	{
-		return;
-	}
-
-	player->mo->PlayAttacking ();
-	weapon->bAltFire = true;
-
-	if (state == nullptr)
-	{
-		state = weapon->GetAltAtkState(!!player->refire);
-	}
-
-	P_SetPsprite(player, PSP_WEAPON, state);
-	if (!(weapon->WeaponFlags & WIF_NOALERT))
-	{
-		P_NoiseAlert (player->mo, player->mo, false);
-	}
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	P_BringUpWeapon(self);
+	return 0;
 }
 
 //---------------------------------------------------------------------------
@@ -602,6 +627,12 @@ void P_DropWeapon (player_t *player)
 	}
 }
 
+DEFINE_ACTION_FUNCTION(_PlayerInfo, DropWeapon)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(player_t);
+	P_DropWeapon(self);
+	return 0;
+}
 //============================================================================
 //
 // P_BobWeapon
@@ -819,15 +850,6 @@ void DoReadyWeaponToGeneric(AActor *self, int paramflags)
 	}
 }
 
-// This function replaces calls to A_WeaponReady in other codepointers.
-void DoReadyWeapon(AActor *self)
-{
-	DoReadyWeaponToBob(self);
-	DoReadyWeaponToFire(self);
-	DoReadyWeaponToSwitch(self);
-	DoReadyWeaponToGeneric(self, ~0);
-}
-
 DEFINE_ACTION_FUNCTION(AStateProvider, A_WeaponReady)
 {
 	PARAM_ACTION_PROLOGUE(AStateProvider);
@@ -839,78 +861,6 @@ DEFINE_ACTION_FUNCTION(AStateProvider, A_WeaponReady)
 													DoReadyWeaponToGeneric(self, flags);
 	DoReadyWeaponDisableSwitch(self, flags & WRF_DisableSwitch);
 	return 0;
-}
-
-//---------------------------------------------------------------------------
-//
-// PROC P_CheckWeaponFire
-//
-// The player can fire the weapon.
-// [RH] This was in A_WeaponReady before, but that only works well when the
-// weapon's ready frames have a one tic delay.
-//
-//---------------------------------------------------------------------------
-
-void P_CheckWeaponFire (player_t *player)
-{
-	AWeapon *weapon = player->ReadyWeapon;
-
-	if (weapon == NULL)
-		return;
-
-	// Check for fire. Some weapons do not auto fire.
-	if ((player->WeaponState & WF_WEAPONREADY) && (player->cmd.ucmd.buttons & BT_ATTACK))
-	{
-		if (!player->attackdown || !(weapon->WeaponFlags & WIF_NOAUTOFIRE))
-		{
-			player->attackdown = true;
-			P_FireWeapon (player, NULL);
-			return;
-		}
-	}
-	else if ((player->WeaponState & WF_WEAPONREADYALT) && (player->cmd.ucmd.buttons & BT_ALTATTACK))
-	{
-		if (!player->attackdown || !(weapon->WeaponFlags & WIF_NOAUTOFIRE))
-		{
-			player->attackdown = true;
-			P_FireWeaponAlt (player, NULL);
-			return;
-		}
-	}
-	else
-	{
-		player->attackdown = false;
-	}
-}
-
-//---------------------------------------------------------------------------
-//
-// PROC P_CheckWeaponSwitch
-//
-// The player can change to another weapon at this time.
-// [GZ] This was cut from P_CheckWeaponFire.
-//
-//---------------------------------------------------------------------------
-
-void P_CheckWeaponSwitch (player_t *player)
-{
-	if (player == NULL)
-	{
-		return;
-	}
-	if ((player->WeaponState & WF_DISABLESWITCH) || // Weapon changing has been disabled.
-		player->morphTics != 0)					// Morphed classes cannot change weapons.
-	{ // ...so throw away any pending weapon requests.
-		player->PendingWeapon = WP_NOCHANGE;
-	}
-
-	// Put the weapon away if the player has a pending weapon or has died, and
-	// we're at a place in the state sequence where dropping the weapon is okay.
-	if ((player->PendingWeapon != WP_NOCHANGE || player->health <= 0) &&
-		player->WeaponState & WF_WEAPONSWITCHOK)
-	{
-		P_DropWeapon(player);
-	}
 }
 
 //---------------------------------------------------------------------------
@@ -952,84 +902,10 @@ static void P_CheckWeaponButtons (player_t *player)
 	}
 }
 
-//---------------------------------------------------------------------------
-//
-// PROC A_ReFire
-//
-// The player can re-fire the weapon without lowering it entirely.
-//
-//---------------------------------------------------------------------------
-
-DEFINE_ACTION_FUNCTION(AStateProvider, A_ReFire)
+DEFINE_ACTION_FUNCTION(APlayerPawn, CheckWeaponButtons)
 {
-	PARAM_ACTION_PROLOGUE(AStateProvider);
-	PARAM_STATE_ACTION_DEF(state);
-	A_ReFire(self, state);
-	return 0;
-}
-
-void A_ReFire(AActor *self, FState *state)
-{
-	player_t *player = self->player;
-	bool pending;
-
-	if (NULL == player)
-	{
-		return;
-	}
-	pending = player->PendingWeapon != WP_NOCHANGE && (player->WeaponState & WF_REFIRESWITCHOK);
-	if ((player->cmd.ucmd.buttons & BT_ATTACK)
-		&& !player->ReadyWeapon->bAltFire && !pending && player->health > 0)
-	{
-		player->refire++;
-		P_FireWeapon (player, state);
-	}
-	else if ((player->cmd.ucmd.buttons & BT_ALTATTACK)
-		&& player->ReadyWeapon->bAltFire && !pending && player->health > 0)
-	{
-		player->refire++;
-		P_FireWeaponAlt (player, state);
-	}
-	else
-	{
-		player->refire = 0;
-		player->ReadyWeapon->CheckAmmo (player->ReadyWeapon->bAltFire
-			? AWeapon::AltFire : AWeapon::PrimaryFire, true);
-	}
-}
-
-DEFINE_ACTION_FUNCTION(AStateProvider, A_ClearReFire)
-{
-	PARAM_ACTION_PROLOGUE(AStateProvider);
-	player_t *player = self->player;
-
-	if (NULL != player)
-	{
-		player->refire = 0;
-	}
-	return 0;
-}
-
-//---------------------------------------------------------------------------
-//
-// PROC A_CheckReload
-//
-// Present in Doom, but unused. Also present in Strife, and actually used.
-// This and what I call A_XBowReFire are actually the same thing in Strife,
-// not two separate functions as I have them here.
-//
-//---------------------------------------------------------------------------
-
-DEFINE_ACTION_FUNCTION(AStateProvider, A_CheckReload)
-{
-	PARAM_ACTION_PROLOGUE(AStateProvider);
-
-	if (self->player != NULL)
-	{
-		self->player->ReadyWeapon->CheckAmmo (
-			self->player->ReadyWeapon->bAltFire ? AWeapon::AltFire
-			: AWeapon::PrimaryFire, true);
-	}
+	PARAM_SELF_PROLOGUE(APlayerPawn);
+	P_CheckWeaponButtons(self->player);
 	return 0;
 }
 
@@ -1056,7 +932,7 @@ void A_OverlayOffset(AActor *self, int layer, double wx, double wy, int flags)
 	player_t *player = self->player;
 	DPSprite *psp;
 
-	if (player && (player->playerstate != PST_DEAD))
+	if (player)
 	{
 		psp = player->FindPSprite(layer);
 
@@ -1203,94 +1079,67 @@ DEFINE_ACTION_FUNCTION(AActor, OverlayID)
 	ACTION_RETURN_INT(0);
 }
 
-
-
 //---------------------------------------------------------------------------
 //
-// PROC A_Lower
-//
+// PROC A_OverlayAlpha
+// Sets the alpha of an overlay.
 //---------------------------------------------------------------------------
 
-DEFINE_ACTION_FUNCTION(AStateProvider, A_Lower)
+DEFINE_ACTION_FUNCTION(AActor, A_OverlayAlpha)
 {
-	PARAM_ACTION_PROLOGUE(AStateProvider);
+	PARAM_ACTION_PROLOGUE(AActor);
+	PARAM_INT(layer);
+	PARAM_FLOAT(alph);
 
-	player_t *player = self->player;
-	DPSprite *psp;
+	if (ACTION_CALL_FROM_PSPRITE())
+	{
+		DPSprite *pspr = self->player->FindPSprite((layer != 0) ? layer : stateinfo->mPSPIndex);
 
-	if (nullptr == player)
-	{
-		return 0;
+		if (pspr != nullptr)
+			pspr->alpha = clamp<double>(alph, 0.0, 1.0);
 	}
-	if (nullptr == player->ReadyWeapon)
-	{
-		P_BringUpWeapon(player);
-		return 0;
-	}
-	psp = player->GetPSprite(PSP_WEAPON);
-	if (player->morphTics || player->cheats & CF_INSTANTWEAPSWITCH)
-	{
-		psp->y = WEAPONBOTTOM;
-	}
-	else
-	{
-		psp->y += LOWERSPEED;
-	}
-	if (psp->y < WEAPONBOTTOM)
-	{ // Not lowered all the way yet
-		return 0;
-	}
-	if (player->playerstate == PST_DEAD)
-	{ // Player is dead, so don't bring up a pending weapon
-		// Player is dead, so keep the weapon off screen
-		P_SetPsprite(player, PSP_FLASH, nullptr);
-		psp->SetState(player->ReadyWeapon->FindState(NAME_DeadLowered));
-		return 0;
-	}
-	// [RH] Clear the flash state. Only needed for Strife.
-	P_SetPsprite(player, PSP_FLASH, nullptr);
-	P_BringUpWeapon (player);
 	return 0;
+}
+
+// NON-ACTION function to get the overlay alpha of a layer.
+DEFINE_ACTION_FUNCTION(AActor, OverlayAlpha)
+{
+	PARAM_ACTION_PROLOGUE(AActor);
+	PARAM_INT_DEF(layer);
+
+	if (ACTION_CALL_FROM_PSPRITE())
+	{
+		DPSprite *pspr = self->player->FindPSprite((layer != 0) ? layer : stateinfo->mPSPIndex);
+
+		if (pspr != nullptr)
+		{
+			ACTION_RETURN_FLOAT(pspr->alpha);
+		}
+	}
+	ACTION_RETURN_FLOAT(0.0);
 }
 
 //---------------------------------------------------------------------------
 //
-// PROC A_Raise
+// PROC A_OverlayRenderStyle
 //
 //---------------------------------------------------------------------------
 
-DEFINE_ACTION_FUNCTION(AStateProvider, A_Raise)
+DEFINE_ACTION_FUNCTION(AActor, A_OverlayRenderStyle)
 {
-	PARAM_ACTION_PROLOGUE(AStateProvider);
+	PARAM_ACTION_PROLOGUE(AActor);
+	PARAM_INT(layer);
+	PARAM_INT(style);
 
-	if (self == nullptr)
+	if (ACTION_CALL_FROM_PSPRITE())
 	{
-		return 0;
-	}
-	player_t *player = self->player;
-	DPSprite *psp;
+		DPSprite *pspr = self->player->FindPSprite((layer != 0) ? layer : stateinfo->mPSPIndex);
 
-	if (nullptr == player)
-	{
-		return 0;
+		if (pspr == nullptr || style >= STYLE_Count || style < 0)
+			return 0;
+
+		pspr->Renderstyle = ERenderStyle(style);
 	}
-	if (player->PendingWeapon != WP_NOCHANGE)
-	{
-		P_DropWeapon(player);
-		return 0;
-	}
-	if (player->ReadyWeapon == nullptr)
-	{
-		return 0;
-	}
-	psp = player->GetPSprite(PSP_WEAPON);
-	psp->y -= RAISESPEED;
-	if (psp->y > WEAPONTOP)
-	{ // Not raised all the way yet
-		return 0;
-	}
-	psp->y = WEAPONTOP;
-	psp->SetState(player->ReadyWeapon->GetReadyState());
 	return 0;
 }
 
@@ -1315,7 +1164,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Overlay)
 	}
 
 	DPSprite *pspr;
-	pspr = new DPSprite(player, stateowner, layer);
+	pspr = Create<DPSprite>(player, stateowner, layer);
 	pspr->SetState(state);
 	ACTION_RETURN_BOOL(true);
 }
@@ -1364,47 +1213,6 @@ DEFINE_ACTION_FUNCTION(AActor, A_ClearOverlays)
 }
 
 //
-// A_GunFlash
-//
-enum GF_Flags
-{
-	GFF_NOEXTCHANGE = 1,
-};
-
-DEFINE_ACTION_FUNCTION(AStateProvider, A_GunFlash)
-{
-	PARAM_ACTION_PROLOGUE(AStateProvider);
-	PARAM_STATE_ACTION_DEF(flash);
-	PARAM_INT_DEF(flags);
-
-	player_t *player = self->player;
-
-	if (nullptr == player)
-	{
-		return 0;
-	}
-	if (!(flags & GFF_NOEXTCHANGE))
-	{
-		player->mo->PlayAttacking2 ();
-	}
-	if (flash == nullptr)
-	{
-		if (player->ReadyWeapon->bAltFire)
-		{
-			flash = player->ReadyWeapon->FindState(NAME_AltFlash);
-		}
-		if (flash == nullptr)
-		{
-			flash = player->ReadyWeapon->FindState(NAME_Flash);
-		}
-	}
-	P_SetPsprite(player, PSP_FLASH, flash);
-	return 0;
-}
-
-
-
-//
 // WEAPON ATTACKS
 //
 
@@ -1449,20 +1257,6 @@ DEFINE_ACTION_FUNCTION(AActor, BulletSlope)
 	ACTION_RETURN_FLOAT(P_BulletSlope(self, t, aimflags).Degrees);
 }
 
-
-AActor *P_AimTarget(AActor *mo)
-{
-	FTranslatedLineTarget t;
-	P_BulletSlope(mo, &t, ALF_PORTALRESTRICT);
-	return t.linetarget;
-}
-
-DEFINE_ACTION_FUNCTION(AActor, AimTarget)
-{
-	PARAM_SELF_PROLOGUE(AActor);
-	ACTION_RETURN_OBJECT(P_AimTarget(self));
-}
-
 //------------------------------------------------------------------------
 //
 // PROC P_SetupPsprites
@@ -1479,80 +1273,6 @@ void P_SetupPsprites(player_t *player, bool startweaponup)
 	// Spawn the ready weapon
 	player->PendingWeapon = !startweaponup ? player->ReadyWeapon : WP_NOCHANGE;
 	P_BringUpWeapon (player);
-}
-
-//------------------------------------------------------------------------
-//
-// PROC P_MovePsprites
-//
-// Called every tic by player thinking routine
-//
-//------------------------------------------------------------------------
-
-void player_t::TickPSprites()
-{
-	DPSprite *pspr = psprites;
-	while (pspr)
-	{
-		// Destroy the psprite if it's from a weapon that isn't currently selected by the player
-		// or if it's from an inventory item that the player no longer owns. 
-		if ((pspr->Caller == nullptr ||
-			(pspr->Caller->IsKindOf(RUNTIME_CLASS(AInventory)) && barrier_cast<AInventory *>(pspr->Caller)->Owner != pspr->Owner->mo) ||
-			(pspr->Caller->IsKindOf(RUNTIME_CLASS(AWeapon)) && pspr->Caller != pspr->Owner->ReadyWeapon)))
-		{
-			pspr->Destroy();
-		}
-		else
-		{
-			pspr->Tick();
-		}
-
-		pspr = pspr->Next;
-	}
-
-	if ((health > 0) || (ReadyWeapon != nullptr && !(ReadyWeapon->WeaponFlags & WIF_NODEATHINPUT)))
-	{
-		if (ReadyWeapon == nullptr)
-		{
-			if (PendingWeapon != WP_NOCHANGE)
-				P_BringUpWeapon(this);
-		}
-		else
-		{
-			P_CheckWeaponSwitch(this);
-			if (WeaponState & (WF_WEAPONREADY | WF_WEAPONREADYALT))
-			{
-				P_CheckWeaponFire(this);
-			}
-			// Check custom buttons
-			P_CheckWeaponButtons(this);
-		}
-	}
-}
-
-//------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------
-
-void DPSprite::Tick()
-{
-	if (processPending)
-	{
-		// drop tic count and possibly change state
-		if (Tics != -1)	// a -1 tic count never changes
-		{
-			Tics--;
-
-			// [BC] Apply double firing speed.
-			if ((Flags & PSPF_POWDOUBLE) && Tics && (Owner->cheats & CF_DOUBLEFIRINGSPEED))
-				Tics--;
-
-			if (!Tics)
-				SetState(State->GetNextState());
-		}
-	}
 }
 
 //------------------------------------------------------------------------
@@ -1577,7 +1297,9 @@ void DPSprite::Serialize(FSerializer &arc)
 		("x", x)
 		("y", y)
 		("oldx", oldx)
-		("oldy", oldy);
+		("oldy", oldy)
+		("alpha", alpha)
+		("renderstyle_", Renderstyle);	// The underscore is intentional to avoid problems with old savegames which had this as an ERenderStyle (which is not future proof.)
 }
 
 //------------------------------------------------------------------------
@@ -1615,11 +1337,11 @@ void P_SetSafeFlash(AWeapon *weapon, player_t *player, FState *flashstate, int i
 		PClassActor *cls = weapon->GetClass();
 		while (cls != RUNTIME_CLASS(AWeapon))
 		{
-			if (flashstate >= cls->OwnedStates && flashstate < cls->OwnedStates + cls->NumOwnedStates)
+			if (cls->OwnsState(flashstate))
 			{
 				// The flash state belongs to this class.
 				// Now let's check if the actually wanted state does also
-				if (flashstate + index < cls->OwnedStates + cls->NumOwnedStates)
+				if (cls->OwnsState(flashstate + index))
 				{
 					// we're ok so set the state
 					P_SetPsprite(player, PSP_FLASH, flashstate + index, true);
@@ -1664,7 +1386,7 @@ DEFINE_ACTION_FUNCTION(_PlayerInfo, SetSafeFlash)
 //
 //------------------------------------------------------------------------
 
-void DPSprite::Destroy()
+void DPSprite::OnDestroy()
 {
 	// Do not crash if this gets called on partially initialized objects.
 	if (Owner != nullptr && Owner->psprites != nullptr)
@@ -1687,7 +1409,7 @@ void DPSprite::Destroy()
 			GC::WriteBarrier(Next);
 		}
 	}
-	Super::Destroy();
+	Super::OnDestroy();
 }
 
 //------------------------------------------------------------------------

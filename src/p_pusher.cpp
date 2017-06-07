@@ -1,20 +1,23 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1998-1998 Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //		Initializes and implements BOOM linedef triggers for
@@ -32,6 +35,8 @@
 #include "p_maputl.h"
 #include "p_local.h"
 #include "d_player.h"
+#include "g_levellocals.h"
+#include "actorinlines.h"
 
 CVAR(Bool, var_pushers, true, CVAR_SERVERINFO);
 
@@ -65,7 +70,7 @@ public:
 
 protected:
 	EPusher m_Type;
-	TObjPtr<AActor> m_Source;// Point source if point pusher
+	TObjPtr<AActor*> m_Source;// Point source if point pusher
 	DVector2 m_PushVec;
 	double m_Magnitude;		// Vector strength for point pusher
 	double m_Radius;		// Effective radius for point pusher
@@ -192,7 +197,7 @@ void DPusher::Tick ()
 	if (!var_pushers)
 		return;
 
-	sec = sectors + m_Affectee;
+	sec = &level.sectors[m_Affectee];
 
 	// Be sure the special sector type is still turned on. If so, proceed.
 	// Else, bail out; the sector type has been changed on us.
@@ -339,7 +344,7 @@ AActor *P_GetPushThing (int s)
 	AActor* thing;
 	sector_t* sec;
 
-	sec = sectors + s;
+	sec = &level.sectors[s];
 	thing = sec->thinglist;
 
 	while (thing &&
@@ -358,11 +363,10 @@ AActor *P_GetPushThing (int s)
 
 void P_SpawnPushers ()
 {
-	int i;
-	line_t *l = lines;
+	line_t *l = &level.lines[0];
 	int s;
 
-	for (i = 0; i < numlines; i++, l++)
+	for (unsigned i = 0; i < level.lines.Size(); i++, l++)
 	{
 		switch (l->special)
 		{
@@ -370,7 +374,7 @@ void P_SpawnPushers ()
 		{
 			FSectorTagIterator itr(l->args[0]);
 			while ((s = itr.Next()) >= 0)
-				new DPusher(DPusher::p_wind, l->args[3] ? l : NULL, l->args[1], l->args[2], NULL, s);
+				Create<DPusher>(DPusher::p_wind, l->args[3] ? l : nullptr, l->args[1], l->args[2], nullptr, s);
 			l->special = 0;
 			break;
 		}
@@ -379,7 +383,7 @@ void P_SpawnPushers ()
 		{
 			FSectorTagIterator itr(l->args[0]);
 			while ((s = itr.Next()) >= 0)
-				new DPusher(DPusher::p_current, l->args[3] ? l : NULL, l->args[1], l->args[2], NULL, s);
+				Create<DPusher>(DPusher::p_current, l->args[3] ? l : nullptr, l->args[1], l->args[2], nullptr, s);
 			l->special = 0;
 			break;
 		}
@@ -393,7 +397,7 @@ void P_SpawnPushers ()
 					if (thing) {	// No MT_P* means no effect
 						// [RH] Allow narrowing it down by tid
 						if (!l->args[1] || l->args[1] == thing->tid)
-							new DPusher (DPusher::p_push, l->args[3] ? l : NULL, l->args[2],
+							Create<DPusher> (DPusher::p_push, l->args[3] ? l : NULL, l->args[2],
 										 0, thing, s);
 					}
 				}
@@ -406,8 +410,7 @@ void P_SpawnPushers ()
 					if (thing->GetClass()->TypeName == NAME_PointPusher ||
 						thing->GetClass()->TypeName == NAME_PointPuller)
 					{
-						new DPusher (DPusher::p_push, l->args[3] ? l : NULL, l->args[2],
-									 0, thing, int(thing->Sector - sectors));
+						Create<DPusher> (DPusher::p_push, l->args[3] ? l : NULL, l->args[2], 0, thing, thing->Sector->Index());
 					}
 				}
 			}
@@ -447,12 +450,12 @@ void AdjustPusher (int tag, int magnitude, int angle, bool wind)
 		unsigned int i;
 		for (i = 0; i < numcollected; i++)
 		{
-			if (Collection[i].RefNum == sectors[secnum].sectornum)
+			if (Collection[i].RefNum == secnum)
 				break;
 		}
 		if (i == numcollected)
 		{
-			new DPusher (type, NULL, magnitude, angle, NULL, secnum);
+			Create<DPusher> (type, nullptr, magnitude, angle, nullptr, secnum);
 		}
 	}
 }

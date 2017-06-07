@@ -52,6 +52,7 @@
 #include "d_player.h"
 #include "serializer.h"
 #include "v_text.h"
+#include "g_levellocals.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -78,15 +79,15 @@ struct FRandomSoundList
 		}
 	}
 
-	WORD		*Sounds;	// A list of sounds that can result for the following id
-	WORD		SfxHead;	// The sound id used to reference this list
-	WORD		NumSounds;
+	uint16_t		*Sounds;	// A list of sounds that can result for the following id
+	uint16_t		SfxHead;	// The sound id used to reference this list
+	uint16_t		NumSounds;
 };
 
 struct FPlayerClassLookup
 {
 	FString		Name;
-	WORD		ListIndex[3];	// indices into PlayerSounds (0xffff means empty)
+	uint16_t		ListIndex[3];	// indices into PlayerSounds (0xffff means empty)
 };
 
 // Used to lookup a sound like "*grunt". This contains all player sounds for
@@ -162,11 +163,11 @@ enum SICommands
 
 struct FBloodSFX
 {
-	DWORD	RelVol;		// volume, 0-255
+	uint32_t	RelVol;		// volume, 0-255
 	int		Pitch;		// pitch change
 	int		PitchRange;	// range of random pitch
-	DWORD	Format;		// format of audio 1=11025 5=22050
-	SDWORD	LoopStart;	// loop position (-1 means no looping)
+	uint32_t	Format;		// format of audio 1=11025 5=22050
+	int32_t	LoopStart;	// loop position (-1 means no looping)
 	char	RawName[9];	// name of RAW resource
 };
 
@@ -269,7 +270,7 @@ static TArray<FPlayerSoundHashTable> PlayerSounds;
 static FString DefPlayerClassName;
 static int DefPlayerClass;
 
-static BYTE CurrentPitchMask;
+static uint8_t CurrentPitchMask;
 
 static FRandom pr_randsound ("RandSound");
 
@@ -1069,7 +1070,7 @@ void S_AddLocalSndInfo(int lump)
 static void S_AddSNDINFO (int lump)
 {
 	bool skipToEndIf;
-	TArray<WORD> list;
+	TArray<uint16_t> list;
 
 	FScanner sc(lump);
 	skipToEndIf = false;
@@ -1394,7 +1395,7 @@ static void S_AddSNDINFO (int lump)
 				sc.MustGetStringName ("{");
 				while (sc.GetString () && !sc.Compare ("}"))
 				{
-					WORD sfxto = S_FindSoundTentative (sc.String);
+					uint16_t sfxto = S_FindSoundTentative (sc.String);
 					if (sfxto == random.SfxHead)
 					{
 						Printf("Definition of random sound '%s' refers to itself recursively.", sc.String);
@@ -1409,11 +1410,11 @@ static void S_AddSNDINFO (int lump)
 				}
 				else if (list.Size() > 1)
 				{ // Only add non-empty random lists
-					random.NumSounds = (WORD)list.Size();
-					S_sfx[random.SfxHead].link = (WORD)S_rnd.Push (random);
+					random.NumSounds = (uint16_t)list.Size();
+					S_sfx[random.SfxHead].link = (uint16_t)S_rnd.Push (random);
 					S_sfx[random.SfxHead].bRandomHeader = true;
-					S_rnd[S_sfx[random.SfxHead].link].Sounds = new WORD[random.NumSounds];
-					memcpy (S_rnd[S_sfx[random.SfxHead].link].Sounds, &list[0], sizeof(WORD)*random.NumSounds);
+					S_rnd[S_sfx[random.SfxHead].link].Sounds = new uint16_t[random.NumSounds];
+					memcpy (S_rnd[S_sfx[random.SfxHead].link].Sounds, &list[0], sizeof(uint16_t)*random.NumSounds);
 					S_sfx[random.SfxHead].NearLimit = -1;
 				}
 				}
@@ -1699,7 +1700,7 @@ static int S_AddPlayerGender (int classnum, int gender)
 	if (index == 0xffff)
 	{
 		index = PlayerSounds.Reserve (1);
-		PlayerClassLookups[classnum].ListIndex[gender] = (WORD)index;
+		PlayerClassLookups[classnum].ListIndex[gender] = (uint16_t)index;
 	}
 	return index;
 }
@@ -2126,6 +2127,7 @@ CCMD (soundlist)
 		{
 			Printf ("%3d. %s **not present**\n", i, sfx->name.GetChars());
 		}
+		Printf("    PitchMask = %d\n", sfx->PitchMask);
 	}
 }
 
@@ -2456,45 +2458,3 @@ void S_ParseMusInfo()
 }
 
 
-//==========================================================================
-//
-// Music changer. Uses the sector action class to do its job
-//
-//==========================================================================
-
-class AMusicChanger : public ASectorAction
-{
-	DECLARE_CLASS (AMusicChanger, ASectorAction)
-public:
-	virtual bool DoTriggerAction (AActor *triggerer, int activationType);
-	virtual void PostBeginPlay();
-};
-
-IMPLEMENT_CLASS(AMusicChanger, false, false)
-
-bool AMusicChanger::DoTriggerAction (AActor *triggerer, int activationType)
-{
-	if (activationType & SECSPAC_Enter && triggerer->player != NULL)
-	{
-		if (triggerer->player->MUSINFOactor != this)
-		{
-			triggerer->player->MUSINFOactor = this;
-			triggerer->player->MUSINFOtics = 30;
-		}
-	}
-	return Super::DoTriggerAction (triggerer, activationType);
-}
- 
-void AMusicChanger::PostBeginPlay()
-{
-	// The music changer should consider itself activated if the player
-	// spawns in its sector as well as if it enters the sector during a P_TryMove.
-	Super::PostBeginPlay();
-	for (int i = 0; i < MAXPLAYERS; ++i)
-	{
-		if (playeringame[i] && players[i].mo && players[i].mo->Sector == this->Sector)
-		{
-			TriggerAction(players[i].mo, SECSPAC_Enter);
-		}
-	}
-}

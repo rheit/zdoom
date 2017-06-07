@@ -49,7 +49,7 @@
 #include "thingdef.h"
 #include "p_lnspec.h"
 #include "doomstat.h"
-#include "codegeneration/codegen.h"
+#include "backend/codegen.h"
 
 FRandom pr_exrandom ("EX_Random");
 
@@ -82,13 +82,14 @@ static FxExpression *ParseExpressionB (FScanner &sc, PClassActor *cls);
 static FxExpression *ParseExpressionA (FScanner &sc, PClassActor *cls);
 static FxExpression *ParseExpression0 (FScanner &sc, PClassActor *cls);
 
-FxExpression *ParseExpression (FScanner &sc, PClassActor *cls, bool mustresolve)
+FxExpression *ParseExpression (FScanner &sc, PClassActor *cls, PNamespace *spc)
 {
 	FxExpression *data = ParseExpressionM (sc, cls);
 
-	if (mustresolve)
+	if (spc)
 	{
-		FCompileContext ctx(cls, true);
+		PClassType *vmtype = nullptr == cls ? nullptr : cls->VMType;
+		FCompileContext ctx(spc, vmtype, true);
 		data = data->Resolve(ctx);
 	}
 
@@ -505,7 +506,7 @@ static FxExpression *ParseExpression0 (FScanner &sc, PClassActor *cls)
 		default:
 			if (cls != nullptr)
 			{
-				func = dyn_cast<PFunction>(cls->Symbols.FindSymbol(identifier, true));
+				func = dyn_cast<PFunction>(cls->FindSymbol(identifier, true));
 
 				// There is an action function ACS_NamedExecuteWithResult which must be ignored here for this to work.
 				if (func != nullptr && identifier != NAME_ACS_NamedExecuteWithResult)

@@ -1,18 +1,23 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //		System specific interface stuff.
@@ -36,20 +41,11 @@ enum
 	LANGIDX_SysPreferred,
 	LANGIDX_SysDefault
 };
-extern uint32 LanguageIDs[4];
+extern uint32_t LanguageIDs[4];
 extern void SetLanguageIDs ();
 
 // [RH] Detects the OS the game is running under.
 void I_DetectOS (void);
-
-typedef enum {
-	os_unknown,
-	os_Win95,
-	os_WinNT4,
-	os_Win2k
-} os_t;
-
-extern os_t OSPlatform;
 
 // Called by DoomMain.
 void I_Init (void);
@@ -66,7 +62,7 @@ extern int (*I_WaitForTic) (int);
 // tic will never arrive (unless it's the current one).
 extern void (*I_FreezeTime) (bool frozen);
 
-double I_GetTimeFrac (uint32 *ms);
+double I_GetTimeFrac (uint32_t *ms);
 
 // Return a seed value for the RNG.
 unsigned int I_MakeRNGSeed();
@@ -175,10 +171,10 @@ FString I_GetLongPathName(FString shortpath);
 
 struct findstate_t
 {
-	DWORD Attribs;
-	DWORD Times[3*2];
-	DWORD Size[2];
-	DWORD Reserved[2];
+	uint32_t Attribs;
+	uint32_t Times[3*2];
+	uint32_t Size[2];
+	uint32_t Reserved[2];
 	char Name[MAX_PATH];
 	char AltName[14];
 };

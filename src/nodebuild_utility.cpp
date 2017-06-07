@@ -50,6 +50,7 @@
 #include "i_system.h"
 #include "po_man.h"
 #include "r_state.h"
+#include "g_levellocals.h"
 #include "math/cmath.h"
 
 static const int PO_LINE_START = 1;
@@ -70,13 +71,7 @@ static const int PO_LINE_EXPLICIT = 5;
 angle_t FNodeBuilder::PointToAngle (fixed_t x, fixed_t y)
 {
 	const double rad2bam = double(1<<30) / M_PI;
-#if defined __APPLE__ && !defined __llvm__
-	// Work-around for vectorization issue in Apple's GCC 4.x
-	// See https://gcc.gnu.org/wiki/Math_Optimization_Flags for details
-	long double ang = atan2l (double(y), double(x));
-#else // !__APPLE__ || __llvm__
 	double ang = g_atan2 (double(y), double(x));
-#endif // __APPLE__ && !__llvm__
 	// Convert to signed first since negative double to unsigned is undefined.
 	return angle_t(int(ang * rad2bam)) << 1;
 }
@@ -186,7 +181,7 @@ int FNodeBuilder::CreateSeg (int linenum, int sidenum)
 	}
 	seg.linedef = linenum;
 	side_t *sd = Level.Lines[linenum].sidedef[sidenum];
-	seg.sidedef = sd != NULL? int(sd - sides) : int(NO_SIDE);
+	seg.sidedef = sd != NULL? sd->Index() : int(NO_SIDE);
 	seg.nextforvert = Vertices[seg.v1].segs;
 	seg.nextforvert2 = Vertices[seg.v2].segs2;
 
@@ -485,9 +480,9 @@ void FNodeBuilder::FindPolyContainers (TArray<FPolyStart> &spots, TArray<FPolySt
 	}
 }
 
-int FNodeBuilder::MarkLoop (DWORD firstseg, int loopnum)
+int FNodeBuilder::MarkLoop (uint32_t firstseg, int loopnum)
 {
-	DWORD seg;
+	uint32_t seg;
 	sector_t *sec = Segs[firstseg].frontsector;
 
 	if (Segs[firstseg].loopnum != 0)
@@ -507,8 +502,8 @@ int FNodeBuilder::MarkLoop (DWORD firstseg, int loopnum)
 				Vertices[s1->v1].x>>16, Vertices[s1->v1].y>>16,
 				Vertices[s1->v2].x>>16, Vertices[s1->v2].y>>16));
 
-		DWORD bestseg = DWORD_MAX;
-		DWORD tryseg = Vertices[s1->v2].segs;
+		uint32_t bestseg = DWORD_MAX;
+		uint32_t tryseg = Vertices[s1->v2].segs;
 		angle_t bestang = ANGLE_MAX;
 		angle_t ang1 = PointToAngle (Vertices[s1->v2].x - Vertices[s1->v1].x,
 			Vertices[s1->v2].y - Vertices[s1->v1].y);

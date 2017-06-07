@@ -46,6 +46,8 @@ public:
 	void *Alloc(size_t size);
 	void FreeAll();
 	void FreeAllBlocks();
+	void DumpInfo();
+	void DumpData(FILE *f);
 
 protected:
 	struct Block;

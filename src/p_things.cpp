@@ -51,6 +51,9 @@
 #include "p_spec.h"
 #include "math/cmath.h"
 #include "actorptrselect.h"
+#include "g_levellocals.h"
+#include "actorinlines.h"
+#include "vm.h"
 
 // Set of spawnable things for the Thing_Spawn and Thing_Projectile specials.
 FClassMap SpawnableThings;
@@ -405,7 +408,7 @@ void P_RemoveThing(AActor * actor)
 
 }
 
-bool P_Thing_Raise(AActor *thing, AActor *raiser)
+bool P_Thing_Raise(AActor *thing, AActor *raiser, int nocheck)
 {
 	FState * RaiseState = thing->GetRaiseState();
 	if (RaiseState == NULL)
@@ -425,7 +428,7 @@ bool P_Thing_Raise(AActor *thing, AActor *raiser)
 	thing->flags |= MF_SOLID;
 	thing->Height = info->Height;	// [RH] Use real height
 	thing->radius = info->radius;	// [RH] Use real radius
-	if (!P_CheckPosition (thing, thing->Pos()))
+	if (!nocheck && !P_CheckPosition (thing, thing->Pos()))
 	{
 		thing->flags = oldflags;
 		thing->radius = oldradius;
@@ -524,7 +527,7 @@ DEFINE_ACTION_FUNCTION(AActor, GetSpawnableType)
 {
 	PARAM_PROLOGUE;
 	PARAM_INT(num);
-	ACTION_RETURN_OBJECT(P_GetSpawnableType(num));
+	ACTION_RETURN_POINTER(P_GetSpawnableType(num));
 }
 
 struct MapinfoSpawnItem
@@ -753,6 +756,16 @@ int P_Thing_CheckProximity(AActor *self, PClass *classname, double distance, int
 			if ((flags & CPXF_CHECKSIGHT) && !(P_CheckSight(mo, ref, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY)))
 				continue;
 
+			if (mo->flags6 & MF6_KILLED)
+			{
+				if (!(flags & (CPXF_COUNTDEAD | CPXF_DEADONLY)))
+					continue;
+			}
+			else
+			{
+				if (flags & CPXF_DEADONLY)
+					continue;
+			}
 			if (ptrWillChange)
 			{
 				current = ref->Distance2D(mo);
@@ -769,16 +782,6 @@ int P_Thing_CheckProximity(AActor *self, PClass *classname, double distance, int
 				}
 				else if (!dist)
 					dist = mo; // Just get the first one and call it quits if there's nothing selected.
-			}
-			if (mo->flags6 & MF6_KILLED)
-			{
-				if (!(flags & (CPXF_COUNTDEAD | CPXF_DEADONLY)))
-					continue;
-			}
-			else
-			{
-				if (flags & CPXF_DEADONLY)
-					continue;
 			}
 			counter++;
 

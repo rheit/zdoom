@@ -66,12 +66,12 @@ class DThinker : public DObject
 	DECLARE_CLASS (DThinker, DObject)
 public:
 	DThinker (int statnum = STAT_DEFAULT) throw();
-	void Destroy () override;
+	void OnDestroy () override;
 	virtual ~DThinker ();
 	virtual void Tick ();
 	void CallTick();
 	virtual void PostBeginPlay ();	// Called just before the first tick
-	void CallPostBeginPlay();
+	virtual void CallPostBeginPlay(); // different in actor.
 	virtual void PostSerialize();
 	size_t PropagateMark();
 	
@@ -91,9 +91,10 @@ public:
 	static DThinker *FirstThinker (int statnum);
 	static bool bSerialOverride;
 
-private:
+	// only used internally but Create needs access.
 	enum no_link_type { NO_LINK };
 	DThinker(no_link_type) throw();
+private:
 	static void DestroyThinkersInList (FThinkerList &list);
 	static int TickThinkers (FThinkerList *list, FThinkerList *dest);	// Returns: # of thinkers ticked
 	static void SaveList(FSerializer &arc, DThinker *node);
@@ -116,7 +117,7 @@ protected:
 	const PClass *m_ParentType;
 private:
 	DThinker *m_CurrThinker;
-	BYTE m_Stat;
+	uint8_t m_Stat;
 	bool m_SearchStats;
 	bool m_SearchingFresh;
 
@@ -125,15 +126,18 @@ public:
 	FThinkerIterator (const PClass *type, int statnum, DThinker *prev);
 	DThinker *Next (bool exact = false);
 	void Reinit ();
+
+protected:
+	FThinkerIterator() {}
 };
 
 template <class T> class TThinkerIterator : public FThinkerIterator
 {
 public:
-	TThinkerIterator (int statnum=MAX_STATNUM+1) : FThinkerIterator (RUNTIME_TEMPLATE_CLASS(T), statnum)
+	TThinkerIterator (int statnum=MAX_STATNUM+1) : FThinkerIterator (RUNTIME_CLASS(T), statnum)
 	{
 	}
-	TThinkerIterator (int statnum, DThinker *prev) : FThinkerIterator (RUNTIME_TEMPLATE_CLASS(T), statnum, prev)
+	TThinkerIterator (int statnum, DThinker *prev) : FThinkerIterator (RUNTIME_CLASS(T), statnum, prev)
 	{
 	}
 	TThinkerIterator (const PClass *subclass, int statnum=MAX_STATNUM+1) : FThinkerIterator(subclass, statnum)

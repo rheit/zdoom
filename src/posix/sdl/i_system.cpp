@@ -1,24 +1,23 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1999-2016 Randy Heit
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
-//
-// DESCRIPTION:
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
 //
 //-----------------------------------------------------------------------------
+//
 
 
 #include <stdlib.h>
@@ -84,7 +83,8 @@ int I_PickIWad_Gtk (WadStuff *wads, int numwads, bool showwin, int defaultiwad);
 int I_PickIWad_Cocoa (WadStuff *wads, int numwads, bool showwin, int defaultiwad);
 #endif
 
-DWORD LanguageIDs[4];
+double PerfToSec, PerfToMillisec;
+uint32_t LanguageIDs[4];
 	
 int (*I_GetTime) (bool saveMS);
 int (*I_WaitForTic) (int);
@@ -113,7 +113,12 @@ void I_WaitVBL (int count)
 {
     // I_WaitVBL is never used to actually synchronize to the
     // vertical blank. Instead, it's used for delay purposes.
-    usleep (1000000 * count / 70);
+    struct timespec delay, rem;
+    delay.tv_sec = count / 70;
+    /* Avoid overflow. Microsec res should be good enough. */
+    delay.tv_nsec = (count%70)*1000000/70 * 1000;
+    while(nanosleep(&delay, &rem) == -1 && errno == EINTR)
+        delay = rem;
 }
 
 //
@@ -123,7 +128,7 @@ void SetLanguageIDs ()
 {
 	size_t langlen = strlen(language);
 
-	DWORD lang = (langlen < 2 || langlen > 3) ?
+	uint32_t lang = (langlen < 2 || langlen > 3) ?
 		MAKE_ID('e','n','u','\0') :
 		MAKE_ID(language[0],language[1],language[2],'\0');
 

@@ -53,6 +53,8 @@
 #include "colormatcher.h"
 #include "d_player.h"
 #include "r_utility.h"
+#include "g_levellocals.h"
+#include "vm.h"
 
 CVAR (Int, cl_rockettrails, 1, CVAR_ARCHIVE);
 CVAR (Bool, r_rail_smartspiral, 0, CVAR_ARCHIVE);
@@ -62,14 +64,14 @@ CVAR (Bool, r_particles, true, 0);
 
 FRandom pr_railtrail("RailTrail");
 
-#define FADEFROMTTL(a)	(255/(a))
+#define FADEFROMTTL(a)	(1.f/(a))
 
 // [RH] particle globals
-WORD			NumParticles;
-WORD			ActiveParticles;
-WORD			InactiveParticles;
+uint16_t			NumParticles;
+uint16_t			ActiveParticles;
+uint16_t			InactiveParticles;
 particle_t		*Particles;
-TArray<WORD>	ParticlesInSubsec;
+TArray<uint16_t>	ParticlesInSubsec;
 
 static int grey1, grey2, grey3, grey4, red, green, blue, yellow, black,
 		   red1, green1, blue1, yellow1, purple, purple1, white,
@@ -78,7 +80,7 @@ static int grey1, grey2, grey3, grey4, red, green, blue, yellow, black,
 
 static const struct ColorList {
 	int *color;
-	BYTE r, g, b;
+	uint8_t r, g, b;
 } Colors[] = {
 	{&grey1,	85,  85,  85 },
 	{&grey2,	171, 171, 171},
@@ -117,7 +119,7 @@ inline particle_t *NewParticle (void)
 		result = Particles + InactiveParticles;
 		InactiveParticles = result->tnext;
 		result->tnext = ActiveParticles;
-		ActiveParticles = WORD(result - Particles);
+		ActiveParticles = uint16_t(result - Particles);
 	}
 	return result;
 }
@@ -158,7 +160,7 @@ void P_InitParticles ()
 		num = r_maxparticles;
 
 	// This should be good, but eh...
-	NumParticles = (WORD)clamp<int>(num, 100, 65535);
+	NumParticles = (uint16_t)clamp<int>(num, 100, 65535);
 
 	P_DeinitParticles();
 	Particles = new particle_t[NumParticles];
@@ -193,22 +195,22 @@ void P_ClearParticles ()
 
 void P_FindParticleSubsectors ()
 {
-	if (ParticlesInSubsec.Size() < (size_t)numsubsectors)
+	if (ParticlesInSubsec.Size() < level.subsectors.Size())
 	{
-		ParticlesInSubsec.Reserve (numsubsectors - ParticlesInSubsec.Size());
+		ParticlesInSubsec.Reserve (level.subsectors.Size() - ParticlesInSubsec.Size());
 	}
 
-	fillshort (&ParticlesInSubsec[0], numsubsectors, NO_PARTICLE);
+	fillshort (&ParticlesInSubsec[0], level.subsectors.Size(), NO_PARTICLE);
 
 	if (!r_particles)
 	{
 		return;
 	}
-	for (WORD i = ActiveParticles; i != NO_PARTICLE; i = Particles[i].tnext)
+	for (uint16_t i = ActiveParticles; i != NO_PARTICLE; i = Particles[i].tnext)
 	{
 		 // Try to reuse the subsector from the last portal check, if still valid.
 		if (Particles[i].subsector == NULL) Particles[i].subsector = R_PointInSubsector(Particles[i].Pos);
-		int ssnum = int(Particles[i].subsector - subsectors);
+		int ssnum = Particles[i].subsector->Index();
 		Particles[i].snext = ParticlesInSubsec[ssnum];
 		ParticlesInSubsec[ssnum] = i;
 	}
@@ -216,7 +218,7 @@ void P_FindParticleSubsectors ()
 
 static TMap<int, int> ColorSaver;
 
-static uint32 ParticleColor(int rgb)
+static uint32_t ParticleColor(int rgb)
 {
 	int *val;
 	int stuff;
@@ -231,7 +233,7 @@ static uint32 ParticleColor(int rgb)
 	return stuff;
 }
 
-static uint32 ParticleColor(int r, int g, int b)
+static uint32_t ParticleColor(int r, int g, int b)
 {
 	return ParticleColor(MAKERGB(r, g, b));
 }
@@ -269,11 +271,10 @@ void P_ThinkParticles ()
 			continue;
 		}
 		
-		BYTE oldtrans;
-		oldtrans = particle->trans;
-		particle->trans -= particle->fade;
+		auto oldtrans = particle->alpha;
+		particle->alpha -= particle->fadestep;
 		particle->size += particle->sizestep;
-		if (oldtrans < particle->trans || --particle->ttl <= 0 || (particle->size <= 0))
+		if (particle->alpha <= 0 || oldtrans < particle->alpha || --particle->ttl <= 0 || (particle->size <= 0))
 		{ // The particle has expired, so free it
 			memset (particle, 0, sizeof(particle_t));
 			if (prev)
@@ -331,9 +332,9 @@ void P_SpawnParticle(const DVector3 &pos, const DVector3 &vel, const DVector3 &a
 		particle->Vel = vel;
 		particle->Acc = accel;
 		particle->color = ParticleColor(color);
-		particle->trans = BYTE(startalpha*255);
-		if (fadestep < 0) particle->fade = FADEFROMTTL(lifetime);
-		else particle->fade = int(fadestep * 255);
+		particle->alpha = float(startalpha);
+		if (fadestep < 0) particle->fadestep = FADEFROMTTL(lifetime);
+		else particle->fadestep = float(fadestep);
 		particle->ttl = lifetime;
 		particle->bright = !!(flags & PS_FULLBRIGHT);
 		particle->size = size;
@@ -351,18 +352,18 @@ void P_RunEffects ()
 {
 	if (players[consoleplayer].camera == NULL) return;
 
-	int	pnum = int(players[consoleplayer].camera->Sector - sectors) * numsectors;
+	int	pnum = players[consoleplayer].camera->Sector->Index() * level.sectors.Size();
 
 	AActor *actor;
 	TThinkerIterator<AActor> iterator;
 
 	while ( (actor = iterator.Next ()) )
 	{
-		if (actor->effects)
+		if (actor->effects || actor->fountaincolor)
 		{
 			// Only run the effect if the actor is potentially visible
-			int rnum = pnum + int(actor->Sector - sectors);
-			if (rejectmatrix == NULL || !(rejectmatrix[rnum>>3] & (1 << (rnum & 7))))
+			int rnum = pnum + actor->Sector->Index();
+			if (level.rejectmatrix.Size() == 0 || !(level.rejectmatrix[rnum>>3] & (1 << (rnum & 7))))
 				P_RunEffect (actor, actor->effects);
 		}
 	}
@@ -392,9 +393,9 @@ particle_t *JitterParticle (int ttl, double drift)
 		for (i = 3; i; i--)
 			particle->Acc[i] = ((1./16384) * (M_Random () - 128) * drift);
 
-		particle->trans = 255;	// fully opaque
+		particle->alpha = 1.f;	// fully opaque
 		particle->ttl = ttl;
-		particle->fade = FADEFROMTTL(ttl);
+		particle->fadestep = FADEFROMTTL(ttl);
 	}
 	return particle;
 }
@@ -494,7 +495,7 @@ void P_RunEffect (AActor *actor, int effects)
 
 		P_DrawSplash2 (6, pos, moveangle + 180, 2, 2);
 	}
-	if (effects & FX_FOUNTAINMASK)
+	if (actor->fountaincolor)
 	{
 		// Particle fountain
 
@@ -508,7 +509,7 @@ void P_RunEffect (AActor *actor, int effects)
 			  &black,	&grey3,
 			  &grey4,	&white
 			};
-		int color = (effects & FX_FOUNTAINMASK) >> 15;
+		int color = actor->fountaincolor*2;
 		MakeFountain (actor, *fountainColors[color], *fountainColors[color+1]);
 	}
 	if (effects & FX_RESPAWNINVUL)
@@ -622,8 +623,8 @@ void P_DrawSplash2 (int count, const DVector3 &pos, DAngle angle, int updown, in
 			break;
 
 		p->ttl = 12;
-		p->fade = FADEFROMTTL(12);
-		p->trans = 255;
+		p->fadestep = FADEFROMTTL(12);
+		p->alpha = 1.f;
 		p->size = 4;
 		p->color = M_Random() & 0x80 ? color1 : color2;
 		p->Vel.Z = M_Random() * zvel;
@@ -732,7 +733,7 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 				{
 					if (shortest == NULL || shortest->sounddist > seg.sounddist) shortest = &seg;
 				}
-				S_Sound (DVector3(shortest->soundpos, ViewPos.Z), CHAN_WEAPON, sound, 1, ATTN_NORM);
+				S_Sound (DVector3(shortest->soundpos, r_viewpoint.Pos.Z), CHAN_WEAPON, sound, 1, ATTN_NORM);
 			}
 		}
 	}
@@ -763,9 +764,9 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 
 			int spiralduration = (duration == 0) ? 35 : duration;
 
-			p->trans = 255;
-			p->ttl = duration;
-			p->fade = FADEFROMTTL(spiralduration);
+			p->alpha = 1.f;
+			p->ttl = spiralduration;
+			p->fadestep = FADEFROMTTL(spiralduration);
 			p->size = 3;
 			p->bright = fullbright;
 
@@ -813,7 +814,7 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 	// Create the inner trail.
 	if (color2 != -1 && r_rail_trailsparsity > 0 && spawnclass == NULL)
 	{
-		double stepsize = 3 * r_rail_spiralsparsity * sparsity;
+		double stepsize = 3 * r_rail_trailsparsity * sparsity;
 		int trail_steps = xs_FloorToInt(steps * r_rail_trailsparsity / sparsity);
 
 		color2 = color2 == 0 ? -1 : ParticleColor(color2);
@@ -890,7 +891,7 @@ void P_DrawRailTrail(AActor *source, TArray<SPortalHit> &portalhits, int color1,
 		if (sparsity < 1)
 			sparsity = 32;
 
-		double stepsize = 3 * r_rail_spiralsparsity * sparsity;
+		double stepsize = sparsity;
 		int trail_steps = (int)((steps * 3) / sparsity);
 		DVector3 diff(0, 0, 0);
 

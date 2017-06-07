@@ -1,20 +1,25 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1994-1996 Raven Software
+// Copyright 1998-1998 Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2017 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //		Movement/collision utility functions,
@@ -24,6 +29,35 @@
 //
 //-----------------------------------------------------------------------------
 
+/* For code that originates from ZDoom the following applies:
+**
+**---------------------------------------------------------------------------
+**
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions
+** are met:
+**
+** 1. Redistributions of source code must retain the above copyright
+**    notice, this list of conditions and the following disclaimer.
+** 2. Redistributions in binary form must reproduce the above copyright
+**    notice, this list of conditions and the following disclaimer in the
+**    documentation and/or other materials provided with the distribution.
+** 3. The name of the author may not be used to endorse or promote products
+**    derived from this software without specific prior written permission.
+**
+** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+** OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+** IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+** INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+** NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+** THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**---------------------------------------------------------------------------
+**
+*/
 
 
 #include <stdlib.h>
@@ -39,11 +73,15 @@
 #include "p_3dmidtex.h"
 #include "p_blockmap.h"
 #include "r_utility.h"
+#include "actor.h"
+#include "actorinlines.h"
 
 // State.
 #include "r_state.h"
 #include "templates.h"
 #include "po_man.h"
+#include "g_levellocals.h"
+#include "vm.h"
 
 sector_t *P_PointInSectorBuggy(double x, double y);
 int P_VanillaPointOnDivlineSide(double x, double y, const divline_t* line);
@@ -319,18 +357,17 @@ bool AActor::FixMapthingPos()
 {
 	sector_t *secstart = P_PointInSectorBuggy(X(), Y());
 
-	int blockx = GetBlockX(X());
-	int blocky = GetBlockY(Y());
+	int blockx = level.blockmap.GetBlockX(X());
+	int blocky = level.blockmap.GetBlockY(Y());
 	bool success = false;
 
-	if ((unsigned int)blockx < (unsigned int)bmapwidth &&
-		(unsigned int)blocky < (unsigned int)bmapheight)
+	if (level.blockmap.isValidBlock(blockx, blocky))
 	{
 		int *list;
 
-		for (list = blockmaplump + blockmap[blocky*bmapwidth + blockx] + 1; *list != -1; ++list)
+		for (list = level.blockmap.GetLines(blockx, blocky); *list != -1; ++list)
 		{
-			line_t *ldef = &lines[*list];
+			line_t *ldef = &level.lines[*list];
 
 			if (ldef->frontsector == ldef->backsector)
 			{ // Skip two-sided lines inside a single sector
@@ -367,10 +404,10 @@ bool AActor::FixMapthingPos()
 
 			if (distance < radius)
 			{
-				DPrintf(DMSG_NOTIFY, "%s at (%f,%f) lies on %s line %td, distance = %f\n",
+				DPrintf(DMSG_NOTIFY, "%s at (%f,%f) lies on %s line %d, distance = %f\n",
 					this->GetClass()->TypeName.GetChars(), X(), Y(),
 					ldef->Delta().X == 0 ? "vertical" : ldef->Delta().Y == 0 ? "horizontal" : "diagonal",
-					ldef - lines, distance);
+					ldef->Index(), distance);
 				DAngle ang = ldef->Delta().Angle();
 				if (ldef->backsector != NULL && ldef->backsector == secstart)
 				{
@@ -395,7 +432,8 @@ bool AActor::FixMapthingPos()
 DEFINE_ACTION_FUNCTION(AActor, UnlinkFromWorld)
 {
 	PARAM_SELF_PROLOGUE(AActor);
-	self->UnlinkFromWorld(nullptr); // fixme
+	PARAM_POINTER_DEF(ctx, FLinkContext);
+	self->UnlinkFromWorld(ctx); // fixme
 	return 0;
 }
 
@@ -422,7 +460,7 @@ void AActor::LinkToWorld(FLinkContext *ctx, bool spawningmapthing, sector_t *sec
 
 	if (sector == NULL)
 	{
-		if (!spawning || numgamenodes == 0)
+		if (!spawning)
 		{
 			sector = P_PointInSector(Pos());
 		}
@@ -483,25 +521,25 @@ void AActor::LinkToWorld(FLinkContext *ctx, bool spawningmapthing, sector_t *sec
 		{
 			DVector3 pos = i==-1? Pos() : PosRelative(check[i] & ~FPortalGroupArray::FLAT);
 
-			int x1 = GetBlockX(pos.X - radius);
-			int x2 = GetBlockX(pos.X + radius);
-			int y1 = GetBlockY(pos.Y - radius);
-			int y2 = GetBlockY(pos.Y + radius);
+			int x1 = level.blockmap.GetBlockX(pos.X - radius);
+			int x2 = level.blockmap.GetBlockX(pos.X + radius);
+			int y1 = level.blockmap.GetBlockY(pos.Y - radius);
+			int y2 = level.blockmap.GetBlockY(pos.Y + radius);
 
-			if (x1 >= bmapwidth || x2 < 0 || y1 >= bmapheight || y2 < 0)
+			if (x1 >= level.blockmap.bmapwidth || x2 < 0 || y1 >= level.blockmap.bmapheight || y2 < 0)
 			{ // thing is off the map
 			}
 			else
 			{ // [RH] Link into every block this actor touches, not just the center one
 				x1 = MAX(0, x1);
 				y1 = MAX(0, y1);
-				x2 = MIN(bmapwidth - 1, x2);
-				y2 = MIN(bmapheight - 1, y2);
+				x2 = MIN(level.blockmap.bmapwidth - 1, x2);
+				y2 = MIN(level.blockmap.bmapheight - 1, y2);
 				for (int y = y1; y <= y2; ++y)
 				{
 					for (int x = x1; x <= x2; ++x)
 					{
-						FBlockNode **link = &blocklinks[y*bmapwidth + x];
+						FBlockNode **link = &level.blockmap.blocklinks[y*level.blockmap.bmapwidth + x];
 						FBlockNode *node = FBlockNode::Create(this, x, y, this->Sector->PortalGroup);
 
 						// Link in to block
@@ -529,7 +567,8 @@ void AActor::LinkToWorld(FLinkContext *ctx, bool spawningmapthing, sector_t *sec
 DEFINE_ACTION_FUNCTION(AActor, LinkToWorld)
 {
 	PARAM_SELF_PROLOGUE(AActor);
-	self->LinkToWorld(nullptr);	// fixme
+	PARAM_POINTER_DEF(ctx, FLinkContext);
+	self->LinkToWorld(ctx);
 	return 0;
 }
 
@@ -575,7 +614,7 @@ FBlockNode *FBlockNode::Create (AActor *who, int x, int y, int group)
 	{
 		block = new FBlockNode;
 	}
-	block->BlockIndex = x + y*bmapwidth;
+	block->BlockIndex = x + y*level.blockmap.bmapwidth;
 	block->Me = who;
 	block->NextActor = NULL;
 	block->PrevActor = NULL;
@@ -619,10 +658,10 @@ FBlockLinesIterator::FBlockLinesIterator(int _minx, int _miny, int _maxx, int _m
 void FBlockLinesIterator::init(const FBoundingBox &box)
 {
 	validcount++;
-	maxy = GetBlockY(box.Top());
-	miny = GetBlockY(box.Bottom());
-	maxx = GetBlockX(box.Right());
-	minx = GetBlockX(box.Left());
+	maxy = level.blockmap.GetBlockY(box.Top());
+	miny = level.blockmap.GetBlockY(box.Bottom());
+	maxx = level.blockmap.GetBlockX(box.Right());
+	minx = level.blockmap.GetBlockX(box.Left());
 	Reset();
 }
 
@@ -641,16 +680,13 @@ void FBlockLinesIterator::StartBlock(int x, int y)
 { 
 	curx = x; 
 	cury = y; 
-	if (x >= 0 && y >= 0 && x < bmapwidth && y <bmapheight)
+	if (level.blockmap.isValidBlock(x, y))
 	{
-		int offset = y*bmapwidth + x;
+		int offset = y*level.blockmap.bmapwidth + x;
 		polyLink = PolyBlockMap? PolyBlockMap[offset] : NULL;
 		polyIndex = 0;
 
-		// There is an extra entry at the beginning of every block.
-		// Apparently, id had originally intended for it to be used
-		// to keep track of things, but the final code does not do that.
-		list = blockmaplump + *(blockmap + offset) + 1;
+		list = level.blockmap.GetLines(x, y);
 	}
 	else
 	{
@@ -709,7 +745,7 @@ line_t *FBlockLinesIterator::Next()
 		{
 			while (*list != -1)
 			{
-				line_t *ld = &lines[*list];
+				line_t *ld = &level.lines[*list];
 
 				list++;
 				if (ld->validcount != validcount)
@@ -895,6 +931,74 @@ void FMultiBlockLinesIterator::Reset()
 
 //===========================================================================
 //
+// and the scriptable version
+//
+//===========================================================================
+
+class DBlockLinesIterator : public DObject, public FMultiBlockLinesIterator
+{
+	DECLARE_ABSTRACT_CLASS(DBlockLinesIterator, DObject);
+	FPortalGroupArray check;
+
+public:
+	FMultiBlockLinesIterator::CheckResult cres;
+
+	bool Next()
+	{
+		return FMultiBlockLinesIterator::Next(&cres);
+	}
+
+	DBlockLinesIterator(AActor *actor, double checkradius)
+		: FMultiBlockLinesIterator(check, actor, checkradius)
+	{
+		cres.line = nullptr;
+		cres.Position.Zero();
+		cres.portalflags = 0;
+	}
+
+	DBlockLinesIterator(double x, double y, double z, double height, double radius, sector_t *sec)
+		:FMultiBlockLinesIterator(check, x, y, z, height, radius, sec)
+	{
+		cres.line = nullptr;
+		cres.Position.Zero();
+		cres.portalflags = 0;
+	}
+};
+
+IMPLEMENT_CLASS(DBlockLinesIterator, true, false);
+
+DEFINE_ACTION_FUNCTION(DBlockLinesIterator, Create)
+{
+	PARAM_PROLOGUE;
+	PARAM_OBJECT_NOT_NULL(origin, AActor);
+	PARAM_FLOAT_DEF(radius);
+	ACTION_RETURN_OBJECT(Create<DBlockLinesIterator>(origin, radius));
+}
+
+DEFINE_ACTION_FUNCTION(DBlockLinesIterator, CreateFromPos)
+{
+	PARAM_PROLOGUE;
+	PARAM_FLOAT(x);
+	PARAM_FLOAT(y);
+	PARAM_FLOAT(z);
+	PARAM_FLOAT(h);
+	PARAM_FLOAT(radius);
+	PARAM_POINTER_DEF(sec, sector_t);
+	ACTION_RETURN_OBJECT(Create<DBlockLinesIterator>(x, y, z, h, radius, sec));
+}
+
+DEFINE_ACTION_FUNCTION(DBlockLinesIterator, Next)
+{
+	PARAM_SELF_PROLOGUE(DBlockLinesIterator);
+	ACTION_RETURN_BOOL(self->Next());
+}
+
+DEFINE_FIELD_NAMED(DBlockLinesIterator, cres.line, curline);
+DEFINE_FIELD_NAMED(DBlockLinesIterator, cres.Position, position);
+DEFINE_FIELD_NAMED(DBlockLinesIterator, cres.portalflags, portalflags);
+
+//===========================================================================
+//
 // FBlockThingsIterator :: FBlockThingsIterator
 //
 //===========================================================================
@@ -921,10 +1025,10 @@ FBlockThingsIterator::FBlockThingsIterator(int _minx, int _miny, int _maxx, int 
 
 void FBlockThingsIterator::init(const FBoundingBox &box)
 {
-	maxy = GetBlockY(box.Top());
-	miny = GetBlockY(box.Bottom());
-	maxx = GetBlockX(box.Right());
-	minx = GetBlockX(box.Left());
+	maxy = level.blockmap.GetBlockY(box.Top());
+	miny = level.blockmap.GetBlockY(box.Bottom());
+	maxx = level.blockmap.GetBlockX(box.Right());
+	minx = level.blockmap.GetBlockX(box.Left());
 	ClearHash();
 	Reset();
 }
@@ -948,13 +1052,13 @@ void FBlockThingsIterator::ClearHash()
 //
 //===========================================================================
 
-void FBlockThingsIterator::StartBlock(int x, int y) 
-{ 
-	curx = x; 
-	cury = y; 
-	if (x >= 0 && y >= 0 && x < bmapwidth && y <bmapheight)
+void FBlockThingsIterator::StartBlock(int x, int y)
+{
+	curx = x;
+	cury = y;
+	if (level.blockmap.isValidBlock(x, y))
 	{
-		block = blocklinks[y*bmapwidth + x];
+		block = level.blockmap.blocklinks[y*level.blockmap.bmapwidth + x];
 	}
 	else
 	{
@@ -1002,10 +1106,10 @@ AActor *FBlockThingsIterator::Next(bool centeronly)
 			if (centeronly)
 			{
 				// Block boundaries for compatibility mode
-				double blockleft = (curx * MAPBLOCKUNITS) + bmaporgx;
-				double blockright = blockleft + MAPBLOCKUNITS;
-				double blockbottom = (cury * MAPBLOCKUNITS) + bmaporgy;
-				double blocktop = blockbottom + MAPBLOCKUNITS;
+				double blockleft = (curx * FBlockmap::MAPBLOCKUNITS) + level.blockmap.bmaporgx;
+				double blockright = blockleft + FBlockmap::MAPBLOCKUNITS;
+				double blockbottom = (cury * FBlockmap::MAPBLOCKUNITS) + level.blockmap.bmaporgy;
+				double blocktop = blockbottom + FBlockmap::MAPBLOCKUNITS;
 
 				// only return actors with the center in this block
 				if (me->X() >= blockleft && me->X() < blockright &&
@@ -1172,18 +1276,17 @@ void FMultiBlockThingsIterator::Reset()
 
 class DBlockThingsIterator : public DObject, public FMultiBlockThingsIterator
 {
-	DECLARE_CLASS(DBlockThingsIterator, DObject);
+	DECLARE_ABSTRACT_CLASS(DBlockThingsIterator, DObject);
 	FPortalGroupArray check;
 public:
 	FMultiBlockThingsIterator::CheckResult cres;
 
-public:
 	bool Next()
 	{
 		return FMultiBlockThingsIterator::Next(&cres);
 	}
 
-	DBlockThingsIterator(AActor *origin = nullptr, double checkradius = -1, bool ignorerestricted = false)
+	DBlockThingsIterator(AActor *origin, double checkradius = -1, bool ignorerestricted = false)
 		: FMultiBlockThingsIterator(check, origin, checkradius, ignorerestricted)
 	{
 		cres.thing = nullptr;
@@ -1200,7 +1303,7 @@ public:
 	}
 };
 
-IMPLEMENT_CLASS(DBlockThingsIterator, false, false);
+IMPLEMENT_CLASS(DBlockThingsIterator, true, false);
 
 DEFINE_ACTION_FUNCTION(DBlockThingsIterator, Create)
 {
@@ -1208,7 +1311,7 @@ DEFINE_ACTION_FUNCTION(DBlockThingsIterator, Create)
 	PARAM_OBJECT_NOT_NULL(origin, AActor);
 	PARAM_FLOAT_DEF(radius);
 	PARAM_BOOL_DEF(ignore);
-	ACTION_RETURN_OBJECT(new DBlockThingsIterator(origin, radius, ignore));
+	ACTION_RETURN_OBJECT(Create<DBlockThingsIterator>(origin, radius, ignore));
 }
 
 DEFINE_ACTION_FUNCTION(DBlockThingsIterator, CreateFromPos)
@@ -1220,7 +1323,7 @@ DEFINE_ACTION_FUNCTION(DBlockThingsIterator, CreateFromPos)
 	PARAM_FLOAT(h);
 	PARAM_FLOAT(radius);
 	PARAM_BOOL(ignore);
-	ACTION_RETURN_OBJECT(new DBlockThingsIterator(x, y, z, h, radius, ignore, nullptr));
+	ACTION_RETURN_OBJECT(Create<DBlockThingsIterator>(x, y, z, h, radius, ignore, nullptr));
 }
 
 DEFINE_ACTION_FUNCTION(DBlockThingsIterator, Next)
@@ -1546,15 +1649,15 @@ void FPathTraverse::init(double x1, double y1, double x2, double y2, int flags, 
 		y2 += y1;
 	}
 
-	x1 -= bmaporgx;
-	y1 -= bmaporgy;
-	xt1 = x1 / MAPBLOCKUNITS;
-	yt1 = y1 / MAPBLOCKUNITS;
+	x1 -= level.blockmap.bmaporgx;
+	y1 -= level.blockmap.bmaporgy;
+	xt1 = x1 / FBlockmap::MAPBLOCKUNITS;
+	yt1 = y1 / FBlockmap::MAPBLOCKUNITS;
 
-	x2 -= bmaporgx;
-	y2 -= bmaporgy;
-	xt2 = x2 / MAPBLOCKUNITS;
-	yt2 = y2 / MAPBLOCKUNITS;
+	x2 -= level.blockmap.bmaporgx;
+	y2 -= level.blockmap.bmaporgy;
+	xt2 = x2 / FBlockmap::MAPBLOCKUNITS;
+	yt2 = y2 / FBlockmap::MAPBLOCKUNITS;
 
 	mapx = xs_FloorToInt(xt1);
 	mapy = xs_FloorToInt(yt1);
@@ -1762,7 +1865,7 @@ FPathTraverse::~FPathTraverse()
 // P_RoughMonsterSearch
 //
 // Searches though the surrounding mapblocks for monsters/players
-//		distance is in MAPBLOCKUNITS
+//		distance is in FBlockmap::MAPBLOCKUNITS
 //===========================================================================
 
 AActor *P_BlockmapSearch (AActor *mo, int distance, AActor *(*check)(AActor*, int, void *), void *params)
@@ -1777,12 +1880,14 @@ AActor *P_BlockmapSearch (AActor *mo, int distance, AActor *(*check)(AActor*, in
 	int finalStop;
 	int count;
 	AActor *target;
+	int bmapwidth = level.blockmap.bmapwidth;
+	int bmapheight = level.blockmap.bmapheight;
 
-	startX = GetBlockX(mo->X());
-	startY = GetBlockY(mo->Y());
+	startX = level.blockmap.GetBlockX(mo->X());
+	startY = level.blockmap.GetBlockY(mo->Y());
 	validcount++;
 	
-	if (startX >= 0 && startX < bmapwidth && startY >= 0 && startY < bmapheight)
+	if (level.blockmap.isValidBlock(startX, startY))
 	{
 		if ( (target = check (mo, startY*bmapwidth+startX, params)) )
 		{ // found a target right away
@@ -1873,7 +1978,7 @@ static AActor *RoughBlockCheck (AActor *mo, int index, void *param)
 
 	FBlockNode *link;
 
-	for (link = blocklinks[index]; link != NULL; link = link->NextActor)
+	for (link = level.blockmap.blocklinks[index]; link != NULL; link = link->NextActor)
 	{
 		if (link->Me != mo)
 		{
@@ -2023,6 +2128,30 @@ int P_VanillaPointOnLineSide(double x, double y, const line_t* line)
 
 //==========================================================================
 //
+// P_PointInSubsector
+//
+//==========================================================================
+
+subsector_t *P_PointInSubsector(double x, double y)
+{
+	int side;
+
+	auto node = level.HeadGamenode();
+	if (node == nullptr) return &level.subsectors[0];
+
+	fixed_t xx = FLOAT2FIXED(x);
+	fixed_t yy = FLOAT2FIXED(y);
+	do
+	{
+		side = R_PointOnSide(xx, yy, node);
+		node = (node_t *)node->children[side];
+	} while (!((size_t)node & 1));
+
+	return (subsector_t *)((uint8_t *)node - 1);
+}
+
+//==========================================================================
+//
 // Use buggy PointOnSide and fix actors that lie on
 // lines to compensate for some IWAD maps.
 //
@@ -2031,11 +2160,8 @@ int P_VanillaPointOnLineSide(double x, double y, const line_t* line)
 sector_t *P_PointInSectorBuggy(double x, double y)
 {
 	// single subsector is a special case
-	if (numgamenodes == 0)
-		return gamesubsectors->sector;
-
-	node_t *node = gamenodes + numgamenodes - 1;
-
+	auto node = level.HeadGamenode();
+	if (node == nullptr) return level.subsectors[0].sector;
 	do
 	{
 		// Use original buggy point-on-side test when spawning
@@ -2049,6 +2175,6 @@ sector_t *P_PointInSectorBuggy(double x, double y)
 		node = (node_t *)node->children[R_PointOnSideSlow(x, y, node)];
 	} while (!((size_t)node & 1));
 
-	subsector_t *ssec = (subsector_t *)((BYTE *)node - 1);
+	subsector_t *ssec = (subsector_t *)((uint8_t *)node - 1);
 	return ssec->sector;
 }

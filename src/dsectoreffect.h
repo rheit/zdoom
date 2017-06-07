@@ -12,48 +12,49 @@ public:
 
 	
 	void Serialize(FSerializer &arc);
-	void Destroy() override;
+	void OnDestroy() override;
 
 	sector_t *GetSector() const { return m_Sector; }
 
-protected:
-	DSectorEffect ();
 	sector_t *m_Sector;
+
+protected:
+	DSectorEffect();
+
 };
 
 class DMover : public DSectorEffect
 {
-	DECLARE_CLASS (DMover, DSectorEffect)
+	DECLARE_ABSTRACT_CLASS (DMover, DSectorEffect)
 	HAS_OBJECT_POINTERS
-public:
+protected:
 	DMover (sector_t *sector);
+
+	TObjPtr<DInterpolation*> interpolation;
+public:
 	void StopInterpolation(bool force = false);
+
 protected:
-	TObjPtr<DInterpolation> interpolation;
-private:
-protected:
-	DMover ();
+	DMover () {}
 	
 	void Serialize(FSerializer &arc);
-	void Destroy() override;
+	void OnDestroy() override;
 };
 
 class DMovingFloor : public DMover
 {
-	DECLARE_CLASS (DMovingFloor, DMover)
-public:
-	DMovingFloor (sector_t *sector);
+	DECLARE_ABSTRACT_CLASS (DMovingFloor, DMover)
 protected:
-	DMovingFloor ();
+	DMovingFloor (sector_t *sector);
+	DMovingFloor() {}
 };
 
 class DMovingCeiling : public DMover
 {
-	DECLARE_CLASS (DMovingCeiling, DMover)
-public:
-	DMovingCeiling (sector_t *sector, bool interpolate = true);
+	DECLARE_ABSTRACT_CLASS (DMovingCeiling, DMover)
 protected:
-	DMovingCeiling ();
+	DMovingCeiling (sector_t *sector, bool interpolate = true);
+	DMovingCeiling () {}
 };
 
 #endif //__DSECTOREFFECT_H__

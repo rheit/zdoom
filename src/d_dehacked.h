@@ -34,30 +34,13 @@
 #ifndef __D_DEHACK_H__
 #define __D_DEHACK_H__
 
-#include "a_pickups.h"
-
-class ADehackedPickup : public AInventory
+enum DehLumpSource
 {
-	DECLARE_CLASS (ADehackedPickup, AInventory)
-	HAS_OBJECT_POINTERS
-public:
-	void Destroy() override;
-	FString PickupMessage ();
-	bool ShouldRespawn ();
-	bool ShouldStay ();
-	bool TryPickup (AActor *&toucher);
-	void PlayPickupSound (AActor *toucher);
-	void DoPickupSpecial (AActor *toucher);
-	
-	void Serialize(FSerializer &arc);
-private:
-	PClassActor *DetermineType ();
-	AInventory *RealPickup;
-public:
-	bool droppedbymonster;
+	FromIWAD,
+	FromPWADs
 };
 
-int D_LoadDehLumps();
+int D_LoadDehLumps(DehLumpSource source);
 bool D_LoadDehLump(int lumpnum);
 bool D_LoadDehFile(const char *filename);
 void FinishDehPatch ();

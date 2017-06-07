@@ -51,6 +51,8 @@
 #include "autosegs.h"
 #include "version.h"
 #include "v_text.h"
+#include "g_levellocals.h"
+#include "events.h"
 
 TArray<cluster_info_t> wadclusterinfos;
 TArray<level_info_t> wadlevelinfos;
@@ -271,6 +273,13 @@ void level_info_t::Reset()
 	SndSeq = "";
 	BorderTexture = "";
 	teamdamage = 0.f;
+	hazardcolor = 0xff004200;
+	hazardflash = 0xff00ff00;
+	fogdensity = 0;
+	outsidefogdensity = 0;
+	skyfog = 0;
+	pixelstretch = 1.2f;
+
 	specialactions.Clear();
 	DefaultEnvironment = 0;
 	PrecacheSounds.Clear();
@@ -588,7 +597,7 @@ bool FMapInfoParser::ParseLookupName(FString &dest)
 		}
 		while (sc.CheckString(","));
 		// strip off the last newline
-		dest.Truncate(long(dest.Len()-1));
+		dest.Truncate(dest.Len()-1);
 		return false;
 	}
 }
@@ -698,6 +707,10 @@ void FMapInfoParser::ParseCluster()
 		else if (sc.Compare("hub"))
 		{
 			clusterinfo->flags |= CLUSTER_HUB;
+		}
+		else if (sc.Compare("allowintermission"))
+		{
+			clusterinfo->flags |= CLUSTER_ALLOWINTERMISSION;
 		}
 		else if (sc.Compare("cdtrack"))
 		{
@@ -909,6 +922,18 @@ DEFINE_MAP_OPTION(intermusic, true)
 	parse.ParseMusic(info->InterMusic, info->intermusicorder);
 }
 
+DEFINE_MAP_OPTION(mapintermusic, true)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetString();
+	FString mapname = parse.sc.String;
+	FString music;
+	int order;
+	parse.ParseComma();
+	parse.ParseMusic(music, order);
+	info->MapInterMusic[FName(mapname)] = std::make_pair(music, order);
+}
+
 DEFINE_MAP_OPTION(fadetable, true)
 {
 	parse.ParseAssign();
@@ -945,14 +970,14 @@ DEFINE_MAP_OPTION(vertwallshade, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetNumber();
-	info->WallVertLight = (SBYTE)clamp (parse.sc.Number / 2, -128, 127);
+	info->WallVertLight = (int8_t)clamp (parse.sc.Number / 2, -128, 127);
 }
 
 DEFINE_MAP_OPTION(horizwallshade, true)
 {
 	parse.ParseAssign();
 	parse.sc.MustGetNumber();
-	info->WallHorizLight = (SBYTE)clamp (parse.sc.Number / 2, -128, 127);
+	info->WallHorizLight = (int8_t)clamp (parse.sc.Number / 2, -128, 127);
 }
 
 DEFINE_MAP_OPTION(gravity, true)
@@ -1038,6 +1063,17 @@ DEFINE_MAP_OPTION(PrecacheSounds, true)
 		{
 			info->PrecacheSounds.Push(snd);
 		}
+	} while (parse.sc.CheckString(","));
+}
+
+DEFINE_MAP_OPTION(EventHandlers, true)
+{
+	parse.ParseAssign();
+
+	do
+	{
+		parse.sc.MustGetString();
+		info->EventHandlers.Push(parse.sc.String);
 	} while (parse.sc.CheckString(","));
 }
 
@@ -1171,6 +1207,48 @@ DEFINE_MAP_OPTION(defaultenvironment, false)
 	info->DefaultEnvironment = id;
 }
 
+DEFINE_MAP_OPTION(hazardcolor, true)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetString();
+	info->hazardcolor = V_GetColor(NULL, parse.sc);
+}
+
+DEFINE_MAP_OPTION(hazardflash, true)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetString();
+	info->hazardflash = V_GetColor(NULL, parse.sc);
+}
+
+DEFINE_MAP_OPTION(fogdensity, false)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetNumber();
+	info->fogdensity = clamp(parse.sc.Number, 0, 512) >> 1;
+}
+
+DEFINE_MAP_OPTION(outsidefogdensity, false)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetNumber();
+	info->outsidefogdensity = clamp(parse.sc.Number, 0, 512) >> 1;
+}
+
+DEFINE_MAP_OPTION(skyfog, false)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetNumber();
+	info->skyfog = parse.sc.Number;
+}
+
+DEFINE_MAP_OPTION(pixelratio, false)
+{
+	parse.ParseAssign();
+	parse.sc.MustGetFloat();
+	info->pixelstretch = (float)parse.sc.Float;
+}
+
 
 //==========================================================================
 //
@@ -1198,7 +1276,7 @@ struct MapInfoFlagHandler
 {
 	const char *name;
 	EMIType type;
-	DWORD data1, data2;
+	uint32_t data1, data2;
 }
 MapFlagHandlers[] =
 {
@@ -1223,8 +1301,8 @@ MapFlagHandlers[] =
 	{ "smoothlighting",					MITYPE_SETFLAG2,	LEVEL2_SMOOTHLIGHTING, 0 },
 	{ "noautosequences",				MITYPE_SETFLAG,	LEVEL_SNDSEQTOTALCTRL, 0 },
 	{ "autosequences",					MITYPE_CLRFLAG,	LEVEL_SNDSEQTOTALCTRL, 0 },
-	{ "forcenoskystretch",				MITYPE_SETFLAG,	LEVEL_FORCENOSKYSTRETCH, 0 },
-	{ "skystretch",						MITYPE_CLRFLAG,	LEVEL_FORCENOSKYSTRETCH, 0 },
+	{ "forcenoskystretch",				MITYPE_SETFLAG,	LEVEL_FORCETILEDSKY, 0 },
+	{ "skystretch",						MITYPE_CLRFLAG,	LEVEL_FORCETILEDSKY, 0 },
 	{ "allowfreelook",					MITYPE_SCFLAGS,	LEVEL_FREELOOK_YES, ~LEVEL_FREELOOK_NO },
 	{ "nofreelook",						MITYPE_SCFLAGS,	LEVEL_FREELOOK_NO, ~LEVEL_FREELOOK_YES },
 	{ "allowjump",						MITYPE_CLRFLAG,	LEVEL_JUMP_NO, 0 },
@@ -1248,6 +1326,7 @@ MapFlagHandlers[] =
 	{ "laxmonsteractivation",			MITYPE_SETFLAG2,	LEVEL2_LAXMONSTERACTIVATION, LEVEL2_LAXACTIVATIONMAPINFO },
 	{ "additive_scrollers",				MITYPE_COMPATFLAG, COMPATF_BOOMSCROLL, 0 },
 	{ "keepfullinventory",				MITYPE_SETFLAG2,	LEVEL2_KEEPFULLINVENTORY, 0 },
+	{ "resetitems",						MITYPE_SETFLAG3,	LEVEL3_REMOVEITEMS, 0 },
 	{ "monsterfallingdamage",			MITYPE_SETFLAG2,	LEVEL2_MONSTERFALLINGDAMAGE, 0 },
 	{ "nomonsterfallingdamage",			MITYPE_CLRFLAG2,	LEVEL2_MONSTERFALLINGDAMAGE, 0 },
 	{ "clipmidtextures",				MITYPE_SETFLAG2,	LEVEL2_CLIPMIDTEX, 0 },
@@ -1277,6 +1356,8 @@ MapFlagHandlers[] =
 	{ "unfreezesingleplayerconversations",MITYPE_SETFLAG2,	LEVEL2_CONV_SINGLE_UNFREEZE, 0 },
 	{ "spawnwithweaponraised",			MITYPE_SETFLAG2,	LEVEL2_PRERAISEWEAPON, 0 },
 	{ "forcefakecontrast",				MITYPE_SETFLAG3,	LEVEL3_FORCEFAKECONTRAST, 0 },
+	{ "nolightfade",					MITYPE_SETFLAG3,	LEVEL3_NOLIGHTFADE, 0 },
+	{ "nocoloredspritelighting",		MITYPE_SETFLAG3,	LEVEL3_NOCOLOREDSPRITELIGHTING, 0 },
 	{ "nobotnodes",						MITYPE_IGNORE,	0, 0 },		// Skulltag option: nobotnodes
 	{ "compat_shorttex",				MITYPE_COMPATFLAG, COMPATF_SHORTTEX, 0 },
 	{ "compat_stairs",					MITYPE_COMPATFLAG, COMPATF_STAIRINDEX, 0 },
@@ -1351,7 +1432,16 @@ void FMapInfoParser::ParseMapDefinition(level_info_t &info)
 				break;
 
 			case MITYPE_SETFLAG:
-				info.flags |= handler->data1;
+				if (!CheckAssign())
+				{
+					info.flags |= handler->data1;
+				}
+				else
+				{
+					sc.MustGetNumber();
+					if (sc.Number) info.flags |= handler->data1;
+					else info.flags &= ~handler->data1;
+				}
 				info.flags |= handler->data2;
 				break;
 
@@ -1365,7 +1455,16 @@ void FMapInfoParser::ParseMapDefinition(level_info_t &info)
 				break;
 
 			case MITYPE_SETFLAG2:
-				info.flags2 |= handler->data1;
+				if (!CheckAssign())
+				{
+					info.flags2 |= handler->data1;
+				}
+				else
+				{
+					sc.MustGetNumber();
+					if (sc.Number) info.flags2 |= handler->data1;
+					else info.flags2 &= ~handler->data1;
+				}
 				info.flags2 |= handler->data2;
 				break;
 
@@ -1379,7 +1478,16 @@ void FMapInfoParser::ParseMapDefinition(level_info_t &info)
 				break;
 
 			case MITYPE_SETFLAG3:
-				info.flags3 |= handler->data1;
+				if (!CheckAssign())
+				{
+					info.flags3 |= handler->data1;
+				}
+				else
+				{
+					sc.MustGetNumber();
+					if (sc.Number) info.flags3 |= handler->data1;
+					else info.flags3 &= ~handler->data1;
+				}
 				info.flags3 |= handler->data2;
 				break;
 
@@ -1953,6 +2061,7 @@ static void ClearMapinfo()
 	DefaultSkill = -1;
 	DeinitIntermissions();
 	level.info = NULL;
+	level.F1Pic = "";
 }
 
 //==========================================================================

@@ -1,3 +1,44 @@
+/*
+** thingdef.h
+**
+** Actor definitions
+**
+**---------------------------------------------------------------------------
+** Copyright 2002-2008 Christoph Oelckers
+** Copyright 2004-2008 Randy Heit
+** All rights reserved.
+**
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions
+** are met:
+**
+** 1. Redistributions of source code must retain the above copyright
+**    notice, this list of conditions and the following disclaimer.
+** 2. Redistributions in binary form must reproduce the above copyright
+**    notice, this list of conditions and the following disclaimer in the
+**    documentation and/or other materials provided with the distribution.
+** 3. The name of the author may not be used to endorse or promote products
+**    derived from this software without specific prior written permission.
+** 4. When not used as part of ZDoom or a ZDoom derivative, this code will be
+**    covered by the terms of the GNU General Public License as published by
+**    the Free Software Foundation; either version 2 of the License, or (at
+**    your option) any later version.
+**
+** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+** OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+** IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+** INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+** NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+** THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**---------------------------------------------------------------------------
+**
+*/
+
+
 #ifndef __THINGDEF_H
 #define __THINGDEF_H
 
@@ -6,6 +47,7 @@
 #include "s_sound.h"
 #include "sc_man.h"
 #include "cmdlib.h"
+#include "vm.h"
 
 
 class FScanner;
@@ -52,7 +94,7 @@ struct FStateDefine
 	FName Label;
 	TArray<FStateDefine> Children;
 	FState *State;
-	BYTE DefineFlags;
+	uint8_t DefineFlags;
 };
 
 class FStateDefinitions
@@ -83,7 +125,7 @@ public:
 		lastlabel = -1;
 	}
 
-	void SetStateLabel(const char *statename, FState *state, BYTE defflags = SDF_STATE);
+	void SetStateLabel(const char *statename, FState *state, uint8_t defflags = SDF_STATE);
 	void AddStateLabel(const char *statename);
 	int GetStateLabelIndex (FName statename);
 	void InstallStates(PClassActor *info, AActor *defaults);
@@ -110,29 +152,31 @@ FScriptPosition & GetStateSource(FState *state);
 // Extra info maintained while defining an actor.
 //
 //==========================================================================
-class DDropItem;
+struct FDropItem;
 
 struct Baggage
 {
 #ifdef _DEBUG
 	FString ClassName;	// This is here so that during debugging the class name can be seen
 #endif
+	PNamespace *Namespace;
 	PClassActor *Info;
 	bool DropItemSet;
 	bool StateSet;
 	bool fromDecorate;
 	int CurrentState;
 	int Lumpnum;
+	VersionInfo Version;
 	FStateDefinitions statedef;
 
-	DDropItem *DropItemList;
+	FDropItem *DropItemList;
 
 	FScriptPosition ScriptPosition;
 };
 
 inline void ResetBaggage (Baggage *bag, PClassActor *stateclass)
 {
-	bag->DropItemList = NULL;
+	bag->DropItemList = nullptr;
 	bag->DropItemSet = false;
 	bag->CurrentState = 0;
 	bag->fromDecorate = true;
@@ -146,21 +190,21 @@ inline void ResetBaggage (Baggage *bag, PClassActor *stateclass)
 //
 //==========================================================================
 
-AFuncDesc *FindFunction(PStruct *cls, const char * string);
-FieldDesc *FindField(PStruct *cls, const char * string);
+AFuncDesc *FindFunction(PContainerType *cls, const char * string);
+FieldDesc *FindField(PContainerType *cls, const char * string);
 
 
-FxExpression *ParseExpression(FScanner &sc, PClassActor *cls, bool mustresolve = false);
+FxExpression *ParseExpression(FScanner &sc, PClassActor *cls, PNamespace *resolvenspc = nullptr);
 void ParseStates(FScanner &sc, PClassActor *actor, AActor *defaults, Baggage &bag);
 void ParseFunctionParameters(FScanner &sc, PClassActor *cls, TArray<FxExpression *> &out_params,
 	PFunction *afd, FString statestring, FStateDefinitions *statedef);
 FxExpression *ParseActions(FScanner &sc, FState state, FString statestring, Baggage &bag, bool &endswithret);
 class FxVMFunctionCall *ParseAction(FScanner &sc, FState state, FString statestring, Baggage &bag);
 FName CheckCastKludges(FName in);
-void SetImplicitArgs(TArray<PType *> *args, TArray<DWORD> *argflags, TArray<FName> *argnames, PStruct *cls, DWORD funcflags, int useflags);
-PFunction *CreateAnonymousFunction(PClass *containingclass, PType *returntype, int flags);
-PFunction *FindClassMemberFunction(PStruct *cls, PStruct *funccls, FName name, FScriptPosition &sc, bool *error);
-void CreateDamageFunction(PClassActor *info, AActor *defaults, FxExpression *id, bool fromDecorate, int lumpnum);
+void SetImplicitArgs(TArray<PType *> *args, TArray<uint32_t> *argflags, TArray<FName> *argnames, PContainerType *cls, uint32_t funcflags, int useflags);
+PFunction *CreateAnonymousFunction(PContainerType *containingclass, PType *returntype, int flags);
+PFunction *FindClassMemberFunction(PContainerType *cls, PContainerType *funccls, FName name, FScriptPosition &sc, bool *error);
+void CreateDamageFunction(PNamespace *ns, const VersionInfo &ver, PClassActor *info, AActor *defaults, FxExpression *id, bool fromDecorate, int lumpnum);
 
 //==========================================================================
 //
@@ -169,7 +213,7 @@ void CreateDamageFunction(PClassActor *info, AActor *defaults, FxExpression *id,
 //==========================================================================
 
 void HandleActorFlag(FScanner &sc, Baggage &bag, const char *part1, const char *part2, int mod);
-FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool constant);
+FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type);
 
 
 enum 
@@ -187,6 +231,7 @@ enum
 	DEPF_HEXENBOUNCE,
 	DEPF_DOOMBOUNCE,
 	DEPF_INTERHUBSTRIP,
+	DEPF_NOTRAIL,
 };
 
 // Types of old style decorations
@@ -229,7 +274,7 @@ struct FPropertyInfo
 {
 	const char *name;
 	const char *params;
-	const PClass * const *cls;
+	const char *clsname;
 	PropHandler Handler;
 	int category;
 };
@@ -241,16 +286,23 @@ int MatchString (const char *in, const char **strings);
 #define DEFINE_PROPERTY_BASE(name, paramlist, clas, cat) \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params); \
 	static FPropertyInfo Prop_##name##_##paramlist##_##clas = \
-		{ #name, #paramlist, &RUNTIME_CLASS_CASTLESS(A##clas), (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
+		{ #name, #paramlist, #clas, (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
 	MSVC_PSEG FPropertyInfo *infoptr_##name##_##paramlist##_##clas GCC_PSEG = &Prop_##name##_##paramlist##_##clas; \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params)
 
 #define DEFINE_PREFIXED_PROPERTY_BASE(prefix, name, paramlist, clas, cat) \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params); \
 	static FPropertyInfo Prop_##name##_##paramlist##_##clas = \
-{ #prefix"."#name, #paramlist, &RUNTIME_CLASS_CASTLESS(A##clas), (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
+{ #prefix"."#name, #paramlist, #clas, (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
 	MSVC_PSEG FPropertyInfo *infoptr_##name##_##paramlist##_##clas GCC_PSEG = &Prop_##name##_##paramlist##_##clas; \
 	static void Handler_##name##_##paramlist##_##clas(A##clas *defaults, PClassActor *info, Baggage &bag, FPropParam *params)
+
+#define DEFINE_PREFIXED_SCRIPTED_PROPERTY_BASE(prefix, name, paramlist, clas, cat) \
+	static void Handler_##name##_##paramlist##_##clas(AActor *defaults, PClassActor *info, Baggage &bag, FPropParam *params); \
+	static FPropertyInfo Prop_##name##_##paramlist##_##clas = \
+{ #prefix"."#name, #paramlist, #clas, (PropHandler)Handler_##name##_##paramlist##_##clas, cat }; \
+	MSVC_PSEG FPropertyInfo *infoptr_##name##_##paramlist##_##clas GCC_PSEG = &Prop_##name##_##paramlist##_##clas; \
+	static void Handler_##name##_##paramlist##_##clas(AActor *defaults, PClassActor *info, Baggage &bag, FPropParam *params)
 
 
 #define DEFINE_PROPERTY(name, paramlist, clas) DEFINE_PROPERTY_BASE(name, paramlist, clas, CAT_PROPERTY)
@@ -258,6 +310,9 @@ int MatchString (const char *in, const char **strings);
 
 #define DEFINE_CLASS_PROPERTY(name, paramlist, clas) DEFINE_PREFIXED_PROPERTY_BASE(clas, name, paramlist, clas, CAT_PROPERTY)
 #define DEFINE_CLASS_PROPERTY_PREFIX(prefix, name, paramlist, clas) DEFINE_PREFIXED_PROPERTY_BASE(prefix, name, paramlist, clas, CAT_PROPERTY)
+
+#define DEFINE_SCRIPTED_PROPERTY(name, paramlist, clas) DEFINE_PREFIXED_SCRIPTED_PROPERTY_BASE(clas, name, paramlist, clas, CAT_PROPERTY)
+#define DEFINE_SCRIPTED_PROPERTY_PREFIX(prefix, name, paramlist, clas) DEFINE_PREFIXED_SCRIPTED_PROPERTY_BASE(prefix, name, paramlist, clas, CAT_PROPERTY)
 
 #define PROP_PARM_COUNT (params[0].i)
 

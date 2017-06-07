@@ -354,6 +354,37 @@ void FGameConfigFile::DoGlobalSetup ()
 					SetValueForKey ("5", "use ArtiInvulnerability2");
 				}
 			}
+			if (last < 213)
+			{
+				auto var = FindCVar("snd_channels", NULL);
+				if (var != NULL)
+				{
+					// old settings were default 32, minimum 8, new settings are default 128, minimum 64.
+					UCVarValue v = var->GetGenericRep(CVAR_Int);
+					if (v.Int < 64) var->ResetToDefault();
+				}
+			}
+			if (last < 214)
+			{
+				FBaseCVar *var = FindCVar("hud_scale", NULL);
+				if (var != NULL) var->ResetToDefault();
+				var = FindCVar("st_scale", NULL);
+				if (var != NULL) var->ResetToDefault();
+				var = FindCVar("hud_althudscale", NULL);
+				if (var != NULL) var->ResetToDefault();
+				var = FindCVar("con_scale", NULL);
+				if (var != NULL) var->ResetToDefault();
+				var = FindCVar("con_scaletext", NULL);
+				if (var != NULL) var->ResetToDefault();
+				var = FindCVar("uiscale", NULL);
+				if (var != NULL) var->ResetToDefault();
+			}
+			if (last < 215)
+			{
+				// Previously a true/false boolean. Now an on/off/auto tri-state with auto as the default.
+				FBaseCVar *var = FindCVar("snd_hrtf", NULL);
+				if (var != NULL) var->ResetToDefault();
+			}
 		}
 	}
 }
@@ -488,7 +519,7 @@ void FGameConfigFile::ReadNetVars ()
 
 // Read cvars from a cvar section of the ini. Flags are the flags to give
 // to newly-created cvars that were not already defined.
-void FGameConfigFile::ReadCVars (DWORD flags)
+void FGameConfigFile::ReadCVars (uint32_t flags)
 {
 	const char *key, *value;
 	FBaseCVar *cvar;
@@ -616,7 +647,7 @@ void FGameConfigFile::CreateStandardAutoExec(const char *section, bool start)
 	}
 }
 
-void FGameConfigFile::AddAutoexec (DArgs *list, const char *game)
+void FGameConfigFile::AddAutoexec (FArgs *list, const char *game)
 {
 	char section[64];
 	const char *key;

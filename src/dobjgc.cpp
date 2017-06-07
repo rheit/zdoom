@@ -65,7 +65,6 @@
 #include "sbar.h"
 #include "stats.h"
 #include "c_dispatch.h"
-#include "p_acs.h"
 #include "s_sndseq.h"
 #include "r_data/r_interpolate.h"
 #include "doomstat.h"
@@ -77,6 +76,8 @@
 #include "r_utility.h"
 #include "menu/menu.h"
 #include "intermission/intermission.h"
+#include "g_levellocals.h"
+#include "events.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -148,7 +149,7 @@ DObject *Gray;
 DObject *Root;
 DObject *SoftRoots;
 DObject **SweepPos;
-DWORD CurrentWhite = OF_White0 | OF_Fixed;
+uint32_t CurrentWhite = OF_White0 | OF_Fixed;
 EGCState State = GCS_Pause;
 int Pause = DEFAULT_GCPAUSE;
 int StepMul = DEFAULT_GCMUL;
@@ -276,7 +277,9 @@ static DObject **SweepList(DObject **p, size_t count, size_t *finalize_count)
 void Mark(DObject **obj)
 {
 	DObject *lobj = *obj;
-	if (lobj != NULL)
+
+	assert(lobj == nullptr || !(lobj->ObjectFlags & OF_Released));
+	if (lobj != nullptr && !(lobj->ObjectFlags & OF_Released))
 	{
 		if (lobj->ObjectFlags & OF_EuthanizeMe)
 		{
@@ -320,15 +323,14 @@ static void MarkRoot()
 	int i;
 
 	Gray = NULL;
-	Mark(Args);
-	Mark(screen);
 	Mark(StatusBar);
-	Mark(DMenu::CurrentMenu);
+	M_MarkMenus();
 	Mark(DIntermissionController::CurrentIntermission);
 	DThinker::MarkRoots();
 	FCanvasTextureInfo::Mark();
-	Mark(DACSThinker::ActiveThinker);
-	for (auto &s : sectorPortals)
+	Mark(E_FirstEventHandler);
+	Mark(E_LastEventHandler);
+	for (auto &s : level.sectorPortals)
 	{
 		Mark(s.mSkybox);
 	}
@@ -346,13 +348,13 @@ static void MarkRoot()
 	// Mark sound sequences.
 	DSeqNode::StaticMarkHead();
 	// Mark sectors.
-	if (SectorMarker == NULL && sectors != NULL)
+	if (SectorMarker == nullptr && level.sectors.Size() > 0)
 	{
-		SectorMarker = new DSectorMarker;
+		SectorMarker = Create<DSectorMarker>();
 	}
-	else if (sectors == NULL)
+	else if (level.sectors.Size() == 0)
 	{
-		SectorMarker = NULL;
+		SectorMarker = nullptr;
 	}
 	else
 	{
@@ -360,25 +362,6 @@ static void MarkRoot()
 	}
 	Mark(SectorMarker);
 	Mark(interpolator.Head);
-	// Mark action functions
-	if (!FinalGC)
-	{
-		FAutoSegIterator probe(ARegHead, ARegTail);
-
-		while (*++probe != NULL)
-		{
-			AFuncDesc *afunc = (AFuncDesc *)*probe;
-			Mark(*(afunc->VMPointer));
-		}
-	}
-	// Mark types
-	TypeTable.Mark();
-	for (unsigned int i = 0; i < PClass::AllClasses.Size(); ++i)
-	{
-		Mark(PClass::AllClasses[i]);
-	}
-	// Mark global symbols
-	GlobalSymbols.MarkSymbols();
 	// Mark bot stuff.
 	Mark(bglobal.firstthing);
 	Mark(bglobal.body1);
@@ -457,8 +440,8 @@ static size_t SingleStep()
 		{ // Nothing more to sweep?
 			State = GCS_Finalize;
 		}
-		assert(old >= AllocBytes);
-		Estimate -= old - AllocBytes;
+		//assert(old >= AllocBytes);
+		Estimate -= MAX<size_t>(0, old - AllocBytes);
 		return (GCSWEEPMAX - finalize_count) * GCSWEEPCOST + finalize_count * GCFINALIZECOST;
 	  }
 
@@ -561,6 +544,8 @@ void Barrier(DObject *pointing, DObject *pointed)
 	assert(pointing == NULL || (pointing->IsBlack() && !pointing->IsDead()));
 	assert(pointed->IsWhite() && !pointed->IsDead());
 	assert(State != GCS_Finalize && State != GCS_Pause);
+	assert(!(pointed->ObjectFlags & OF_Released));	// if a released object gets here, something must be wrong.
+	if (pointed->ObjectFlags & OF_Released) return;	// don't do anything with non-GC'd objects.
 	// The invariant only needs to be maintained in the propagate state.
 	if (State == GCS_Propagate)
 	{
@@ -606,7 +591,7 @@ void AddSoftRoot(DObject *obj)
 		// Create a new object to root the soft roots off of, and stick
 		// it at the end of the object list, so we know that anything
 		// before it is not a soft root.
-		SoftRoots = new DObject;
+		SoftRoots = Create<DObject>();
 		SoftRoots->ObjectFlags |= OF_Fixed;
 		probe = &Root;
 		while (*probe != NULL)
@@ -677,26 +662,25 @@ size_t DSectorMarker::PropagateMark()
 	int i;
 	int marked = 0;
 	bool moretodo = false;
+	int numsectors = level.sectors.Size();
 
-	if (sectors != NULL)
+	for (i = 0; i < SECTORSTEPSIZE && SecNum + i < numsectors; ++i)
 	{
-		for (i = 0; i < SECTORSTEPSIZE && SecNum + i < numsectors; ++i)
-		{
-			sector_t *sec = &sectors[SecNum + i];
-			GC::Mark(sec->SoundTarget);
-			GC::Mark(sec->SecActTarget);
-			GC::Mark(sec->floordata);
-			GC::Mark(sec->ceilingdata);
-			GC::Mark(sec->lightingdata);
-			for(int j=0;j<4;j++) GC::Mark(sec->interpolations[j]);
-		}
-		marked += i * sizeof(sector_t);
-		if (SecNum + i < numsectors)
-		{
-			SecNum += i;
-			moretodo = true;
-		}
+		sector_t *sec = &level.sectors[SecNum + i];
+		GC::Mark(sec->SoundTarget);
+		GC::Mark(sec->SecActTarget);
+		GC::Mark(sec->floordata);
+		GC::Mark(sec->ceilingdata);
+		GC::Mark(sec->lightingdata);
+		for(int j=0;j<4;j++) GC::Mark(sec->interpolations[j]);
 	}
+	marked += i * sizeof(sector_t);
+	if (SecNum + i < numsectors)
+	{
+		SecNum += i;
+		moretodo = true;
+	}
+
 	if (!moretodo && polyobjs != NULL)
 	{
 		for (i = 0; i < POLYSTEPSIZE && PolyNum + i < po_NumPolyobjs; ++i)
@@ -710,15 +694,15 @@ size_t DSectorMarker::PropagateMark()
 			moretodo = true;
 		}
 	}
-	if (!moretodo && sides != NULL)
+	if (!moretodo && level.sides.Size() > 0)
 	{
-		for (i = 0; i < SIDEDEFSTEPSIZE && SideNum + i < numsides; ++i)
+		for (i = 0; i < SIDEDEFSTEPSIZE && SideNum + i < (int)level.sides.Size(); ++i)
 		{
-			side_t *side = &sides[SideNum + i];
+			side_t *side = &level.sides[SideNum + i];
 			for(int j=0;j<3;j++) GC::Mark(side->textures[j].interpolation);
 		}
 		marked += i * sizeof(side_t);
-		if (SideNum + i < numsides)
+		if (SideNum + i < (int)level.sides.Size())
 		{
 			SideNum += i;
 			moretodo = true;
@@ -776,7 +760,7 @@ CCMD(gc)
 {
 	if (argv.argc() == 1)
 	{
-		Printf ("Usage: gc stop|now|full|pause [size]|stepmul [size]\n");
+		Printf ("Usage: gc stop|now|full|count|pause [size]|stepmul [size]\n");
 		return;
 	}
 	if (stricmp(argv[1], "stop") == 0)
@@ -790,6 +774,12 @@ CCMD(gc)
 	else if (stricmp(argv[1], "full") == 0)
 	{
 		GC::FullGC();
+	}
+	else if (stricmp(argv[1], "count") == 0)
+	{
+		int cnt = 0;
+		for (DObject *obj = GC::Root; obj; obj = obj->ObjNext, cnt++);
+		Printf("%d active objects counted\n", cnt);
 	}
 	else if (stricmp(argv[1], "pause") == 0)
 	{
@@ -814,3 +804,4 @@ CCMD(gc)
 		}
 	}
 }
+

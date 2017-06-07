@@ -56,22 +56,19 @@
 #include "m_argv.h"
 #include "p_local.h"
 #include "doomerrors.h"
-#include "a_artifacts.h"
-#include "a_weaponpiece.h"
+#include "a_weapons.h"
 #include "p_conversation.h"
 #include "v_text.h"
-#include "thingdef.h"
-#include "codegeneration/codegen.h"
+//#include "thingdef.h"
+#include "backend/codegen.h"
 #include "a_sharedglobal.h"
-#include "vmbuilder.h"
+#include "backend/vmbuilder.h"
 #include "stats.h"
 
 // EXTERNAL FUNCTION PROTOTYPES --------------------------------------------
 void InitThingdef();
 
 // STATIC FUNCTION PROTOTYPES --------------------------------------------
-PClassActor *QuestItemClasses[31];
-
 
 static TMap<FState *, FScriptPosition> StateSourceLines;
 static FScriptPosition unknownstatesource("unknown file", 0);
@@ -104,7 +101,7 @@ FScriptPosition & GetStateSource(FState *state)
 //
 //==========================================================================
 
-void SetImplicitArgs(TArray<PType *> *args, TArray<DWORD> *argflags, TArray<FName> *argnames, PStruct *cls, DWORD funcflags, int useflags)
+void SetImplicitArgs(TArray<PType *> *args, TArray<uint32_t> *argflags, TArray<FName> *argnames, PContainerType *cls, uint32_t funcflags, int useflags)
 {
 	// Must be called before adding any other arguments.
 	assert(args == nullptr || args->Size() == 0);
@@ -113,12 +110,13 @@ void SetImplicitArgs(TArray<PType *> *args, TArray<DWORD> *argflags, TArray<FNam
 	if (funcflags & VARF_Method)
 	{
 		// implied self pointer
-		if (args != nullptr)		args->Push(NewPointer(cls)); 
+		if (args != nullptr)		args->Push(NewPointer(cls, !!(funcflags & VARF_ReadOnly))); 
 		if (argflags != nullptr)	argflags->Push(VARF_Implicit | VARF_ReadOnly);
 		if (argnames != nullptr)	argnames->Push(NAME_self);
 	}
 	if (funcflags & VARF_Action)
 	{
+		assert(!(funcflags & VARF_ReadOnly));
 		// implied caller and callingstate pointers
 		if (args != nullptr)
 		{
@@ -156,7 +154,7 @@ void SetImplicitArgs(TArray<PType *> *args, TArray<DWORD> *argflags, TArray<FNam
 //
 //==========================================================================
 
-PFunction *CreateAnonymousFunction(PClass *containingclass, PType *returntype, int flags)
+PFunction *CreateAnonymousFunction(PContainerType *containingclass, PType *returntype, int flags)
 {
 	TArray<PType *> rets(1);
 	TArray<PType *> args;
@@ -166,10 +164,14 @@ PFunction *CreateAnonymousFunction(PClass *containingclass, PType *returntype, i
 	// Functions that only get flagged for actors do not need the additional two context parameters.
 	int fflags = (flags& (SUF_OVERLAY | SUF_WEAPON | SUF_ITEM)) ? VARF_Action | VARF_Method : VARF_Method;
 
+	// [ZZ] give anonymous functions the scope of their class 
+	//      (just give them VARF_Play, whatever)
+	fflags |= VARF_Play;
+
 	rets[0] = returntype != nullptr? returntype : TypeError;	// Use TypeError as placeholder if we do not know the return type yet.
 	SetImplicitArgs(&args, &argflags, &argnames, containingclass, fflags, flags);
 
-	PFunction *sym = new PFunction(containingclass, NAME_None);	// anonymous functions do not have names.
+	PFunction *sym = Create<PFunction>(containingclass, NAME_None);	// anonymous functions do not have names.
 	sym->AddVariant(NewPrototype(rets, args), argflags, argnames, nullptr, fflags, flags);
 	return sym;
 }
@@ -182,7 +184,7 @@ PFunction *CreateAnonymousFunction(PClass *containingclass, PType *returntype, i
 //
 //==========================================================================
 
-PFunction *FindClassMemberFunction(PStruct *selfcls, PStruct *funccls, FName name, FScriptPosition &sc, bool *error)
+PFunction *FindClassMemberFunction(PContainerType *selfcls, PContainerType *funccls, FName name, FScriptPosition &sc, bool *error)
 {
 	// Skip ACS_NamedExecuteWithResult. Anything calling this should use the builtin instead.
 	if (name == NAME_ACS_NamedExecuteWithResult) return nullptr;
@@ -193,14 +195,20 @@ PFunction *FindClassMemberFunction(PStruct *selfcls, PStruct *funccls, FName nam
 
 	if (symbol != nullptr)
 	{
+		auto cls_ctx = PType::toClass(funccls);
+		auto cls_target = funcsym ? PType::toClass(funcsym->OwningClass) : nullptr;
 		if (funcsym == nullptr)
 		{
 			sc.Message(MSG_ERROR, "%s is not a member function of %s", name.GetChars(), selfcls->TypeName.GetChars());
 		}
-		else if (funcsym->Variants[0].Flags & VARF_Private && symtable != &funccls->Symbols)
+		else if ((funcsym->Variants[0].Flags & VARF_Private) && symtable != &funccls->Symbols)
 		{
 			// private access is only allowed if the symbol table belongs to the class in which the current function is being defined.
 			sc.Message(MSG_ERROR, "%s is declared private and not accessible", symbol->SymbolName.GetChars());
+		}
+		else if ((funcsym->Variants[0].Flags & VARF_Protected) && symtable != &funccls->Symbols && (!cls_ctx || !cls_target || !cls_ctx->Descriptor->IsDescendantOf(cls_target->Descriptor)))
+		{
+			sc.Message(MSG_ERROR, "%s is declared protected and not accessible", symbol->SymbolName.GetChars());
 		}
 		else if (funcsym->Variants[0].Flags & VARF_Deprecated)
 		{
@@ -219,7 +227,7 @@ PFunction *FindClassMemberFunction(PStruct *selfcls, PStruct *funccls, FName nam
 //
 //==========================================================================
 
-void CreateDamageFunction(PClassActor *info, AActor *defaults, FxExpression *id, bool fromDecorate, int lumpnum)
+void CreateDamageFunction(PNamespace *OutNamespace, const VersionInfo &ver, PClassActor *info, AActor *defaults, FxExpression *id, bool fromDecorate, int lumpnum)
 {
 	if (id == nullptr)
 	{
@@ -228,8 +236,8 @@ void CreateDamageFunction(PClassActor *info, AActor *defaults, FxExpression *id,
 	else
 	{
 		auto dmg = new FxReturnStatement(new FxIntCast(id, true), id->ScriptPosition);
-		auto funcsym = CreateAnonymousFunction(info, TypeSInt32, 0);
-		defaults->DamageFunc = FunctionBuildList.AddFunction(funcsym, dmg, FStringf("%s.DamageFunction", info->TypeName.GetChars()), fromDecorate, -1, 0, lumpnum);
+		auto funcsym = CreateAnonymousFunction(info->VMType, TypeSInt32, 0);
+		defaults->DamageFunc = FunctionBuildList.AddFunction(OutNamespace, ver, funcsym, dmg, FStringf("%s.DamageFunction", info->TypeName.GetChars()), fromDecorate, -1, 0, lumpnum);
 	}
 }
 
@@ -249,17 +257,21 @@ static void CheckForUnsafeStates(PClassActor *obj)
 	TMap<FState *, bool> checked;
 	ENamedName *test;
 
-	if (obj->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+	if (obj->IsDescendantOf(NAME_Weapon))
 	{
 		if (obj->Size == RUNTIME_CLASS(AWeapon)->Size) return;	// This class cannot have user variables.
 		test = weaponstates;
 	}
-	else if (obj->IsDescendantOf(RUNTIME_CLASS(ACustomInventory)))
+	else
 	{
-		if (obj->Size == RUNTIME_CLASS(ACustomInventory)->Size) return;	// This class cannot have user variables.
-		test = pickupstates;
+		auto citype = PClass::FindActor(NAME_CustomInventory);
+		if (obj->IsDescendantOf(citype))
+		{
+			if (obj->Size == citype->Size) return;	// This class cannot have user variables.
+			test = pickupstates;
+		}
+		else return;	// something else derived from AStateProvider. We do not know what this may be.
 	}
-	else return;	// something else derived from AStateProvider. We do not know what this may be.
 
 	for (; *test != NAME_None; test++)
 	{
@@ -270,9 +282,8 @@ static void CheckForUnsafeStates(PClassActor *obj)
 			if (state->ActionFunc && state->ActionFunc->Unsafe)
 			{
 				// If an unsafe function (i.e. one that accesses user variables) is being detected, print a warning once and remove the bogus function. We may not call it because that would inevitably crash.
-				auto owner = FState::StaticFindStateOwner(state);
-				GetStateSource(state).Message(MSG_ERROR, TEXTCOLOR_RED "Unsafe state call in state %s.%d which accesses user variables, reached by %s.%s.\n",
-					owner->TypeName.GetChars(), int(state - owner->OwnedStates), obj->TypeName.GetChars(), FName(*test).GetChars());
+				GetStateSource(state).Message(MSG_ERROR, TEXTCOLOR_RED "Unsafe state call in state %s which accesses user variables, reached by %s.%s.\n",
+					FState::StaticGetStateName(state).GetChars(), obj->TypeName.GetChars(), FName(*test).GetChars());
 			}
 			state = state->NextState;
 		}
@@ -296,9 +307,8 @@ static void CheckLabel(PClassActor *obj, FStateLabel *slb, int useflag, FName st
 	{
 		if (!(state->UseFlags & useflag))
 		{
-			auto owner = FState::StaticFindStateOwner(state);
-			GetStateSource(state).Message(MSG_ERROR, TEXTCOLOR_RED "%s references state %s.%d as %s state, but this state is not flagged for use as %s.\n",
-				obj->TypeName.GetChars(), owner->TypeName.GetChars(), int(state - owner->OwnedStates), statename.GetChars(), descript);
+			GetStateSource(state).Message(MSG_ERROR, TEXTCOLOR_RED "%s references state %s as %s state, but this state is not flagged for use as %s.\n",
+				obj->TypeName.GetChars(), FState::StaticGetStateName(state).GetChars(), statename.GetChars(), descript);
 		}
 	}
 	if (slb->Children != nullptr)
@@ -313,7 +323,7 @@ static void CheckLabel(PClassActor *obj, FStateLabel *slb, int useflag, FName st
 
 static void CheckStateLabels(PClassActor *obj, ENamedName *test, int useflag,  const char *descript)
 {
-	FStateLabels *labels = obj->StateList;
+	FStateLabels *labels = obj->GetStateLabels();
 
 	for (; *test != NAME_None; test++)
 	{
@@ -335,21 +345,21 @@ static void CheckStates(PClassActor *obj)
 
 	CheckStateLabels(obj, actorstates, SUF_ACTOR, "actor sprites");
 
-	if (obj->IsDescendantOf(RUNTIME_CLASS(AWeapon)))
+	if (obj->IsDescendantOf(NAME_Weapon))
 	{
 		CheckStateLabels(obj, weaponstates, SUF_WEAPON, "weapon sprites");
 	}
-	else if (obj->IsDescendantOf(RUNTIME_CLASS(ACustomInventory)))
+	else if (obj->IsDescendantOf(NAME_CustomInventory))
 	{
 		CheckStateLabels(obj, pickupstates, SUF_ITEM, "CustomInventory state chain");
 	}
-	for (int i = 0; i < obj->NumOwnedStates; i++)
+	for (unsigned i = 0; i < obj->GetStateCount(); i++)
 	{
-		auto state = obj->OwnedStates + i;
+		auto state = obj->GetStates() + i;
 		if (state->NextState && (state->UseFlags & state->NextState->UseFlags) != state->UseFlags)
 		{
-			GetStateSource(state).Message(MSG_ERROR, TEXTCOLOR_RED "State %s.%d links to a state with incompatible restrictions.\n",
-				obj->TypeName.GetChars(), int(state - obj->OwnedStates));
+			GetStateSource(state).Message(MSG_ERROR, TEXTCOLOR_RED "State %s links to a state with incompatible restrictions.\n",
+				FState::StaticGetStateName(state).GetChars());
 		}
 	}
 }
@@ -363,6 +373,7 @@ static void CheckStates(PClassActor *obj)
 //==========================================================================
 void ParseScripts();
 void ParseAllDecorate();
+void SynthesizeFlagFields();
 
 void LoadActors()
 {
@@ -377,6 +388,7 @@ void LoadActors()
 
 	FScriptPosition::StrictErrors = false;
 	ParseAllDecorate();
+	SynthesizeFlagFields();
 
 	FunctionBuildList.Build();
 
@@ -391,12 +403,13 @@ void LoadActors()
 		auto ti = PClassActor::AllActorClasses[i];
 		if (ti->Size == TentativeClass)
 		{
-			if (ti->ObjectFlags & OF_Transient)
+			if (ti->bOptional)
 			{
 				Printf(TEXTCOLOR_ORANGE "Class %s referenced but not defined\n", ti->TypeName.GetChars());
 				FScriptPosition::WarnCounter++;
-				DObject::StaticPointerSubstitution(ti, nullptr);
-				PClassActor::AllActorClasses.Delete(i);
+				// the class must be rendered harmless so that it won't cause problems.
+				ti->ParentClass = RUNTIME_CLASS(AActor);
+				ti->Size = sizeof(AActor);
 			}
 			else
 			{
@@ -425,6 +438,13 @@ void LoadActors()
 			CheckForUnsafeStates(ti);
 		}
 
+		// ensure that all actor bouncers have PASSMOBJ set.
+		auto defaults = GetDefaultByType(ti);
+		if (defaults->BounceFlags & (BOUNCE_Actors | BOUNCE_AllActors))
+		{
+			// PASSMOBJ is irrelevant for normal missiles, but not for bouncers.
+			defaults->flags2 |= MF2_PASSMOBJ;
+		}
 	}
 	if (FScriptPosition::ErrorCounter > 0)
 	{
@@ -434,12 +454,7 @@ void LoadActors()
 	timer.Unclock();
 	if (!batchrun) Printf("script parsing took %.2f ms\n", timer.TimeMS());
 
-	// Since these are defined in DECORATE now the table has to be initialized here.
-	for (int i = 0; i < 31; i++)
-	{
-		char fmt[20];
-		mysnprintf(fmt, countof(fmt), "QuestItem%d", i + 1);
-		QuestItemClasses[i] = PClass::FindActor(fmt);
-	}
+	// Now we may call the scripted OnDestroy method.
+	PClass::bVMOperational = true;
 	StateSourceLines.Clear();
 }

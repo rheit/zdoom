@@ -6,16 +6,22 @@
 #ifdef HAVE_MPG123
 
 #ifdef _MSC_VER
-typedef int ssize_t;
+#include <stddef.h>
+typedef ptrdiff_t ssize_t;
 #endif
+
+#ifndef DYN_MPG123
 #include "mpg123.h"
+#else
+#include "thirdparty/mpg123.h"
+#endif
 
 struct MPG123Decoder : public SoundDecoder
 {
     virtual void getInfo(int *samplerate, ChannelConfig *chans, SampleType *type);
 
     virtual size_t read(char *buffer, size_t bytes);
-    virtual bool seek(size_t ms_offset);
+    virtual bool seek(size_t ms_offset, bool ms, bool mayrestart);
     virtual size_t getSampleOffset();
     virtual size_t getSampleLength();
 
@@ -30,7 +36,6 @@ private:
     bool Done;
 
     FileReader *Reader;
-    int StartOffset;
     static off_t file_lseek(void *handle, off_t offset, int whence);
     static ssize_t file_read(void *handle, void *buffer, size_t bytes);
 

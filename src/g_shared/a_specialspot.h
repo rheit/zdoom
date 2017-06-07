@@ -11,7 +11,7 @@ class ASpecialSpot : public AActor
 public:
 
 	void BeginPlay();
-	void Destroy() override;
+	void OnDestroy() override;
 };
 
 
@@ -21,14 +21,14 @@ struct FSpotList;
 class DSpotState : public DThinker
 {
 	DECLARE_CLASS(DSpotState, DThinker)
-	static TObjPtr<DSpotState> SpotState;
+	static TObjPtr<DSpotState*> SpotState;
 	TArray<FSpotList> SpotLists;
 
 public:
 
 
 	DSpotState ();
-	void Destroy() override;
+	void OnDestroy() override;
 	void Tick ();
 	static DSpotState *GetSpotState(bool create = true);
 	FSpotList *FindSpotList(PClassActor *type);

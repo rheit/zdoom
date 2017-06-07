@@ -1,38 +1,99 @@
+/*
+** mpg123_decoder.cpp
+**
+**---------------------------------------------------------------------------
+** Copyright 2008-2010 Chris Robinson
+** All rights reserved.
+**
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions
+** are met:
+**
+** 1. Redistributions of source code must retain the above copyright
+**    notice, this list of conditions and the following disclaimer.
+** 2. Redistributions in binary form must reproduce the above copyright
+**    notice, this list of conditions and the following disclaimer in the
+**    documentation and/or other materials provided with the distribution.
+** 3. The name of the author may not be used to endorse or promote products
+**    derived from this software without specific prior written permission.
+**
+** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+** OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+** IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+** INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+** NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+** THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**---------------------------------------------------------------------------
+**
+*/
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define USE_WINDOWS_DWORD
 #endif
 
 #include "mpg123_decoder.h"
 #include "files.h"
-#include "except.h"
+#include "i_module.h"
+#include "cmdlib.h"
 
 #ifdef HAVE_MPG123
+
+
+FModule MPG123Module{"MPG123"};
+
+#include "mpgload.h"
+
+#ifdef _WIN32
+#define MPG123LIB "libmpg123-0.dll"
+#elif defined(__APPLE__)
+#define MPG123LIB "libmpg123.0.dylib"
+#else
+#define MPG123LIB "libmpg123.so.0"
+#endif
+
+bool IsMPG123Present()
+{
+#if !defined DYN_MPG123
+	return true;
+#else
+	static bool cached_result = false;
+	static bool done = false;
+
+	if (!done)
+	{
+		done = true;
+		cached_result = MPG123Module.Load({NicePath("$PROGDIR/" MPG123LIB), MPG123LIB});
+	}
+	return cached_result;
+#endif
+}
+
+
 static bool inited = false;
 
 
 off_t MPG123Decoder::file_lseek(void *handle, off_t offset, int whence)
 {
-    MPG123Decoder *self = reinterpret_cast<MPG123Decoder*>(handle);
-    FileReader *reader = self->Reader;
+    FileReader *reader = reinterpret_cast<MPG123Decoder*>(handle)->Reader;
 
-    if(whence == SEEK_SET)
-        offset += self->StartOffset;
-    else if(whence == SEEK_CUR)
+    if(whence == SEEK_CUR)
     {
-        if(offset < 0 && reader->Tell()+offset < self->StartOffset)
+        if(offset < 0 && reader->Tell()+offset < 0)
             return -1;
     }
     else if(whence == SEEK_END)
     {
-        if(offset < 0 && reader->GetLength()+offset < self->StartOffset)
+        if(offset < 0 && reader->GetLength()+offset < 0)
             return -1;
     }
 
     if(reader->Seek(offset, whence) != 0)
         return -1;
-    return reader->Tell() - self->StartOffset;
+    return reader->Tell();
 }
 
 ssize_t MPG123Decoder::file_read(void *handle, void *buffer, size_t bytes)
@@ -56,60 +117,13 @@ bool MPG123Decoder::open(FileReader *reader)
 {
     if(!inited)
     {
-#ifdef _MSC_VER
-		__try {
-#endif
-			if(mpg123_init() != MPG123_OK)
-				return false;
-			inited = true;
-#ifdef _MSC_VER
-        } __except (CheckException(GetExceptionCode())) {
-			// this means that the delay loaded decoder DLL was not found.
-			return false;
-		}
-#endif
+		if (!IsMPG123Present()) return false;
+		if(mpg123_init() != MPG123_OK) return false;
+		inited = true;
     }
 
     Reader = reader;
-    StartOffset = 0;
 
-    char data[10];
-    if(file_read(this, data, 10) != 10)
-        return false;
-
-    int start_offset = 0;
-    // Check for ID3 tags and skip them
-    if(memcmp(data, "ID3", 3) == 0 &&
-       (BYTE)data[3] <= 4 && (BYTE)data[4] != 0xff &&
-       (data[5]&0x0f) == 0 && (data[6]&0x80) == 0 &&
-       (data[7]&0x80) == 0 && (data[8]&0x80) == 0 &&
-       (data[9]&0x80) == 0)
-    {
-        // ID3v2
-        start_offset  = (data[6]<<21) | (data[7]<<14) |
-                        (data[8]<< 7) | (data[9]    );
-        start_offset += ((data[5]&0x10) ? 20 : 10);
-    }
-
-    StartOffset = start_offset;
-    if(file_lseek(this, 0, SEEK_SET) != 0)
-        return false;
-
-    // Check for a frame header
-    bool frame_ok = false;
-    if(file_read(this, data, 3) == 3)
-    {
-        if((BYTE)data[0] == 0xff &&
-           ((data[1]&0xfe) == 0xfa/*MPEG-1*/ || (data[1]&0xfe) == 0xf2/*MPEG-2*/))
-        {
-            int brate_idx = (data[2]>>4) & 0x0f;
-            int srate_idx = (data[2]>>2) & 0x03;
-            if(brate_idx != 0 && brate_idx != 15 && srate_idx != 3)
-                frame_ok = (file_lseek(this, 0, SEEK_SET) == 0);
-        }
-    }
-
-    if(frame_ok)
     {
         MPG123 = mpg123_new(NULL, NULL);
         if(mpg123_replace_reader_handle(MPG123, file_read, file_lseek, NULL) == MPG123_OK &&
@@ -176,23 +190,38 @@ size_t MPG123Decoder::read(char *buffer, size_t bytes)
     return amt;
 }
 
-bool MPG123Decoder::seek(size_t ms_offset)
+bool MPG123Decoder::seek(size_t ms_offset, bool ms, bool mayrestart)
 {
-    int enc, channels;
-    long srate;
+	int enc, channels;
+	long srate;
 
-    if(mpg123_getformat(MPG123, &srate, &channels, &enc) == MPG123_OK)
-    {
-        size_t smp_offset = (size_t)((double)ms_offset / 1000. * srate);
-        if(mpg123_seek(MPG123, (off_t)smp_offset, SEEK_SET) >= 0)
-        {
-            Done = false;
-            return true;
-        }
-    }
-    return false;
+	if (!mayrestart || ms_offset > 0)
+	{
+		if (mpg123_getformat(MPG123, &srate, &channels, &enc) == MPG123_OK)
+		{
+			size_t smp_offset = ms ? (size_t)((double)ms_offset / 1000. * srate) : ms_offset;
+			if (mpg123_seek(MPG123, (off_t)smp_offset, SEEK_SET) >= 0)
+			{
+				Done = false;
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		// Restart the song instead of rewinding. A rewind seems to cause distortion when done repeatedly.
+		// offset is intentionally ignored here.
+		if (MPG123)
+		{
+			mpg123_close(MPG123);
+			mpg123_delete(MPG123);
+			MPG123 = 0;
+		}
+		Reader->Seek(0, SEEK_SET);
+		return open(Reader);
+	}
 }
-
 size_t MPG123Decoder::getSampleOffset()
 {
     return mpg123_tell(MPG123);

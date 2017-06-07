@@ -44,6 +44,9 @@
 #include "i_system.h"
 #include "d_event.h"
 #include "w_wad.h"
+#include "templates.h"
+#include "dobject.h"
+#include "vm.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -156,8 +159,11 @@ FKeyBindings Bindings;
 FKeyBindings DoubleBindings;
 FKeyBindings AutomapBindings;
 
+DEFINE_GLOBAL(Bindings)
+DEFINE_GLOBAL(AutomapBindings)
+
 static unsigned int DClickTime[NUM_KEYS];
-static BYTE DClicked[(NUM_KEYS+7)/8];
+static uint8_t DClicked[(NUM_KEYS+7)/8];
 
 //=============================================================================
 //
@@ -261,11 +267,27 @@ static const char *ConfigKeyName(int keynum)
 //
 //=============================================================================
 
+DEFINE_ACTION_FUNCTION(FKeyBindings, SetBind)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FKeyBindings);
+	PARAM_INT(k);
+	PARAM_STRING(cmd);
+	self->SetBind(k, cmd);
+	return 0;
+}
+
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
 void C_NameKeys (char *str, int first, int second)
 {
 	int c = 0;
 
 	*str = 0;
+	if (second == first) second = 0;
 	if (first)
 	{
 		c++;
@@ -282,6 +304,16 @@ void C_NameKeys (char *str, int first, int second)
 
 	if (!c)
 		*str = '\0';
+}
+
+DEFINE_ACTION_FUNCTION(FKeyBindings, NameKeys)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(k1);
+	PARAM_INT(k2);
+	char buffer[120];
+	C_NameKeys(buffer, k1, k2);
+	ACTION_RETURN_STRING(buffer);
 }
 
 //=============================================================================
@@ -445,6 +477,17 @@ int FKeyBindings::GetKeysForCommand (const char *cmd, int *first, int *second)
 	return c;
 }
 
+DEFINE_ACTION_FUNCTION(FKeyBindings, GetKeysForCommand)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FKeyBindings);
+	PARAM_STRING(cmd);
+	int k1, k2;
+	self->GetKeysForCommand(cmd.GetChars(), &k1, &k2);
+	if (numret > 0) ret[0].SetInt(k1);
+	if (numret > 1) ret[1].SetInt(k2);
+	return MIN(numret, 2);
+}
+
 //=============================================================================
 //
 //
@@ -462,6 +505,14 @@ void FKeyBindings::UnbindACommand (const char *str)
 			Binds[i] = "";
 		}
 	}
+}
+
+DEFINE_ACTION_FUNCTION(FKeyBindings, UnbindACommand)
+{
+	PARAM_SELF_STRUCT_PROLOGUE(FKeyBindings);
+	PARAM_STRING(cmd);
+	self->UnbindACommand(cmd);
+	return 0;
 }
 
 //=============================================================================
@@ -678,7 +729,7 @@ bool C_DoKey (event_t *ev, FKeyBindings *binds, FKeyBindings *doublebinds)
 	FString binding;
 	bool dclick;
 	int dclickspot;
-	BYTE dclickmask;
+	uint8_t dclickmask;
 	unsigned int nowtime;
 
 	if (ev->type != EV_KeyDown && ev->type != EV_KeyUp)

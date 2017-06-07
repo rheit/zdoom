@@ -32,10 +32,8 @@
 **
 **
 */
-#ifdef _WIN32
-#define USE_WINDOWS_DWORD
-#endif
 
+// Note that 7z made the unwise decision to include windows.h :(
 #include "7z.h"
 #include "7zCrc.h"
 
@@ -262,7 +260,7 @@ bool F7ZFile::Open(bool quiet)
 	TArray<UInt16> nameUTF16;
 	TArray<char> nameASCII;
 
-	for (DWORD i = 0; i < NumLumps; ++i)
+	for (uint32_t i = 0; i < NumLumps; ++i)
 	{
 		// skip Directories
 		if (SzArEx_IsDir(archPtr, i))

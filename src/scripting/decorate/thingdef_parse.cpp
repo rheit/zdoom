@@ -49,14 +49,13 @@
 #include "v_palette.h"
 #include "doomerrors.h"
 #include "i_system.h"
-#include "codegeneration/codegen.h"
+#include "backend/codegen.h"
 #include "w_wad.h"
 #include "v_video.h"
-#include "version.h"
 #include "v_text.h"
 #include "m_argv.h"
 
-void ParseOldDecoration(FScanner &sc, EDefinitionType def);
+void ParseOldDecoration(FScanner &sc, EDefinitionType def, PNamespace *ns);
 EXTERN_CVAR(Bool, strictdecorate);
 
 
@@ -70,6 +69,10 @@ EXTERN_CVAR(Bool, strictdecorate);
 
 PClassActor *DecoDerivedClass(const FScriptPosition &sc, PClassActor *parent, FName typeName)
 {
+	if (parent->VMType->mVersion > MakeVersion(2, 0))
+	{
+		sc.Message(MSG_ERROR, "Parent class %s of %s not accessible to DECORATE", parent->TypeName.GetChars(), typeName.GetChars());
+	}
 	PClassActor *type = static_cast<PClassActor *>(parent->CreateDerivedClass(typeName, parent->Size));
 	if (type == nullptr)
 	{
@@ -94,6 +97,14 @@ PClassActor *DecoDerivedClass(const FScriptPosition &sc, PClassActor *parent, FN
 			sc.Message(MSG_FATAL, "Tried to define class '%s' more than twice in the same file.", typeName.GetChars());
 		}
 	}
+	
+	if (type != nullptr)
+	{
+		// [ZZ] DECORATE classes are always play
+		auto vmtype = type->VMType;
+		vmtype->ScopeFlags = FScopeBarrier::ChangeSideInObjectFlags(vmtype->ScopeFlags, FScopeBarrier::Side_Play);
+	}
+
 	return type;
 }
 
@@ -101,12 +112,11 @@ PClassActor *DecoDerivedClass(const FScriptPosition &sc, PClassActor *parent, FN
 //
 // ParseParameter
 //
-// Parses a parameter - either a default in a function declaration 
-// or an argument in a function call.
+// Parses an argument in a function call.
 //
 //==========================================================================
 
-FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool constant)
+FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type)
 {
 	FxExpression *x = NULL;
 	int v;
@@ -118,12 +128,7 @@ FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool c
 	}
 	else if (type == TypeBool || type == TypeSInt32 || type == TypeFloat64)
 	{
-		x = ParseExpression (sc, cls, constant);
-		if (constant && !x->isConstant())
-		{
-			sc.ScriptMessage("Default parameter must be constant.");
-			FScriptPosition::ErrorCounter++;
-		}
+		x = ParseExpression (sc, cls, nullptr);
 		// Do automatic coercion between bools, ints and floats.
 		if (type == TypeBool)
 		{
@@ -193,18 +198,17 @@ FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool c
 				x = new FxMultiNameState(sc.String, sc);
 			}
 		}
-		else if (!constant)
+		else
 		{
 			x = new FxRuntimeStateIndex(ParseExpression(sc, cls));
 		}
-		else sc.MustGetToken(TK_StringConst); // This is for the error.
 	}
-	else if (type->GetClass() == RUNTIME_CLASS(PClassPointer))
+	else if (type->isClassPointer())
 	{	// Actor name
 		sc.SetEscape(true);
 		sc.MustGetString();
 		sc.SetEscape(false);
-		x = new FxClassTypeCast(static_cast<PClassPointer *>(type), new FxConstant(FName(sc.String), sc));
+		x = new FxClassTypeCast(static_cast<PClassPointer *>(type), new FxConstant(FName(sc.String), sc), false);
 	}
 	else
 	{
@@ -222,7 +226,7 @@ FxExpression *ParseParameter(FScanner &sc, PClassActor *cls, PType *type, bool c
 //
 //==========================================================================
 
-static void ParseConstant (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
+static void ParseConstant (FScanner &sc, PSymbolTable *symt, PClassActor *cls, PNamespace *ns)
 {
 	// Read the type and make sure it's int or float.
 	if (sc.CheckToken(TK_Int) || sc.CheckToken(TK_Float))
@@ -231,7 +235,7 @@ static void ParseConstant (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
 		sc.MustGetToken(TK_Identifier);
 		FName symname = sc.String;
 		sc.MustGetToken('=');
-		FxExpression *expr = ParseExpression (sc, cls, true);
+		FxExpression *expr = ParseExpression (sc, cls, ns);
 		sc.MustGetToken(';');
 
 		if (expr == nullptr)
@@ -251,12 +255,12 @@ static void ParseConstant (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
 			PSymbolConstNumeric *sym;
 			if (type == TK_Int)
 			{
-				sym = new PSymbolConstNumeric(symname, TypeSInt32);
+				sym = Create<PSymbolConstNumeric>(symname, TypeSInt32);
 				sym->Value = val.GetInt();
 			}
 			else
 			{
-				sym = new PSymbolConstNumeric(symname, TypeFloat64);
+				sym = Create<PSymbolConstNumeric>(symname, TypeFloat64);
 				sym->Float = val.GetFloat();
 			}
 			if (symt->AddSymbol (sym) == NULL)
@@ -283,7 +287,7 @@ static void ParseConstant (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
 //
 //==========================================================================
 
-static void ParseEnum (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
+static void ParseEnum (FScanner &sc, PSymbolTable *symt, PClassActor *cls, PNamespace *ns)
 {
 	int currvalue = 0;
 
@@ -294,7 +298,7 @@ static void ParseEnum (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
 		FName symname = sc.String;
 		if (sc.CheckToken('='))
 		{
-			FxExpression *expr = ParseExpression (sc, cls, true);
+			FxExpression *expr = ParseExpression (sc, cls, ns);
 			if (expr != nullptr)
 			{
 				if (!expr->isConstant())
@@ -314,7 +318,7 @@ static void ParseEnum (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
 				FScriptPosition::ErrorCounter++;
 			}
 		}
-		PSymbolConstNumeric *sym = new PSymbolConstNumeric(symname, TypeSInt32);
+		PSymbolConstNumeric *sym = Create<PSymbolConstNumeric>(symname, TypeSInt32);
 		sym->Value = currvalue;
 		if (symt->AddSymbol (sym) == NULL)
 		{
@@ -339,7 +343,7 @@ static void ParseEnum (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
 //
 //==========================================================================
 
-static void ParseUserVariable (FScanner &sc, PSymbolTable *symt, PClassActor *cls)
+static void ParseUserVariable (FScanner &sc, PSymbolTable *symt, PClassActor *cls, PNamespace *ns)
 {
 	PType *type;
 	int maxelems = 1;
@@ -381,7 +385,7 @@ static void ParseUserVariable (FScanner &sc, PSymbolTable *symt, PClassActor *cl
 
 	if (sc.CheckToken('['))
 	{
-		FxExpression *expr = ParseExpression(sc, cls, true);
+		FxExpression *expr = ParseExpression(sc, cls, ns);
 		if (expr == nullptr)
 		{
 			sc.ScriptMessage("Error while resolving array size");
@@ -579,7 +583,7 @@ static FState *CheckState(FScanner &sc, PClass *type)
 			FState *state = NULL;
 			sc.MustGetString();
 
-			PClassActor *info = dyn_cast<PClassActor>(type->ParentClass);
+			PClassActor *info = ValidateActor(type->ParentClass);
 
 			if (info != NULL)
 			{
@@ -821,6 +825,96 @@ static bool ParsePropertyParams(FScanner &sc, FPropertyInfo *prop, AActor *defau
 
 //==========================================================================
 //
+// Parses an actor property's parameters and calls the handler
+//
+//==========================================================================
+
+static void DispatchScriptProperty(FScanner &sc, PProperty *prop, AActor *defaults, Baggage &bag)
+{
+	for (unsigned i=0; i<prop->Variables.Size();i++)
+	{
+		auto f = prop->Variables[i];
+		void *addr;
+
+		if (i > 0) sc.MustGetStringName(",");
+		if (f->Flags & VARF_Meta)
+		{
+			addr = ((char*)bag.Info->Meta) + f->Offset;
+		}
+		else
+		{
+			addr = ((char*)defaults) + f->Offset;
+		}
+
+		if (f->Type == TypeBool)
+		{
+			bool val = sc.CheckNumber() ? !!sc.Number : true;
+			static_cast<PBool*>(f->Type)->SetValue(addr, !!val);
+		}
+		else if (f->Type == TypeName)
+		{
+			sc.MustGetString();
+			*(FName*)addr = sc.String;
+		}
+		else if (f->Type == TypeSound)
+		{
+			sc.MustGetString();
+			*(FSoundID*)addr = sc.String;
+		}
+		else if (f->Type == TypeColor)
+		{
+			if (sc.CheckNumber()) *(int*)addr = sc.Number;
+			else *(PalEntry*)addr = V_GetColor(nullptr, sc);
+		}
+		else if (f->Type->isIntCompatible())
+		{
+			sc.MustGetNumber();
+			static_cast<PInt*>(f->Type)->SetValue(addr, sc.Number);
+		}
+		else if (f->Type->isFloat())
+		{
+			sc.MustGetFloat();
+			static_cast<PFloat*>(f->Type)->SetValue(addr, sc.Float);
+		}
+		else if (f->Type == TypeString)
+		{
+			sc.MustGetString();
+			*(FString*)addr = strbin1(sc.String);
+		}
+		else if (f->Type->isClassPointer())
+		{
+			sc.MustGetString();
+
+			if (*sc.String == 0 || !stricmp(sc.String, "none"))
+			{
+				*(PClass**)addr = nullptr;
+			}
+			else
+			{
+				auto cls = PClass::FindClass(sc.String);
+				auto cp = static_cast<PClassPointer*>(f->Type);
+				if (cls == nullptr)
+				{
+					cls = cp->ClassRestriction->FindClassTentative(sc.String);
+				}
+				else if (!cls->IsDescendantOf(cp->ClassRestriction))
+				{
+					sc.ScriptMessage("class %s is not compatible with property type %s", sc.String, cp->ClassRestriction->TypeName.GetChars());
+					FScriptPosition::ErrorCounter++;
+				}
+				*(PClass**)addr = cls;
+			}
+		}
+		else
+		{
+			sc.ScriptMessage("unhandled property type %s", f->Type->DescriptiveName());
+			FScriptPosition::ErrorCounter++;
+		}
+	}
+}
+
+//==========================================================================
+//
 // Parses an actor property
 //
 //==========================================================================
@@ -851,13 +945,14 @@ static void ParseActorProperty(FScanner &sc, Baggage &bag)
 
 	if (prop != NULL)
 	{
-		if (bag.Info->IsDescendantOf(*prop->cls))
+		auto pcls = PClass::FindActor(prop->clsname);
+		if (bag.Info->IsDescendantOf(pcls))
 		{
 			ParsePropertyParams(sc, prop, (AActor *)bag.Info->Defaults, bag);
 		}
 		else
 		{
-			sc.ScriptMessage("'%s' requires an actor of type '%s'\n", propname.GetChars(), (*prop->cls)->TypeName.GetChars());
+			sc.ScriptMessage("'%s' requires an actor of type '%s'\n", propname.GetChars(), pcls->TypeName.GetChars());
 			FScriptPosition::ErrorCounter++;
 		}
 	}
@@ -867,6 +962,17 @@ static void ParseActorProperty(FScanner &sc, Baggage &bag)
 	}
 	else
 	{
+		propname.Insert(0, "@property@");
+		FName name(propname, true);
+		if (name != NAME_None)
+		{
+			auto propp = dyn_cast<PProperty>(bag.Info->FindSymbol(name, true));
+			if (propp != nullptr)
+			{
+				DispatchScriptProperty(sc, propp, (AActor *)bag.Info->Defaults, bag);
+				return;
+			}
+		}
 		sc.ScriptError("'%s' is an unknown actor property\n", propname.GetChars());
 	}
 }
@@ -895,7 +1001,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 				sc.Message(MSG_ERROR, "'%s' inherits from a class with the same name", typeName.GetChars());
 				break;
 			}
-			p = dyn_cast<PClassActor>(p->ParentClass);
+			p = ValidateActor(p->ParentClass);
 		}
 
 		if (parent == NULL)
@@ -912,8 +1018,7 @@ PClassActor *CreateNewActor(const FScriptPosition &sc, FName typeName, FName par
 	ti = DecoDerivedClass(sc, parent, typeName);
 	ti->bDecorateClass = true;	// we only set this for 'modern' DECORATE. The original stuff  is so limited that it cannot do anything that may require flagging.
 
-	ti->Replacee = ti->Replacement = NULL;
-	ti->DoomEdNum = -1;
+	ti->ActorInfo()->DoomEdNum = -1;
 	return ti;
 }
 
@@ -1005,7 +1110,7 @@ static PClassActor *ParseActorHeader(FScanner &sc, Baggage *bag)
 	try
 	{
 		PClassActor *info = CreateNewActor(sc, typeName, parentName);
-		info->DoomEdNum = DoomEdNum > 0 ? DoomEdNum : -1;
+		info->ActorInfo()->DoomEdNum = DoomEdNum > 0 ? DoomEdNum : -1;
 		info->SourceLumpName = Wads.GetLumpFullPath(sc.LumpNum);
 
 		if (!info->SetReplacement(replaceName))
@@ -1013,7 +1118,7 @@ static PClassActor *ParseActorHeader(FScanner &sc, Baggage *bag)
 			sc.ScriptMessage("Replaced type '%s' not found for %s", replaceName.GetChars(), info->TypeName.GetChars());
 		}
 
-		ResetBaggage (bag, info == RUNTIME_CLASS(AActor) ? NULL : static_cast<PClassActor *>(info->ParentClass));
+		ResetBaggage (bag, ValidateActor(info->ParentClass));
 		bag->Info = info;
 		bag->Lumpnum = sc.LumpNum;
 #ifdef _DEBUG
@@ -1033,11 +1138,13 @@ static PClassActor *ParseActorHeader(FScanner &sc, Baggage *bag)
 // Reads an actor definition
 //
 //==========================================================================
-static void ParseActor(FScanner &sc)
+static void ParseActor(FScanner &sc, PNamespace *ns)
 {
 	PClassActor *info = NULL;
 	Baggage bag;
 
+	bag.Namespace = ns;
+	bag.Version = { 2, 0, 0 };	
 	bag.fromDecorate = true;
 	info = ParseActorHeader(sc, &bag);
 	sc.MustGetToken('{');
@@ -1046,15 +1153,15 @@ static void ParseActor(FScanner &sc)
 		switch (sc.TokenType)
 		{
 		case TK_Const:
-			ParseConstant (sc, &info->Symbols, info);
+			ParseConstant (sc, &info->VMType->Symbols, info, ns);
 			break;
 
 		case TK_Enum:
-			ParseEnum (sc, &info->Symbols, info);
+			ParseEnum (sc, &info->VMType->Symbols, info, ns);
 			break;
 
 		case TK_Var:
-			ParseUserVariable (sc, &info->Symbols, info);
+			ParseUserVariable (sc, &info->VMType->Symbols, info, ns);
 			break;
 
 		case TK_Identifier:
@@ -1082,7 +1189,7 @@ static void ParseActor(FScanner &sc)
 	}
 	try
 	{
-		info->Finalize(bag.statedef);
+		GetDefaultByType(info)->Finalize(bag.statedef);
 	}
 	catch (CRecoverableError &err)
 	{
@@ -1144,7 +1251,7 @@ static void ParseDamageDefinition(FScanner &sc)
 //
 //==========================================================================
 
-void ParseDecorate (FScanner &sc)
+void ParseDecorate (FScanner &sc, PNamespace *ns)
 {
 	// Get actor class name.
 	for(;;)
@@ -1171,16 +1278,16 @@ void ParseDecorate (FScanner &sc)
 			}
 			FScanner newscanner;
 			newscanner.Open(sc.String);
-			ParseDecorate(newscanner);
+			ParseDecorate(newscanner, ns);
 			break;
 		}
 
 		case TK_Const:
-			ParseConstant (sc, &GlobalSymbols, NULL);
+			ParseConstant (sc, &ns->Symbols, NULL, ns);
 			break;
 
 		case TK_Enum:
-			ParseEnum (sc, &GlobalSymbols, NULL);
+			ParseEnum (sc, &ns->Symbols, NULL, ns);
 			break;
 
 		case ';':
@@ -1196,22 +1303,22 @@ void ParseDecorate (FScanner &sc)
 			// so let's do a special case for this.
 			if (sc.Compare("ACTOR"))
 			{
-				ParseActor (sc);
+				ParseActor (sc, ns);
 				break;
 			}
 			else if (sc.Compare("PICKUP"))
 			{
-				ParseOldDecoration (sc, DEF_Pickup);
+				ParseOldDecoration (sc, DEF_Pickup, ns);
 				break;
 			}
 			else if (sc.Compare("BREAKABLE"))
 			{
-				ParseOldDecoration (sc, DEF_BreakableDecoration);
+				ParseOldDecoration (sc, DEF_BreakableDecoration, ns);
 				break;
 			}
 			else if (sc.Compare("PROJECTILE"))
 			{
-				ParseOldDecoration (sc, DEF_Projectile);
+				ParseOldDecoration (sc, DEF_Projectile, ns);
 				break;
 			}
 			else if (sc.Compare("DAMAGETYPE"))
@@ -1221,7 +1328,7 @@ void ParseDecorate (FScanner &sc)
 			}
 		default:
 			sc.RestorePos(pos);
-			ParseOldDecoration(sc, DEF_Decoration);
+			ParseOldDecoration(sc, DEF_Decoration, ns);
 			break;
 		}
 	}
@@ -1234,6 +1341,7 @@ void ParseAllDecorate()
 	while ((lump = Wads.FindLump("DECORATE", &lastlump)) != -1)
 	{
 		FScanner sc(lump);
-		ParseDecorate(sc);
+		auto ns = Namespaces.NewNamespace(sc.LumpNum);
+		ParseDecorate(sc, ns);
 	}
 }

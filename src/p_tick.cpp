@@ -1,20 +1,23 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
 //		Ticker.
@@ -35,6 +38,8 @@
 #include "g_level.h"
 #include "r_utility.h"
 #include "p_spec.h"
+#include "g_levellocals.h"
+#include "events.h"
 
 extern gamestate_t wipegamestate;
 
@@ -124,7 +129,9 @@ void P_Ticker (void)
 			/*Added by MC: Freeze mode.*/!(bglobal.freeze && players[i].Bot != NULL))
 			P_PlayerThink (&players[i]);
 
-	StatusBar->Tick ();		// [RH] moved this here
+	// [ZZ] call the WorldTick hook
+	E_WorldTick();
+	StatusBar->CallTick ();		// [RH] moved this here
 	level.Tick ();			// [RH] let the level tick
 	DThinker::RunThinkers ();
 

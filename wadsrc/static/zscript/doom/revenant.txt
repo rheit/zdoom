@@ -80,6 +80,7 @@ class RevenantTracer : Actor
 		Projectile;
 		+SEEKERMISSILE 
 		+RANDOMIZE
+		+ZDOOMTRANS
 		SeeSound "skeleton/attack";
 		DeathSound "skeleton/tracex";
 		RenderStyle "Add";
@@ -110,6 +111,7 @@ class RevenantTracerSmoke : Actor
 		+NOBLOCKMAP
 		+NOGRAVITY
 		+NOTELEPORT
+		+ZDOOMTRANS
 		RenderStyle "Translucent";
 		Alpha 0.5;
 	}
@@ -152,15 +154,16 @@ extend class Actor
 
 	void A_SkelFist()
 	{
-		if (target == null) return;
+		let targ = target;
+		if (targ == null) return;
 		A_FaceTarget();
 		
 		if (CheckMeleeRange ())
 		{
 			int damage = random[SkelFist](1, 10) * 6;
 			A_PlaySound("skeleton/melee", CHAN_WEAPON);
-			int newdam = target.DamageMobj (self, self, damage, 'Melee');
-			target.TraceBleed (newdam > 0 ? newdam : damage, self);
+			int newdam = targ.DamageMobj (self, self, damage, 'Melee');
+			targ.TraceBleed (newdam > 0 ? newdam : damage, self);
 		}
 	}
 
@@ -233,10 +236,13 @@ extend class Actor
 		SpawnPuff ("BulletPuff", pos, angle, angle, 3);
 		Actor smoke = Spawn ("RevenantTracerSmoke", Vec3Offset(-Vel.X, -Vel.Y, 0.), ALLOW_REPLACE);
 	
-		smoke.Vel.Z = 1.;
-		smoke.tics -= random[Tracer](0, 3);
-		if (smoke.tics < 1)
-			smoke.tics = 1;
+		if (smoke != null)
+		{
+			smoke.Vel.Z = 1.;
+			smoke.tics -= random[Tracer](0, 3);
+			if (smoke.tics < 1)
+				smoke.tics = 1;
+		}
 
 		// The rest of this function was identical with Strife's version, except for the angle being used.
 		A_Tracer2(16.875);

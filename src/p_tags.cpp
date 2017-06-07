@@ -36,24 +36,10 @@
 
 #include "p_tags.h"
 #include "c_dispatch.h"
+#include "g_levellocals.h"
+#include "vm.h"
 
 FTagManager tagManager;
-
-//-----------------------------------------------------------------------------
-//
-//
-//
-//-----------------------------------------------------------------------------
-
-static inline int sectindex(const sector_t *sector)
-{
-	return (int)(intptr_t)(sector - sectors);
-}
-
-static inline int lineindex(const line_t *line)
-{
-	return (int)(intptr_t)(line - lines);
-}
 
 //-----------------------------------------------------------------------------
 //
@@ -194,7 +180,7 @@ void FTagManager::HashTags()
 
 bool FTagManager::SectorHasTags(const sector_t *sector) const
 {
-	int i = sectindex(sector);
+	int i = sector->Index();
 	return SectorHasTags(i);
 }
 
@@ -206,7 +192,7 @@ bool FTagManager::SectorHasTags(const sector_t *sector) const
 
 int FTagManager::GetFirstSectorTag(const sector_t *sect) const
 {
-	int i = sectindex(sect);
+	int i = sect->Index();
 	return SectorHasTags(i) ? allTags[startForSector[i]].tag : 0;
 }
 
@@ -238,7 +224,7 @@ bool FTagManager::SectorHasTag(int i, int tag) const
 
 bool FTagManager::SectorHasTag(const sector_t *sector, int tag) const
 {
-	return SectorHasTag(sectindex(sector), tag);
+	return SectorHasTag(sector->Index(), tag);
 }
 
 //-----------------------------------------------------------------------------
@@ -249,7 +235,7 @@ bool FTagManager::SectorHasTag(const sector_t *sector, int tag) const
 
 int FTagManager::GetFirstLineID(const line_t *line) const
 {
-	int i = lineindex(line);
+	int i = line->Index();
 	return LineHasIDs(i) ? allIDs[startForLine[i]].tag : 0;
 }
 
@@ -281,7 +267,7 @@ bool FTagManager::LineHasID(int i, int tag) const
 
 bool FTagManager::LineHasID(const line_t *line, int tag) const
 {
-	return LineHasID(lineindex(line), tag);
+	return LineHasID(line->Index(), tag);
 }
 
 //-----------------------------------------------------------------------------
@@ -334,11 +320,11 @@ int FSectorTagIterator::Next()
 	else
 	{
 		// with the tag manager, searching for tag 0 has to be different, because it won't create entries for untagged sectors.
-		while (start < numsectors && tagManager.SectorHasTags(start))
+		while (start < (int)level.sectors.Size() && tagManager.SectorHasTags(start))
 		{
 			start++;
 		}
-		if (start == numsectors) return -1;
+		if (start == (int)level.sectors.Size()) return -1;
 		ret = start;
 		start++;
 	}
@@ -355,7 +341,7 @@ int FSectorTagIterator::NextCompat(bool compat, int start)
 {
 	if (!compat) return Next();
 
-	for (int i = start + 1; i < numsectors; i++)
+	for (unsigned i = start + 1; i < level.sectors.Size(); i++)
 	{
 		if (tagManager.SectorHasTag(i, searchtag)) return i;
 	}
@@ -377,3 +363,65 @@ int FLineIdIterator::Next()
 	start = tagManager.allIDs[start].nexttag;
 	return ret;
 }
+
+class DSectorTagIterator : public DObject, public FSectorTagIterator
+{
+	DECLARE_ABSTRACT_CLASS(DSectorTagIterator, DObject);
+public:
+	DSectorTagIterator(int tag, line_t *line)
+	{
+		if (line == nullptr) Init(tag);
+		else Init(tag, line);
+	}
+};
+
+IMPLEMENT_CLASS(DSectorTagIterator, true, false);
+
+DEFINE_ACTION_FUNCTION(DSectorTagIterator, Create)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(tag);
+	PARAM_POINTER_DEF(line, line_t);
+	ACTION_RETURN_POINTER(Create<DSectorTagIterator>(tag, line));
+}
+
+DEFINE_ACTION_FUNCTION(DSectorTagIterator, Next)
+{
+	PARAM_SELF_PROLOGUE(DSectorTagIterator);
+	ACTION_RETURN_INT(self->Next());
+}
+
+DEFINE_ACTION_FUNCTION(DSectorTagIterator, NextCompat)
+{
+	PARAM_SELF_PROLOGUE(DSectorTagIterator);
+	PARAM_BOOL(compat);
+	PARAM_INT(secnum);
+	ACTION_RETURN_INT(self->NextCompat(compat, secnum));
+}
+
+
+class DLineIdIterator : public DObject, public FLineIdIterator
+{
+	DECLARE_ABSTRACT_CLASS(DLineIdIterator, DObject);
+public:
+	DLineIdIterator(int tag)
+		: FLineIdIterator(tag)
+	{
+	}
+};
+
+IMPLEMENT_CLASS(DLineIdIterator, true, false);
+
+DEFINE_ACTION_FUNCTION(DLineIdIterator, Create)
+{
+	PARAM_PROLOGUE;
+	PARAM_INT(tag);
+	ACTION_RETURN_POINTER(Create<DLineIdIterator>(tag));
+}
+
+DEFINE_ACTION_FUNCTION(DLineIdIterator, Next)
+{
+	PARAM_SELF_PROLOGUE(DLineIdIterator);
+	ACTION_RETURN_INT(self->Next());
+}
+

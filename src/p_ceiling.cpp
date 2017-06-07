@@ -1,20 +1,26 @@
-// Emacs style mode select	 -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
-// $Id:$
+// Copyright 1993-1996 id Software
+// Copyright 1994-1996 Raven Software
+// Copyright 1998-1998 Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+// Copyright 1999-2016 Randy Heit
+// Copyright 2002-2016 Christoph Oelckers
 //
-// Copyright (C) 1993-1996 by id Software, Inc.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
-//
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
-// $Log:$
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//-----------------------------------------------------------------------------
+//
 //
 // DESCRIPTION:  Ceiling animation (lowering, crushing, raising)
 //
@@ -31,6 +37,9 @@
 #include "gi.h"
 #include "serializer.h"
 #include "p_spec.h"
+#include "g_levellocals.h"
+#include "textures.h"
+#include "vm.h"
 
 //============================================================================
 //
@@ -241,8 +250,8 @@ bool P_CreateCeiling(sector_t *sec, DCeiling::ECeiling type, line_t *line, int t
 	}
 	
 	// new door thinker
-	DCeiling *ceiling = new DCeiling (sec, speed, speed2, silent & ~4);
-	vertex_t *spot = sec->lines[0]->v1;
+	DCeiling *ceiling = Create<DCeiling> (sec, speed, speed2, silent & ~4);
+	vertex_t *spot = sec->Lines[0]->v1;
 
 	switch (type)
 	{
@@ -498,7 +507,7 @@ bool EV_DoCeiling (DCeiling::ECeiling type, line_t *line,
 	{
 		if (!line || !(sec = line->backsector))
 			return rtn;
-		secnum = (int)(sec-sectors);
+		secnum = sec->sectornum;
 		// [RH] Hack to let manual crushers be retriggerable, too
 		tag ^= secnum | 0x1000000;
 		P_ActivateInStasisCeiling (tag);
@@ -516,7 +525,7 @@ bool EV_DoCeiling (DCeiling::ECeiling type, line_t *line,
 	FSectorTagIterator it(tag);
 	while ((secnum = it.Next()) >= 0)
 	{
-		rtn |= P_CreateCeiling(&sectors[secnum], type, line, tag, speed, speed2, height, crush, silent, change, hexencrush);
+		rtn |= P_CreateCeiling(&level.sectors[secnum], type, line, tag, speed, speed2, height, crush, silent, change, hexencrush);
 	}
 	return rtn;
 }
@@ -580,4 +589,20 @@ bool EV_CeilingCrushStop (int tag, bool remove)
 	}
 
 	return rtn;
+}
+
+bool EV_StopCeiling(int tag, line_t *line)
+{
+	int sec;
+	FSectorTagIterator it(tag, line);
+	while ((sec = it.Next()) >= 0)
+	{
+		if (level.sectors[sec].ceilingdata)
+		{
+			SN_StopSequence(&level.sectors[sec], CHAN_CEILING);
+			level.sectors[sec].ceilingdata->Destroy();
+			level.sectors[sec].ceilingdata = nullptr;
+		}
+	}
+	return true;
 }

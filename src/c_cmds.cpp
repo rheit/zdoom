@@ -71,6 +71,8 @@
 #include "v_video.h"
 #include "r_utility.h"
 #include "r_data/r_interpolate.h"
+#include "c_functions.h"
+#include "g_levellocals.h"
 
 extern FILE *Logfile;
 extern bool insave;
@@ -362,11 +364,14 @@ CCMD (changemap)
 
 	if (argv.argc() > 1)
 	{
+		const char *mapname = argv[1];
+		if (!strcmp(mapname, "*")) mapname = level.MapName.GetChars();
+
 		try
 		{
-			if (!P_CheckMapData(argv[1]))
+			if (!P_CheckMapData(mapname))
 			{
-				Printf ("No map %s\n", argv[1]);
+				Printf ("No map %s\n", mapname);
 			}
 			else
 			{
@@ -379,7 +384,7 @@ CCMD (changemap)
 				{
 					Net_WriteByte (DEM_CHANGEMAP);
 				}
-				Net_WriteString (argv[1]);
+				Net_WriteString (mapname);
 			}
 		}
 		catch(CRecoverableError &error)
@@ -402,9 +407,9 @@ CCMD (give)
 	Net_WriteByte (DEM_GIVECHEAT);
 	Net_WriteString (argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteWord (clamp (atoi (argv[2]), 1, 32767));
+		Net_WriteLong(atoi(argv[2]));
 	else
-		Net_WriteWord (0);
+		Net_WriteLong(0);
 }
 
 CCMD (take)
@@ -415,9 +420,28 @@ CCMD (take)
 	Net_WriteByte (DEM_TAKECHEAT);
 	Net_WriteString (argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteWord (clamp (atoi (argv[2]), 1, 32767));
+		Net_WriteLong(atoi (argv[2]));
 	else
-		Net_WriteWord (0);
+		Net_WriteLong (0);
+}
+
+CCMD(setinv)
+{
+	if (CheckCheatmode() || argv.argc() < 2)
+		return;
+
+	Net_WriteByte(DEM_SETINV);
+	Net_WriteString(argv[1]);
+	if (argv.argc() > 2)
+		Net_WriteLong(atoi(argv[2]));
+	else
+		Net_WriteLong(0);
+
+	if (argv.argc() > 3)
+		Net_WriteByte(!!atoi(argv[3]));
+	else
+		Net_WriteByte(0);
+
 }
 
 CCMD (gameversion)
@@ -730,34 +754,6 @@ CCMD (dir)
 	chdir (curdir);
 }
 
-CCMD (fov)
-{
-	player_t *player = who ? who->player : &players[consoleplayer];
-
-	if (argv.argc() != 2)
-	{
-		Printf ("fov is %g\n", player->DesiredFOV);
-		return;
-	}
-	else if (dmflags & DF_NO_FOV)
-	{
-		if (consoleplayer == Net_Arbitrator)
-		{
-			Net_WriteByte (DEM_FOV);
-		}
-		else
-		{
-			Printf ("A setting controller has disabled FOV changes.\n");
-			return;
-		}
-	}
-	else
-	{
-		Net_WriteByte (DEM_MYFOV);
-	}
-	Net_WriteByte (clamp (atoi (argv[1]), 5, 179));
-}
-
 //==========================================================================
 //
 // CCMD warp
@@ -870,20 +866,17 @@ CCMD (wdir)
 //
 //
 //-----------------------------------------------------------------------------
+
 CCMD(linetarget)
 {
 	FTranslatedLineTarget t;
 
 	if (CheckCheatmode () || players[consoleplayer].mo == NULL) return;
-	P_AimLineAttack(players[consoleplayer].mo,players[consoleplayer].mo->Angles.Yaw, MISSILERANGE, &t, 0.);
+	C_AimLine(&t, false);
 	if (t.linetarget)
-	{
-		Printf("Target=%s, Health=%d, Spawnhealth=%d\n",
-			t.linetarget->GetClass()->TypeName.GetChars(),
-			t.linetarget->health,
-			t.linetarget->SpawnHealth());
-	}
-	else Printf("No target found\n");
+		C_PrintInfo(t.linetarget, argv.argc() > 1 && atoi(argv[1]) != 0);
+	else
+		Printf("No target found\n");
 }
 
 // As linetarget, but also give info about non-shootable actors
@@ -892,28 +885,18 @@ CCMD(info)
 	FTranslatedLineTarget t;
 
 	if (CheckCheatmode () || players[consoleplayer].mo == NULL) return;
-	P_AimLineAttack(players[consoleplayer].mo,players[consoleplayer].mo->Angles.Yaw, MISSILERANGE,
-		&t, 0.,	ALF_CHECKNONSHOOTABLE|ALF_FORCENOSMART);
+	C_AimLine(&t, true);
 	if (t.linetarget)
-	{
-		Printf("Target=%s, Health=%d, Spawnhealth=%d\n",
-			t.linetarget->GetClass()->TypeName.GetChars(),
-			t.linetarget->health,
-			t.linetarget->SpawnHealth());
-		PrintMiscActorInfo(t.linetarget);
-	}
-	else Printf("No target found. Info cannot find actors that have "
+		C_PrintInfo(t.linetarget, !(argv.argc() > 1 && atoi(argv[1]) == 0));
+	else
+		Printf("No target found. Info cannot find actors that have "
 				"the NOBLOCKMAP flag or have height/radius of 0.\n");
 }
 
 CCMD(myinfo)
 {
 	if (CheckCheatmode () || players[consoleplayer].mo == NULL) return;
-	Printf("Target=%s, Health=%d, Spawnhealth=%d\n",
-		players[consoleplayer].mo->GetClass()->TypeName.GetChars(),
-		players[consoleplayer].mo->health,
-		players[consoleplayer].mo->SpawnHealth());
-	PrintMiscActorInfo(players[consoleplayer].mo);
+	C_PrintInfo(players[consoleplayer].mo, true);
 }
 
 typedef bool (*ActorTypeChecker) (AActor *);
@@ -948,14 +931,20 @@ static void PrintFilteredActorList(const ActorTypeChecker IsActorType, const cha
 	AActor *mo;
 	const PClass *FilterClass = NULL;
 	int counter = 0;
+	int tid = 0;
 
 	if (FilterName != NULL)
 	{
 		FilterClass = PClass::FindActor(FilterName);
 		if (FilterClass == NULL)
 		{
-			Printf("%s is not an actor class.\n", FilterName);
-			return;
+			char *endp;
+			tid = (int)strtol(FilterName, &endp, 10);
+			if (*endp != 0)
+			{
+				Printf("%s is not an actor class.\n", FilterName);
+				return;
+			}
 		}
 	}
 	TThinkerIterator<AActor> it;
@@ -964,10 +953,13 @@ static void PrintFilteredActorList(const ActorTypeChecker IsActorType, const cha
 	{
 		if ((FilterClass == NULL || mo->IsA(FilterClass)) && IsActorType(mo))
 		{
-			counter++;
-			if (!countOnly)
-				Printf ("%s at (%f,%f,%f)\n",
-					mo->GetClass()->TypeName.GetChars(), mo->X(), mo->Y(), mo->Z());
+			if (tid == 0 || tid == mo->tid)
+			{
+				counter++;
+				if (!countOnly)
+					Printf("%s at (%f,%f,%f)\n",
+						mo->GetClass()->TypeName.GetChars(), mo->X(), mo->Y(), mo->Z());
+			}
 		}
 	}
 	Printf("%i match(s) found.\n", counter);
@@ -1160,34 +1152,6 @@ CCMD(currentpos)
 
 //-----------------------------------------------------------------------------
 //
-//
-//
-//-----------------------------------------------------------------------------
-CCMD(vmengine)
-{
-	if (argv.argc() == 2)
-	{
-		if (stricmp(argv[1], "default") == 0)
-		{
-			VMSelectEngine(VMEngine_Default);
-			return;
-		}
-		else if (stricmp(argv[1], "checked") == 0)
-		{
-			VMSelectEngine(VMEngine_Checked);
-			return;
-		}
-		else if (stricmp(argv[1], "unchecked") == 0)
-		{
-			VMSelectEngine(VMEngine_Unchecked);
-			return;
-		}
-	}
-	Printf("Usage: vmengine <default|checked|unchecked>\n");
-}
-
-//-----------------------------------------------------------------------------
-//
 // Print secret info (submitted by Karl Murks)
 //
 //-----------------------------------------------------------------------------
@@ -1201,18 +1165,18 @@ static void PrintSecretString(const char *string, bool thislevel)
 		{
 			if (string[1] == 'S' || string[1] == 's')
 			{
-				long secnum = strtol(string+2, (char**)&string, 10);
+				auto secnum = (unsigned)strtoull(string+2, (char**)&string, 10);
 				if (*string == ';') string++;
-				if (thislevel && secnum >= 0 && secnum < numsectors)
+				if (thislevel && secnum < level.sectors.Size())
 				{
-					if (sectors[secnum].isSecret()) colstr = TEXTCOLOR_RED;
-					else if (sectors[secnum].wasSecret()) colstr = TEXTCOLOR_GREEN;
+					if (level.sectors[secnum].isSecret()) colstr = TEXTCOLOR_RED;
+					else if (level.sectors[secnum].wasSecret()) colstr = TEXTCOLOR_GREEN;
 					else colstr = TEXTCOLOR_ORANGE;
 				}
 			}
 			else if (string[1] == 'T' || string[1] == 't')
 			{
-				long tid = strtol(string+2, (char**)&string, 10);
+				long tid = (long)strtoll(string+2, (char**)&string, 10);
 				if (*string == ';') string++;
 				FActorIterator it(tid);
 				AActor *actor;
@@ -1221,7 +1185,7 @@ static void PrintSecretString(const char *string, bool thislevel)
 				{
 					while ((actor = it.Next()))
 					{
-						if (!actor->IsKindOf(PClass::FindClass("SecretTrigger"))) continue;
+						if (!actor->IsKindOf("SecretTrigger")) continue;
 						foundone = true;
 						break;
 					}
