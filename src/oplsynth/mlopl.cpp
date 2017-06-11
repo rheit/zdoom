@@ -286,6 +286,7 @@ void musicBlock::OPLpitchWheel(uint channel, int pitch)
 		{
 			ch->time = MLtime;
 			ch->pitch = ch->finetune + pitch;
+			Printf("Chan %d Freq %d, %d, %d, %d\n", id, channel, ch->realnote, ch->pitch, 1);
 			writeFrequency(i, ch->realnote, ch->pitch, 1);
 		}
 	}
