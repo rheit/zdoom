@@ -42,6 +42,7 @@
 
 #include <memory>
 #include <chrono>
+#include <functional>
 
 #include "except.h"
 #include "doomstat.h"
