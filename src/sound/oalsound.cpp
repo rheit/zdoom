@@ -40,6 +40,7 @@
 #include <dlfcn.h>
 #endif
 
+#include <functional>
 #include <memory>
 #include <chrono>
 
