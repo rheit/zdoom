@@ -61,6 +61,9 @@
 #include "tempfiles.h"
 #include "cmdlib.h"
 
+#include <iostream>
+#include <functional>
+
 FModule OpenALModule{"OpenAL"};
 
 #include "oalload.h"
